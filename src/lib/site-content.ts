@@ -90,6 +90,7 @@ export type SiteContent = {
     applicationsLabel: string
     backToProducts: string
     backToCases: string
+    backToBlog: string
     searchProducts: string
     searchCases: string
     searchPosts: string
@@ -613,6 +614,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       applicationsLabel: 'Aplicações',
       backToProducts: 'Voltar aos produtos',
       backToCases: 'Voltar aos casos',
+      backToBlog: 'Voltar ao blog',
       searchProducts: 'Pesquisar produtos',
       searchCases: 'Pesquisar casos',
       searchPosts: 'Pesquisar artigos',
@@ -787,6 +789,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       applicationsLabel: 'Applications',
       backToProducts: 'Back to products',
       backToCases: 'Back to cases',
+      backToBlog: 'Back to blog',
       searchProducts: 'Search products',
       searchCases: 'Search cases',
       searchPosts: 'Search posts',
@@ -950,6 +953,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       applicationsLabel: 'Aplicaciones',
       backToProducts: 'Volver a productos',
       backToCases: 'Volver a casos',
+      backToBlog: 'Volver al blog',
       searchProducts: 'Buscar productos',
       searchCases: 'Buscar casos',
       searchPosts: 'Buscar artículos',

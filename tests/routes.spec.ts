@@ -1,7 +1,7 @@
-import {expect, test} from '@playwright/test'
+import {expect, test, type Page} from '@playwright/test'
 
 const publicRoutes = [
-  {path: '/?lang=pt', heading: 'DaFábrica4You', active: 'Início'},
+  {path: '/?lang=pt', heading: 'Plástico reciclado para exteriores vivos', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do drama dos plásticos', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {
@@ -38,6 +38,64 @@ const blogSlugs = [
   'pedido-orcamento-plastico-reciclado',
   'compostagem-urbana-equipamento',
 ]
+
+const caseSlugs = [
+  'vedacao-piscina-moita',
+  'decking-mobiliario-torres-mondego',
+  'floreiras-moscavide',
+]
+
+async function goToNextPage(page: Page) {
+  const nextButton = page.getByRole('button', {name: 'Seguinte'})
+  if ((await nextButton.count()) === 0 || !(await nextButton.isEnabled())) return false
+
+  const pageLabel = page.locator('.pagination span')
+  const currentLabel = (await pageLabel.count()) > 0 ? await pageLabel.textContent() : ''
+
+  await nextButton.click()
+
+  if (currentLabel) {
+    await expect(pageLabel).not.toHaveText(currentLabel)
+  }
+
+  return true
+}
+
+async function collectPagedLinks(page: Page, cardSelector: string) {
+  const links = new Set<string>()
+
+  for (let pageIndex = 0; pageIndex < 8; pageIndex += 1) {
+    const pageLinks = await page.locator(cardSelector).evaluateAll((anchors) =>
+      anchors.map((anchor) => (anchor as HTMLAnchorElement).getAttribute('href') ?? ''),
+    )
+
+    for (const href of pageLinks) links.add(href)
+
+    if (!(await goToNextPage(page))) break
+  }
+
+  return links
+}
+
+async function collectPagedLinksWithImages(page: Page, cardSelector: string, imageSelector: string) {
+  const links = new Set<string>()
+
+  for (let pageIndex = 0; pageIndex < 8; pageIndex += 1) {
+    const pageLinks = await page.locator(cardSelector).evaluateAll(
+      (anchors, selector) =>
+        anchors
+          .filter((anchor) => anchor.querySelector(selector))
+          .map((anchor) => (anchor as HTMLAnchorElement).getAttribute('href') ?? ''),
+      imageSelector,
+    )
+
+    for (const href of pageLinks) links.add(href)
+
+    if (!(await goToNextPage(page))) break
+  }
+
+  return links
+}
 
 test.describe('public website routes', () => {
   for (const route of publicRoutes) {
@@ -77,28 +135,47 @@ test.describe('public website routes', () => {
 
   test('product index links every fallback product to a detail page', async ({page}) => {
     await page.goto('/produtos?lang=pt')
+    const links = await collectPagedLinks(page, '.product-panel')
 
     for (const slug of productSlugs) {
-      await expect(page.locator(`a[href="/produtos/${slug}?lang=pt"]`)).toHaveCount(1)
+      expect(links.has(`/produtos/${slug}?lang=pt`)).toBe(true)
     }
 
-    await expect(page.locator('.product-panel-media img')).toHaveCount(productSlugs.length)
+    await page.goto('/produtos?lang=pt')
+    const linksWithImages = await collectPagedLinksWithImages(
+      page,
+      '.product-panel',
+      '.product-panel-media img',
+    )
+
+    for (const slug of productSlugs) {
+      expect(linksWithImages.has(`/produtos/${slug}?lang=pt`)).toBe(true)
+    }
   })
 
   test('blog index links every fallback post to a detail page', async ({page}) => {
     await page.goto('/blog?lang=pt')
+    const links = await collectPagedLinks(page, '.journal-card')
 
     for (const slug of blogSlugs) {
-      await expect(page.locator(`a[href="/blog/${slug}?lang=pt"]`)).toHaveCount(1)
+      expect(links.has(`/blog/${slug}?lang=pt`)).toBe(true)
     }
 
-    await expect(page.locator('.journal-card-media img')).toHaveCount(blogSlugs.length)
+    await page.goto('/blog?lang=pt')
+    const linksWithImages = await collectPagedLinksWithImages(page, '.journal-card', '.journal-card-media img')
+
+    for (const slug of blogSlugs) {
+      expect(linksWithImages.has(`/blog/${slug}?lang=pt`)).toBe(true)
+    }
   })
 
   test('case-study index renders CMS-ready project images', async ({page}) => {
     await page.goto('/casos-de-estudo?lang=pt')
+    const linksWithImages = await collectPagedLinksWithImages(page, '.case-card', '.case-card-media img')
 
-    await expect(page.locator('.case-card-media img')).toHaveCount(3)
+    for (const slug of caseSlugs) {
+      expect(linksWithImages.has(`/casos-de-estudo/${slug}?lang=pt`)).toBe(true)
+    }
   })
 
   test('localized contact form keeps the message field as a textarea', async ({page}) => {

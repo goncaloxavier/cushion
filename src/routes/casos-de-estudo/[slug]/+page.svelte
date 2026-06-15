@@ -3,6 +3,7 @@
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
+  const langQuery = $derived(`?lang=${data.language}`)
   let selectedImageIndex = $state(0)
   let zoomOpen = $state(false)
   const images = $derived(caseStudyImagesFor(data.caseStudy, caseStudyImageFallback))
@@ -23,6 +24,10 @@
   <article class="detail-page case-detail">
     <section class="case-detail-hero">
       <div class="case-detail-overlay">
+        <a class="detail-back-link" href={`/casos-de-estudo${langQuery}`}>
+          <span aria-hidden="true">←</span>
+          {content.common.backToCases}
+        </a>
         <p class="kicker">{data.caseStudy.location}</p>
         <h1>{data.caseStudy.title}</h1>
         <p class="article-lead">{data.caseStudy.summary}</p>

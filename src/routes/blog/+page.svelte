@@ -53,11 +53,12 @@
     <Reveal variant="panel">
       <div class="collection-tools">
         <label class="search-field">
+          <span>{content.nav.blog}</span>
           <input
             bind:value={query}
             type="search"
             aria-label={content.common.searchPosts}
-            placeholder={content.nav.blog}
+            placeholder={content.common.searchPlaceholder}
           />
         </label>
         <p>{filteredPosts.length} / {content.blogPosts.length}</p>
