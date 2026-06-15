@@ -24,6 +24,10 @@
   <article class="detail-page product-detail">
     <section class="detail-hero product-detail-hero">
       <div class="detail-hero-copy">
+        <a class="detail-back-link" href={`/produtos${langQuery}`}>
+          <span aria-hidden="true">←</span>
+          {content.common.backToProducts}
+        </a>
         <p class="kicker">{content.nav.products}</p>
         <h1>{data.product.title}</h1>
         <p class="article-lead">{data.product.description}</p>

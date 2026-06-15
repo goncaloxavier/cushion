@@ -52,11 +52,12 @@
     <Reveal delay={80} variant="panel">
       <div class="collection-tools">
         <label class="search-field">
+          <span>{content.nav.products}</span>
           <input
             bind:value={query}
             type="search"
             aria-label={content.common.searchProducts}
-            placeholder={content.nav.products}
+            placeholder={content.common.searchPlaceholder}
           />
         </label>
         <p>{filteredProducts.length} / {content.products.length}</p>

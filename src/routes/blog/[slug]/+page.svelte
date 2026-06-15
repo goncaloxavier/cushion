@@ -2,6 +2,8 @@
   import {blogImageFallback, imageFor} from '$lib/site-content'
 
   let {data} = $props()
+  const content = $derived(data.site[data.language])
+  const langQuery = $derived(`?lang=${data.language}`)
   const image = $derived(imageFor(data.post, blogImageFallback))
 </script>
 
@@ -13,6 +15,10 @@
   <article class="detail-page blog-detail">
     <header class="blog-detail-header">
       <div>
+        <a class="detail-back-link" href={`/blog${langQuery}`}>
+          <span aria-hidden="true">←</span>
+          {content.common.backToBlog}
+        </a>
         <h1>{data.post.title}</h1>
         <time datetime={data.post.publishedAt}>{data.post.publishedAt}</time>
       </div>
