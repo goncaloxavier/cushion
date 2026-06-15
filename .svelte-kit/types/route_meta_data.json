@@ -1,0 +1,36 @@
+{
+	"/": [
+		"src/routes/+layout.server.ts",
+		"src/routes/+layout.server.ts"
+	],
+	"/blog": [
+		"src/routes/+layout.server.ts"
+	],
+	"/blog/[slug]": [
+		"src/routes/blog/[slug]/+page.server.ts",
+		"src/routes/+layout.server.ts"
+	],
+	"/casos-de-estudo": [
+		"src/routes/+layout.server.ts"
+	],
+	"/casos-de-estudo/[slug]": [
+		"src/routes/casos-de-estudo/[slug]/+page.server.ts",
+		"src/routes/+layout.server.ts"
+	],
+	"/catalogo": [
+		"src/routes/+layout.server.ts"
+	],
+	"/contacto": [
+		"src/routes/+layout.server.ts"
+	],
+	"/produtos": [
+		"src/routes/+layout.server.ts"
+	],
+	"/produtos/[slug]": [
+		"src/routes/produtos/[slug]/+page.server.ts",
+		"src/routes/+layout.server.ts"
+	],
+	"/sobre-nos": [
+		"src/routes/+layout.server.ts"
+	]
+}
