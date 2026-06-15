@@ -1,0 +1,61 @@
+{
+  "name": "cushion",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "package.json",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "vite dev",
+    "dev:studio": "sanity dev --port 3333",
+    "build": "vite build",
+    "build:studio": "sanity build",
+    "preview": "vite preview",
+    "start:studio": "sanity start",
+    "check": "svelte-kit sync && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "playwright test",
+    "e2e": "playwright test tests/routes.spec.ts tests/sanity-contract.spec.ts",
+    "e2e:visual": "playwright test tests/visual.spec.ts",
+    "e2e:visual:update": "playwright test tests/visual.spec.ts --update-snapshots",
+    "test:e2e": "playwright test tests/routes.spec.ts tests/sanity-contract.spec.ts",
+    "test:visual": "playwright test tests/visual.spec.ts",
+    "test:visual:update": "playwright test tests/visual.spec.ts --update-snapshots",
+    "seed:studio:write": "tsx scripts/write-sanity-seed.ts",
+    "seed:studio": "npm run seed:studio:write && sanity datasets import .sanity/seed.ndjson --dataset production --replace",
+    "deploy:studio": "sanity deploy",
+    "deploy-graphql": "sanity graphql deploy",
+    "prepare": "svelte-kit sync || true"
+  },
+  "keywords": [
+    "sanity"
+  ],
+  "dependencies": {
+    "@sanity/client": "^7.22.1",
+    "@sanity/vision": "^5.31.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sanity": "^5.31.1",
+    "styled-components": "^6.1.18"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@sanity/eslint-config-studio": "^6.0.0",
+    "@sveltejs/adapter-auto": "^6.1.0",
+    "@sveltejs/kit": "^2.49.2",
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.14",
+    "eslint": "^9.28",
+    "prettier": "^3.5",
+    "svelte": "^5.56.3",
+    "typescript": "^5.8",
+    "vite": "^7.3.5"
+  },
+  "prettier": {
+    "bracketSpacing": false,
+    "printWidth": 100,
+    "semi": false,
+    "singleQuote": true
+  }
+}
