@@ -7,7 +7,31 @@
       name="description"
       content="DaFábrica4You transforma residuos plasticos em produtos duraveis para exterior, mobiliario urbano, vedacoes e projetos paisagisticos."
     />
+    <meta name="theme-color" content="#f8f8f6" />
     <link rel="icon" href="/favicon.svg" />
+    <script>
+      (() => {
+        const resetScroll = () => window.scrollTo(0, 0)
+
+        if ('scrollRestoration' in history) {
+          history.scrollRestoration = 'manual'
+        }
+
+        resetScroll()
+        window.addEventListener('beforeunload', resetScroll)
+        window.addEventListener('pagehide', resetScroll)
+        window.addEventListener('pageshow', resetScroll)
+        window.addEventListener(
+          'load',
+          () => {
+            resetScroll()
+            requestAnimationFrame(resetScroll)
+            window.setTimeout(resetScroll, 120)
+          },
+          {once: true},
+        )
+      })()
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

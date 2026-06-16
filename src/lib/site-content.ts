@@ -193,6 +193,76 @@ type SanityBlogPost = {
   body?: LocalizedValue
 }
 
+type SanityContentCard = {
+  title?: LocalizedValue
+  text?: LocalizedValue
+}
+
+type SanityCopyBlock = {
+  kicker?: LocalizedValue
+  title?: LocalizedValue
+  lead?: LocalizedValue
+}
+
+type SanityLocalizedRecord<T> = Partial<Record<keyof T, LocalizedValue>>
+
+type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], 'contactEmail' | 'contactPhone'>> & {
+  contactEmail?: string
+  contactPhone?: string
+}
+
+type SanitySiteContent = {
+  nav?: SanityLocalizedRecord<SiteContent['nav']>
+  common?: SanityCommonContent
+  footer?: SanityLocalizedRecord<SiteContent['footer']>
+  home?: {
+    hero?: SanityCopyBlock
+    intro?: SanityCopyBlock
+    impact?: {
+      title?: LocalizedValue
+      lead?: LocalizedValue
+      stats?: SanityContentCard[]
+    }
+    manifesto?: {
+      quote?: LocalizedValue
+      attribution?: LocalizedValue
+    }
+  }
+  about?: {
+    hero?: SanityCopyBlock
+    timeline?: SanityContentCard[]
+    principles?: SanityContentCard[]
+  }
+  productsPage?: {
+    hero?: SanityCopyBlock
+    lead?: LocalizedValue
+  }
+  catalogue?: {
+    hero?: SanityCopyBlock
+    quoteFlow?: SanityContentCard[]
+    estimate?: {
+      kicker?: LocalizedValue
+      title?: LocalizedValue
+      lead?: LocalizedValue
+      cards?: SanityContentCard[]
+      checklistTitle?: LocalizedValue
+      checklist?: LocalizedValue[]
+    }
+    note?: LocalizedValue
+  }
+  casesPage?: {
+    hero?: SanityCopyBlock
+  }
+  blogPage?: {
+    hero?: SanityCopyBlock
+    newsletter?: SanityCopyBlock
+  }
+  contactPage?: {
+    hero?: SanityCopyBlock
+    fields?: LocalizedValue[]
+  }
+}
+
 type SanityImage = {
   asset?: {
     url?: string
@@ -201,6 +271,7 @@ type SanityImage = {
 }
 
 export type SanityCollections = {
+  siteContent?: SanitySiteContent
   products?: SanityProduct[]
   caseStudies?: SanityCaseStudy[]
   blogPosts?: SanityBlogPost[]
@@ -756,7 +827,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     footer: {
       line: 'Ambientalmente responsável. Feito para durar.',
-      note: 'Website em preparação.',
+      note: '',
     },
     products: productCategories.pt,
     caseStudies: caseStudies.pt,
@@ -920,7 +991,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     footer: {
       line: 'Environmentally responsible. Made to last.',
-      note: 'Website in preparation.',
+      note: '',
     },
     products: productCategories.en,
     caseStudies: caseStudies.en,
@@ -1084,7 +1155,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     footer: {
       line: 'Ambientalmente responsable. Hecho para durar.',
-      note: 'Sitio web en preparación.',
+      note: '',
     },
     products: productCategories.es,
     caseStudies: caseStudies.es,
@@ -1094,6 +1165,67 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
 
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
   value?.[language]?.trim() || fallback
+
+const localizedRecord = <T extends Record<string, string>>(
+  source: SanityLocalizedRecord<T> | undefined,
+  language: LanguageCode,
+  fallback: T,
+) => {
+  const next = {...fallback}
+
+  for (const key of Object.keys(next) as Array<keyof T>) {
+    next[key] = localized(source?.[key], language, fallback[key]) as T[keyof T]
+  }
+
+  return next
+}
+
+const copyBlockFromSanity = (
+  source: SanityCopyBlock | undefined,
+  language: LanguageCode,
+  fallback: CopyBlock,
+) => ({
+  kicker: localized(source?.kicker, language, fallback.kicker),
+  title: localized(source?.title, language, fallback.title),
+  lead: localized(source?.lead, language, fallback.lead),
+})
+
+const contentCardsFromSanity = (
+  items: SanityContentCard[] | undefined,
+  language: LanguageCode,
+  fallback: ContentCard[],
+) => {
+  if (!items?.length) return fallback
+
+  return items.map((item, index) => ({
+    title: localized(item.title, language, fallback[index]?.title ?? ''),
+    text: localized(item.text, language, fallback[index]?.text ?? ''),
+  }))
+}
+
+const localizedListFromSanity = (
+  items: LocalizedValue[] | undefined,
+  language: LanguageCode,
+  fallback: string[],
+) => {
+  if (!items?.length) return fallback
+
+  return items
+    .map((item, index) => localized(item, language, fallback[index] ?? ''))
+    .filter(Boolean)
+}
+
+const commonFromSanity = (
+  source: SanityCommonContent | undefined,
+  language: LanguageCode,
+  fallback: SiteContent['common'],
+) => {
+  const {contactEmail, contactPhone, ...localizedSource} = source ?? {}
+  const next = localizedRecord(localizedSource, language, fallback)
+  next.contactEmail = contactEmail?.trim() || fallback.contactEmail
+  next.contactPhone = contactPhone?.trim() || fallback.contactPhone
+  return next
+}
 
 export const imageFor = (item: {image?: ContentImage}, fallback: ContentImage) => item.image ?? fallback
 
@@ -1218,12 +1350,95 @@ const postsFromSanity = (
     }))
 }
 
+const applySiteContentFromSanity = (
+  target: SiteContent,
+  source: SanitySiteContent | undefined,
+  language: LanguageCode,
+  fallback: SiteContent,
+) => {
+  if (!source) return
+
+  target.nav = localizedRecord(source.nav, language, fallback.nav)
+  target.common = commonFromSanity(source.common, language, fallback.common)
+  target.footer = localizedRecord(source.footer, language, fallback.footer)
+
+  target.home = {
+    hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
+    intro: copyBlockFromSanity(source.home?.intro, language, fallback.home.intro),
+    impact: {
+      title: localized(source.home?.impact?.title, language, fallback.home.impact.title),
+      lead: localized(source.home?.impact?.lead, language, fallback.home.impact.lead),
+      stats: contentCardsFromSanity(source.home?.impact?.stats, language, fallback.home.impact.stats),
+    },
+    manifesto: {
+      quote: localized(source.home?.manifesto?.quote, language, fallback.home.manifesto.quote),
+      attribution: localized(
+        source.home?.manifesto?.attribution,
+        language,
+        fallback.home.manifesto.attribution,
+      ),
+    },
+  }
+
+  target.about = {
+    hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
+    timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
+    principles: contentCardsFromSanity(source.about?.principles, language, fallback.about.principles),
+  }
+
+  target.productsPage = {
+    hero: copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero),
+    lead: localized(source.productsPage?.lead, language, fallback.productsPage.lead),
+  }
+
+  target.catalogue = {
+    hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
+    quoteFlow: contentCardsFromSanity(source.catalogue?.quoteFlow, language, fallback.catalogue.quoteFlow),
+    estimate: {
+      kicker: localized(source.catalogue?.estimate?.kicker, language, fallback.catalogue.estimate.kicker),
+      title: localized(source.catalogue?.estimate?.title, language, fallback.catalogue.estimate.title),
+      lead: localized(source.catalogue?.estimate?.lead, language, fallback.catalogue.estimate.lead),
+      cards: contentCardsFromSanity(
+        source.catalogue?.estimate?.cards,
+        language,
+        fallback.catalogue.estimate.cards,
+      ),
+      checklistTitle: localized(
+        source.catalogue?.estimate?.checklistTitle,
+        language,
+        fallback.catalogue.estimate.checklistTitle,
+      ),
+      checklist: localizedListFromSanity(
+        source.catalogue?.estimate?.checklist,
+        language,
+        fallback.catalogue.estimate.checklist,
+      ),
+    },
+    note: localized(source.catalogue?.note, language, fallback.catalogue.note),
+  }
+
+  target.casesPage = {
+    hero: copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero),
+  }
+
+  target.blogPage = {
+    hero: copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero),
+    newsletter: copyBlockFromSanity(source.blogPage?.newsletter, language, fallback.blogPage.newsletter),
+  }
+
+  target.contactPage = {
+    hero: copyBlockFromSanity(source.contactPage?.hero, language, fallback.contactPage.hero),
+    fields: localizedListFromSanity(source.contactPage?.fields, language, fallback.contactPage.fields),
+  }
+}
+
 export const contentFromSanity = (collections: SanityCollections | null): Record<LanguageCode, SiteContent> => {
   if (!collections) return fallbackContent
 
   const next = structuredClone(fallbackContent)
 
   for (const language of Object.keys(next) as LanguageCode[]) {
+    applySiteContentFromSanity(next[language], collections.siteContent, language, fallbackContent[language])
     next[language].products = productsFromSanity(collections.products, language, fallbackContent[language].products)
     next[language].caseStudies = casesFromSanity(
       collections.caseStudies,

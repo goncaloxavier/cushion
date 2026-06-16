@@ -11,6 +11,73 @@ export const sanityClient = createClient({
 })
 
 const collectionsQuery = `{
+  "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
+    common {
+      contactEmail,
+      contactPhone
+    },
+    footer {
+      line
+    },
+    home {
+      hero,
+      intro,
+      impact {
+        title,
+        lead,
+        stats[] {
+          title,
+          text
+        }
+      },
+      manifesto
+    },
+    about {
+      hero,
+      timeline[] {
+        title,
+        text
+      },
+      principles[] {
+        title,
+        text
+      }
+    },
+    productsPage {
+      hero,
+      lead
+    },
+    catalogue {
+      hero,
+      quoteFlow[] {
+        title,
+        text
+      },
+      estimate {
+        kicker,
+        title,
+        lead,
+        cards[] {
+          title,
+          text
+        },
+        checklistTitle,
+        checklist[]
+      },
+      note
+    },
+    casesPage {
+      hero
+    },
+    blogPage {
+      hero,
+      newsletter
+    },
+    contactPage {
+      hero,
+      fields[]
+    }
+  },
   "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     title,
     slug,

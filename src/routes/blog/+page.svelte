@@ -8,6 +8,7 @@
   const latestPost = $derived(content.blogPosts[0])
   let query = $state('')
   let page = $state(1)
+  let collectionSection: HTMLElement | null = null
   const pageSize = 2
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredPosts = $derived(
@@ -26,6 +27,24 @@
   $effect(() => {
     if (page > totalPages) page = totalPages
   })
+
+  const scrollToCollectionTop = () => {
+    requestAnimationFrame(() => {
+      collectionSection?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      })
+    })
+  }
+
+  const setCollectionPage = (nextPage: number) => {
+    const boundedPage = Math.min(totalPages, Math.max(1, nextPage))
+
+    if (boundedPage === page) return
+
+    page = boundedPage
+    scrollToCollectionTop()
+  }
 </script>
 
 <svelte:head>
@@ -49,7 +68,7 @@
     {/if}
   </section>
 
-  <section class="section collection-section blog-collection-section">
+  <section class="section collection-section blog-collection-section" bind:this={collectionSection}>
     <Reveal variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -91,7 +110,7 @@
         type="button"
         disabled={page === 1}
         onclick={() => {
-          page = Math.max(1, page - 1)
+          setCollectionPage(page - 1)
         }}
       >
         {content.common.previous}
@@ -101,7 +120,7 @@
         type="button"
         disabled={page === totalPages}
         onclick={() => {
-          page = Math.min(totalPages, page + 1)
+          setCollectionPage(page + 1)
         }}
       >
         {content.common.next}

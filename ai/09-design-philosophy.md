@@ -25,7 +25,9 @@ The website should feel premium, useful, calm, and alive.
 
 - Primary navigation must stay close to the visitor.
 - Desktop uses a compact sticky header.
-- Mobile uses a persistent bottom dock for the high-value routes: products, catalogue, case studies, blog, and contact.
+- Desktop and mobile navigation should be dynamic: hide the current route and use that space for a useful replacement, usually home or products.
+- The header logo is brand presence, not the only route home.
+- Mobile uses a persistent bottom dock for high-value routes and must include Sobre when it is not the current page.
 - The top mobile header should stay light: brand, language, and orientation. It should not become a tall wrapped menu.
 - CTAs must take the visitor directly to the intended action. `Pedir orcamento` should go to contact/request, not force a catalogue detour and repeated clicks.
 
@@ -48,6 +50,8 @@ The website should feel premium, useful, calm, and alive.
 - Avoid image zoom hover as a default card effect. Hover should feel tactile and intentional through depth, border, line, background, or small positional changes.
 - Buttons need mature micro-interactions. Avoid childish bounce, loud shine, exaggerated sweeps, or corny CTA treatment.
 - Pagination, filtering, and search should feel stable. Do not replay heavy entrance animations or cause awkward jumps when moving between pages.
+- Pagination should return the visitor to the top of the changed list, not leave them stranded beside the controls.
+- A page refresh should start at the top of the page.
 - Respect `prefers-reduced-motion`.
 - Motion should never hide content for long, create layout shift, or make scanning harder.
 
@@ -81,6 +85,17 @@ The website should feel premium, useful, calm, and alive.
 - The frontend may use fallback fixture content, but CMS-backed routes should be designed as real content surfaces, not static mockups.
 - Cards should summarize and invite detail; they should not show the full content body.
 - Search and pagination should be local to products, blog, and case studies rather than global.
+- List-page hero titles/text, catalogue copy, contact copy, footer/contact details, and collection entries should be editable through Sanity without giving the client control over the design system.
+- Studio labels should be in Portuguese and written for an editor, not for a developer.
+- CMS-driven detail routes can be more content-led, but they still need strong typography, clear back navigation, gallery/zoom support where useful, and compact first-view information.
+
+## Performance Feel
+
+- The website should feel fast before it feels clever.
+- Use loading hints for above-the-fold images and lazy loading for below-the-fold/list images.
+- Keep route transitions light enough that navigation feels instant.
+- Avoid layout shift from late-loading images, resized form fields, or unstable pagination controls.
+- Automated tests should stay quick enough to run before deployment; slow/flaky tests become friction and stop being used.
 
 ## Copy And Claims
 

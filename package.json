@@ -37,10 +37,10 @@
   ],
   "dependencies": {
     "@sanity/client": "^7.22.1",
-    "@sanity/vision": "^5.31.1",
+    "@sanity/vision": "^6.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "sanity": "^5.31.1",
+    "sanity": "^6.0.0",
     "styled-components": "^6.1.18"
   },
   "devDependencies": {

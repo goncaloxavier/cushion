@@ -75,7 +75,10 @@ npm ls @playwright/test
 
 - `npm run dev` is the SvelteKit website.
 - `npm run dev:studio` is Sanity Studio on port `3333`.
+- `npm run build` produces the SvelteKit Node build used by Railway.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
-- The repo is currently pinned to Vite 7 because the installed Sanity Studio package set is the dependency constraint.
-- Playwright tests start a local SvelteKit server on port `4173` by default and launch local Chrome.
+- The repo is on Sanity Studio 6 with Vite 7 and Svelte 5.
+- Playwright tests start a local SvelteKit server on port `4173` by default and use the installed Chrome channel unless `PLAYWRIGHT_CHANNEL` is set.
+- Playwright route/CMS tests are optimized so viewport-independent checks run once, while mobile/desktop route behavior is still covered where it matters.
 - Playwright tests force fallback fixtures with `SANITY_DISABLE_REMOTE=true`.
+- Generated Playwright folders are ignored by ESLint: `test-results/` and `playwright-report/`.

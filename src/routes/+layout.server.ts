@@ -12,7 +12,10 @@ export const load: LayoutServerLoad = async ({url}) => {
     languages,
     currentPath: url.pathname,
     isUsingSanityContent: Boolean(
-      collections?.products?.length || collections?.caseStudies?.length || collections?.blogPosts?.length,
+      collections?.siteContent ||
+        collections?.products?.length ||
+        collections?.caseStudies?.length ||
+        collections?.blogPosts?.length,
     ),
   }
 }

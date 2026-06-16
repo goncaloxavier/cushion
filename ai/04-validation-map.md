@@ -17,8 +17,8 @@ npm run seed:studio:write
 ## What Is Protected
 
 - Unit tests: none configured.
-- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/image/fallback alignment.
-- E2E tests: `tests/routes.spec.ts` checks public routes, language-safe links, overflow, detail links, collection images, contact form behavior, and 404 handling across desktop and mobile Playwright projects.
+- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/image/fallback alignment once in the desktop Playwright project because the file contract is viewport independent.
+- E2E tests: `tests/routes.spec.ts` checks public routes, dynamic navigation, language-safe links, overflow, detail links, collection images, pagination scroll, refresh scroll reset, contact form behavior, and 404 handling across desktop/mobile where the viewport matters.
 - Visual tests: `tests/visual.spec.ts` checks full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 11 starter Sanity documents from fallback content.
 - Build/type checks: `npm run check` runs SvelteKit sync and TypeScript; `npm run build` builds SvelteKit; `npm run build:studio` builds Sanity Studio.
@@ -43,7 +43,8 @@ npm run seed:studio:write
 
 ## Known Gaps
 
-- Browser tests require local Chrome because `playwright.config.ts` uses `channel: 'chrome'`.
+- Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
 - Visual baselines are platform-specific screenshot files under `tests/visual.spec.ts-snapshots/`.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
+- ESLint ignores `.svelte-kit/`, `.sanity/`, build outputs, `test-results/`, and `playwright-report/` so generated test artifacts do not crash lint.

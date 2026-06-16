@@ -3,16 +3,17 @@
 ## Stack
 
 - Frontend: SvelteKit v2 routed presentation site.
-- CMS/content backend: Sanity Studio v5.
-- Studio runtime: React 19, React DOM 19, styled-components, Sanity structure tool, Sanity Vision tool.
+- Frontend runtime: Svelte 5 with Vite 7 and `@sveltejs/adapter-node` for Node/Railway hosting.
+- CMS/content backend: Sanity Studio v6.
+- Studio runtime: React 19, React DOM 19, styled-components, Sanity structure tool, Sanity Vision v6.
 - Database/storage: Sanity Content Lake, project `u4uyfix8`, dataset `production`.
-- Build/deploy: Vite/SvelteKit scripts for the public website and Sanity CLI scripts for the Studio.
+- Build/deploy: Vite/SvelteKit scripts for the Railway public website and Sanity CLI scripts for the Studio.
 - Test tools: TypeScript, ESLint, Prettier, and Playwright are installed.
 
 ## Main Flow
 
 ```text
-Sanity product/case/blog documents -> SvelteKit layout server load -> localized routed website content
+Sanity site-content singleton + product/case/blog documents -> SvelteKit layout server load -> localized routed website content
 ```
 
 ```text
@@ -26,7 +27,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 ## Key Files And Folders
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
-- `src/routes/+layout.server.ts` - loads Sanity collection content and falls back to local content.
+- `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
 - `src/routes/+layout.svelte` - shared header, language toggle, route progress, and footer.
 - `src/routes/+page.svelte` - homepage.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
@@ -38,17 +39,17 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/routes/blog/+page.svelte` - blog index route.
 - `src/routes/blog/[slug]/+page.server.ts` and `+page.svelte` - blog article route.
 - `src/routes/contacto/+page.svelte` - contact route.
-- `playwright.config.ts` - desktop/mobile Playwright projects and local test server.
+- `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, form, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
-- `src/lib/site-content.ts` - fallback multilingual selling copy and Sanity content normalization.
-- `src/lib/sanity.ts` - Sanity client and product/case/blog collection query.
+- `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
+- `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.
 - `sanity.config.ts` - Studio title, project id, dataset, plugins, and schema registration.
 - `sanity.structure.ts` - client-friendly Studio navigation for products, case studies, blog posts, and remaining schemas.
 - `sanity.cli.ts` - Sanity CLI project, dataset, and deployment settings.
-- `schemaTypes/` - Sanity document and object schemas for landing experiments plus product categories, case studies, and blog posts.
+- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content plus product categories, case studies, and blog posts.
 - `static/logo/brand_mark.png` - provided brand mark.
 - `static/images/recycled-products-hero.png` - generated hero image for this project.
 - `static/images/product-materials.png`, `static/images/case-installation.png`, and `static/images/blog-editorial.png` - generated fallback collection images used until Sanity entries have uploaded images.
@@ -61,15 +62,15 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 
 - Source of truth: Sanity project `u4uyfix8`, dataset `production`, schema definitions committed in this repo, and fallback content in `src/lib/site-content.ts` until Sanity is populated.
 - Derived data: SvelteKit build output from `npm run build` and Sanity Studio build output from `npm run build:studio`.
-- Runtime/generated data: `node_modules/`, `.svelte-kit/`, `build/`, `dist/`, and `.sanity/`.
-- External services: Sanity Content Lake and Sanity Studio hosting/deployment.
+- Runtime/generated data: `node_modules/`, `.svelte-kit/`, `build/`, `dist/`, `.sanity/`, `test-results/`, and `playwright-report/`.
+- External services: Railway for the public website preview, Sanity Content Lake, and Sanity Studio hosting/deployment.
 - Test mode: Playwright sets `SANITY_DISABLE_REMOTE=true`, forcing stable fallback fixtures instead of mutable Content Lake content.
 
 ## Routes Or Entry Points
 
 - `npm run dev` - starts the SvelteKit website locally.
 - `npm run dev:studio` - starts Sanity Studio locally on port `3333`.
-- `npm run build` - builds the SvelteKit website.
+- `npm run build` - builds the SvelteKit website for Node hosting.
 - `npm run build:studio` - builds Sanity Studio.
 - `npm run preview` - previews the built SvelteKit website.
 - `npm run start:studio` - serves a built Sanity Studio.
@@ -93,10 +94,12 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 
 - Keep `sanity.config.ts` and `sanity.cli.ts` aligned on project id and dataset.
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
+- Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, and matching routes together.
-- Product categories, case studies, and blog posts should keep editable Sanity image fields with hotspot support and localized alt text.
+- Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
+- Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
 - When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` only when the Content Lake should receive those changes.
 - Do not use assets from the existing DaFábrica4You website; use the provided logo and project-local/generated assets unless Xavier confirms otherwise.
-- Keep generated artifacts out of committed project context unless intentionally required.
+- Keep generated artifacts out of committed project context unless intentionally required; do not stage `node_modules/`, `test-results/`, or build outputs.
