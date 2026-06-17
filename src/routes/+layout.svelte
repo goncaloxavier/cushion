@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BrandIcon from '$lib/components/BrandIcon.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import {onMount} from 'svelte'
@@ -45,6 +46,14 @@
   const routeItems = $derived(allRouteItems.filter((item) => item.key !== currentNavKey))
   const dockItems = $derived(allDockItems.filter((item) => item.key !== currentNavKey).slice(0, 6))
   const showContactLink = $derived(currentNavKey !== 'contact')
+  const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
+  const socialLinks = $derived(
+    [
+      {href: content.common.instagramUrl, label: 'Instagram', icon: 'instagram' as const},
+      {href: content.common.facebookUrl, label: 'Facebook', icon: 'facebook' as const},
+      {href: content.common.youtubeUrl, label: 'YouTube', icon: 'youtube' as const},
+    ].filter((link) => link.href),
+  )
   const routeKind = $derived.by(() => {
     if (data.currentPath === '/') return 'home'
     if (data.currentPath.startsWith('/produtos/')) return 'product-detail'
@@ -137,5 +146,29 @@
   <div class="footer-links">
     <a href={`mailto:${content.common.contactEmail}`}>{content.common.contactEmail}</a>
     <a href={`tel:${content.common.contactPhone.replaceAll(' ', '')}`}>{content.common.contactPhone}</a>
+    <a href={content.common.complaintsUrl} target="_blank" rel="noreferrer">
+      {content.common.complaintsLabel}
+    </a>
+  </div>
+  <div class="footer-social" aria-label={content.common.socialLabel}>
+    {#each socialLinks as link}
+      <a href={link.href} target="_blank" rel="noreferrer" data-social={link.icon}>
+        <BrandIcon name={link.icon} />
+        <span>{link.label}</span>
+      </a>
+    {/each}
   </div>
 </footer>
+
+{#if showWhatsappFloat}
+  <a
+    class="whatsapp-float"
+    href={content.common.whatsappUrl}
+    target="_blank"
+    rel="noreferrer"
+    aria-label={content.common.whatsappLabel}
+  >
+    <span class="whatsapp-mark" aria-hidden="true"><BrandIcon name="whatsapp" /></span>
+    <strong>{content.common.whatsappLabel}</strong>
+  </a>
+{/if}

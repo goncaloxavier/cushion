@@ -8,8 +8,8 @@ type PublicRoute = {
 }
 
 const publicRoutes: PublicRoute[] = [
-  {path: '/?lang=pt', heading: 'Plástico reciclado para exteriores vivos', active: 'Início'},
-  {path: '/sobre-nos?lang=pt', heading: 'Do drama dos plásticos', active: 'Sobre'},
+  {path: '/?lang=pt', heading: 'Resíduos do ecoponto amarelo', active: 'Início'},
+  {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {
     path: '/produtos/decking-pavimentos-passadicos?lang=pt',
@@ -265,6 +265,9 @@ test.describe('public website routes', () => {
     await expect(page.getByText('Teléfono')).toHaveCount(2)
     await expect(page.locator('textarea')).toHaveCount(1)
     await expect(page.locator('form')).toContainText('Mensaje')
+    await expect(page.locator('form input[type="checkbox"]')).toHaveCount(1)
+    await expect(page.getByRole('link', {name: 'Instagram'})).toHaveCount(2)
+    await expect(page.getByRole('link', {name: 'Libro de reclamaciones'})).toHaveCount(2)
   })
 
 })

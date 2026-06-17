@@ -28,7 +28,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
-- `src/routes/+layout.svelte` - shared header, language toggle, route progress, and footer.
+- `src/routes/+layout.svelte` - shared header, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
 - `src/routes/+page.svelte` - homepage.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
@@ -95,9 +95,11 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Keep `sanity.config.ts` and `sanity.cli.ts` aligned on project id and dataset.
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
 - Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
+- Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, and matching routes together.
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
+- Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
 - When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` only when the Content Lake should receive those changes.

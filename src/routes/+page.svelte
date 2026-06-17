@@ -16,11 +16,6 @@
       <Reveal variant="hero" priority>
         <h1>{content.home.hero.title}</h1>
         <p>{content.home.hero.lead}</p>
-        <div class="hero-proof-strip" aria-label={content.home.impact.title}>
-          {#each content.home.impact.stats.slice(0, 3) as stat}
-            <span><strong>{stat.title}</strong>{stat.text}</span>
-          {/each}
-        </div>
       </Reveal>
       <Reveal delay={130} variant="scale" priority>
         <div class="hero-actions">
@@ -29,6 +24,14 @@
         </div>
       </Reveal>
     </div>
+    <Reveal class="home-hero-media" delay={80} variant="media" priority>
+      <img
+        src={content.home.heroImage.url}
+        alt={content.home.heroImage.alt}
+        decoding="async"
+        fetchpriority="high"
+      />
+    </Reveal>
     <p class="scroll-cue">{content.common.scroll}</p>
   </section>
 

@@ -14,13 +14,16 @@ Constraints:
 - Follow existing project patterns
 - Do not invent business rules, content models, routes, or client claims
 - Keep PT/EN/ES content aligned when editing public copy
+- Keep material-origin claims specific to the confirmed yellow-bin stream when relevant: packaging, Tetra Pak, and cans/metal packaging
 - Preserve the routed website shape and the selected language query parameter
 - Keep Sanity schemas, GROQ queries, page-copy fields, image/gallery fields, and fallback content aligned
+- Keep contact/social/legal fields aligned across Sanity schema, GROQ, fallback normalization, layout, contact page, and tests
 - Keep Studio editing labels and structure friendly for a Portuguese client
 - Follow `ai/09-design-philosophy.md`: compact premium utility, persistent navigation, smooth restrained motion, and scrolling as a tool
 - Preserve the dynamic navigation behavior: hide the current route, provide useful replacement links, and include Sobre on mobile
 - Preserve pagination scroll-to-collection and refresh scroll-to-top behavior
 - Keep performance in mind: no scroll hijacking, respect reduced motion, avoid layout shift, and use image loading hints intentionally
+- Keep floating WhatsApp/social shortcuts useful without covering important content, forms, or mobile navigation
 - Update Playwright route and visual coverage when adding public routes or fallback CMS items
 - Keep the Sanity seed generator aligned with fallback content when starter CMS documents change
 - Keep the change scoped

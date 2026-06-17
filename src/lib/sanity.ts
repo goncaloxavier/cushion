@@ -14,13 +14,28 @@ const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
     common {
       contactEmail,
-      contactPhone
+      contactPhone,
+      whatsappLabel,
+      whatsappUrl,
+      socialLabel,
+      youtubeUrl,
+      facebookUrl,
+      instagramUrl,
+      complaintsLabel,
+      complaintsUrl,
+      marketingConsent
     },
     footer {
       line
     },
     home {
       hero,
+      heroImage {
+        asset -> {
+          url
+        },
+        alt
+      },
       intro,
       impact {
         title,
@@ -45,6 +60,12 @@ const collectionsQuery = `{
     },
     productsPage {
       hero,
+      heroImage {
+        asset -> {
+          url
+        },
+        alt
+      },
       lead
     },
     catalogue {
@@ -67,10 +88,22 @@ const collectionsQuery = `{
       note
     },
     casesPage {
-      hero
+      hero,
+      heroImage {
+        asset -> {
+          url
+        },
+        alt
+      }
     },
     blogPage {
       hero,
+      heroImage {
+        asset -> {
+          url
+        },
+        alt
+      },
       newsletter
     },
     contactPage {

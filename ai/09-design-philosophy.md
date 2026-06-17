@@ -13,13 +13,15 @@ The website should feel premium, useful, calm, and alive.
 
 ## Color And Contrast
 
-- Use `#f8f8f6` as the main white/off-white background.
-- Header and footer should read as clean true-white (`#ffffff`) anchors unless Xavier explicitly changes the direction.
-- The content between header and footer needs visible section rhythm. Adjacent major sections should usually have a contrast shift through off-white, warm material tint, dark graphite, or another intentional surface change.
-- The accent direction is warm copper/industrial material, not dull green. Current accent anchors are `#a8653e` and `#b88435`, with grounded graphite `#292b27`.
+- The brand direction is now green and blue as the company/category field colors, not a mostly white site with a small green accent.
+- Use green and blue as a composed system: deep blue-green anchors, mineral blue structure, recycled/environmental green for action and proof, pale mint/fog surfaces for breathing room, and very restrained yellow-bin warmth only where material-origin storytelling benefits from it.
+- Do not lock the site to a single white/off-white background. Clean white is still useful for information cards, forms, and readable content, but page surfaces may use brand fog, deep blue-green, pale mint, and image-led compositions where they improve rhythm.
+- Header can stay clean and practical for navigation. Footer may be more branded and expressive when it still preserves contrast and contact clarity.
+- The content between header and footer needs visible section rhythm. Adjacent major sections should usually have a contrast shift through clean white, pale green/blue fog, dark blue-green, image-led material surfaces, or another intentional surface change.
 - Text must have real contrast. Important copy should never feel hidden, washed out, or decorative.
-- Balance off-white with clean white, graphite panels, copper details, and restrained material tones.
-- Avoid one-note palettes, generic beige luxury, and startup-green eco cliches.
+- Avoid one-note palettes, generic beige luxury, startup-green eco cliches, and random badge/chip color that is not part of the brand system.
+- Social and WhatsApp marks should feel like clean transparent logo marks. Avoid sticker-like chips, fake app badges, or colored blobs around the icons unless there is a strong layout reason.
+- Social/WhatsApp presentation should be crisp enough to feel like intentional brand UI: prefer clean circular marks, correct logo shapes, strong contrast, and consistent sizing over ad hoc icon chips.
 
 ## Navigation
 
@@ -30,6 +32,7 @@ The website should feel premium, useful, calm, and alive.
 - Mobile uses a persistent bottom dock for high-value routes and must include Sobre when it is not the current page.
 - The top mobile header should stay light: brand, language, and orientation. It should not become a tall wrapped menu.
 - CTAs must take the visitor directly to the intended action. `Pedir orcamento` should go to contact/request, not force a catalogue detour and repeated clicks.
+- Floating shortcuts such as WhatsApp can support low-friction contact, but they must not block form fields, important card text, or the mobile dock.
 
 ## Page Density
 
@@ -54,6 +57,7 @@ The website should feel premium, useful, calm, and alive.
 - A page refresh should start at the top of the page.
 - Respect `prefers-reduced-motion`.
 - Motion should never hide content for long, create layout shift, or make scanning harder.
+- Priority hero content should be readable immediately on page load. Animation may polish the entrance, but it must not create an empty first viewport.
 
 ## Composition
 
@@ -78,6 +82,7 @@ The website should feel premium, useful, calm, and alive.
 - Case-study detail pages should support multiple images, gallery behavior, and zoom/inspection patterns when content exists, similar to product detail pages.
 - Blog should feel editorial, compact, searchable, and paginated.
 - Contact should be direct, stable, and low-friction. Form controls, especially message fields, must remain visually stable when focused or resized.
+- Contact should include clear contact routes, social links, complaints-book access, and consent UI where relevant without making the form feel bureaucratic.
 
 ## CMS And Content
 
@@ -86,6 +91,8 @@ The website should feel premium, useful, calm, and alive.
 - Cards should summarize and invite detail; they should not show the full content body.
 - Search and pagination should be local to products, blog, and case studies rather than global.
 - List-page hero titles/text, catalogue copy, contact copy, footer/contact details, and collection entries should be editable through Sanity without giving the client control over the design system.
+- Main page hero images that are part of content presentation should be editable through Sanity. Decorative accent lines, reveal strokes, gradients, and layout ornaments belong to the design system unless explicitly requested as editable content.
+- Social links, WhatsApp, Livro de Reclamacoes, and marketing-consent wording should be editable through Sanity as business/contact data, not hard-coded decoration.
 - Studio labels should be in Portuguese and written for an editor, not for a developer.
 - CMS-driven detail routes can be more content-led, but they still need strong typography, clear back navigation, gallery/zoom support where useful, and compact first-view information.
 
@@ -102,4 +109,5 @@ The website should feel premium, useful, calm, and alive.
 - Copy can sell, but it must stay anchored in confirmed facts.
 - Do not invent certifications, guarantees, exact pricing, or precise impact claims.
 - When pricing is not confirmed, explain what affects the quote and what information the visitor should send.
+- When explaining material origin, prefer the confirmed yellow-bin stream language: packaging, Tetra Pak, and cans/metal packaging. Avoid vague recycled-plastic wording when the more specific fact is relevant.
 - Subtitles should earn their place: clear, specific, and useful. Avoid internal implementation language such as Sanity, SvelteKit, CMS, or fixture references in public-facing copy.

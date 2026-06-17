@@ -4,11 +4,12 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 ## Core Rules
 
-- DaFábrica4You transforms plastic waste into recycled-plastic products.
+- DaFábrica4You transforms the yellow-bin waste stream into exterior products; public copy should name packaging, Tetra Pak, and cans/metal packaging where material origin matters instead of using vague "plastic" phrasing alone.
 - The website is presentational and multilingual: Portuguese, English, and Spanish.
 - Current sales copy must stay anchored in true public facts and avoid invented guarantees, certifications, or unsupported claims.
 - Product, case-study, and blog content should be editable through Sanity and should remain usable even if Sanity has no published entries.
 - Page-level public copy for home, about, products, catalogue, case studies, blog, contact, footer, and contact details should be editable through the Sanity `siteContent` singleton.
+- Contact, social, WhatsApp, Livro de Reclamacoes, and marketing-consent copy/links should be editable through the Sanity `siteContent` singleton.
 - Product, case-study, and blog images/galleries should be editable through Sanity; project-local fallback images are used only when an entry has no published image.
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
@@ -16,6 +17,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate snapshots.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
+- The floating WhatsApp shortcut is useful on public browsing routes, but it should not obstruct the contact form.
+- The contact form includes a marketing/personal-data consent checkbox. This is a visible consent UI only; no form submission backend is currently implemented.
 
 ## Inputs
 
@@ -23,6 +26,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Optional published Sanity `Site content` singleton document.
 - Optional published Sanity `Product category`, `Case study`, and `Blog post` documents.
 - Optional Sanity image uploads and localized image alt text for those documents.
+- Optional Sanity social, WhatsApp, complaints-book, and contact details.
 - Fallback multilingual content in `src/lib/site-content.ts`.
 
 ## Outputs
@@ -33,6 +37,9 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 ## Pricing Or Quantities
 
 - Public impact metrics currently used in fallback copy: 25,000+ single-use packages per tonne, 700 kg CO2 avoided per tonne, and 2.5 trees preserved per tonne.
+- Current fallback official complaints-book URL: `https://www.livroreclamacoes.pt/Inicio/`.
+- Current fallback social URLs: YouTube `https://www.youtube.com/@dafabrica4you245`, Facebook `https://www.facebook.com/dafabrica4you`, and Instagram `https://www.instagram.com/dafabrica4you`.
+- Current fallback WhatsApp URL: `https://wa.me/351914746637`.
 
 ## Access Or Permissions
 
@@ -53,4 +60,5 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Sanity project id `u4uyfix8`.
 - Sanity dataset `production`.
 - Public impact metrics, client-facing product claims, and contact details.
+- Social links, WhatsApp number/link, complaints-book link, and marketing-consent wording.
 - Whether fallback content should remain after Sanity is populated.

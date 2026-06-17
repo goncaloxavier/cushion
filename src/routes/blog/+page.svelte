@@ -5,7 +5,6 @@
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
-  const latestPost = $derived(content.blogPosts[0])
   let query = $state('')
   let page = $state(1)
   let collectionSection: HTMLElement | null = null
@@ -59,13 +58,14 @@
       <p>{content.blogPage.hero.lead}</p>
     </Reveal>
 
-    {#if latestPost}
-      <Reveal class="blog-index-current" delay={120} variant="panel" priority>
-        <span>{latestPost.category}</span>
-        <h2>{latestPost.title}</h2>
-        <p>{latestPost.excerpt}</p>
-      </Reveal>
-    {/if}
+    <Reveal class="blog-index-media" delay={120} variant="media" priority>
+      <img
+        src={content.blogPage.heroImage.url}
+        alt={content.blogPage.heroImage.alt}
+        loading="eager"
+        decoding="async"
+      />
+    </Reveal>
   </section>
 
   <section class="section collection-section blog-collection-section" bind:this={collectionSection}>

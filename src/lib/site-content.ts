@@ -103,9 +103,19 @@ export type SiteContent = {
     close: string
     contactEmail: string
     contactPhone: string
+    whatsappLabel: string
+    whatsappUrl: string
+    socialLabel: string
+    youtubeUrl: string
+    facebookUrl: string
+    instagramUrl: string
+    complaintsLabel: string
+    complaintsUrl: string
+    marketingConsent: string
   }
   home: {
     hero: CopyBlock
+    heroImage: ContentImage
     intro: CopyBlock
     impact: {
       title: string
@@ -124,6 +134,7 @@ export type SiteContent = {
   }
   productsPage: {
     hero: CopyBlock
+    heroImage: ContentImage
     lead: string
   }
   catalogue: {
@@ -141,9 +152,11 @@ export type SiteContent = {
   }
   casesPage: {
     hero: CopyBlock
+    heroImage: ContentImage
   }
   blogPage: {
     hero: CopyBlock
+    heroImage: ContentImage
     newsletter: CopyBlock
   }
   contactPage: {
@@ -206,10 +219,17 @@ type SanityCopyBlock = {
 
 type SanityLocalizedRecord<T> = Partial<Record<keyof T, LocalizedValue>>
 
-type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], 'contactEmail' | 'contactPhone'>> & {
-  contactEmail?: string
-  contactPhone?: string
-}
+type CommonPlainFields =
+  | 'contactEmail'
+  | 'contactPhone'
+  | 'whatsappUrl'
+  | 'youtubeUrl'
+  | 'facebookUrl'
+  | 'instagramUrl'
+  | 'complaintsUrl'
+
+type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], CommonPlainFields>> &
+  Partial<Pick<SiteContent['common'], CommonPlainFields>>
 
 type SanitySiteContent = {
   nav?: SanityLocalizedRecord<SiteContent['nav']>
@@ -217,6 +237,7 @@ type SanitySiteContent = {
   footer?: SanityLocalizedRecord<SiteContent['footer']>
   home?: {
     hero?: SanityCopyBlock
+    heroImage?: SanityImage
     intro?: SanityCopyBlock
     impact?: {
       title?: LocalizedValue
@@ -235,6 +256,7 @@ type SanitySiteContent = {
   }
   productsPage?: {
     hero?: SanityCopyBlock
+    heroImage?: SanityImage
     lead?: LocalizedValue
   }
   catalogue?: {
@@ -252,9 +274,11 @@ type SanitySiteContent = {
   }
   casesPage?: {
     hero?: SanityCopyBlock
+    heroImage?: SanityImage
   }
   blogPage?: {
     hero?: SanityCopyBlock
+    heroImage?: SanityImage
     newsletter?: SanityCopyBlock
   }
   contactPage?: {
@@ -295,9 +319,18 @@ export const getLanguage = (value: string | null): LanguageCode => {
 const contact = {
   email: 'informacoes@dafabrica4you.pt',
   phone: '+351 914 746 637',
+  whatsapp: 'https://wa.me/351914746637',
+  complaints: 'https://www.livroreclamacoes.pt/Inicio/',
+  youtube: 'https://www.youtube.com/@dafabrica4you245',
+  facebook: 'https://www.facebook.com/dafabrica4you',
+  instagram: 'https://www.instagram.com/dafabrica4you',
 }
 
 const fallbackImages = {
+  home: {
+    url: '/images/recycled-products-hero.png',
+    alt: 'Perfis reciclados aplicados num exterior contemporâneo.',
+  },
   product: {
     url: '/images/product-materials.png',
     alt: 'Perfis e superfícies em plástico reciclado num espaço exterior premium.',
@@ -698,19 +731,30 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       close: 'Fechar',
       contactEmail: contact.email,
       contactPhone: contact.phone,
+      whatsappLabel: 'Enviar mensagem no WhatsApp',
+      whatsappUrl: contact.whatsapp,
+      socialLabel: 'Redes sociais',
+      youtubeUrl: contact.youtube,
+      facebookUrl: contact.facebook,
+      instagramUrl: contact.instagram,
+      complaintsLabel: 'Livro de reclamações',
+      complaintsUrl: contact.complaints,
+      marketingConsent:
+        'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
     },
     home: {
       hero: {
-        kicker: 'Madeira plástica com origem clara',
-        title: 'Plástico reciclado para exteriores vivos',
+        kicker: 'Matéria-prima do ecoponto amarelo',
+        title: 'Resíduos do ecoponto amarelo para exteriores vivos',
         lead:
-          'A DaFábrica4You transforma resíduos plásticos em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
+          'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
+      heroImage: fallbackImages.home,
       intro: {
         kicker: 'Da preocupação à peça instalada',
         title: 'O material certo quando a madeira pede manutenção',
         lead:
-          'Decks, vedações, floreiras, mobiliário urbano e peças à medida partem de uma ideia simples: usar melhor o plástico que já existe.',
+          'Decks, vedações, floreiras, mobiliário urbano e peças à medida partem de uma ideia simples: usar melhor os resíduos de embalagem que já existem.',
       },
       impact: {
         title: 'Menos resíduo, menos manutenção',
@@ -731,9 +775,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     about: {
       hero: {
         kicker: 'O despertar para o problema',
-        title: 'Do drama dos plásticos a produtos que duram',
+        title: 'Do ecoponto amarelo a produtos que duram',
         lead:
-          'A marca nasce da vontade de reduzir plástico em aterros e no mar, substituindo parte do uso de madeira por produtos em plástico reciclado.',
+          'A marca nasce da vontade de valorizar resíduos de embalagem, Tetra Pak e latas, substituindo parte do uso de madeira por produtos reciclados.',
       },
       timeline: [
         {
@@ -760,8 +804,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Produtos',
         title: 'Soluções para exterior que não querem manutenção constante',
         lead:
-          'Da sinalética aos decks, das floreiras aos resguardos, os produtos partem da mesma lógica: plástico reciclado aplicado com sentido prático.',
+          'Da sinalética aos decks, das floreiras aos resguardos, os produtos partem da mesma lógica: resíduos do ecoponto amarelo transformados com sentido prático.',
       },
+      heroImage: fallbackImages.product,
       lead:
         'Escolha a aplicação que mais se aproxima do seu projeto e avance para uma página com usos, vantagens e pedido de orçamento.',
     },
@@ -801,6 +846,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead:
           'Casos curtos e objetivos para perceber o problema, a solução aplicada e o resultado no espaço.',
       },
+      heroImage: fallbackImages.caseStudy,
     },
     blogPage: {
       hero: {
@@ -809,6 +855,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead:
           'O blog deve responder a dúvidas reais sobre resíduos, madeira plástica, compostagem, manutenção e decisão de materiais.',
       },
+      heroImage: fallbackImages.blog,
       newsletter: {
         kicker: 'Newsletter',
         title: 'Temas de ambiente, projetos e manutenção',
@@ -819,9 +866,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     contactPage: {
       hero: {
         kicker: 'Contacto',
-        title: 'Conte-nos o espaço, nós ajudamos a escolher o caminho',
+        title: 'Conte-nos o espaço',
         lead:
-          'Para acelerar resposta, envie objetivo, quantidades aproximadas, código postal e fotografias do local.',
+          'Nós ajudamos a escolher o caminho. Para acelerar resposta, envie objetivo, quantidades aproximadas, código postal e fotografias do local.',
       },
       fields: ['Nome', 'Email', 'Telefone', 'Código postal', 'Localidade', 'Mensagem'],
     },
@@ -873,19 +920,30 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       close: 'Close',
       contactEmail: contact.email,
       contactPhone: contact.phone,
+      whatsappLabel: 'Send a WhatsApp message',
+      whatsappUrl: contact.whatsapp,
+      socialLabel: 'Social channels',
+      youtubeUrl: contact.youtube,
+      facebookUrl: contact.facebook,
+      instagramUrl: contact.instagram,
+      complaintsLabel: 'Complaints book',
+      complaintsUrl: contact.complaints,
+      marketingConsent:
+        'I agree that my data may be used for commercial contact and marketing communications related to this request.',
     },
     home: {
       hero: {
-        kicker: 'Recycled plastic with a clear origin',
-        title: 'Recycled plastic for living outdoor spaces',
+        kicker: 'Raw material from the yellow-bin stream',
+        title: 'Yellow-bin waste for living outdoor spaces',
         lead:
-          'DaFábrica4You turns plastic waste into durable, washable outdoor solutions designed for low maintenance.',
+          'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
+      heroImage: fallbackImages.home,
       intro: {
         kicker: 'From concern to installed product',
         title: 'The right material when timber asks for maintenance',
         lead:
-          'Decking, fencing, planters, urban furniture and custom pieces start from one practical idea: use existing plastic better.',
+          'Decking, fencing, planters, urban furniture and custom pieces start from one practical idea: use existing packaging waste better.',
       },
       impact: {
         title: 'Less waste, less maintenance',
@@ -906,9 +964,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     about: {
       hero: {
         kicker: 'Awakening to the problem',
-        title: 'From plastic concern to durable products',
+        title: 'From yellow-bin waste to durable products',
         lead:
-          'The brand begins with the wish to reduce plastic in landfills and the sea, replacing part of timber use with recycled-plastic products.',
+          'The brand begins with the wish to value packaging waste, Tetra Pak and cans, replacing part of timber use with recycled products.',
       },
       timeline: [
         {title: '2011', text: 'Awareness grows through data on tree felling, plastic consumption and marine impact.'},
@@ -926,8 +984,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Products',
         title: 'Outdoor solutions that avoid constant maintenance',
         lead:
-          'From signage to decking, from planters to screens, the product logic is the same: recycled plastic applied with practical sense.',
+          'From signage to decking, from planters to screens, the product logic is the same: yellow-bin waste transformed with practical sense.',
       },
+      heroImage: fallbackImages.product,
       lead:
         'Choose the application closest to your project and move into a page with uses, advantages and quote context.',
     },
@@ -966,6 +1025,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         title: 'Projects that show the material in real use',
         lead: 'Short, useful cases showing the problem, the applied solution and the result in place.',
       },
+      heroImage: fallbackImages.caseStudy,
     },
     blogPage: {
       hero: {
@@ -974,6 +1034,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead:
           'The blog should answer real questions about waste, recycled-plastic timber, composting, maintenance and material choice.',
       },
+      heroImage: fallbackImages.blog,
       newsletter: {
         kicker: 'Newsletter',
         title: 'Environment, projects and maintenance',
@@ -983,9 +1044,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     contactPage: {
       hero: {
         kicker: 'Contact',
-        title: 'Tell us about the space; we help choose the path',
+        title: 'Tell us about the space',
         lead:
-          'To speed up the answer, send the goal, approximate quantities, postcode and photos of the place.',
+          'We help choose the path. To speed up the answer, send the goal, approximate quantities, postcode and photos of the place.',
       },
       fields: ['Name', 'Email', 'Phone', 'Postcode', 'Location', 'Message'],
     },
@@ -1037,19 +1098,30 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       close: 'Cerrar',
       contactEmail: contact.email,
       contactPhone: contact.phone,
+      whatsappLabel: 'Enviar mensaje por WhatsApp',
+      whatsappUrl: contact.whatsapp,
+      socialLabel: 'Redes sociales',
+      youtubeUrl: contact.youtube,
+      facebookUrl: contact.facebook,
+      instagramUrl: contact.instagram,
+      complaintsLabel: 'Libro de reclamaciones',
+      complaintsUrl: contact.complaints,
+      marketingConsent:
+        'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
     },
     home: {
       hero: {
-        kicker: 'Plástico reciclado con origen claro',
-        title: 'Plástico reciclado para exteriores vivos',
+        kicker: 'Materia prima del contenedor amarillo',
+        title: 'Residuos del contenedor amarillo para exteriores vivos',
         lead:
-          'DaFábrica4You transforma residuos plásticos en soluciones exteriores duraderas, lavables y pensadas para bajo mantenimiento.',
+          'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
+      heroImage: fallbackImages.home,
       intro: {
         kicker: 'De la preocupación a la pieza instalada',
         title: 'El material correcto cuando la madera pide mantenimiento',
         lead:
-          'Tarimas, vallas, jardineras, mobiliario urbano y piezas a medida parten de una idea práctica: usar mejor el plástico que ya existe.',
+          'Tarimas, vallas, jardineras, mobiliario urbano y piezas a medida parten de una idea práctica: usar mejor los residuos de envases que ya existen.',
       },
       impact: {
         title: 'Menos residuo, menos mantenimiento',
@@ -1070,9 +1142,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     about: {
       hero: {
         kicker: 'Despertar ante el problema',
-        title: 'Del problema del plástico a productos duraderos',
+        title: 'Del contenedor amarillo a productos duraderos',
         lead:
-          'La marca nace del deseo de reducir plástico en vertederos y en el mar, sustituyendo parte del uso de madera por plástico reciclado.',
+          'La marca nace del deseo de valorizar residuos de envases, Tetra Pak y latas, sustituyendo parte del uso de madera por productos reciclados.',
       },
       timeline: [
         {title: '2011', text: 'La conciencia del problema crece con datos sobre tala de árboles, consumo de plástico e impacto marino.'},
@@ -1090,8 +1162,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Productos',
         title: 'Soluciones exteriores sin mantenimiento constante',
         lead:
-          'Desde señalética hasta tarimas, jardineras o resguardos, la lógica es la misma: plástico reciclado aplicado con sentido práctico.',
+          'Desde señalética hasta tarimas, jardineras o resguardos, la lógica es la misma: residuos del contenedor amarillo transformados con sentido práctico.',
       },
+      heroImage: fallbackImages.product,
       lead:
         'Elige la aplicación más cercana a tu proyecto y entra en una página con usos, ventajas y contexto de presupuesto.',
     },
@@ -1130,6 +1203,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         title: 'Proyectos que muestran el material en uso real',
         lead: 'Casos cortos y útiles que muestran el problema, la solución aplicada y el resultado en el espacio.',
       },
+      heroImage: fallbackImages.caseStudy,
     },
     blogPage: {
       hero: {
@@ -1138,6 +1212,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead:
           'El blog debe responder dudas reales sobre residuos, madera plástica, compostaje, mantenimiento y elección de materiales.',
       },
+      heroImage: fallbackImages.blog,
       newsletter: {
         kicker: 'Newsletter',
         title: 'Ambiente, proyectos y mantenimiento',
@@ -1147,9 +1222,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     contactPage: {
       hero: {
         kicker: 'Contacto',
-        title: 'Cuéntanos el espacio; ayudamos a elegir el camino',
+        title: 'Cuéntanos el espacio',
         lead:
-          'Para acelerar la respuesta, envía objetivo, cantidades aproximadas, código postal y fotos del lugar.',
+          'Ayudamos a elegir el camino. Para acelerar la respuesta, envía objetivo, cantidades aproximadas, código postal y fotos del lugar.',
       },
       fields: ['Nombre', 'Email', 'Teléfono', 'Código postal', 'Localidad', 'Mensaje'],
     },
@@ -1220,10 +1295,24 @@ const commonFromSanity = (
   language: LanguageCode,
   fallback: SiteContent['common'],
 ) => {
-  const {contactEmail, contactPhone, ...localizedSource} = source ?? {}
+  const {
+    contactEmail,
+    contactPhone,
+    whatsappUrl,
+    youtubeUrl,
+    facebookUrl,
+    instagramUrl,
+    complaintsUrl,
+    ...localizedSource
+  } = source ?? {}
   const next = localizedRecord(localizedSource, language, fallback)
   next.contactEmail = contactEmail?.trim() || fallback.contactEmail
   next.contactPhone = contactPhone?.trim() || fallback.contactPhone
+  next.whatsappUrl = whatsappUrl?.trim() || fallback.whatsappUrl
+  next.youtubeUrl = youtubeUrl?.trim() || fallback.youtubeUrl
+  next.facebookUrl = facebookUrl?.trim() || fallback.facebookUrl
+  next.instagramUrl = instagramUrl?.trim() || fallback.instagramUrl
+  next.complaintsUrl = complaintsUrl?.trim() || fallback.complaintsUrl
   return next
 }
 
@@ -1364,6 +1453,7 @@ const applySiteContentFromSanity = (
 
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
+    heroImage: imageFromSanity(source.home?.heroImage, language, fallback.home.heroImage),
     intro: copyBlockFromSanity(source.home?.intro, language, fallback.home.intro),
     impact: {
       title: localized(source.home?.impact?.title, language, fallback.home.impact.title),
@@ -1388,6 +1478,11 @@ const applySiteContentFromSanity = (
 
   target.productsPage = {
     hero: copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero),
+    heroImage: imageFromSanity(
+      source.productsPage?.heroImage,
+      language,
+      fallback.productsPage.heroImage,
+    ),
     lead: localized(source.productsPage?.lead, language, fallback.productsPage.lead),
   }
 
@@ -1419,10 +1514,12 @@ const applySiteContentFromSanity = (
 
   target.casesPage = {
     hero: copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero),
+    heroImage: imageFromSanity(source.casesPage?.heroImage, language, fallback.casesPage.heroImage),
   }
 
   target.blogPage = {
     hero: copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero),
+    heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
     newsletter: copyBlockFromSanity(source.blogPage?.newsletter, language, fallback.blogPage.newsletter),
   }
 

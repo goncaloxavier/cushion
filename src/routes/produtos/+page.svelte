@@ -61,9 +61,13 @@
       <p>{content.productsPage.hero.lead}</p>
     </Reveal>
 
-    <Reveal class="product-index-note" delay={120} variant="panel" priority>
-      <span>{content.products.length}</span>
-      <p>{content.productsPage.lead}</p>
+    <Reveal class="product-index-media" delay={120} variant="media" priority>
+      <img
+        src={content.productsPage.heroImage.url}
+        alt={content.productsPage.heroImage.alt}
+        loading="eager"
+        decoding="async"
+      />
     </Reveal>
   </section>
 

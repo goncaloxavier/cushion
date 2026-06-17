@@ -8,7 +8,9 @@ Use this as the task completion contract.
 - No client/product business rules are invented.
 - Sanity project id and dataset changes are avoided unless explicitly confirmed.
 - Public copy stays consistent across Portuguese, English, and Spanish when the same claim appears in all languages.
+- Material-origin copy stays specific to the yellow-bin waste stream when that fact matters: packaging, Tetra Pak, and cans/metal packaging rather than vague unsupported wording.
 - Sanity-backed page copy, product/category, case-study, blog, and image/gallery changes include the matching frontend load/query/schema updates.
+- Contact/social/legal field changes include matching Sanity schema, GROQ query, fallback normalization, public layout, contact route, and tests where relevant.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.
 - Visual changes follow `ai/09-design-philosophy.md`: compact pages, accessible navigation, smooth restrained motion, and no unnecessary long scrolling.
 - Internal route links preserve the selected language when practical.
@@ -16,6 +18,7 @@ Use this as the task completion contract.
 - Pagination returns users to the top of the collection, and page refresh starts at the top of the page.
 - Fallback fixture content, Sanity seed output, and tests stay aligned when starter CMS content changes.
 - Performance-sensitive images keep appropriate loading/decoding/fetch-priority hints, and motion respects `prefers-reduced-motion`.
+- Floating shortcuts such as WhatsApp do not obscure important content, form fields, or mobile navigation.
 - Relevant `/ai` files are updated when architecture, commands, validation, or business rules change.
 - No unrelated files are changed.
 - Generated artifacts are cleaned up or intentionally committed.

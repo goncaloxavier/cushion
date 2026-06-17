@@ -30,6 +30,23 @@ const copyBlockField = (name: string, title: string, description?: string) =>
     ],
   })
 
+const pageImageField = (name: string, title: string, description?: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'image',
+    options: {hotspot: true},
+    fields: [
+      defineField({
+        name: 'alt',
+        title: 'Descrição da imagem',
+        description: 'Texto simples para acessibilidade. Diga o que se vê na imagem.',
+        type: 'localizedString',
+      }),
+    ],
+  })
+
 const contentCardsField = (name: string, title: string, description?: string) =>
   defineField({
     name,
@@ -86,6 +103,7 @@ export const siteLanding = defineType({
       'Página inicial',
       [
         copyBlockField('hero', 'Primeira secção', 'Título e introdução principal da página inicial.'),
+        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da página inicial.'),
         copyBlockField('intro', 'Apresentação da empresa', 'Explicação curta sobre a empresa usada depois da primeira secção.'),
         defineField({
           name: 'impact',
@@ -128,6 +146,7 @@ export const siteLanding = defineType({
       'Página Produtos',
       [
         copyBlockField('hero', 'Primeira secção'),
+        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da página de produtos.'),
         localizedTextField('lead', 'Texto junto à contagem de produtos'),
       ],
       'Edite apenas os textos da listagem de produtos. Cada produto é editado na área Produtos.',
@@ -160,7 +179,10 @@ export const siteLanding = defineType({
     pageSectionField(
       'casesPage',
       'Página Casos',
-      [copyBlockField('hero', 'Primeira secção')],
+      [
+        copyBlockField('hero', 'Primeira secção'),
+        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da listagem de casos.'),
+      ],
       'Edite o título e introdução da listagem de casos. Cada caso é editado na área Casos de estudo.',
     ),
     pageSectionField(
@@ -168,6 +190,7 @@ export const siteLanding = defineType({
       'Página Blog',
       [
         copyBlockField('hero', 'Primeira secção'),
+        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da listagem do blog.'),
         copyBlockField('newsletter', 'Secção newsletter'),
       ],
       'Edite a introdução do Blog e a newsletter. Cada artigo é editado na área Artigos do blog.',
@@ -199,6 +222,37 @@ export const siteLanding = defineType({
           title: 'Telefone de contacto',
           type: 'string',
         }),
+        defineField({
+          name: 'whatsappUrl',
+          title: 'Link do WhatsApp',
+          description: 'Exemplo: https://wa.me/351914746637',
+          type: 'url',
+        }),
+        localizedStringField('whatsappLabel', 'Texto do botão WhatsApp'),
+        localizedStringField('socialLabel', 'Título das redes sociais'),
+        defineField({
+          name: 'youtubeUrl',
+          title: 'Link YouTube',
+          type: 'url',
+        }),
+        defineField({
+          name: 'facebookUrl',
+          title: 'Link Facebook',
+          type: 'url',
+        }),
+        defineField({
+          name: 'instagramUrl',
+          title: 'Link Instagram',
+          type: 'url',
+        }),
+        defineField({
+          name: 'complaintsUrl',
+          title: 'Link Livro de Reclamações',
+          description: 'Use o endereço oficial ou o link específico da empresa quando existir.',
+          type: 'url',
+        }),
+        localizedStringField('complaintsLabel', 'Texto do Livro de Reclamações'),
+        localizedTextField('marketingConsent', 'Consentimento de dados/marketing'),
       ],
     }),
     defineField({

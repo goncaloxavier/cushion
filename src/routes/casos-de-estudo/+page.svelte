@@ -61,10 +61,13 @@
       <p>{content.casesPage.hero.lead}</p>
     </Reveal>
 
-    <Reveal class="case-index-proof" delay={120} variant="panel" priority>
-      <span>{content.common.challenge}</span>
-      <span>{content.common.solution}</span>
-      <span>{content.common.result}</span>
+    <Reveal class="case-index-media" delay={120} variant="media" priority>
+      <img
+        src={content.casesPage.heroImage.url}
+        alt={content.casesPage.heroImage.alt}
+        loading="eager"
+        decoding="async"
+      />
     </Reveal>
   </section>
 
