@@ -252,6 +252,11 @@ export const siteLanding = defineType({
           type: 'url',
         }),
         localizedStringField('complaintsLabel', 'Texto do Livro de Reclamações'),
+        localizedTextField(
+          'complaintsNote',
+          'Texto legal junto ao Livro de Reclamações',
+          'Mostrado sempre que o link do Livro de Reclamações aparece.',
+        ),
         localizedTextField('marketingConsent', 'Consentimento de dados/marketing'),
       ],
     }),

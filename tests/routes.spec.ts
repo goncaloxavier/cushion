@@ -35,10 +35,16 @@ const publicRoutes: PublicRoute[] = [
   {path: '/contacto?lang=es', heading: 'Cuéntanos el espacio', active: null},
 ]
 
-const navLabels = {
-  pt: {home: 'Início', about: 'Sobre', products: 'Produtos'},
-  en: {home: 'Home', about: 'About', products: 'Products'},
-  es: {home: 'Inicio', about: 'Sobre', products: 'Productos'},
+const desktopNavLabels = {
+  pt: ['Início', 'Sobre', 'Produtos', 'Catálogo', 'Casos', 'Blog'],
+  en: ['Home', 'About', 'Products', 'Catalogue', 'Cases', 'Blog'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Catálogo', 'Casos', 'Blog'],
+}
+
+const mobileNavLabels = {
+  pt: [...desktopNavLabels.pt, 'Contacto'],
+  en: [...desktopNavLabels.en, 'Contact'],
+  es: [...desktopNavLabels.es, 'Contacto'],
 }
 
 const productSlugs = [
@@ -141,26 +147,24 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
   )
   expect(linksWithoutLanguage).toEqual([])
 
+  const contextualNavigation = page.getByRole('navigation', {
+    name: isMobile ? 'Mobile quick navigation' : 'Main navigation',
+  })
+  const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
+  const labels = isMobile
+    ? mobileNavLabels[routeLanguage as keyof typeof mobileNavLabels]
+    : desktopNavLabels[routeLanguage as keyof typeof desktopNavLabels]
+
+  await expect(contextualNavigation).toBeVisible()
+
+  for (const label of labels) {
+    await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
+  }
+
   if (route.active) {
-    const contextualNavigation = page.getByRole('navigation', {
-      name: isMobile ? 'Mobile quick navigation' : 'Main navigation',
-    })
     const currentPageLink = contextualNavigation.getByRole('link', {name: route.active, exact: true})
-    const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
-    const labels = navLabels[routeLanguage as keyof typeof navLabels]
-
-    await expect(contextualNavigation).toBeVisible()
-    await expect(currentPageLink).toHaveCount(0)
-
-    if (route.active === labels.home) {
-      await expect(contextualNavigation.getByRole('link', {name: labels.products, exact: true})).toBeVisible()
-    } else {
-      await expect(contextualNavigation.getByRole('link', {name: labels.home, exact: true})).toBeVisible()
-    }
-
-    if (isMobile && route.active !== labels.about) {
-      await expect(contextualNavigation.getByRole('link', {name: labels.about, exact: true})).toBeVisible()
-    }
+    await expect(currentPageLink).toBeVisible()
+    await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
   }
 }
 
@@ -268,6 +272,30 @@ test.describe('public website routes', () => {
     await expect(page.locator('form input[type="checkbox"]')).toHaveCount(1)
     await expect(page.getByRole('link', {name: 'Instagram'})).toHaveCount(2)
     await expect(page.getByRole('link', {name: 'Libro de reclamaciones'})).toHaveCount(2)
+    await expect(page.getByRole('link', {name: 'Libro de reclamaciones'}).first()).toHaveAttribute(
+      'href',
+      'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
+    )
+    await expect(
+      page.getByText('Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.'),
+    ).toHaveCount(2)
+
+    const form = page.locator('form')
+    const submit = form.getByRole('button', {name: 'Pedir presupuesto'})
+
+    await expect(submit).toBeDisabled()
+
+    await form.getByLabel('Nombre').fill('Maria Silva')
+    await form.getByLabel('Email').fill('maria@example.com')
+    await form.getByLabel('Teléfono').fill('+351 900 000 000')
+    await form.getByLabel('Código postal').fill('2400-000')
+    await form.getByLabel('Localidad').fill('Leiria')
+    await form.getByLabel('Mensaje').fill('Necesito presupuesto para una terraza.')
+
+    await expect(submit).toBeDisabled()
+
+    await form.getByRole('checkbox').check()
+    await expect(submit).toBeEnabled()
   })
 
 })

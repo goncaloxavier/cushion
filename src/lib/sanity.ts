@@ -23,6 +23,7 @@ const collectionsQuery = `{
       instagramUrl,
       complaintsLabel,
       complaintsUrl,
+      complaintsNote,
       marketingConsent
     },
     footer {

@@ -20,7 +20,7 @@ Constraints:
 - Keep contact/social/legal fields aligned across Sanity schema, GROQ, fallback normalization, layout, contact page, and tests
 - Keep Studio editing labels and structure friendly for a Portuguese client
 - Follow `ai/09-design-philosophy.md`: compact premium utility, persistent navigation, smooth restrained motion, and scrolling as a tool
-- Preserve the dynamic navigation behavior: hide the current route, provide useful replacement links, and include Sobre on mobile
+- Preserve stable navigation behavior: keep the route set consistent on each viewport and mark the current route clearly
 - Preserve pagination scroll-to-collection and refresh scroll-to-top behavior
 - Keep performance in mind: no scroll hijacking, respect reduced motion, avoid layout shift, and use image loading hints intentionally
 - Keep floating WhatsApp/social shortcuts useful without covering important content, forms, or mobile navigation

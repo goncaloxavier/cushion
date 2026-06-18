@@ -29,7 +29,7 @@ Use this to help agents avoid accidental damage.
 - Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
-- Dynamic navigation hides the current route and changes between desktop and mobile; tests should cover both the hidden current link and the replacement link.
+- Primary navigation should keep a stable set of links and mark the current route instead of replacing it; tests should cover desktop and mobile current-page states.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
 
 ## User-Facing Workflows
@@ -47,7 +47,7 @@ Use this to help agents avoid accidental damage.
 - Hero image loading and mobile layout.
 - Sanity query behavior if collections grow large or need ordering/filtering beyond the current simple published list.
 - Above-the-fold logo/hero assets, lazy list images, page transitions, and scroll-reset scripts.
-- Floating WhatsApp placement, especially on mobile where it can compete with the bottom dock and forms.
+- Floating WhatsApp placement, especially on mobile where it can compete with forms and lower-page content.
 - Playwright performance: keep viewport-independent checks desktop-only and avoid duplicate paginated page walks.
 
 ## Security Or Access-Control Areas

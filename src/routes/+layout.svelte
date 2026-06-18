@@ -43,9 +43,8 @@
     if (data.currentPath.startsWith('/sobre-nos')) return 'about'
     return 'home'
   })
-  const routeItems = $derived(allRouteItems.filter((item) => item.key !== currentNavKey))
-  const dockItems = $derived(allDockItems.filter((item) => item.key !== currentNavKey).slice(0, 6))
-  const showContactLink = $derived(currentNavKey !== 'contact')
+  const routeItems = $derived(allRouteItems)
+  const dockItems = $derived(allDockItems)
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
     [
@@ -96,16 +95,25 @@
 
   <nav class="nav-links" aria-label="Main navigation">
     {#each routeItems as item}
-      <a class:active={isActive(item.href)} href={withLanguage(item.href, data.language)}>
+      <a
+        class:active={isActive(item.href)}
+        aria-current={isActive(item.href) ? 'page' : undefined}
+        href={withLanguage(item.href, data.language)}
+      >
         {item.label}
       </a>
     {/each}
   </nav>
 
   <div class="header-actions">
-    {#if showContactLink}
-      <a class="contact-link" href={withLanguage('/contacto', data.language)}>{content.nav.contact}</a>
-    {/if}
+    <a
+      class="contact-link"
+      class:active={currentNavKey === 'contact'}
+      aria-current={currentNavKey === 'contact' ? 'page' : undefined}
+      href={withLanguage('/contacto', data.language)}
+    >
+      {content.nav.contact}
+    </a>
     <div class="language-switcher" aria-label="Language">
       {#each data.languages as language}
         <a
@@ -120,13 +128,13 @@
   </div>
 </header>
 
-<nav
-  class="mobile-dock"
-  aria-label="Mobile quick navigation"
-  style={`--dock-columns: ${dockItems.length}`}
->
+<nav class="mobile-dock" aria-label="Mobile quick navigation">
   {#each dockItems as item}
-    <a class:active={isActive(item.href)} href={withLanguage(item.href, data.language)}>
+    <a
+      class:active={isActive(item.href)}
+      aria-current={isActive(item.href) ? 'page' : undefined}
+      href={withLanguage(item.href, data.language)}
+    >
       {item.label}
     </a>
   {/each}
@@ -142,13 +150,15 @@
   <div class="footer-brand">
     <img src="/logo/brand_mark.png" alt="DaFábrica4You" loading="lazy" decoding="async" />
   </div>
-  <p class="footer-line">{content.footer.line}</p>
   <div class="footer-links">
     <a href={`mailto:${content.common.contactEmail}`}>{content.common.contactEmail}</a>
     <a href={`tel:${content.common.contactPhone.replaceAll(' ', '')}`}>{content.common.contactPhone}</a>
+  </div>
+  <div class="footer-legal">
     <a href={content.common.complaintsUrl} target="_blank" rel="noreferrer">
       {content.common.complaintsLabel}
     </a>
+    <p>{content.common.complaintsNote}</p>
   </div>
   <div class="footer-social" aria-label={content.common.socialLabel}>
     {#each socialLinks as link}

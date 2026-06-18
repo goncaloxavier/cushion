@@ -111,6 +111,7 @@ export type SiteContent = {
     instagramUrl: string
     complaintsLabel: string
     complaintsUrl: string
+    complaintsNote: string
     marketingConsent: string
   }
   home: {
@@ -320,7 +321,7 @@ const contact = {
   email: 'informacoes@dafabrica4you.pt',
   phone: '+351 914 746 637',
   whatsapp: 'https://wa.me/351914746637',
-  complaints: 'https://www.livroreclamacoes.pt/Inicio/',
+  complaints: 'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
   youtube: 'https://www.youtube.com/@dafabrica4you245',
   facebook: 'https://www.facebook.com/dafabrica4you',
   instagram: 'https://www.instagram.com/dafabrica4you',
@@ -739,6 +740,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       instagramUrl: contact.instagram,
       complaintsLabel: 'Livro de reclamações',
       complaintsUrl: contact.complaints,
+      complaintsNote: 'Litígios comerciais serão resolvidos no tribunal da comarca de Leiria',
       marketingConsent:
         'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
     },
@@ -873,7 +875,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       fields: ['Nome', 'Email', 'Telefone', 'Código postal', 'Localidade', 'Mensagem'],
     },
     footer: {
-      line: 'Ambientalmente responsável. Feito para durar.',
+      line: '',
       note: '',
     },
     products: productCategories.pt,
@@ -928,6 +930,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       instagramUrl: contact.instagram,
       complaintsLabel: 'Complaints book',
       complaintsUrl: contact.complaints,
+      complaintsNote: 'Commercial disputes will be resolved in the court of the district of Leiria.',
       marketingConsent:
         'I agree that my data may be used for commercial contact and marketing communications related to this request.',
     },
@@ -1051,7 +1054,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       fields: ['Name', 'Email', 'Phone', 'Postcode', 'Location', 'Message'],
     },
     footer: {
-      line: 'Environmentally responsible. Made to last.',
+      line: '',
       note: '',
     },
     products: productCategories.en,
@@ -1106,6 +1109,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       instagramUrl: contact.instagram,
       complaintsLabel: 'Libro de reclamaciones',
       complaintsUrl: contact.complaints,
+      complaintsNote: 'Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.',
       marketingConsent:
         'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
     },
@@ -1229,7 +1233,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       fields: ['Nombre', 'Email', 'Teléfono', 'Código postal', 'Localidad', 'Mensaje'],
     },
     footer: {
-      line: 'Ambientalmente responsable. Hecho para durar.',
+      line: '',
       note: '',
     },
     products: productCategories.es,

@@ -14,7 +14,7 @@ Use this as the task completion contract.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.
 - Visual changes follow `ai/09-design-philosophy.md`: compact pages, accessible navigation, smooth restrained motion, and no unnecessary long scrolling.
 - Internal route links preserve the selected language when practical.
-- Dynamic navigation still hides the current route, provides a useful replacement route, and exposes `Sobre` on mobile.
+- Primary navigation keeps a stable set of links on each viewport and marks the current route clearly.
 - Pagination returns users to the top of the collection, and page refresh starts at the top of the page.
 - Fallback fixture content, Sanity seed output, and tests stay aligned when starter CMS content changes.
 - Performance-sensitive images keep appropriate loading/decoding/fetch-priority hints, and motion respects `prefers-reduced-motion`.
