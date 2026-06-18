@@ -56,6 +56,24 @@ const contentCardsField = (name: string, title: string, description?: string) =>
     of: [{type: 'contentCard'}],
   })
 
+const mediaItemsField = (name: string, title: string, description?: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'array',
+    of: [{type: 'mediaItem'}],
+  })
+
+const partnerItemsField = (name: string, title: string, description?: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'array',
+    of: [{type: 'partnerItem'}],
+  })
+
 const localizedStringListField = (name: string, title: string, description?: string) =>
   defineField({
     name,
@@ -126,6 +144,33 @@ export const siteLanding = defineType({
           fields: [
             localizedTextField('quote', 'Frase'),
             localizedStringField('attribution', 'Assinatura pequena'),
+          ],
+        }),
+        defineField({
+          name: 'mediaShowcase',
+          title: 'Media institucional',
+          description:
+            'Zona para apresentar vídeos YouTube e/ou fotografias. Pode ter só vídeo, só imagens, ou ambos.',
+          type: 'object',
+          options: {collapsible: true},
+          fields: [
+            localizedStringField('kicker', 'Etiqueta pequena'),
+            localizedStringField('title', 'Título da secção'),
+            localizedTextField('lead', 'Texto da secção'),
+            mediaItemsField('items', 'Vídeos e imagens'),
+          ],
+        }),
+        defineField({
+          name: 'partners',
+          title: 'Parceiros e projetos',
+          description: 'Logotipos e textos curtos para entidades parceiras e projetos relevantes.',
+          type: 'object',
+          options: {collapsible: true},
+          fields: [
+            localizedStringField('kicker', 'Etiqueta pequena'),
+            localizedStringField('title', 'Título da secção'),
+            localizedTextField('lead', 'Texto da secção'),
+            partnerItemsField('items', 'Parceiros'),
           ],
         }),
       ],

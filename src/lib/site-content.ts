@@ -29,6 +29,23 @@ export type ContentImage = {
   alt: string
 }
 
+export type ContentMediaItem = {
+  kind: 'image' | 'youtube'
+  title: string
+  caption: string
+  image?: ContentImage
+  poster?: ContentImage
+  url?: string
+}
+
+export type PartnerItem = {
+  name: string
+  url: string
+  logo: ContentImage
+  logoTone: 'light' | 'dark'
+  text: string
+}
+
 export type ProductItem = {
   title: string
   slug: string
@@ -126,6 +143,12 @@ export type SiteContent = {
       quote: string
       attribution: string
     }
+    mediaShowcase: CopyBlock & {
+      items: ContentMediaItem[]
+    }
+    partners: CopyBlock & {
+      items: PartnerItem[]
+    }
   }
   about: {
     hero: CopyBlock
@@ -211,6 +234,23 @@ type SanityContentCard = {
   text?: LocalizedValue
 }
 
+type SanityMediaItem = {
+  kind?: 'image' | 'youtube'
+  title?: LocalizedValue
+  caption?: LocalizedValue
+  image?: SanityImage
+  poster?: SanityImage
+  youtubeUrl?: string
+}
+
+type SanityPartnerItem = {
+  name?: string
+  url?: string
+  logoTone?: 'light' | 'dark'
+  logo?: SanityImage
+  text?: LocalizedValue
+}
+
 type SanityCopyBlock = {
   kicker?: LocalizedValue
   title?: LocalizedValue
@@ -247,6 +287,18 @@ type SanitySiteContent = {
     manifesto?: {
       quote?: LocalizedValue
       attribution?: LocalizedValue
+    }
+    mediaShowcase?: {
+      kicker?: LocalizedValue
+      title?: LocalizedValue
+      lead?: LocalizedValue
+      items?: SanityMediaItem[]
+    }
+    partners?: {
+      kicker?: LocalizedValue
+      title?: LocalizedValue
+      lead?: LocalizedValue
+      items?: SanityPartnerItem[]
     }
   }
   about?: {
@@ -342,6 +394,31 @@ const fallbackImages = {
   blog: {
     url: '/images/blog-editorial.png',
     alt: 'Materiais reciclados, amostras e notas editoriais sobre sustentabilidade.',
+  },
+} satisfies Record<string, ContentImage>
+
+const institutionalVideoUrl = 'https://www.youtube.com/watch?v=h1wVIZRj0Hc'
+
+const partnerLogos = {
+  abaae: {
+    url: '/images/partners/abaae.png',
+    alt: 'Logotipo ABAAE.',
+  },
+  blueFlag: {
+    url: '/images/partners/bandeira-azul.png',
+    alt: 'Logotipo Bandeira Azul.',
+  },
+  ecoSchools: {
+    url: '/images/partners/eco-escolas.png',
+    alt: 'Logotipo Eco-Escolas.',
+  },
+  ecoParishes: {
+    url: '/images/partners/eco-freguesias-xxi.png',
+    alt: 'Logotipo Eco-Freguesias XXI.',
+  },
+  animalife: {
+    url: '/images/partners/animalife.png',
+    alt: 'Logotipo Animalife.',
   },
 } satisfies Record<string, ContentImage>
 
@@ -771,6 +848,74 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Um primeiro contacto deve explicar depressa, inspirar com calma e deixar claro qual é o próximo passo.',
         attribution: 'Direção de experiência para este projeto',
       },
+      mediaShowcase: {
+        kicker: 'Vídeo institucional',
+        title: 'Veja como a matéria-prima ganha nova vida',
+        lead:
+          'Uma zona flexível para apresentar o vídeo institucional, fotografias de produto ou ambos, sem prender a página a um formato único.',
+        items: [
+          {
+            kind: 'youtube',
+            title: 'Vídeo institucional DaFábrica4You',
+            caption:
+              'Apresentação em vídeo do trabalho da empresa, da matéria-prima ao produto aplicado.',
+            url: institutionalVideoUrl,
+          },
+          {
+            kind: 'image',
+            title: 'Produto em contexto exterior',
+            caption:
+              'Fotografias podem acompanhar o vídeo ou funcionar sozinhas quando a página precisar de mostrar detalhe material.',
+            image: fallbackImages.home,
+          },
+        ],
+      },
+      partners: {
+        kicker: 'Parcerias',
+        title: 'Projetos e entidades que reforçam a missão',
+        lead:
+          'A DaFábrica4You apresenta parcerias ligadas à educação ambiental, sustentabilidade local e responsabilidade social-animal.',
+        items: [
+          {
+            name: 'ABAAE',
+            url: 'https://abaae.pt/',
+            logo: partnerLogos.abaae,
+            logoTone: 'light',
+            text:
+              'Associação Bandeira Azul de Ambiente e Educação, ligada a programas de educação ambiental e sustentabilidade.',
+          },
+          {
+            name: 'Bandeira Azul',
+            url: 'https://bandeiraazul.abaae.pt/',
+            logo: partnerLogos.blueFlag,
+            logoTone: 'light',
+            text: 'Programa de qualidade ambiental para praias, portos de recreio e marinas.',
+          },
+          {
+            name: 'Eco-Escolas',
+            url: 'https://ecoescolas.abaae.pt/',
+            logo: partnerLogos.ecoSchools,
+            logoTone: 'dark',
+            text:
+              'Programa internacional desenvolvido em Portugal pela ABAAE para educação ambiental e sustentabilidade nas escolas.',
+          },
+          {
+            name: 'Eco-Freguesias XXI',
+            url: 'https://ecofreguesias21.abaae.pt/',
+            logo: partnerLogos.ecoParishes,
+            logoTone: 'light',
+            text: 'Projeto de sustentabilidade local que envolve freguesias e cidadãos.',
+          },
+          {
+            name: 'Animalife',
+            url: 'https://animalife.pt/',
+            logo: partnerLogos.animalife,
+            logoTone: 'light',
+            text:
+              'Associação portuguesa dedicada à sensibilização, prevenção do abandono e apoio social-animal.',
+          },
+        ],
+      },
     },
     about: {
       hero: {
@@ -960,6 +1105,74 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'A first contact should explain quickly, inspire calmly and make the next step obvious.',
         attribution: 'Experience direction for this project',
       },
+      mediaShowcase: {
+        kicker: 'Institutional video',
+        title: 'See how the raw material gains a new life',
+        lead:
+          'A flexible area for the institutional video, product photography or both, without locking the page to one media format.',
+        items: [
+          {
+            kind: 'youtube',
+            title: 'DaFábrica4You institutional video',
+            caption:
+              'A video introduction to the company work, from raw material to applied product.',
+            url: institutionalVideoUrl,
+          },
+          {
+            kind: 'image',
+            title: 'Product in an outdoor setting',
+            caption:
+              'Photos can support the video or stand alone when a page needs to show material detail.',
+            image: fallbackImages.home,
+          },
+        ],
+      },
+      partners: {
+        kicker: 'Partnerships',
+        title: 'Projects and organizations that strengthen the mission',
+        lead:
+          'DaFábrica4You presents partnerships connected to environmental education, local sustainability and social-animal responsibility.',
+        items: [
+          {
+            name: 'ABAAE',
+            url: 'https://abaae.pt/',
+            logo: partnerLogos.abaae,
+            logoTone: 'light',
+            text:
+              'Associação Bandeira Azul de Ambiente e Educação, connected to environmental education and sustainability programmes.',
+          },
+          {
+            name: 'Blue Flag',
+            url: 'https://bandeiraazul.abaae.pt/',
+            logo: partnerLogos.blueFlag,
+            logoTone: 'light',
+            text: 'An environmental quality programme for beaches, marinas and recreational ports.',
+          },
+          {
+            name: 'Eco-Schools',
+            url: 'https://ecoescolas.abaae.pt/',
+            logo: partnerLogos.ecoSchools,
+            logoTone: 'dark',
+            text:
+              'An international programme developed in Portugal by ABAAE for environmental education and sustainability in schools.',
+          },
+          {
+            name: 'Eco-Freguesias XXI',
+            url: 'https://ecofreguesias21.abaae.pt/',
+            logo: partnerLogos.ecoParishes,
+            logoTone: 'light',
+            text: 'A local sustainability project involving parishes and citizens.',
+          },
+          {
+            name: 'Animalife',
+            url: 'https://animalife.pt/',
+            logo: partnerLogos.animalife,
+            logoTone: 'light',
+            text:
+              'A Portuguese association dedicated to awareness, abandonment prevention and social-animal support.',
+          },
+        ],
+      },
     },
     about: {
       hero: {
@@ -1137,6 +1350,74 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         quote:
           'Un primer contacto debe explicar rápido, inspirar con calma y dejar claro el siguiente paso.',
         attribution: 'Dirección de experiencia para este proyecto',
+      },
+      mediaShowcase: {
+        kicker: 'Vídeo institucional',
+        title: 'Vea cómo la materia prima cobra nueva vida',
+        lead:
+          'Una zona flexible para el vídeo institucional, fotografías de producto o ambos, sin fijar la página a un único formato.',
+        items: [
+          {
+            kind: 'youtube',
+            title: 'Vídeo institucional DaFábrica4You',
+            caption:
+              'Presentación en vídeo del trabajo de la empresa, desde la materia prima hasta el producto aplicado.',
+            url: institutionalVideoUrl,
+          },
+          {
+            kind: 'image',
+            title: 'Producto en contexto exterior',
+            caption:
+              'Las fotografías pueden acompañar al vídeo o funcionar solas cuando una página necesita mostrar detalle material.',
+            image: fallbackImages.home,
+          },
+        ],
+      },
+      partners: {
+        kicker: 'Alianzas',
+        title: 'Proyectos y entidades que refuerzan la misión',
+        lead:
+          'DaFábrica4You presenta alianzas vinculadas a educación ambiental, sostenibilidad local y responsabilidad social-animal.',
+        items: [
+          {
+            name: 'ABAAE',
+            url: 'https://abaae.pt/',
+            logo: partnerLogos.abaae,
+            logoTone: 'light',
+            text:
+              'Associação Bandeira Azul de Ambiente e Educação, vinculada a programas de educación ambiental y sostenibilidad.',
+          },
+          {
+            name: 'Bandera Azul',
+            url: 'https://bandeiraazul.abaae.pt/',
+            logo: partnerLogos.blueFlag,
+            logoTone: 'light',
+            text: 'Programa de calidad ambiental para playas, puertos deportivos y marinas.',
+          },
+          {
+            name: 'Eco-Escuelas',
+            url: 'https://ecoescolas.abaae.pt/',
+            logo: partnerLogos.ecoSchools,
+            logoTone: 'dark',
+            text:
+              'Programa internacional desarrollado en Portugal por ABAAE para educación ambiental y sostenibilidad en escuelas.',
+          },
+          {
+            name: 'Eco-Freguesias XXI',
+            url: 'https://ecofreguesias21.abaae.pt/',
+            logo: partnerLogos.ecoParishes,
+            logoTone: 'light',
+            text: 'Proyecto de sostenibilidad local que involucra a freguesías y ciudadanía.',
+          },
+          {
+            name: 'Animalife',
+            url: 'https://animalife.pt/',
+            logo: partnerLogos.animalife,
+            logoTone: 'light',
+            text:
+              'Asociación portuguesa dedicada a sensibilización, prevención del abandono y apoyo social-animal.',
+          },
+        ],
       },
     },
     about: {
@@ -1343,6 +1624,61 @@ const imageFromSanity = (
   alt: localized(image?.alt, language, fallback.alt),
 })
 
+const mediaItemsFromSanity = (
+  items: SanityMediaItem[] | undefined,
+  language: LanguageCode,
+  fallback: ContentMediaItem[],
+) => {
+  if (!items?.length) return fallback
+
+  const normalized = items
+    .map((item, index) => {
+      const fallbackItem = fallback[index]
+      const kind = item.kind ?? (item.youtubeUrl ? 'youtube' : 'image')
+      const fallbackImage = fallbackItem?.image ?? fallbackImages.home
+      const fallbackPoster = fallbackItem?.poster ?? fallbackItem?.image ?? fallbackImages.home
+      const image = imageFromSanity(item.image, language, fallbackImage)
+      const poster = imageFromSanity(item.poster, language, fallbackPoster)
+
+      return {
+        kind,
+        title: localized(item.title, language, fallbackItem?.title ?? ''),
+        caption: localized(item.caption, language, fallbackItem?.caption ?? ''),
+        image: kind === 'image' ? image : undefined,
+        poster: kind === 'youtube' && item.poster?.asset?.url ? poster : fallbackItem?.poster,
+        url: kind === 'youtube' ? item.youtubeUrl?.trim() || fallbackItem?.url : undefined,
+      }
+    })
+    .filter((item) => (item.kind === 'youtube' ? item.url : item.image?.url))
+
+  return normalized.length ? normalized : fallback
+}
+
+const partnersFromSanity = (
+  items: SanityPartnerItem[] | undefined,
+  language: LanguageCode,
+  fallback: PartnerItem[],
+) => {
+  if (!items?.length) return fallback
+
+  const normalized = items
+    .map((item, index) => {
+      const fallbackItem = fallback[index]
+      const fallbackLogo = fallbackItem?.logo ?? partnerLogos.abaae
+
+      return {
+        name: item.name?.trim() || fallbackItem?.name || '',
+        url: item.url?.trim() || fallbackItem?.url || '',
+        logo: imageFromSanity(item.logo, language, fallbackLogo),
+        logoTone: item.logoTone ?? fallbackItem?.logoTone ?? 'light',
+        text: localized(item.text, language, fallbackItem?.text ?? ''),
+      }
+    })
+    .filter((item) => item.name && item.logo.url)
+
+  return normalized.length ? normalized : fallback
+}
+
 const imagesFromSanity = (
   mainImage: SanityImage | undefined,
   gallery: SanityImage[] | undefined,
@@ -1467,6 +1803,22 @@ const applySiteContentFromSanity = (
         language,
         fallback.home.manifesto.attribution,
       ),
+    },
+    mediaShowcase: {
+      ...copyBlockFromSanity(
+        source.home?.mediaShowcase,
+        language,
+        fallback.home.mediaShowcase,
+      ),
+      items: mediaItemsFromSanity(
+        source.home?.mediaShowcase?.items,
+        language,
+        fallback.home.mediaShowcase.items,
+      ),
+    },
+    partners: {
+      ...copyBlockFromSanity(source.home?.partners, language, fallback.home.partners),
+      items: partnersFromSanity(source.home?.partners?.items, language, fallback.home.partners.items),
     },
   }
 

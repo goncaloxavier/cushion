@@ -1,4 +1,5 @@
 <script lang="ts">
+  import MediaShowcase from '$lib/components/MediaShowcase.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
 
   let {data} = $props()
@@ -69,5 +70,37 @@
         </Reveal>
       {/each}
     </div>
+  </section>
+
+  <section class="section home-media-partners">
+    <Reveal class="home-media-copy" variant="panel">
+      <p class="kicker">{content.home.mediaShowcase.kicker}</p>
+      <h2>{content.home.mediaShowcase.title}</h2>
+      <p>{content.home.mediaShowcase.lead}</p>
+    </Reveal>
+
+    <Reveal class="home-media-gallery" delay={80} variant="media">
+      <MediaShowcase items={content.home.mediaShowcase.items} />
+    </Reveal>
+
+    <Reveal class="partner-panel" delay={120} variant="panel">
+      <div class="partner-copy">
+        <p class="kicker">{content.home.partners.kicker}</p>
+        <h2>{content.home.partners.title}</h2>
+        <p>{content.home.partners.lead}</p>
+      </div>
+
+      <div class="partner-grid" aria-label={content.home.partners.title}>
+        {#each content.home.partners.items as partner}
+          <a class="partner-logo-card" href={partner.url} target="_blank" rel="noreferrer">
+            <span class="partner-logo-wrap" data-logo-tone={partner.logoTone}>
+              <img src={partner.logo.url} alt={partner.logo.alt} loading="lazy" decoding="async" />
+            </span>
+            <span class="partner-name">{partner.name}</span>
+            <span class="partner-text">{partner.text}</span>
+          </a>
+        {/each}
+      </div>
+    </Reveal>
   </section>
 </main>

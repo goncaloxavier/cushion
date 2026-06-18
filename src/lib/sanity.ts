@@ -46,7 +46,47 @@ const collectionsQuery = `{
           text
         }
       },
-      manifesto
+      manifesto,
+      mediaShowcase {
+        kicker,
+        title,
+        lead,
+        items[] {
+          kind,
+          title,
+          caption,
+          youtubeUrl,
+          image {
+            asset -> {
+              url
+            },
+            alt
+          },
+          poster {
+            asset -> {
+              url
+            },
+            alt
+          }
+        }
+      },
+      partners {
+        kicker,
+        title,
+        lead,
+        items[] {
+          name,
+          url,
+          logoTone,
+          logo {
+            asset -> {
+              url
+            },
+            alt
+          },
+          text
+        }
+      }
     },
     about {
       hero,

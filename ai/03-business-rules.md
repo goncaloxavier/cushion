@@ -10,6 +10,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Product, case-study, and blog content should be editable through Sanity and should remain usable even if Sanity has no published entries.
 - Page-level public copy for home, about, products, catalogue, case studies, blog, contact, footer, and contact details should be editable through the Sanity `siteContent` singleton.
 - Contact, social, WhatsApp, Livro de Reclamacoes, the related legal note, and marketing-consent copy/links should be editable through the Sanity `siteContent` singleton.
+- Homepage institutional media and partner/project logos should be editable through the Sanity `siteContent` singleton, with fallback content available when Studio is empty.
+- Mixed page media should support uploaded images, YouTube videos, or both without requiring a code change for each new media item.
 - Product, case-study, and blog images/galleries should be editable through Sanity; project-local fallback images are used only when an entry has no published image.
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
@@ -39,6 +41,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Public impact metrics currently used in fallback copy: 25,000+ single-use packages per tonne, 700 kg CO2 avoided per tonne, and 2.5 trees preserved per tonne.
 - Current fallback official complaints-book URL: `https://www.livroreclamacoes.pt/Pedido/Reclamacao`.
 - Whenever the Livro de Reclamacoes link is shown, also show the legal note: `Litígios comerciais serão resolvidos no tribunal da comarca de Leiria`.
+- Current fallback institutional video URL: `https://www.youtube.com/watch?v=h1wVIZRj0Hc`.
+- Current fallback partner/project links: ABAAE `https://abaae.pt/`, Bandeira Azul `https://bandeiraazul.abaae.pt/`, Eco-Escolas `https://ecoescolas.abaae.pt/`, Eco-Freguesias XXI `https://ecofreguesias21.abaae.pt/`, and Animalife `https://animalife.pt/`.
 - Current fallback social URLs: YouTube `https://www.youtube.com/@dafabrica4you245`, Facebook `https://www.facebook.com/dafabrica4you`, and Instagram `https://www.instagram.com/dafabrica4you`.
 - Current fallback WhatsApp URL: `https://wa.me/351914746637`.
 
@@ -62,4 +66,5 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Sanity dataset `production`.
 - Public impact metrics, client-facing product claims, and contact details.
 - Social links, WhatsApp number/link, complaints-book link, and marketing-consent wording.
+- Institutional video URL, partner names/links/logos, and claims about partnerships/projects.
 - Whether fallback content should remain after Sanity is populated.

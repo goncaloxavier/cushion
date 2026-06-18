@@ -28,6 +28,7 @@ Use this to help agents avoid accidental damage.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
 - Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
+- Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
 - Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable high-value bottom dock and marks the current route when that route is present in the dock.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
@@ -39,6 +40,7 @@ Use this to help agents avoid accidental damage.
 - Editors uploading product, case-study, and blog images with localized alt text.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
+- Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
 - Developers updating visual snapshots only when the visual change is intentional.
 - Developers seeding Content Lake starter documents with `npm run seed:studio`.
 
@@ -67,6 +69,7 @@ Use this to help agents avoid accidental damage.
 - Running lint while Playwright is creating generated output is safe only while generated test folders stay ignored.
 - Rerunning `npm run seed:studio` after manual Studio edits can replace the deterministic starter documents.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
+- Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.
 - Making Sanity images required before the client has uploaded approved assets.
 - Removing Portuguese Studio labels/descriptions without replacing them with client-friendly wording.
 - Creating language-specific copy that no longer says the same factual thing across PT/EN/ES.

@@ -5,6 +5,8 @@ import {contentCard} from './objects/contentCard'
 import {impactStat} from './objects/impactStat'
 import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
+import {mediaItem} from './objects/mediaItem'
+import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
 
 export const schemaTypes = [
@@ -14,6 +16,8 @@ export const schemaTypes = [
   blogPost,
   localizedString,
   localizedText,
+  mediaItem,
+  partnerItem,
   contentCard,
   impactStat,
 ]

@@ -45,6 +45,8 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
+- `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
+- `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers.
 - `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.
 - `sanity.config.ts` - Studio title, project id, dataset, plugins, and schema registration.
 - `sanity.structure.ts` - client-friendly Studio navigation for products, case studies, blog posts, and remaining schemas.
@@ -96,10 +98,12 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
 - Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
 - Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
+- Keep page media/video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, and matching routes together.
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
+- Media/partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, reusable renderers, public route rendering, and tests.
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.

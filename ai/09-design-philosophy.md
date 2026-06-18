@@ -93,6 +93,7 @@ The website should feel premium, useful, calm, and alive.
 - Search and pagination should be local to products, blog, and case studies rather than global.
 - List-page hero titles/text, catalogue copy, contact copy, footer/contact details, and collection entries should be editable through Sanity without giving the client control over the design system.
 - Main page hero images that are part of content presentation should be editable through Sanity. Decorative accent lines, reveal strokes, gradients, and layout ornaments belong to the design system unless explicitly requested as editable content.
+- Institutional videos, page media blocks, and partner logos should be CMS-managed content. Support image-only, video-only, and mixed media without requiring a new hard-coded page component each time.
 - Social links, WhatsApp, Livro de Reclamacoes, and marketing-consent wording should be editable through Sanity as business/contact data, not hard-coded decoration.
 - Studio labels should be in Portuguese and written for an editor, not for a developer.
 - CMS-driven detail routes can be more content-led, but they still need strong typography, clear back navigation, gallery/zoom support where useful, and compact first-view information.
