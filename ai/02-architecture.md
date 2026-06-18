@@ -28,7 +28,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
-- `src/routes/+layout.svelte` - shared header, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
+- `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
 - `src/routes/+page.svelte` - homepage.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
@@ -41,7 +41,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/routes/contacto/+page.svelte` - contact route.
 - `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
-- `tests/routes.spec.ts` - route, language, link, overflow, detail-link, form, and 404 checks.
+- `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
@@ -100,6 +100,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, and matching routes together.
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
+- Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
 - When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` only when the Content Lake should receive those changes.

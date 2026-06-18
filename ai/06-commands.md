@@ -50,6 +50,8 @@ npm run e2e:visual:update
 
 Use `npm run e2e:visual:update` only when the current visual output is intentionally becoming the new baseline.
 
+When Xavier explicitly asks to skip Playwright for a task, do not run `npm run e2e`, `npm run e2e:visual`, or visual updates. Use lighter validation plus targeted browser screenshots where practical, and report the skipped checks.
+
 ## Sanity Seed
 
 ```bash

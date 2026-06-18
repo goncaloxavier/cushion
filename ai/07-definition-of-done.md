@@ -14,7 +14,7 @@ Use this as the task completion contract.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.
 - Visual changes follow `ai/09-design-philosophy.md`: compact pages, accessible navigation, smooth restrained motion, and no unnecessary long scrolling.
 - Internal route links preserve the selected language when practical.
-- Primary navigation keeps a stable set of links on each viewport and marks the current route clearly.
+- Primary navigation keeps a stable route set on each viewport. Desktop marks the current route from the full route set; mobile marks the current route when it is part of the high-value bottom dock.
 - Pagination returns users to the top of the collection, and page refresh starts at the top of the page.
 - Fallback fixture content, Sanity seed output, and tests stay aligned when starter CMS content changes.
 - Performance-sensitive images keep appropriate loading/decoding/fetch-priority hints, and motion respects `prefers-reduced-motion`.
@@ -31,8 +31,9 @@ Use this as the task completion contract.
 - Dependency changes: run relevant validation and inspect `package-lock.json` intentionally.
 - Test/performance config changes: run `npm run e2e` and confirm the suite does not crash on generated artifacts.
 - Visual/interface changes: manually review relevant routes on desktop and mobile, preferably with screenshots.
-- Route/CMS/interface changes: run `npm run e2e`.
-- Intentional visual changes: run `npm run e2e:visual:update`, review the snapshot changes, then run `npm run e2e:visual`.
+- Route/CMS/interface changes: run `npm run e2e` when practical.
+- Intentional visual changes: run `npm run e2e:visual:update`, review the snapshot changes, then run `npm run e2e:visual` when practical.
+- If Xavier explicitly asks to skip Playwright E2E/visual runs, use lighter validation and targeted browser screenshots, then state which Playwright checks were skipped.
 
 ## Testing
 

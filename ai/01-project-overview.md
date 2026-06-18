@@ -6,7 +6,7 @@
 - Audience: public visitors interested in recycled-plastic products for outdoor, municipal, garden, and custom projects; client/editor users can manage product categories, case studies, and blog posts through Sanity.
 - Primary user workflow: visitor explores the routed multilingual website, reviews products, catalogue/quote guidance, cases, and blog content, then contacts the company by email, phone, WhatsApp, or the contact form.
 - Deployment target: Railway is being used for the basic public website preview. Sanity Studio is a separate editable application that can run locally or be deployed through Sanity CLI.
-- Current maturity: client-approved base direction. A routed SvelteKit website, product/case/blog detail pages, Sanity Studio 6 with a Portuguese client-friendly structure, editable page copy, seeded Sanity collection content, CMS-ready image/gallery fields, editable contact/social/legal fields, multilingual fallback content, E2E tests, and visual regression baselines are present.
+- Current maturity: client-approved base direction. A routed SvelteKit website, product/case/blog detail pages, Sanity Studio 6 with a Portuguese client-friendly structure, editable page copy, seeded Sanity collection content, CMS-ready image/gallery fields, editable contact/social/legal fields, contact form gating, multilingual fallback content, E2E tests, and visual regression baselines are present.
 
 ## Source Of Truth
 
@@ -38,5 +38,4 @@
 - Should Sanity images eventually become required once the client has real approved photography?
 - What is the final pricing/catalogue strategy once the client confirms real prices?
 - Which production domains will point at the Railway website and deployed Studio?
-- Does the client have a company-specific Livro de Reclamacoes URL, or should the public official entry point remain the fallback?
 - What is the best automated import strategy for existing DaFabrica4You blog posts, case studies, products, and images?

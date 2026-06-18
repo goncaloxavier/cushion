@@ -29,7 +29,7 @@ Use this to help agents avoid accidental damage.
 - Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
-- Primary navigation should keep a stable set of links and mark the current route instead of replacing it; tests should cover desktop and mobile current-page states.
+- Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable high-value bottom dock and marks the current route when that route is present in the dock.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
 
 ## User-Facing Workflows
@@ -48,7 +48,7 @@ Use this to help agents avoid accidental damage.
 - Sanity query behavior if collections grow large or need ordering/filtering beyond the current simple published list.
 - Above-the-fold logo/hero assets, lazy list images, page transitions, and scroll-reset scripts.
 - Floating WhatsApp placement, especially on mobile where it can compete with the bottom dock and forms.
-- Playwright performance: keep viewport-independent checks desktop-only and avoid duplicate paginated page walks.
+- Playwright performance: keep viewport-independent checks desktop-only, avoid duplicate paginated page walks, and prefer targeted browser screenshots when Xavier explicitly asks to skip E2E for a small UI fix.
 
 ## Security Or Access-Control Areas
 
@@ -81,4 +81,4 @@ Use this to help agents avoid accidental damage.
 - Confirm new content model decisions before encoding them in Sanity schemas.
 - Keep public claims tied to confirmed facts.
 - Update this `/ai` folder when architecture, commands, or business rules become real.
-- Run route tests after navigation, pagination, scroll, or CMS query changes; run visual tests when the UI itself changes.
+- Run route tests after navigation, pagination, scroll, or CMS query changes; run visual tests when the UI itself changes. If Playwright is explicitly skipped for a task, use `npm run check`, `npm run lint`, `npm run build`, and targeted browser screenshots where practical, then name the skipped checks.

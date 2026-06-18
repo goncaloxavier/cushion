@@ -20,7 +20,7 @@ Constraints:
 - Keep contact/social/legal fields aligned across Sanity schema, GROQ, fallback normalization, layout, contact page, and tests
 - Keep Studio editing labels and structure friendly for a Portuguese client
 - Follow `ai/09-design-philosophy.md`: compact premium utility, persistent navigation, smooth restrained motion, and scrolling as a tool
-- Preserve stable navigation behavior: keep the route set consistent on each viewport and mark the current route clearly
+- Preserve stable navigation behavior: desktop uses the full route set, mobile uses a stable high-value bottom dock, and links must not swap based on current route
 - Preserve pagination scroll-to-collection and refresh scroll-to-top behavior
 - Keep performance in mind: no scroll hijacking, respect reduced motion, avoid layout shift, and use image loading hints intentionally
 - Keep floating WhatsApp/social shortcuts useful without covering important content, forms, or mobile navigation
@@ -30,6 +30,7 @@ Constraints:
 - Add/update tests where useful and where test tooling exists
 - Run the validation commands from /ai/04-validation-map.md and /ai/06-commands.md when relevant
 - Refresh visual snapshots only when the visual change is intentional
+- Respect explicit requests to skip Playwright; use lighter checks and targeted browser screenshots instead, and report skipped E2E/visual checks
 - Remember Playwright uses fallback fixtures; local/dev website reads live Sanity content
 - Remember viewport-independent Playwright checks should not be duplicated across mobile and desktop without a reason
 - Do not stage generated folders or historical `node_modules/` noise
