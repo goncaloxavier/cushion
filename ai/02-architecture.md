@@ -29,7 +29,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
 - `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
-- `src/routes/+page.svelte` - homepage.
+- `src/routes/+page.svelte` - homepage; the hero is a full-bleed institutional-video facade (poster image + click-to-play YouTube embed, loaded only on click) over the editable `home.heroVideoUrl`, with a reframed mixed-media gallery section below.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
 - `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route.
@@ -47,7 +47,8 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
 - `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
-- `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers.
+- `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts an optional `{autoplay}` flag used by the homepage hero facade.
+- `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
 - `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.
 - `sanity.config.ts` - Studio title, project id, dataset, plugins, and schema registration.
 - `sanity.structure.ts` - client-friendly Studio navigation for products, case studies, blog posts, and remaining schemas.
@@ -105,6 +106,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
 - Media/partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, reusable renderers, public route rendering, and tests.
+- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a full-bleed click-to-play hero facade (poster = `home.heroImage`); the homepage `mediaShowcase` is a separate mixed image/video gallery. Keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.

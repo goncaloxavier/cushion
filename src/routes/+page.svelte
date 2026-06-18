@@ -1,10 +1,20 @@
 <script lang="ts">
   import MediaShowcase from '$lib/components/MediaShowcase.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {youtubeEmbedUrl} from '$lib/media'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
+
+  const heroVideoEmbed = $derived(youtubeEmbedUrl(content.home.heroVideoUrl, {autoplay: true}))
+  let heroPlaying = $state(false)
+
+  // Reset the player when language changes so a stale embed never lingers.
+  $effect(() => {
+    void data.language
+    heroPlaying = false
+  })
 </script>
 
 <svelte:head>
@@ -12,27 +22,62 @@
 </svelte:head>
 
 <main class="home-page">
-  <section class="home-hero">
-    <div class="home-hero-copy">
-      <Reveal variant="hero" priority>
-        <h1>{content.home.hero.title}</h1>
-        <p>{content.home.hero.lead}</p>
-      </Reveal>
-      <Reveal class="home-hero-actions" delay={130} variant="scale" priority>
-        <div class="hero-actions">
-          <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
-          <a class="button secondary" href={`/catalogo${langQuery}`}>{content.nav.catalogue}</a>
-        </div>
-      </Reveal>
+  <section class="home-hero" class:playing={heroPlaying}>
+    <div class="home-hero-bg">
+      {#if heroPlaying && heroVideoEmbed}
+        <iframe
+          class="home-hero-video"
+          title={content.home.heroVideoLabel}
+          src={heroVideoEmbed}
+          allow="autoplay; encrypted-media; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      {:else}
+        <img
+          class="home-hero-poster"
+          src={content.home.heroImage.url}
+          alt={content.home.heroImage.alt}
+          decoding="async"
+          fetchpriority="high"
+        />
+      {/if}
     </div>
-    <Reveal class="home-hero-media" delay={80} variant="media" priority>
-      <img
-        src={content.home.heroImage.url}
-        alt={content.home.heroImage.alt}
-        decoding="async"
-        fetchpriority="high"
-      />
-    </Reveal>
+
+    {#if !heroPlaying}
+      <div class="home-hero-copy">
+        <Reveal variant="hero" priority>
+          <h1>{content.home.hero.title}</h1>
+          <p>{content.home.hero.lead}</p>
+        </Reveal>
+        <Reveal class="home-hero-actions" delay={130} variant="scale" priority>
+          <div class="hero-actions">
+            <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
+            <a class="button secondary" href={`/catalogo${langQuery}`}>{content.nav.catalogue}</a>
+          </div>
+        </Reveal>
+      </div>
+
+      {#if heroVideoEmbed}
+        <button
+          type="button"
+          class="home-hero-play"
+          onclick={() => (heroPlaying = true)}
+          aria-label={content.home.heroVideoLabel}
+        >
+          <span class="home-hero-play-icon" aria-hidden="true"></span>
+          <span class="home-hero-play-text">{content.home.heroVideoLabel}</span>
+        </button>
+      {/if}
+    {:else}
+      <button
+        type="button"
+        class="home-hero-close"
+        onclick={() => (heroPlaying = false)}
+        aria-label={content.home.heroVideoCloseLabel}
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+    {/if}
   </section>
 
   <section class="section home-brief">

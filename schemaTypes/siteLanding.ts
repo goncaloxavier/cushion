@@ -24,7 +24,11 @@ const copyBlockField = (name: string, title: string, description?: string) =>
     type: 'object',
     options: {collapsible: true},
     fields: [
-      localizedStringField('kicker', 'Etiqueta pequena', 'Texto curto acima do título, quando existir.'),
+      localizedStringField(
+        'kicker',
+        'Etiqueta pequena',
+        'Texto curto acima do título, quando existir.',
+      ),
       localizedStringField('title', 'Título principal', 'O título visível nesta zona da página.'),
       localizedTextField('lead', 'Texto de apoio', 'Texto curto logo abaixo do título.'),
     ],
@@ -120,9 +124,28 @@ export const siteLanding = defineType({
       'home',
       'Página inicial',
       [
-        copyBlockField('hero', 'Primeira secção', 'Título e introdução principal da página inicial.'),
-        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da página inicial.'),
-        copyBlockField('intro', 'Apresentação da empresa', 'Explicação curta sobre a empresa usada depois da primeira secção.'),
+        copyBlockField(
+          'hero',
+          'Primeira secção',
+          'Título e introdução principal da página inicial.',
+        ),
+        pageImageField(
+          'heroImage',
+          'Imagem principal da primeira secção',
+          'Imagem grande no topo da página inicial. Serve também de capa do vídeo do topo, quando existir.',
+        ),
+        defineField({
+          name: 'heroVideoUrl',
+          title: 'Vídeo do topo (YouTube)',
+          description:
+            'Opcional. Cole o link do vídeo institucional para o mostrar no topo da página inicial, por cima da imagem principal. Se ficar vazio, o topo mostra apenas a imagem.',
+          type: 'url',
+        }),
+        copyBlockField(
+          'intro',
+          'Apresentação da empresa',
+          'Explicação curta sobre a empresa usada depois da primeira secção.',
+        ),
         defineField({
           name: 'impact',
           title: 'Impacto e prova',
@@ -148,9 +171,9 @@ export const siteLanding = defineType({
         }),
         defineField({
           name: 'mediaShowcase',
-          title: 'Media institucional',
+          title: 'Galeria de media',
           description:
-            'Zona para apresentar vídeos YouTube e/ou fotografias. Pode ter só vídeo, só imagens, ou ambos.',
+            'Galeria de fotografias e/ou vídeos do YouTube para a página inicial. Pode ter só imagens, só vídeos, ou os dois juntos. O vídeo do topo é definido no campo "Vídeo do topo".',
           type: 'object',
           options: {collapsible: true},
           fields: [
@@ -191,7 +214,11 @@ export const siteLanding = defineType({
       'Página Produtos',
       [
         copyBlockField('hero', 'Primeira secção'),
-        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da página de produtos.'),
+        pageImageField(
+          'heroImage',
+          'Imagem principal da primeira secção',
+          'Imagem grande usada no topo da página de produtos.',
+        ),
         localizedTextField('lead', 'Texto junto à contagem de produtos'),
       ],
       'Edite apenas os textos da listagem de produtos. Cada produto é editado na área Produtos.',
@@ -204,7 +231,8 @@ export const siteLanding = defineType({
         defineField({
           name: 'estimate',
           title: 'Explicação do orçamento',
-          description: 'Bloco principal e cartões pequenos sobre os fatores que influenciam o preço.',
+          description:
+            'Bloco principal e cartões pequenos sobre os fatores que influenciam o preço.',
           type: 'object',
           options: {collapsible: true},
           fields: [
@@ -226,7 +254,11 @@ export const siteLanding = defineType({
       'Página Casos',
       [
         copyBlockField('hero', 'Primeira secção'),
-        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da listagem de casos.'),
+        pageImageField(
+          'heroImage',
+          'Imagem principal da primeira secção',
+          'Imagem grande usada no topo da listagem de casos.',
+        ),
       ],
       'Edite o título e introdução da listagem de casos. Cada caso é editado na área Casos de estudo.',
     ),
@@ -235,7 +267,11 @@ export const siteLanding = defineType({
       'Página Blog',
       [
         copyBlockField('hero', 'Primeira secção'),
-        pageImageField('heroImage', 'Imagem principal da primeira secção', 'Imagem grande usada no topo da listagem do blog.'),
+        pageImageField(
+          'heroImage',
+          'Imagem principal da primeira secção',
+          'Imagem grande usada no topo da listagem do blog.',
+        ),
         copyBlockField('newsletter', 'Secção newsletter'),
       ],
       'Edite a introdução do Blog e a newsletter. Cada artigo é editado na área Artigos do blog.',

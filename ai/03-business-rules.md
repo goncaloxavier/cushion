@@ -11,6 +11,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Page-level public copy for home, about, products, catalogue, case studies, blog, contact, footer, and contact details should be editable through the Sanity `siteContent` singleton.
 - Contact, social, WhatsApp, Livro de Reclamacoes, the related legal note, and marketing-consent copy/links should be editable through the Sanity `siteContent` singleton.
 - Homepage institutional media and partner/project logos should be editable through the Sanity `siteContent` singleton, with fallback content available when Studio is empty.
+- The institutional company video leads the homepage as a full-bleed hero (click-to-play; the YouTube embed loads only on click). It is set through the `home.heroVideoUrl` field and uses the homepage hero image as its poster; it is not paired with a placeholder photo.
+- The homepage `mediaShowcase` is a mixed image/video gallery (not the institutional video). It must keep supporting images only, videos only, or both together; public copy stays marketing-led, while editor-facing Studio guidance may mention mixing photos and YouTube.
 - Mixed page media should support uploaded images, YouTube videos, or both without requiring a code change for each new media item.
 - Product, case-study, and blog images/galleries should be editable through Sanity; project-local fallback images are used only when an entry has no published image.
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.

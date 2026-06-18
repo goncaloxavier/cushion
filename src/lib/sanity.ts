@@ -37,6 +37,7 @@ const collectionsQuery = `{
         },
         alt
       },
+      heroVideoUrl,
       intro,
       impact {
         title,

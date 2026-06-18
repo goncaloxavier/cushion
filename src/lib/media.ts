@@ -31,19 +31,22 @@ export const youtubeDetails = (url: string | undefined) => {
 
     if (!/^[a-zA-Z0-9_-]{6,}$/.test(id)) return undefined
 
-    const start = parseYoutubeStart(parsed.searchParams.get('t') ?? parsed.searchParams.get('start'))
+    const start = parseYoutubeStart(
+      parsed.searchParams.get('t') ?? parsed.searchParams.get('start'),
+    )
     return {id, start}
   } catch {
     return undefined
   }
 }
 
-export const youtubeEmbedUrl = (url: string | undefined) => {
+export const youtubeEmbedUrl = (url: string | undefined, options?: {autoplay?: boolean}) => {
   const details = youtubeDetails(url)
   if (!details) return undefined
 
   const params = new URLSearchParams({rel: '0'})
   if (details.start > 0) params.set('start', String(details.start))
+  if (options?.autoplay) params.set('autoplay', '1')
 
   return `https://www.youtube-nocookie.com/embed/${details.id}?${params.toString()}`
 }
