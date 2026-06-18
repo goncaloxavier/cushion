@@ -16,6 +16,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
 - Starter product, case-study, and blog documents have been seeded into Sanity `production` using deterministic IDs.
+- Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, then imported with deterministic `blogPost.<slug>` IDs.
 - Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate snapshots.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.

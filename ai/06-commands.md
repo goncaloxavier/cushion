@@ -62,6 +62,16 @@ npm run seed:studio
 - `seed:studio:write` generates `.sanity/seed.ndjson` locally.
 - `seed:studio` imports the starter documents into Sanity dataset `production` with `--replace`.
 
+## Historical Blog Import
+
+```bash
+npm run import:blog:write
+npm run import:blog
+```
+
+- `import:blog:write` generates `.sanity/blog-import.ndjson` from `scripts/old-blog-posts.ts`.
+- `import:blog` imports the generated blog documents into Sanity dataset `production` with `--replace`.
+
 ## Useful Debug Commands
 
 ```bash

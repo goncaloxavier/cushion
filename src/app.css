@@ -2987,6 +2987,7 @@ dt {
 
 .blog-body p {
   color: #35413a;
+  white-space: pre-line;
 }
 
 .back-link {

@@ -41,6 +41,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/routes/contacto/+page.svelte` - contact route.
 - `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
+- `scripts/old-blog-posts.ts` and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog and the generator for `.sanity/blog-import.ndjson`.
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
