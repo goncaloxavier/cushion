@@ -17,7 +17,7 @@
         <h1>{content.home.hero.title}</h1>
         <p>{content.home.hero.lead}</p>
       </Reveal>
-      <Reveal delay={130} variant="scale" priority>
+      <Reveal class="home-hero-actions" delay={130} variant="scale" priority>
         <div class="hero-actions">
           <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
           <a class="button secondary" href={`/catalogo${langQuery}`}>{content.nav.catalogue}</a>

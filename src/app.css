@@ -3804,6 +3804,12 @@ dt {
     width: min(100%, 20rem);
   }
 
+  .home-hero-actions {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
   .home-hero .hero-actions {
     width: min(20rem, calc(100vw - var(--mobile-gutter) - var(--mobile-gutter)));
     margin-right: auto;
