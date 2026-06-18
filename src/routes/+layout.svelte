@@ -44,7 +44,7 @@
     return 'home'
   })
   const routeItems = $derived(allRouteItems)
-  const dockItems = $derived(allDockItems)
+  const dockItems = $derived(allDockItems.filter((item) => item.key !== 'blog'))
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
     [

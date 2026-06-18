@@ -42,9 +42,9 @@ const desktopNavLabels = {
 }
 
 const mobileNavLabels = {
-  pt: [...desktopNavLabels.pt, 'Contacto'],
-  en: [...desktopNavLabels.en, 'Contact'],
-  es: [...desktopNavLabels.es, 'Contacto'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Catálogo', 'Casos', 'Contacto'],
+  en: ['Home', 'About', 'Products', 'Catalogue', 'Cases', 'Contact'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Catálogo', 'Casos', 'Contacto'],
 }
 
 const productSlugs = [
@@ -161,7 +161,7 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
-  if (route.active) {
+  if (route.active && labels.includes(route.active)) {
     const currentPageLink = contextualNavigation.getByRole('link', {name: route.active, exact: true})
     await expect(currentPageLink).toBeVisible()
     await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
