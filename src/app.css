@@ -618,46 +618,6 @@ main {
   }
 }
 
-.scroll-cue {
-  position: absolute;
-  right: max(2.45rem, calc((100% - var(--max)) / 2 + 1.2rem));
-  bottom: 3.45rem;
-  z-index: 3;
-  margin: 0;
-  padding: 0.42rem 0.58rem;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.78rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  background: rgba(9, 45, 52, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  backdrop-filter: blur(12px);
-}
-
-.scroll-cue::before {
-  display: inline-block;
-  width: 2.2rem;
-  height: 1px;
-  margin-right: 0.7rem;
-  vertical-align: middle;
-  content: "";
-  background: currentColor;
-  animation: cue-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes cue-pulse {
-  0%,
-  100% {
-    transform: scaleX(0.45);
-    transform-origin: left;
-  }
-  50% {
-    transform: scaleX(1);
-    transform-origin: left;
-  }
-}
-
 .kicker {
   max-width: 100%;
   margin: 0 0 1rem;
@@ -3536,11 +3496,6 @@ dt {
   html {
     scroll-behavior: auto;
   }
-
-  .scroll-cue::before {
-    animation: none;
-    transform: scaleX(1);
-  }
 }
 
 @media (max-width: 1040px) {
@@ -3643,7 +3598,7 @@ dt {
   }
 
   body {
-    padding-bottom: 0;
+    padding-bottom: 4.8rem;
   }
 
   .site-header {
@@ -3678,18 +3633,19 @@ dt {
   }
 
   .mobile-dock {
-    position: relative;
+    position: fixed;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
     z-index: 80;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.22rem;
-    width: auto;
-    margin: 0.55rem var(--mobile-gutter) 0;
-    padding: 0.28rem;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.16rem;
+    padding: 0.25rem;
     background: rgba(248, 248, 246, 0.92);
     border: 1px solid rgba(23, 33, 28, 0.14);
     border-radius: 8px;
-    box-shadow: 0 0.7rem 1.45rem rgba(23, 33, 28, 0.12);
+    box-shadow: 0 1rem 2.2rem rgba(23, 33, 28, 0.16);
     backdrop-filter: blur(18px);
   }
 
@@ -3698,10 +3654,10 @@ dt {
     align-items: center;
     justify-content: center;
     min-width: 0;
-    min-height: 2.3rem;
-    padding: 0 0.2rem;
+    min-height: 2.65rem;
+    padding: 0 0.1rem;
     color: #26332d;
-    font-size: 0.64rem;
+    font-size: 0.54rem;
     font-weight: 880;
     line-height: 1.05;
     text-align: center;
@@ -3856,10 +3812,6 @@ dt {
 
   .button {
     width: 100%;
-  }
-
-  .scroll-cue {
-    display: none;
   }
 
   .collection-row {
@@ -4209,7 +4161,7 @@ dt {
 
   .whatsapp-float {
     right: 0.85rem;
-    bottom: 0.85rem;
+    bottom: 5.7rem;
     width: 3rem;
     min-height: 3rem;
     padding: 0.45rem;

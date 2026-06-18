@@ -74,7 +74,6 @@ export type SiteContent = {
     contact: string
   }
   common: {
-    scroll: string
     readMore: string
     requestQuote: string
     exploreProducts: string
@@ -703,7 +702,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       contact: 'Contacto',
     },
     common: {
-      scroll: 'Scroll para explorar',
       readMore: 'Ler mais',
       requestQuote: 'Pedir orçamento',
       exploreProducts: 'Explorar produtos',
@@ -893,7 +891,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       contact: 'Contact',
     },
     common: {
-      scroll: 'Scroll to explore',
       readMore: 'Read more',
       requestQuote: 'Request a quote',
       exploreProducts: 'Explore products',
@@ -1072,7 +1069,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       contact: 'Contacto',
     },
     common: {
-      scroll: 'Scroll para explorar',
       readMore: 'Leer más',
       requestQuote: 'Pedir presupuesto',
       exploreProducts: 'Explorar productos',

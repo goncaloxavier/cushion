@@ -32,7 +32,6 @@
         fetchpriority="high"
       />
     </Reveal>
-    <p class="scroll-cue">{content.common.scroll}</p>
   </section>
 
   <section class="section home-brief">

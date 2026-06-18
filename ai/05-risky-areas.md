@@ -47,7 +47,7 @@ Use this to help agents avoid accidental damage.
 - Hero image loading and mobile layout.
 - Sanity query behavior if collections grow large or need ordering/filtering beyond the current simple published list.
 - Above-the-fold logo/hero assets, lazy list images, page transitions, and scroll-reset scripts.
-- Floating WhatsApp placement, especially on mobile where it can compete with forms and lower-page content.
+- Floating WhatsApp placement, especially on mobile where it can compete with the bottom dock and forms.
 - Playwright performance: keep viewport-independent checks desktop-only and avoid duplicate paginated page walks.
 
 ## Security Or Access-Control Areas
