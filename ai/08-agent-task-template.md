@@ -29,7 +29,7 @@ Constraints:
 - Keep the change scoped
 - Add/update tests where useful and where test tooling exists
 - Run the validation commands from /ai/04-validation-map.md and /ai/06-commands.md when relevant
-- Refresh visual snapshots only when the visual change is intentional
+- Generate visual snapshots only for local/session review, and do not commit generated PNG baselines
 - Respect explicit requests to skip Playwright; use lighter checks and targeted browser screenshots instead, and report skipped E2E/visual checks
 - Remember Playwright uses fallback fixtures; local/dev website reads live Sanity content
 - Remember viewport-independent Playwright checks should not be duplicated across mobile and desktop without a reason

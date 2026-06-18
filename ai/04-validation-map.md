@@ -10,7 +10,6 @@ npm run lint
 npm run build
 npm run build:studio
 npm run e2e
-npm run e2e:visual
 npm run seed:studio:write
 ```
 
@@ -19,7 +18,7 @@ npm run seed:studio:write
 - Unit tests: none configured.
 - Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment once in the desktop Playwright project because the file contract is viewport independent.
 - E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable mobile bottom dock, language-safe links, overflow, detail links, collection images, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, and 404 handling across desktop/mobile where the viewport matters.
-- Visual tests: `tests/visual.spec.ts` checks full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages.
+- Visual tests: `tests/visual.spec.ts` can generate/review full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages. Snapshot output is ignored and session-only.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 11 starter Sanity documents from fallback content.
 - Build/type checks: `npm run check` runs SvelteKit sync and TypeScript; `npm run build` builds SvelteKit; `npm run build:studio` builds Sanity Studio.
 - Lint/format: `npm run lint` runs ESLint. Prettier config exists in `package.json`; no package script exists yet.
@@ -46,7 +45,7 @@ npm run seed:studio:write
 
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
-- Visual baselines are platform-specific screenshot files under `tests/visual.spec.ts-snapshots/`.
+- Visual snapshot output is platform-specific and generated under ignored `tests/*-snapshots/` folders for local/session review only.
 - Playwright E2E/visual runs can be expensive locally; if skipped by explicit instruction, record that in the handoff and use the strongest lighter checks available.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
 - ESLint ignores `.svelte-kit/`, `.sanity/`, build outputs, `test-results/`, and `playwright-report/` so generated test artifacts do not crash lint.

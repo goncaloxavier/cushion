@@ -23,11 +23,10 @@ npm run lint
 npm run build
 npm run build:studio
 npm run e2e
-npm run e2e:visual
 npm run seed:studio:write
 ```
 
-No unit-test runner is configured. Route, CMS-contract, and visual Playwright checks are configured.
+No unit-test runner is configured. Route and CMS-contract Playwright checks are the normal automated E2E path; visual Playwright checks are optional/session-only.
 
 ## Deployment
 
@@ -48,7 +47,7 @@ npm run e2e:visual
 npm run e2e:visual:update
 ```
 
-Use `npm run e2e:visual:update` only when the current visual output is intentionally becoming the new baseline.
+Use `npm run e2e:visual:update` only when you need local visual snapshots for review. The generated `tests/*-snapshots/` PNGs are ignored and should not be committed.
 
 When Xavier explicitly asks to skip Playwright for a task, do not run `npm run e2e`, `npm run e2e:visual`, or visual updates. Use lighter validation plus targeted browser screenshots where practical, and report the skipped checks.
 
@@ -93,4 +92,4 @@ npm ls @playwright/test
 - Playwright tests start a local SvelteKit server on port `4173` by default and use the installed Chrome channel unless `PLAYWRIGHT_CHANNEL` is set.
 - Playwright route/CMS tests are optimized so viewport-independent checks run once, while mobile/desktop route behavior is still covered where it matters.
 - Playwright tests force fallback fixtures with `SANITY_DISABLE_REMOTE=true`.
-- Generated Playwright folders are ignored by ESLint: `test-results/` and `playwright-report/`.
+- Generated Playwright folders are ignored by git/ESLint where relevant: `test-results/`, `playwright-report/`, and visual snapshot folders.

@@ -6,7 +6,7 @@
 - Audience: public visitors interested in recycled-plastic products for outdoor, municipal, garden, and custom projects; client/editor users can manage product categories, case studies, and blog posts through Sanity.
 - Primary user workflow: visitor explores the routed multilingual website, reviews products, catalogue/quote guidance, cases, and blog content, then contacts the company by email, phone, WhatsApp, or the contact form.
 - Deployment target: Railway is being used for the basic public website preview. Sanity Studio is a separate editable application that can run locally or be deployed through Sanity CLI.
-- Current maturity: client-approved base direction. A routed SvelteKit website, product/case/blog detail pages, Sanity Studio 6 with a Portuguese client-friendly structure, editable page copy, seeded Sanity collection content, CMS-ready image/gallery fields, editable homepage video/media and partner sections, editable contact/social/legal fields, contact form gating, multilingual fallback content, E2E tests, and visual regression baselines are present.
+- Current maturity: client-approved base direction. A routed SvelteKit website, product/case/blog detail pages, Sanity Studio 6 with a Portuguese client-friendly structure, editable page copy, seeded Sanity collection content, CMS-ready image/gallery fields, editable homepage video/media and partner sections, editable contact/social/legal fields, contact form gating, multilingual fallback content, E2E tests, and session-only visual review tooling are present.
 
 ## Source Of Truth
 
@@ -26,7 +26,7 @@
 
 1. Keep the SvelteKit presentation site polished, responsive, smooth, and premium without adding friction.
 2. Make Sanity understandable in Portuguese and useful for editing page copy, products, case studies, blog posts, catalogue/contact content, and imagery.
-3. Keep route, language, CMS, performance, and visual regression tests current as pages evolve.
+3. Keep route, language, CMS, performance, and visual review coverage current as pages evolve, without committing generated screenshot baselines.
 4. Keep pages compact and navigable; use smooth scrolling deliberately as a reading aid rather than as the default page strategy.
 5. Keep Railway preview deployment boring and reliable so the client can test the website without setup friction.
 6. Confirm final client copy, imagery, pricing/catalogue rules, production domains, and Studio hosting/access process.

@@ -19,7 +19,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
 - Starter product, case-study, and blog documents have been seeded into Sanity `production` using deterministic IDs.
 - Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, then imported with public-read-safe deterministic `blogPost-<slug>` IDs, hash-shortened only when a slug would exceed Sanity's document ID length.
-- Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate snapshots.
+- Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate local visual review output.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
 - The floating WhatsApp shortcut is useful on public browsing routes, but it should not obstruct the contact form.

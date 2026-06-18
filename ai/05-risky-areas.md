@@ -8,7 +8,7 @@ Use this to help agents avoid accidental damage.
 - `src/routes/+layout.server.ts` - shared content load for all public routes.
 - `src/routes/+layout.svelte` - shared public navigation, language toggle, footer, social links, complaints link, and WhatsApp shortcut.
 - `src/routes/+page.svelte` and route folders under `src/routes/` - public presentation UI.
-- `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - visual regression coverage and baselines.
+- `tests/visual.spec.ts` - optional visual screenshot coverage; generated `tests/*-snapshots/` folders are ignored session output.
 - `playwright.config.ts` - local browser-test server, worker/timeouts, and desktop/mobile projects.
 - `eslint.config.mjs` - ignores generated folders; if this regresses, lint can scan Playwright output and fail while tests run.
 - `scripts/write-sanity-seed.ts` - imports fallback content shape into Sanity seed documents.
@@ -41,7 +41,7 @@ Use this to help agents avoid accidental damage.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
-- Developers updating visual snapshots only when the visual change is intentional.
+- Developers generating visual snapshots only for local/session review, without committing the generated PNG baselines.
 - Developers seeding Content Lake starter documents with `npm run seed:studio`.
 
 ## Performance-Sensitive Areas
@@ -64,7 +64,7 @@ Use this to help agents avoid accidental damage.
 - Assuming content fields exist before schemas are confirmed.
 - Adding routed pages without preserving the `lang` query parameter in internal navigation.
 - Adding CMS fallback items without adding matching visual or route-test coverage.
-- Refreshing visual baselines to hide accidental layout regressions.
+- Committing generated visual snapshot PNGs or using local snapshots to hide accidental layout regressions.
 - Forgetting that Playwright uses fallback fixtures while local/dev website reads live Sanity content.
 - Running lint while Playwright is creating generated output is safe only while generated test folders stay ignored.
 - Rerunning `npm run seed:studio` after manual Studio edits can replace the deterministic starter documents.

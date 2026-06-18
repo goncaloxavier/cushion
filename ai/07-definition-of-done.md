@@ -22,7 +22,7 @@ Use this as the task completion contract.
 - Floating shortcuts such as WhatsApp do not obscure important content, form fields, or mobile navigation.
 - Relevant `/ai` files are updated when architecture, commands, validation, or business rules change.
 - No unrelated files are changed.
-- Generated artifacts are cleaned up or intentionally committed.
+- Generated artifacts are cleaned up or ignored; screenshot snapshot folders are not committed.
 
 ## Validation
 
@@ -33,7 +33,7 @@ Use this as the task completion contract.
 - Test/performance config changes: run `npm run e2e` and confirm the suite does not crash on generated artifacts.
 - Visual/interface changes: manually review relevant routes on desktop and mobile, preferably with screenshots.
 - Route/CMS/interface changes: run `npm run e2e` when practical.
-- Intentional visual changes: run `npm run e2e:visual:update`, review the snapshot changes, then run `npm run e2e:visual` when practical.
+- Intentional visual changes: when practical, run `npm run e2e:visual:update`, review the generated local snapshots, then run `npm run e2e:visual`. Do not commit the generated PNG snapshot folders.
 - If Xavier explicitly asks to skip Playwright E2E/visual runs, use lighter validation and targeted browser screenshots, then state which Playwright checks were skipped.
 
 ## Testing
@@ -43,7 +43,7 @@ Use this as the task completion contract.
 - Automated tests should be updated when public routes, fallback CMS items, or visual surfaces change.
 - Do not make visual regression tests depend on mutable live Studio content.
 - Manual browser review is expected for future visual or interaction-heavy SvelteKit changes.
-- Screenshots/snapshots should change only when intentionally updated.
+- Screenshots/snapshots are local review artifacts and should not be committed.
 
 ## Handoff
 

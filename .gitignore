@@ -17,6 +17,7 @@ dist/
 test-results/
 playwright-report/
 coverage/
+tests/*-snapshots/
 
 # Logs
 *.log

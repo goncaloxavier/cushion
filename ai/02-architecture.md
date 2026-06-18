@@ -44,7 +44,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `scripts/old-blog-posts.ts` and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog and the generator for `.sanity/blog-import.ndjson`.
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
-- `tests/visual.spec.ts` and `tests/visual.spec.ts-snapshots/` - full-page visual regression baselines.
+- `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
 - `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts an optional `{autoplay}` flag used by the homepage hero facade.
@@ -66,7 +66,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 
 - Source of truth: Sanity project `u4uyfix8`, dataset `production`, schema definitions committed in this repo, and fallback content in `src/lib/site-content.ts` until Sanity is populated.
 - Derived data: SvelteKit build output from `npm run build` and Sanity Studio build output from `npm run build:studio`.
-- Runtime/generated data: `node_modules/`, `.svelte-kit/`, `build/`, `dist/`, `.sanity/`, `test-results/`, and `playwright-report/`.
+- Runtime/generated data: `node_modules/`, `.svelte-kit/`, `build/`, `dist/`, `.sanity/`, `test-results/`, `playwright-report/`, and `tests/*-snapshots/`.
 - External services: Railway for the public website preview, Sanity Content Lake, and Sanity Studio hosting/deployment.
 - Test mode: Playwright sets `SANITY_DISABLE_REMOTE=true`, forcing stable fallback fixtures instead of mutable Content Lake content.
 
@@ -108,8 +108,8 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Media/partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, reusable renderers, public route rendering, and tests.
 - The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a full-bleed click-to-play hero facade (poster = `home.heroImage`); the homepage `mediaShowcase` is a separate mixed image/video gallery. Keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
-- When adding public routes or fallback CMS items, update Playwright route/visual coverage and refresh snapshots only for intentional visual changes.
+- When adding public routes or fallback CMS items, update Playwright route/visual coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
 - When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` only when the Content Lake should receive those changes.
 - Do not use assets from the existing DaFábrica4You website; use the provided logo and project-local/generated assets unless Xavier confirms otherwise.
-- Keep generated artifacts out of committed project context unless intentionally required; do not stage `node_modules/`, `test-results/`, or build outputs.
+- Keep generated artifacts out of committed project context unless intentionally required; do not stage `node_modules/`, `test-results/`, visual snapshot folders, or build outputs.

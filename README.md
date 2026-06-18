@@ -38,11 +38,10 @@ npm run lint
 npm run build
 npm run build:studio
 npm run e2e
-npm run e2e:visual
 npm run seed:studio
 ```
 
-Use `npm run e2e:visual:update` only when a visual change is intentional and the screenshot baselines should be refreshed.
+Visual snapshots are session-only review artifacts. Use `npm run e2e:visual:update` only when you need local screenshots for inspection, then keep the generated `tests/*-snapshots/` output out of git.
 Playwright runs with `SANITY_DISABLE_REMOTE=true`, so tests use stable fallback fixtures rather than mutable Studio content.
 
 ## Sanity
