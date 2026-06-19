@@ -35,6 +35,7 @@ npm run build
 npm run preview
 npm run build:studio
 npm run start:studio
+npm run deploy:content
 npm run deploy:studio
 npm run deploy-graphql
 ```
@@ -56,10 +57,12 @@ When Xavier explicitly asks to skip Playwright for a task, do not run `npm run e
 ```bash
 npm run seed:studio:write
 npm run seed:studio
+npm run deploy:content
 ```
 
-- `seed:studio:write` generates `.sanity/seed.ndjson` locally.
-- `seed:studio` imports the starter documents into Sanity dataset `production` with `--replace`.
+- `seed:studio:write` generates `.sanity/seed.ndjson` locally, including the `siteContent` singleton, page copy, contact/legal footer fields, homepage video URL, partner/media sections, and starter product documents.
+- `seed:studio` imports those starter documents into Sanity dataset `production` with `--replace`.
+- `deploy:content` intentionally refreshes code-managed Sanity content by running the starter seed, historical case-study import, and historical blog import in sequence. Keep it out of Railway builds unless replacing Content Lake documents on every website deploy is intended.
 
 ## Historical Blog Import
 

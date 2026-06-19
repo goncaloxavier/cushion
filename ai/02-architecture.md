@@ -83,6 +83,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `npm run build:studio` - builds Sanity Studio.
 - `npm run preview` - previews the built SvelteKit website.
 - `npm run start:studio` - serves a built Sanity Studio.
+- `npm run deploy:content` - intentionally imports code-managed Content Lake documents: the `siteContent` seed, starter products, historical case studies, and historical blog posts.
 - `npm run deploy:studio` - deploys Sanity Studio through Sanity CLI.
 - `npm run deploy-graphql` - deploys Sanity GraphQL.
 
@@ -115,6 +116,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
-- When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` only when the Content Lake should receive those changes.
+- When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` or `npm run deploy:content` only when the Content Lake should receive those changes.
+- Do not attach Sanity content imports to Railway website builds unless replacing Studio-managed content on every website deploy is explicitly intended.
 - Do not use assets from the existing DaFábrica4You website; use the provided logo and project-local/generated assets unless Xavier confirms otherwise.
 - Keep generated artifacts out of committed project context unless intentionally required; do not stage `node_modules/`, `test-results/`, visual snapshot folders, or build outputs.

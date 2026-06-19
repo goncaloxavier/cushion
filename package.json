@@ -32,6 +32,7 @@
     "import:cases": "npm run import:cases:write && sanity datasets import .sanity/case-study-import.ndjson --dataset production --replace",
     "import:blog:write": "tsx scripts/write-blog-import.ts",
     "import:blog": "npm run import:blog:write && sanity datasets import .sanity/blog-import.ndjson --dataset production --replace",
+    "deploy:content": "npm run seed:studio && npm run import:cases && npm run import:blog",
     "deploy:studio": "sanity deploy",
     "deploy-graphql": "sanity graphql deploy",
     "prepare": "svelte-kit sync || true"
