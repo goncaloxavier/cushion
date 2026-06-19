@@ -1,14 +1,18 @@
 <script lang="ts">
+  import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
+  import {changeListPage, type ListPageTransitionPhase} from '$lib/scroll'
+  import {tick} from 'svelte'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
   let query = $state('')
   let page = $state(1)
+  let pageTransitionPhase = $state<ListPageTransitionPhase>('idle')
   let collectionSection: HTMLElement | null = null
-  const pageSize = 2
+  const pageSize = 4
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredCases = $derived(
     content.caseStudies.filter((item) =>
@@ -30,22 +34,23 @@
     if (page > totalPages) page = totalPages
   })
 
-  const scrollToCollectionTop = () => {
-    requestAnimationFrame(() => {
-      collectionSection?.scrollIntoView({
-        block: 'start',
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      })
-    })
-  }
-
   const setCollectionPage = (nextPage: number) => {
     const boundedPage = Math.min(totalPages, Math.max(1, nextPage))
 
-    if (boundedPage === page) return
+    if (boundedPage === page || pageTransitionPhase !== 'idle') return
 
-    page = boundedPage
-    scrollToCollectionTop()
+    changeListPage(
+      collectionSection,
+      () => {
+        page = boundedPage
+      },
+      tick,
+      {
+        setPhase: (phase) => {
+          pageTransitionPhase = phase
+        },
+      },
+    )
   }
 </script>
 
@@ -87,7 +92,11 @@
       </div>
     </Reveal>
 
-    <div class="case-strip">
+    <div
+      class="collection-results case-strip"
+      class:page-swap-out={pageTransitionPhase === 'out'}
+      class:page-swap-in={pageTransitionPhase === 'in'}
+    >
       {#each visibleCases as item}
         {@const image = imageFor(item, caseStudyImageFallback)}
         <a class="case-card" href={`/casos-de-estudo/${item.slug}${langQuery}`}>
@@ -107,26 +116,14 @@
       <p class="empty-state collection-empty">{content.common.noResults}</p>
     {/if}
 
-    <nav class="pagination collection-pagination" aria-label={content.common.pageLabel}>
-      <button
-        type="button"
-        disabled={page === 1}
-        onclick={() => {
-          setCollectionPage(page - 1)
-        }}
-      >
-        {content.common.previous}
-      </button>
-      <span>{content.common.pageLabel} {page} / {totalPages}</span>
-      <button
-        type="button"
-        disabled={page === totalPages}
-        onclick={() => {
-          setCollectionPage(page + 1)
-        }}
-      >
-        {content.common.next}
-      </button>
-    </nav>
+    <Pagination
+      {page}
+      {totalPages}
+      onchange={setCollectionPage}
+      label={content.common.pageLabel}
+      previousLabel={content.common.previous}
+      nextLabel={content.common.next}
+      disabled={pageTransitionPhase !== 'idle'}
+    />
   </section>
 </main>

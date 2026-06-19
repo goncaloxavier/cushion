@@ -47,6 +47,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
 - `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
+- `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, case-study, and blog list routes; the page state lives in each route, which passes `page`/`totalPages`/`onchange` and keeps the scroll-to-collection-top behaviour.
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts an optional `{autoplay}` flag used by the homepage hero facade.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
 - `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.

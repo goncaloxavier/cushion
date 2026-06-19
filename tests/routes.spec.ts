@@ -73,13 +73,13 @@ async function goToNextPage(page: Page) {
   const nextButton = page.getByRole('button', {name: 'Seguinte'})
   if ((await nextButton.count()) === 0 || !(await nextButton.isEnabled())) return false
 
-  const pageLabel = page.locator('.pagination span')
-  const currentLabel = (await pageLabel.count()) > 0 ? await pageLabel.textContent() : ''
+  const activePage = page.locator('.pagination-page.active')
+  const currentLabel = (await activePage.count()) > 0 ? await activePage.textContent() : ''
 
   await nextButton.click()
 
   if (currentLabel) {
-    await expect(pageLabel).not.toHaveText(currentLabel)
+    await expect(activePage).not.toHaveText(currentLabel)
   }
 
   return true
@@ -127,6 +127,12 @@ async function waitForCollectionStart(page: Page, selector: string) {
   )
 }
 
+async function clickVisibleButton(page: Page, selector: string) {
+  const box = await page.locator(selector).boundingBox()
+  expect(box).not.toBeNull()
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2)
+}
+
 async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: TestInfo) {
   const isMobile = testInfo.project.name.includes('mobile')
 
@@ -162,7 +168,10 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
   }
 
   if (route.active && labels.includes(route.active)) {
-    const currentPageLink = contextualNavigation.getByRole('link', {name: route.active, exact: true})
+    const currentPageLink = contextualNavigation.getByRole('link', {
+      name: route.active,
+      exact: true,
+    })
     await expect(currentPageLink).toBeVisible()
     await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
   }
@@ -208,7 +217,11 @@ test.describe('public website routes', () => {
 
     test('blog index links every fallback post to a detail page', async ({page}) => {
       await page.goto('/blog?lang=pt', {waitUntil: 'domcontentloaded'})
-      const {links, imageLinks} = await collectPagedCards(page, '.journal-card', '.journal-card-media img')
+      const {links, imageLinks} = await collectPagedCards(
+        page,
+        '.journal-card',
+        '.journal-card-media img',
+      )
 
       for (const slug of blogSlugs) {
         expect(links.has(`/blog/${slug}?lang=pt`)).toBe(true)
@@ -242,8 +255,8 @@ test.describe('public website routes', () => {
 
     const beforePaginationScroll = await page.evaluate(() => window.scrollY)
 
-    await page.getByRole('button', {name: 'Seguinte'}).click()
-    await expect(page.locator('.pagination span')).toHaveText('Página 2 / 2')
+    await clickVisibleButton(page, 'button[aria-label="Seguinte"]')
+    await expect(page.locator('.pagination-page.active')).toHaveText('2')
     await waitForCollectionStart(page, '.product-collection-section')
 
     const afterPaginationScroll = await page.evaluate(() => window.scrollY)
@@ -253,10 +266,14 @@ test.describe('public website routes', () => {
   test('refresh starts at the beginning of the page', async ({page}) => {
     await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
     await page.locator('.page-transition.entered').waitFor({state: 'visible'})
-    await page.waitForFunction(() => document.documentElement.scrollHeight > window.innerHeight + 240)
+    await page.waitForFunction(
+      () => document.documentElement.scrollHeight > window.innerHeight + 240,
+    )
     await page.waitForTimeout(180)
 
-    await page.evaluate(() => window.scrollTo(0, Math.min(900, document.documentElement.scrollHeight)))
+    await page.evaluate(() =>
+      window.scrollTo(0, Math.min(900, document.documentElement.scrollHeight)),
+    )
     await page.waitForFunction(() => window.scrollY > 40)
 
     await page.reload()
@@ -277,7 +294,9 @@ test.describe('public website routes', () => {
       'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
     )
     await expect(
-      page.getByText('Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.'),
+      page.getByText(
+        'Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.',
+      ),
     ).toHaveCount(2)
 
     const form = page.locator('form')
@@ -297,5 +316,4 @@ test.describe('public website routes', () => {
     await form.getByRole('checkbox').check()
     await expect(submit).toBeEnabled()
   })
-
 })
