@@ -37,6 +37,7 @@ npm run check
 npm run lint
 npm run build
 npm run build:studio
+npm run deploy:content
 npm run e2e
 npm run seed:studio
 ```
@@ -60,13 +61,21 @@ Published collection documents replace the matching fallback collection on the p
 
 ## Starter Content
 
-The current starter products, case studies, and blog posts can be written into the Sanity Content Lake with:
+The current site-wide content and starter products can be written into the Sanity Content Lake with:
 
 ```bash
 npm run seed:studio
 ```
 
-This generates `.sanity/seed.ndjson` and imports 11 deterministic documents into dataset `production` using `--replace`. After that, Studio is no longer empty and the public site reads those documents live.
+This generates `.sanity/seed.ndjson` and imports 6 deterministic documents into dataset `production` using `--replace`: the `siteContent` singleton plus starter products. After that, Studio has editable page copy/contact/footer content and product entries.
+
+To intentionally refresh all code-managed Studio content, including the migrated historical cases and blog posts, run:
+
+```bash
+npm run deploy:content
+```
+
+Do not put `deploy:content` inside the Railway build command unless overwriting Sanity content on every website deploy is intended.
 
 See `docs/sanity-starter.md` for the short editor/developer guide.
 

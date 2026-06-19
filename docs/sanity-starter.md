@@ -13,7 +13,7 @@ npm run dev:studio
 ## What To Do In Sanity
 
 1. Open the Studio.
-2. Open `Products`, `Case studies`, or `Blog posts` from the Studio sidebar.
+2. Open `Conteúdo do site`, `Products`, `Case studies`, or `Blog posts` from the Studio sidebar.
 3. Create or edit an entry.
 4. Fill the Portuguese, English, and Spanish fields.
 5. Upload the image/cover/project image and add alt text in Portuguese, English, and Spanish.
@@ -26,13 +26,21 @@ If Studio is empty and the website still looks complete, that is expected. The f
 
 If a Sanity entry has no uploaded image yet, the website uses a project-local fallback image. As soon as an editor uploads an image in Studio and publishes the entry, the public route uses the Sanity image instead.
 
-This project also has a seed workflow. It writes the current starter content into Sanity so Studio becomes the editing surface immediately:
+This project also has a seed workflow. It writes the current site-wide content and starter products into Sanity so Studio becomes the editing surface immediately:
 
 ```bash
 npm run seed:studio
 ```
 
-The seed currently imports 11 deterministic documents: 5 product categories, 3 case studies, and 3 blog posts. It uses `--replace`, so rerunning it updates only those seed document IDs.
+The seed currently imports 6 deterministic documents: the `siteContent` singleton and 5 product categories. It uses `--replace`, so rerunning it updates only those seed document IDs.
+
+For a deliberate full content refresh, including the migrated historical cases and blog posts, run:
+
+```bash
+npm run deploy:content
+```
+
+Do not run this as part of normal Railway website deploys unless replacing Sanity content every time is intended.
 
 ## Testing The CMS Flow
 
@@ -57,11 +65,12 @@ Detail pages are generated from slugs:
 
 ## Content Model
 
+- `Conteúdo do site` feeds page-level copy, contact/legal fields, the homepage video/media area, partner logos, and footer content.
 - `Product category` feeds the `/produtos` route.
 - `Case study` feeds the `/casos-de-estudo` route.
 - `Blog post` feeds `/blog` and `/blog/[slug]`.
 - Each public collection type has an editable Sanity image field with hotspot support and localized alt text.
-- `Landing page` remains registered as an experimental document from the first build pass.
+- `Conteúdo do site` is a singleton document with the fixed document ID `siteContent`.
 - `Localized short text` is for headings, labels, and CTAs.
 - `Localized long text` is for paragraphs.
 - `Content card` and `Impact stat` are still available for landing-page experiments.

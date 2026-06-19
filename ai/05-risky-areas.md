@@ -43,7 +43,7 @@ Use this to help agents avoid accidental damage.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
 - Developers generating visual snapshots only for local/session review, without committing the generated PNG baselines.
-- Developers seeding Content Lake starter documents with `npm run seed:studio`.
+- Developers seeding Content Lake starter documents with `npm run seed:studio` or intentionally refreshing code-managed content with `npm run deploy:content`.
 
 ## Performance-Sensitive Areas
 
@@ -68,7 +68,7 @@ Use this to help agents avoid accidental damage.
 - Committing generated visual snapshot PNGs or using local snapshots to hide accidental layout regressions.
 - Forgetting that Playwright uses fallback fixtures while local/dev website reads live Sanity content.
 - Running lint while Playwright is creating generated output is safe only while generated test folders stay ignored.
-- Rerunning `npm run seed:studio` after manual Studio edits can replace the deterministic starter documents.
+- Rerunning `npm run seed:studio` or `npm run deploy:content` after manual Studio edits can replace deterministic/code-managed documents.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
 - Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.
 - Making Sanity images required before the client has uploaded approved assets.
