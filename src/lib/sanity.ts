@@ -33,7 +33,12 @@ const collectionsQuery = `{
       hero,
       heroImage {
         asset -> {
-          url
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
         },
         alt
       },
@@ -59,13 +64,23 @@ const collectionsQuery = `{
           youtubeUrl,
           image {
             asset -> {
-              url
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
             },
             alt
           },
           poster {
             asset -> {
-              url
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
             },
             alt
           }
@@ -81,7 +96,12 @@ const collectionsQuery = `{
           logoTone,
           logo {
             asset -> {
-              url
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
             },
             alt
           },
@@ -104,7 +124,12 @@ const collectionsQuery = `{
       hero,
       heroImage {
         asset -> {
-          url
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
         },
         alt
       },
@@ -133,7 +158,12 @@ const collectionsQuery = `{
       hero,
       heroImage {
         asset -> {
-          url
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
         },
         alt
       }
@@ -142,7 +172,12 @@ const collectionsQuery = `{
       hero,
       heroImage {
         asset -> {
-          url
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
         },
         alt
       },
@@ -158,13 +193,23 @@ const collectionsQuery = `{
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     gallery[] {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
@@ -178,18 +223,29 @@ const collectionsQuery = `{
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     gallery[] {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     location,
     summary,
+    description,
     challenge,
     solution,
     result,
@@ -200,14 +256,92 @@ const collectionsQuery = `{
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
+      },
+      alt
+    },
+    gallery[] {
+      asset -> {
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     excerpt,
     publishedAt,
     category,
-    body
+    body,
+    article {
+      pt[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      },
+      en[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      },
+      es[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      }
+    }
   }
 }`
 

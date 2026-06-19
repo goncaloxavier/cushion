@@ -15,10 +15,13 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - The homepage `mediaShowcase` is a mixed image/video gallery (not the institutional video). It must keep supporting images only, videos only, or both together; public copy stays marketing-led, while editor-facing Studio guidance may mention mixing photos and YouTube.
 - Mixed page media should support uploaded images, YouTube videos, or both without requiring a code change for each new media item.
 - Product, case-study, and blog images/galleries should be editable through Sanity; project-local fallback images are used only when an entry has no published image.
+- Product and case-study indexes show 9 cards per page; blog already uses 9 cards per page.
+- Product, case-study, and blog detail galleries should preserve the full image frame and lock background scrolling while the lightbox is open.
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
 - Starter product, case-study, and blog documents have been seeded into Sanity `production` using deterministic IDs.
-- Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, then imported with public-read-safe deterministic `blogPost-<slug>` IDs, hash-shortened only when a slug would exceed Sanity's document ID length.
+- Historical Webnode case studies are migrated through `scripts/old-case-studies.ts` as 11 title-separated cases with PT/EN/ES title, summary, description, product area, location, main image, gallery images, and no date fields. Imports use deterministic public-read-safe `caseStudy-<slug>` IDs and populate the Studio-editable `description` plus image/gallery fields.
+- Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, with Portuguese bodies extracted from the raw Webnode HTML and EN/ES full-body translations generated for review, then imported with public-read-safe deterministic `blogPost-<slug>` IDs, hash-shortened only when a slug would exceed Sanity's document ID length. Imports keep the legacy full-text `body` and also populate the rich `article` field so Studio editors can preserve headings, lists, simple tables, links, images, and YouTube embeds.
 - Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate local visual review output.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
@@ -30,7 +33,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Visitor language choice through the PT/EN/ES toggle.
 - Optional published Sanity `Site content` singleton document.
 - Optional published Sanity `Product category`, `Case study`, and `Blog post` documents.
-- Optional Sanity image uploads and localized image alt text for those documents.
+- Optional Sanity image uploads, galleries, and localized image alt text for those documents; blog article images and product/case/blog detail-gallery images should render uncropped in article/detail contexts.
 - Optional Sanity social, WhatsApp, complaints-book, and contact details.
 - Fallback multilingual content in `src/lib/site-content.ts`.
 

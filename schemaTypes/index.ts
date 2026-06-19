@@ -3,6 +3,7 @@ import {blogPost} from './blogPost'
 import {caseStudy} from './caseStudy'
 import {contentCard} from './objects/contentCard'
 import {impactStat} from './objects/impactStat'
+import {localizedArticle} from './objects/localizedArticle'
 import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
 import {mediaItem} from './objects/mediaItem'
@@ -14,6 +15,7 @@ export const schemaTypes = [
   productCategory,
   caseStudy,
   blogPost,
+  localizedArticle,
   localizedString,
   localizedText,
   mediaItem,

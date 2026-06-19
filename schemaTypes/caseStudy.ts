@@ -21,7 +21,8 @@ export const caseStudy = defineType({
     defineField({
       name: 'slug',
       title: 'Endereço da página',
-      description: 'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
+      description:
+        'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
       type: 'slug',
       group: 'conteudo',
       options: {source: 'title.pt', maxLength: 96},
@@ -82,6 +83,14 @@ export const caseStudy = defineType({
       name: 'summary',
       title: 'Resumo',
       description: 'Frase curta para a listagem de casos.',
+      type: 'localizedText',
+      group: 'conteudo',
+    }),
+    defineField({
+      name: 'description',
+      title: 'Descrição do caso',
+      description:
+        'Texto livre para casos simples vindos da página antiga: título, descrição e fotografias.',
       type: 'localizedText',
       group: 'conteudo',
     }),

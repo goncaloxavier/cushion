@@ -2,7 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {blogImageFallback, imageFor} from '$lib/site-content'
-  import {changeListPage, type ListPageTransitionPhase} from '$lib/scroll'
+  import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
 
   let {data} = $props()
@@ -10,7 +10,7 @@
   const langQuery = $derived(`?lang=${data.language}`)
   let query = $state('')
   let page = $state(1)
-  let pageTransitionPhase = $state<ListPageTransitionPhase>('idle')
+  let swapping = $state(false)
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
   const normalizedQuery = $derived(query.trim().toLowerCase())
@@ -33,7 +33,7 @@
 
   const setCollectionPage = (nextPage: number) => {
     const boundedPage = Math.min(totalPages, Math.max(1, nextPage))
-    if (boundedPage === page || pageTransitionPhase !== 'idle') return
+    if (boundedPage === page || swapping) return
 
     changeListPage(
       collectionSection,
@@ -41,10 +41,8 @@
         page = boundedPage
       },
       tick,
-      {
-        setPhase: (phase) => {
-          pageTransitionPhase = phase
-        },
+      (value) => {
+        swapping = value
       },
     )
   }
@@ -88,11 +86,7 @@
       </div>
     </Reveal>
 
-    <div
-      class="collection-results journal-board"
-      class:page-swap-out={pageTransitionPhase === 'out'}
-      class:page-swap-in={pageTransitionPhase === 'in'}
-    >
+    <div class="collection-results" class:page-swap-out={swapping}>
       {#each visiblePosts as post}
         {@const image = imageFor(post, blogImageFallback)}
         <a class="journal-card" href={`/blog/${post.slug}${langQuery}`}>
@@ -120,7 +114,7 @@
       label={content.common.pageLabel}
       previousLabel={content.common.previous}
       nextLabel={content.common.next}
-      disabled={pageTransitionPhase !== 'idle'}
+      disabled={swapping}
     />
   </section>
 </main>

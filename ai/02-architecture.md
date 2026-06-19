@@ -41,13 +41,17 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/routes/contacto/+page.svelte` - contact route.
 - `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
-- `scripts/old-blog-posts.ts` and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog and the generator for `.sanity/blog-import.ndjson`.
+- `scripts/old-blog-posts.ts`, `scripts/update-old-blog-bodies.ts`, and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog, a raw-body/translation refresh helper, and the generator for `.sanity/blog-import.ndjson`.
+- `scripts/old-case-studies.ts` and `scripts/write-case-study-import.ts` - reviewable trilingual migration data for the previous Webnode case-study page and the generator for `.sanity/case-study-import.ndjson`.
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
+- `src/lib/components/ImageGallery.svelte` - shared product/case/blog detail gallery and lightbox; locks background scroll while open and supports keyboard navigation.
 - `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
-- `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, case-study, and blog list routes; the page state lives in each route, which passes `page`/`totalPages`/`onchange` and keeps the scroll-to-collection-top behaviour.
+- `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, case-study, and blog list routes; page state lives in each route, which passes `page`/`totalPages`/`onchange`.
+- `src/lib/article-structure.ts` and `src/lib/components/StructuredArticleBody.svelte` - shared plain-text article parser plus renderer for Studio-authored rich blog articles, with legacy body fallback for migrated posts.
+- `src/lib/scroll.ts` - `changeListPage` runs a page change as a market-standard cross-fade: fade the `.collection-results` grid out, swap + render while hidden, instant-reposition to the list top under the fade, then fade back in (opacity/transform only — no per-frame scroll loop). The three list routes (products, case studies, blog) share one `.collection-results` grid + card layout defined in `src/app.css`.
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts an optional `{autoplay}` flag used by the homepage hero facade.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
 - `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.

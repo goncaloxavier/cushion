@@ -28,6 +28,8 @@
     "test:visual:update": "playwright test tests/visual.spec.ts --update-snapshots",
     "seed:studio:write": "tsx scripts/write-sanity-seed.ts",
     "seed:studio": "npm run seed:studio:write && sanity datasets import .sanity/seed.ndjson --dataset production --replace",
+    "import:cases:write": "tsx scripts/write-case-study-import.ts",
+    "import:cases": "npm run import:cases:write && sanity datasets import .sanity/case-study-import.ndjson --dataset production --replace",
     "import:blog:write": "tsx scripts/write-blog-import.ts",
     "import:blog": "npm run import:blog:write && sanity datasets import .sanity/blog-import.ndjson --dataset production --replace",
     "deploy:studio": "sanity deploy",

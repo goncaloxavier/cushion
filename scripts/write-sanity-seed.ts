@@ -1,5 +1,12 @@
 import {mkdir, writeFile} from 'node:fs/promises'
-import {fallbackContent, type BlogPost, type CaseStudy, type LanguageCode, type ProductItem} from '../src/lib/site-content'
+import {plainArticleToPortableText} from '../src/lib/article-structure'
+import {
+  fallbackContent,
+  type BlogPost,
+  type CaseStudy,
+  type LanguageCode,
+  type ProductItem,
+} from '../src/lib/site-content'
 
 const languages: LanguageCode[] = ['pt', 'en', 'es']
 const outputFile = '.sanity/seed.ndjson'
@@ -71,6 +78,12 @@ const caseDocuments = fallbackContent.pt.caseStudies.map((caseStudy, index) => (
 
 const blogDocuments = fallbackContent.pt.blogPosts.map((post) => {
   const index = fallbackContent.pt.blogPosts.findIndex((item) => item.slug === post.slug)
+  const article = Object.fromEntries(
+    languages.map((language) => [
+      language,
+      plainArticleToPortableText(fallbackContent[language].blogPosts[index].body),
+    ]),
+  )
 
   return {
     _id: `blogPost.${post.slug}`,
@@ -81,6 +94,7 @@ const blogDocuments = fallbackContent.pt.blogPosts.map((post) => {
     category: localizedField<BlogPost>('blogPosts', index, 'category'),
     excerpt: localizedField<BlogPost>('blogPosts', index, 'excerpt'),
     body: localizedField<BlogPost>('blogPosts', index, 'body'),
+    article,
   }
 })
 

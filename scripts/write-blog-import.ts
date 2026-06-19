@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto'
 import {mkdir, writeFile} from 'node:fs/promises'
+import {plainArticleToPortableText} from '../src/lib/article-structure'
 import {oldBlogPosts} from './old-blog-posts'
 
 const outputFile = '.sanity/blog-import.ndjson'
@@ -26,6 +27,11 @@ const documents = oldBlogPosts.map((post) => ({
   category: post.category,
   excerpt: post.excerpt,
   body: post.body,
+  article: {
+    pt: plainArticleToPortableText(post.body.pt),
+    en: plainArticleToPortableText(post.body.en),
+    es: plainArticleToPortableText(post.body.es),
+  },
   image: {
     _type: 'image',
     _sanityAsset: `image@${post.coverImageUrl}`,

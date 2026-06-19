@@ -21,7 +21,8 @@ export const blogPost = defineType({
     defineField({
       name: 'slug',
       title: 'Endereço da página',
-      description: 'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
+      description:
+        'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
       type: 'slug',
       group: 'conteudo',
       options: {source: 'title.pt', maxLength: 96},
@@ -41,6 +42,27 @@ export const blogPost = defineType({
           description: 'Texto simples para acessibilidade. Diga o que se vê na imagem.',
           type: 'localizedString',
         }),
+      ],
+    }),
+    defineField({
+      name: 'gallery',
+      title: 'Galeria do artigo',
+      description: 'Imagens extra para a página do artigo. O site mostra-as inteiras, sem corte.',
+      type: 'array',
+      group: 'imagem',
+      of: [
+        {
+          type: 'image',
+          options: {hotspot: false},
+          fields: [
+            defineField({
+              name: 'alt',
+              title: 'Descrição da imagem',
+              description: 'Texto simples para acessibilidade.',
+              type: 'localizedString',
+            }),
+          ],
+        },
       ],
     }),
     defineField({
@@ -66,9 +88,18 @@ export const blogPost = defineType({
       group: 'conteudo',
     }),
     defineField({
+      name: 'article',
+      title: 'Artigo estruturado',
+      description:
+        'Campo principal para editar artigos como no site: secções, subtítulos, listas, links, imagens, vídeos e tabelas.',
+      type: 'localizedArticle',
+      group: 'conteudo',
+    }),
+    defineField({
       name: 'body',
-      title: 'Texto do artigo',
-      description: 'Conteúdo principal do artigo.',
+      title: 'Texto legado do artigo',
+      description:
+        'Fallback em texto simples usado pela importação antiga. Para artigos novos ou revisões, use o campo estruturado acima.',
       type: 'localizedText',
       group: 'conteudo',
     }),

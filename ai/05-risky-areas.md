@@ -36,8 +36,9 @@ Use this to help agents avoid accidental damage.
 ## User-Facing Workflows
 
 - Public visitors moving through routed pages and contacting the company.
-- Editors opening Sanity Studio, creating product categories, case studies, and blog posts, filling localized fields, and publishing.
+- Editors opening Sanity Studio, creating product categories, case studies, and blog posts, filling localized fields, using structured blog article blocks where needed, and publishing.
 - Editors uploading product, case-study, and blog images with localized alt text.
+- Visitors opening product, case-study, or blog gallery lightboxes; the page behind the modal should not scroll or change position until the lightbox closes.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.

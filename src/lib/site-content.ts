@@ -1,6 +1,9 @@
+import type {RichArticleBlock} from './article-structure'
+
 export type LanguageCode = 'pt' | 'en' | 'es'
 
 export type LocalizedValue = Partial<Record<LanguageCode, string>>
+export type LocalizedArticleValue = Partial<Record<LanguageCode, RichArticleBlock[]>>
 
 export type LanguageOption = {
   code: LanguageCode
@@ -27,6 +30,7 @@ export type ContentCard = {
 export type ContentImage = {
   url: string
   alt: string
+  aspectRatio?: number
 }
 
 export type ContentMediaItem = {
@@ -62,6 +66,7 @@ export type CaseStudy = {
   slug: string
   location: string
   summary: string
+  description?: string
   image?: ContentImage
   images?: ContentImage[]
   challenge: string
@@ -77,7 +82,9 @@ export type BlogPost = {
   publishedAt: string
   category: string
   image?: ContentImage
+  images?: ContentImage[]
   body: string
+  article?: RichArticleBlock[]
 }
 
 export type SiteContent = {
@@ -216,6 +223,7 @@ type SanityCaseStudy = {
   gallery?: SanityImage[]
   location?: string
   summary?: LocalizedValue
+  description?: LocalizedValue
   challenge?: LocalizedValue
   solution?: LocalizedValue
   result?: LocalizedValue
@@ -226,10 +234,12 @@ type SanityBlogPost = {
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
+  gallery?: SanityImage[]
   excerpt?: LocalizedValue
   publishedAt?: string
   category?: LocalizedValue
   body?: LocalizedValue
+  article?: LocalizedArticleValue
 }
 
 type SanityContentCard = {
@@ -346,6 +356,11 @@ type SanitySiteContent = {
 type SanityImage = {
   asset?: {
     url?: string
+    metadata?: {
+      dimensions?: {
+        aspectRatio?: number
+      }
+    }
   }
   alt?: LocalizedValue
 }
@@ -1596,6 +1611,20 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
   value?.[language]?.trim() || fallback
 
+const localizedArticle = (
+  value: LocalizedArticleValue | undefined,
+  language: LanguageCode,
+  fallback?: RichArticleBlock[],
+) => {
+  const current = value?.[language]
+  if (current?.length) return current
+
+  const portuguese = value?.pt
+  if (portuguese?.length) return portuguese
+
+  return fallback
+}
+
 const localizedRecord = <T extends Record<string, string>>(
   source: SanityLocalizedRecord<T> | undefined,
   language: LanguageCode,
@@ -1686,6 +1715,12 @@ export const caseStudyImagesFor = (item: CaseStudy, fallback: ContentImage) => {
   return [fallback]
 }
 
+export const blogImagesFor = (item: BlogPost, fallback: ContentImage) => {
+  if (item.images?.length) return item.images
+  if (item.image) return [item.image]
+  return [fallback]
+}
+
 export const productImageFallback = fallbackImages.product
 export const caseStudyImageFallback = fallbackImages.caseStudy
 export const blogImageFallback = fallbackImages.blog
@@ -1697,6 +1732,7 @@ const imageFromSanity = (
 ): ContentImage => ({
   url: image?.asset?.url || fallback.url,
   alt: localized(image?.alt, language, fallback.alt),
+  aspectRatio: image?.asset?.metadata?.dimensions?.aspectRatio ?? fallback.aspectRatio,
 })
 
 const mediaItemsFromSanity = (
@@ -1836,11 +1872,12 @@ const casesFromSanity = (
         fallback[index]?.image ?? fallbackImages.caseStudy,
       ),
       location: item.location?.trim() || fallback[index]?.location || '',
-      summary: localized(item.summary, language, fallback[index]?.summary ?? ''),
-      challenge: localized(item.challenge, language, fallback[index]?.challenge ?? ''),
-      solution: localized(item.solution, language, fallback[index]?.solution ?? ''),
-      result: localized(item.result, language, fallback[index]?.result ?? ''),
-      productArea: localized(item.productArea, language, fallback[index]?.productArea ?? ''),
+      summary: localized(item.summary, language, ''),
+      description: localized(item.description, language, ''),
+      challenge: localized(item.challenge, language, ''),
+      solution: localized(item.solution, language, ''),
+      result: localized(item.result, language, ''),
+      productArea: localized(item.productArea, language, ''),
     }))
 }
 
@@ -1857,10 +1894,17 @@ const postsFromSanity = (
       title: localized(post.title, language, fallback[index]?.title ?? 'Blog post'),
       slug: post.slug?.current ?? fallback[index]?.slug ?? `post-${index + 1}`,
       image: imageFromSanity(post.image, language, fallback[index]?.image ?? fallbackImages.blog),
+      images: imagesFromSanity(
+        post.image,
+        post.gallery,
+        language,
+        fallback[index]?.image ?? fallbackImages.blog,
+      ),
       excerpt: localized(post.excerpt, language, fallback[index]?.excerpt ?? ''),
       publishedAt: post.publishedAt?.trim() || fallback[index]?.publishedAt || '',
       category: localized(post.category, language, fallback[index]?.category ?? ''),
       body: localized(post.body, language, fallback[index]?.body ?? ''),
+      article: localizedArticle(post.article, language, fallback[index]?.article),
     }))
 }
 

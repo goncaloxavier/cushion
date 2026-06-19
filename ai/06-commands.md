@@ -64,12 +64,24 @@ npm run seed:studio
 ## Historical Blog Import
 
 ```bash
+npx tsx scripts/update-old-blog-bodies.ts
 npm run import:blog:write
 npm run import:blog
 ```
 
-- `import:blog:write` generates `.sanity/blog-import.ndjson` from `scripts/old-blog-posts.ts`.
+- `scripts/update-old-blog-bodies.ts` refreshes `scripts/old-blog-posts.ts` from `.sanity/old-blog-raw.json` and writes cached EN/ES full-body translations to ignored `.sanity/old-blog-translations.json`.
+- `import:blog:write` generates `.sanity/blog-import.ndjson` from `scripts/old-blog-posts.ts`, including both legacy `body` text and the rich `article` field for Studio editing.
 - `import:blog` imports the generated blog documents into Sanity dataset `production` with `--replace`.
+
+## Historical Case-Study Import
+
+```bash
+npm run import:cases:write
+npm run import:cases
+```
+
+- `import:cases:write` generates `.sanity/case-study-import.ndjson` from `scripts/old-case-studies.ts`, with no date fields.
+- `import:cases` imports the generated case-study documents and images into Sanity dataset `production` with `--replace`.
 
 ## Useful Debug Commands
 

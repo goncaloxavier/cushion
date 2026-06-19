@@ -1,107 +1,59 @@
-const paginationScrollDurationMs = 650
-const paginationSwapOutMs = 90
+// List page-change transition.
+//
+// Market-standard, cheap approach: cross-fade the list out, swap + render while
+// it is hidden, snap the viewport to the list top under the fade (so the
+// reposition is never seen as a scroll), then fade back in. Opacity/transform
+// only — no per-frame scroll loop, no animated `filter`, no persistent
+// `will-change`. The min-height hold stops a shorter next page from clamping
+// the viewport during the swap.
 
-export type ListPageTransitionPhase = 'idle' | 'out' | 'in'
+const fadeOutMs = 150
 
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
-const easeInOutSine = (progress: number) => -(Math.cos(Math.PI * progress) - 1) / 2
-
-const animateScrollTo = (target: number) =>
-  new Promise<void>((resolve) => {
-    if (typeof window === 'undefined') {
-      resolve()
-      return
-    }
-
-    const start = window.scrollY
-    const distance = target - start
-
-    if (Math.abs(distance) < 2) {
-      window.scrollTo(0, target)
-      resolve()
-      return
-    }
-
-    const startedAt = performance.now()
-
-    const step = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / paginationScrollDurationMs)
-      const next = start + distance * easeInOutSine(progress)
-      window.scrollTo(0, next)
-
-      if (progress === 1) {
-        window.scrollTo(0, target)
-        resolve()
-        return
-      }
-
-      requestAnimationFrame(step)
-    }
-
-    requestAnimationFrame(step)
-  })
-
-// Bring the top of a list/section to just under the sticky header. It is smooth
-// and intentionally timed, instead of relying on browser-native smooth scrolling.
-export const scrollToSectionTop = (element: HTMLElement | null) => {
-  if (!element || typeof window === 'undefined') return Promise.resolve()
+// Snap the top of a list/section to just under the sticky header. Instant on
+// purpose: it runs while the list is faded out, so there is nothing to animate.
+export const scrollListToTop = (section: HTMLElement | null) => {
+  if (!section || typeof window === 'undefined') return
 
   const header = document.querySelector('.site-header')
   const headerOffset = (header?.getBoundingClientRect().height ?? 0) + 12
-  const top = Math.max(0, element.getBoundingClientRect().top + window.scrollY - headerOffset)
+  const top = Math.max(0, section.getBoundingClientRect().top + window.scrollY - headerOffset)
 
-  return animateScrollTo(top)
+  window.scrollTo({top, behavior: 'instant' as ScrollBehavior})
 }
 
-// Run a list page change without a visual jump: swap + render first, but hold
-// the old section height so a shorter next page cannot clamp the viewport, then
-// run one explicit eased scroll to the collection top.
 export const changeListPage = async (
   section: HTMLElement | null,
   swap: () => void,
   render: () => Promise<void>,
-  transition?: {
-    setPhase: (phase: ListPageTransitionPhase) => void
-  },
+  setSwapping?: (value: boolean) => void,
 ) => {
   if (typeof window === 'undefined') {
     swap()
     return
   }
 
-  const root = document.documentElement
-  const previousBehavior = root.style.scrollBehavior
-  const previousMinHeight = section?.style.minHeight ?? ''
-  root.style.scrollBehavior = 'auto'
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
 
   try {
-    if (section) {
-      section.style.minHeight = `${Math.ceil(section.getBoundingClientRect().height)}px`
-    }
-
-    if (transition) {
-      transition.setPhase('out')
-      await wait(paginationSwapOutMs)
+    if (!reduceMotion) {
+      setSwapping?.(true)
+      await wait(fadeOutMs)
     }
 
     swap()
     await render()
+    scrollListToTop(section)
 
-    if (transition) {
-      transition.setPhase('in')
+    if (!reduceMotion) {
       await nextFrame()
-      transition.setPhase('idle')
+      setSwapping?.(false)
     }
-
-    await nextFrame()
-    await scrollToSectionTop(section)
   } finally {
-    root.style.scrollBehavior = previousBehavior
-    if (section) section.style.minHeight = previousMinHeight
-    transition?.setPhase('idle')
+    setSwapping?.(false)
   }
 }
