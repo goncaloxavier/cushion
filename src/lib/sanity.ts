@@ -53,39 +53,6 @@ const collectionsQuery = `{
         }
       },
       manifesto,
-      mediaShowcase {
-        kicker,
-        title,
-        lead,
-        items[] {
-          kind,
-          title,
-          caption,
-          youtubeUrl,
-          image {
-            asset -> {
-              url,
-              metadata {
-                dimensions {
-                  aspectRatio
-                }
-              }
-            },
-            alt
-          },
-          poster {
-            asset -> {
-              url,
-              metadata {
-                dimensions {
-                  aspectRatio
-                }
-              }
-            },
-            alt
-          }
-        }
-      },
       partners {
         kicker,
         title,

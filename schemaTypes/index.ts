@@ -6,7 +6,6 @@ import {impactStat} from './objects/impactStat'
 import {localizedArticle} from './objects/localizedArticle'
 import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
-import {mediaItem} from './objects/mediaItem'
 import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
 
@@ -18,7 +17,6 @@ export const schemaTypes = [
   localizedArticle,
   localizedString,
   localizedText,
-  mediaItem,
   partnerItem,
   contentCard,
   impactStat,

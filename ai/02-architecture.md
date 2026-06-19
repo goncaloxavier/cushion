@@ -29,7 +29,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
 - `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
-- `src/routes/+page.svelte` - homepage; the hero is a full-bleed institutional-video facade (poster image + click-to-play YouTube embed, loaded only on click) over the editable `home.heroVideoUrl`, with a reframed mixed-media gallery section below.
+- `src/routes/+page.svelte` - homepage; the hero is a full-bleed institutional-video facade (poster image + click-to-play YouTube embed, loaded only on click) over the editable `home.heroVideoUrl`, with partner/project logos below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
 - `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route.
@@ -48,7 +48,6 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
 - `src/lib/components/ImageGallery.svelte` - shared product/case/blog detail gallery and lightbox; locks background scroll while open and supports keyboard navigation.
-- `src/lib/components/MediaShowcase.svelte` - reusable public renderer for mixed uploaded images and YouTube media items.
 - `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, case-study, and blog list routes; page state lives in each route, which passes `page`/`totalPages`/`onchange`.
 - `src/lib/article-structure.ts` and `src/lib/components/StructuredArticleBody.svelte` - shared plain-text article parser plus renderer for Studio-authored rich blog articles, with legacy body fallback for migrated posts.
 - `src/lib/scroll.ts` - `changeListPage` runs a page change as a market-standard cross-fade: fade the `.collection-results` grid out, swap + render while hidden, instant-reposition to the list top under the fade, then fade back in (opacity/transform only — no per-frame scroll loop). The three list routes (products, case studies, blog) share one `.collection-results` grid + card layout defined in `src/app.css`.
@@ -106,13 +105,13 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
 - Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
 - Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
-- Keep page media/video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
+- Keep page video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, and matching routes together.
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
-- Media/partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, reusable renderers, public route rendering, and tests.
-- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a full-bleed click-to-play hero facade (poster = `home.heroImage`); the homepage `mediaShowcase` is a separate mixed image/video gallery. Keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
+- Partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, public route rendering, and tests.
+- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a full-bleed click-to-play hero facade (poster = `home.heroImage`). The old homepage media/gallery section has been removed; keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.

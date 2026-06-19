@@ -258,14 +258,14 @@ test.describe('public website routes', () => {
   test('pagination returns the reader to the top of the collection', async ({page}) => {
     await page.goto('/casos-de-estudo?lang=pt', {waitUntil: 'domcontentloaded'})
     await page.locator('.page-transition.entered').waitFor({state: 'visible'})
-    await page.locator('.pagination').scrollIntoViewIfNeeded()
-
-    const beforePaginationScroll = await page.evaluate(() => window.scrollY)
 
     test.skip(
       (await page.locator('.pagination-page').count()) < 2,
       'Pagination behavior only applies when the collection has a second page',
     )
+
+    await page.locator('.pagination').scrollIntoViewIfNeeded()
+    const beforePaginationScroll = await page.evaluate(() => window.scrollY)
 
     await clickVisibleButton(page, 'button[aria-label="Seguinte"]')
     await expect(page.locator('.pagination-page.active')).toHaveText('2')

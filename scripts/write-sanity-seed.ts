@@ -126,33 +126,6 @@ const siteContentDocument = {
       quote: localizedSiteValue((content) => content.home.manifesto.quote),
       attribution: localizedSiteValue((content) => content.home.manifesto.attribution),
     },
-    mediaShowcase: {
-      kicker: localizedSiteValue((content) => content.home.mediaShowcase.kicker),
-      title: localizedSiteValue((content) => content.home.mediaShowcase.title),
-      lead: localizedSiteValue((content) => content.home.mediaShowcase.lead),
-      items: fallbackContent.pt.home.mediaShowcase.items.map((item, itemIndex) => ({
-        _key: `media-${itemIndex}`,
-        _type: 'mediaItem',
-        kind: item.kind,
-        title: localizedSiteValue(
-          (content) => content.home.mediaShowcase.items[itemIndex].title,
-        ),
-        caption: localizedSiteValue(
-          (content) => content.home.mediaShowcase.items[itemIndex].caption,
-        ),
-        ...(item.image
-          ? {
-              image: staticImageAsset(
-                item.image,
-                localizedSiteValue(
-                  (content) => content.home.mediaShowcase.items[itemIndex].image?.alt ?? '',
-                ),
-              ),
-            }
-          : {}),
-        ...(item.url ? {youtubeUrl: item.url} : {}),
-      })),
-    },
     partners: {
       kicker: localizedSiteValue((content) => content.home.partners.kicker),
       title: localizedSiteValue((content) => content.home.partners.title),

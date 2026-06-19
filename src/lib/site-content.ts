@@ -33,15 +33,6 @@ export type ContentImage = {
   aspectRatio?: number
 }
 
-export type ContentMediaItem = {
-  kind: 'image' | 'youtube'
-  title: string
-  caption: string
-  image?: ContentImage
-  poster?: ContentImage
-  url?: string
-}
-
 export type PartnerItem = {
   name: string
   url: string
@@ -153,9 +144,6 @@ export type SiteContent = {
       quote: string
       attribution: string
     }
-    mediaShowcase: CopyBlock & {
-      items: ContentMediaItem[]
-    }
     partners: CopyBlock & {
       items: PartnerItem[]
     }
@@ -247,15 +235,6 @@ type SanityContentCard = {
   text?: LocalizedValue
 }
 
-type SanityMediaItem = {
-  kind?: 'image' | 'youtube'
-  title?: LocalizedValue
-  caption?: LocalizedValue
-  image?: SanityImage
-  poster?: SanityImage
-  youtubeUrl?: string
-}
-
 type SanityPartnerItem = {
   name?: string
   url?: string
@@ -301,12 +280,6 @@ type SanitySiteContent = {
     manifesto?: {
       quote?: LocalizedValue
       attribution?: LocalizedValue
-    }
-    mediaShowcase?: {
-      kicker?: LocalizedValue
-      title?: LocalizedValue
-      lead?: LocalizedValue
-      items?: SanityMediaItem[]
     }
     partners?: {
       kicker?: LocalizedValue
@@ -886,25 +859,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Um primeiro contacto deve explicar depressa, inspirar com calma e deixar claro qual é o próximo passo.',
         attribution: 'Direção de experiência para este projeto',
       },
-      mediaShowcase: {
-        kicker: 'Galeria',
-        title: 'O material aplicado, em obra e ao detalhe',
-        lead: 'Produto ao detalhe e projetos instalados, do material em bruto à peça aplicada no exterior.',
-        items: [
-          {
-            kind: 'image',
-            title: 'Perfis e superfícies',
-            caption: 'Acabamento e textura dos perfis em material reciclado do fluxo amarelo.',
-            image: fallbackImages.product,
-          },
-          {
-            kind: 'image',
-            title: 'Projeto instalado',
-            caption: 'Decking, mobiliário e floreiras aplicados num espaço exterior real.',
-            image: fallbackImages.caseStudy,
-          },
-        ],
-      },
       partners: {
         kicker: 'Parcerias',
         title: 'Projetos e entidades que reforçam a missão',
@@ -1153,25 +1107,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'A first contact should explain quickly, inspire calmly and make the next step obvious.',
         attribution: 'Experience direction for this project',
       },
-      mediaShowcase: {
-        kicker: 'Gallery',
-        title: 'The material applied, on site and up close',
-        lead: 'Product detail and installed projects, from raw material to the finished piece outdoors.',
-        items: [
-          {
-            kind: 'image',
-            title: 'Profiles and surfaces',
-            caption: 'Finish and texture of profiles made from yellow-bin recycled material.',
-            image: fallbackImages.product,
-          },
-          {
-            kind: 'image',
-            title: 'Installed project',
-            caption: 'Decking, furniture and planters applied in a real outdoor space.',
-            image: fallbackImages.caseStudy,
-          },
-        ],
-      },
       partners: {
         kicker: 'Partnerships',
         title: 'Projects and organizations that strengthen the mission',
@@ -1419,25 +1354,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         quote:
           'Un primer contacto debe explicar rápido, inspirar con calma y dejar claro el siguiente paso.',
         attribution: 'Dirección de experiencia para este proyecto',
-      },
-      mediaShowcase: {
-        kicker: 'Galería',
-        title: 'El material aplicado, en obra y al detalle',
-        lead: 'Detalle de producto y proyectos instalados, de la materia prima a la pieza acabada en el exterior.',
-        items: [
-          {
-            kind: 'image',
-            title: 'Perfiles y superficies',
-            caption: 'Acabado y textura de los perfiles en material reciclado del flujo amarillo.',
-            image: fallbackImages.product,
-          },
-          {
-            kind: 'image',
-            title: 'Proyecto instalado',
-            caption: 'Tarima, mobiliario y jardineras aplicados en un espacio exterior real.',
-            image: fallbackImages.caseStudy,
-          },
-        ],
       },
       partners: {
         kicker: 'Alianzas',
@@ -1735,36 +1651,6 @@ const imageFromSanity = (
   aspectRatio: image?.asset?.metadata?.dimensions?.aspectRatio ?? fallback.aspectRatio,
 })
 
-const mediaItemsFromSanity = (
-  items: SanityMediaItem[] | undefined,
-  language: LanguageCode,
-  fallback: ContentMediaItem[],
-) => {
-  if (!items?.length) return fallback
-
-  const normalized = items
-    .map((item, index) => {
-      const fallbackItem = fallback[index]
-      const kind = item.kind ?? (item.youtubeUrl ? 'youtube' : 'image')
-      const fallbackImage = fallbackItem?.image ?? fallbackImages.home
-      const fallbackPoster = fallbackItem?.poster ?? fallbackItem?.image ?? fallbackImages.home
-      const image = imageFromSanity(item.image, language, fallbackImage)
-      const poster = imageFromSanity(item.poster, language, fallbackPoster)
-
-      return {
-        kind,
-        title: localized(item.title, language, fallbackItem?.title ?? ''),
-        caption: localized(item.caption, language, fallbackItem?.caption ?? ''),
-        image: kind === 'image' ? image : undefined,
-        poster: kind === 'youtube' && item.poster?.asset?.url ? poster : fallbackItem?.poster,
-        url: kind === 'youtube' ? item.youtubeUrl?.trim() || fallbackItem?.url : undefined,
-      }
-    })
-    .filter((item) => (item.kind === 'youtube' ? item.url : item.image?.url))
-
-  return normalized.length ? normalized : fallback
-}
-
 const partnersFromSanity = (
   items: SanityPartnerItem[] | undefined,
   language: LanguageCode,
@@ -1942,14 +1828,6 @@ const applySiteContentFromSanity = (
         source.home?.manifesto?.attribution,
         language,
         fallback.home.manifesto.attribution,
-      ),
-    },
-    mediaShowcase: {
-      ...copyBlockFromSanity(source.home?.mediaShowcase, language, fallback.home.mediaShowcase),
-      items: mediaItemsFromSanity(
-        source.home?.mediaShowcase?.items,
-        language,
-        fallback.home.mediaShowcase.items,
       ),
     },
     partners: {

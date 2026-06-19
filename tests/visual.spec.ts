@@ -1,4 +1,37 @@
-import {expect, test} from '@playwright/test'
+import {expect, test, type Page} from '@playwright/test'
+
+const primeRevealAnimations = async (page: Page) => {
+  await page.addStyleTag({
+    content: `
+      .mobile-dock,
+      .whatsapp-float {
+        display: none !important;
+      }
+    `,
+  })
+
+  await page.evaluate(async () => {
+    const pause = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration))
+    const step = Math.max(220, Math.floor(window.innerHeight * 0.72))
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+
+    for (let y = 0; y <= maxScroll; y += step) {
+      window.scrollTo(0, y)
+      await pause(90)
+    }
+
+    window.scrollTo(0, maxScroll)
+    await pause(140)
+    window.scrollTo(0, 0)
+  })
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.reveal').forEach((element) => {
+      element.classList.add('visible')
+    })
+    window.scrollTo(0, 0)
+  })
+}
 
 const visualRoutes = [
   {name: 'home-pt', path: '/?lang=pt'},
@@ -64,6 +97,7 @@ test.describe('visual regression', () => {
       await page.goto(route.path)
       await expect(page.locator('h1')).toBeVisible()
       await page.evaluate(() => document.fonts.ready)
+      await primeRevealAnimations(page)
 
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,

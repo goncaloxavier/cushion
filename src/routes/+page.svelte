@@ -1,5 +1,4 @@
 <script lang="ts">
-  import MediaShowcase from '$lib/components/MediaShowcase.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {youtubeEmbedUrl} from '$lib/media'
 
@@ -117,18 +116,8 @@
     </div>
   </section>
 
-  <section class="section home-media-partners">
-    <Reveal class="home-media-copy" variant="panel">
-      <p class="kicker">{content.home.mediaShowcase.kicker}</p>
-      <h2>{content.home.mediaShowcase.title}</h2>
-      <p>{content.home.mediaShowcase.lead}</p>
-    </Reveal>
-
-    <Reveal class="home-media-gallery" delay={80} variant="media">
-      <MediaShowcase items={content.home.mediaShowcase.items} />
-    </Reveal>
-
-    <Reveal class="partner-panel" delay={120} variant="panel">
+  <section class="section home-partners-section">
+    <Reveal class="partner-panel" variant="panel">
       <div class="partner-copy">
         <p class="kicker">{content.home.partners.kicker}</p>
         <h2>{content.home.partners.title}</h2>

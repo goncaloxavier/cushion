@@ -60,15 +60,6 @@ const contentCardsField = (name: string, title: string, description?: string) =>
     of: [{type: 'contentCard'}],
   })
 
-const mediaItemsField = (name: string, title: string, description?: string) =>
-  defineField({
-    name,
-    title,
-    description,
-    type: 'array',
-    of: [{type: 'mediaItem'}],
-  })
-
 const partnerItemsField = (name: string, title: string, description?: string) =>
   defineField({
     name,
@@ -167,20 +158,6 @@ export const siteLanding = defineType({
           fields: [
             localizedTextField('quote', 'Frase'),
             localizedStringField('attribution', 'Assinatura pequena'),
-          ],
-        }),
-        defineField({
-          name: 'mediaShowcase',
-          title: 'Galeria de media',
-          description:
-            'Galeria de fotografias e/ou vídeos do YouTube para a página inicial. Pode ter só imagens, só vídeos, ou os dois juntos. O vídeo do topo é definido no campo "Vídeo do topo".',
-          type: 'object',
-          options: {collapsible: true},
-          fields: [
-            localizedStringField('kicker', 'Etiqueta pequena'),
-            localizedStringField('title', 'Título da secção'),
-            localizedTextField('lead', 'Texto da secção'),
-            mediaItemsField('items', 'Vídeos e imagens'),
           ],
         }),
         defineField({
