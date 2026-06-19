@@ -1,14 +1,32 @@
+# OS/editor
 .DS_Store
 
+# Dependencies
 node_modules/
+
+# SvelteKit/Vite output
 .svelte-kit/
 build/
 dist/
+.vite/
 
+# Sanity local output
+.sanity/
+
+# Test output
+test-results/
+playwright-report/
+coverage/
+tests/*-snapshots/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment
 .env
 .env.*
 !.env.example
-
-.sanity/
-test-results/
-playwright-report/

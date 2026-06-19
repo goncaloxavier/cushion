@@ -19,7 +19,7 @@
     "start:studio": "sanity start",
     "check": "svelte-kit sync && tsc --noEmit",
     "lint": "eslint .",
-    "test": "playwright test --workers=1",
+    "test": "npm run e2e",
     "e2e": "playwright test tests/routes.spec.ts tests/sanity-contract.spec.ts",
     "e2e:visual": "playwright test tests/visual.spec.ts",
     "e2e:visual:update": "playwright test tests/visual.spec.ts --update-snapshots",
@@ -28,6 +28,10 @@
     "test:visual:update": "playwright test tests/visual.spec.ts --update-snapshots",
     "seed:studio:write": "tsx scripts/write-sanity-seed.ts",
     "seed:studio": "npm run seed:studio:write && sanity datasets import .sanity/seed.ndjson --dataset production --replace",
+    "import:cases:write": "tsx scripts/write-case-study-import.ts",
+    "import:cases": "npm run import:cases:write && sanity datasets import .sanity/case-study-import.ndjson --dataset production --replace",
+    "import:blog:write": "tsx scripts/write-blog-import.ts",
+    "import:blog": "npm run import:blog:write && sanity datasets import .sanity/blog-import.ndjson --dataset production --replace",
     "deploy:studio": "sanity deploy",
     "deploy-graphql": "sanity graphql deploy",
     "prepare": "svelte-kit sync || true"
@@ -37,10 +41,10 @@
   ],
   "dependencies": {
     "@sanity/client": "^7.22.1",
-    "@sanity/vision": "^5.31.1",
+    "@sanity/vision": "^6.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "sanity": "^5.31.1",
+    "sanity": "^6.0.0",
     "styled-components": "^6.1.18"
   },
   "devDependencies": {

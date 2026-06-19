@@ -11,18 +11,205 @@ export const sanityClient = createClient({
 })
 
 const collectionsQuery = `{
+  "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
+    common {
+      contactEmail,
+      contactPhone,
+      whatsappLabel,
+      whatsappUrl,
+      socialLabel,
+      youtubeUrl,
+      facebookUrl,
+      instagramUrl,
+      complaintsLabel,
+      complaintsUrl,
+      complaintsNote,
+      marketingConsent
+    },
+    footer {
+      line
+    },
+    home {
+      hero,
+      heroImage {
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      heroVideoUrl,
+      intro,
+      impact {
+        title,
+        lead,
+        stats[] {
+          title,
+          text
+        }
+      },
+      manifesto,
+      mediaShowcase {
+        kicker,
+        title,
+        lead,
+        items[] {
+          kind,
+          title,
+          caption,
+          youtubeUrl,
+          image {
+            asset -> {
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
+            },
+            alt
+          },
+          poster {
+            asset -> {
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
+            },
+            alt
+          }
+        }
+      },
+      partners {
+        kicker,
+        title,
+        lead,
+        items[] {
+          name,
+          url,
+          logoTone,
+          logo {
+            asset -> {
+              url,
+              metadata {
+                dimensions {
+                  aspectRatio
+                }
+              }
+            },
+            alt
+          },
+          text
+        }
+      }
+    },
+    about {
+      hero,
+      timeline[] {
+        title,
+        text
+      },
+      principles[] {
+        title,
+        text
+      }
+    },
+    productsPage {
+      hero,
+      heroImage {
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      lead
+    },
+    catalogue {
+      hero,
+      quoteFlow[] {
+        title,
+        text
+      },
+      estimate {
+        kicker,
+        title,
+        lead,
+        cards[] {
+          title,
+          text
+        },
+        checklistTitle,
+        checklist[]
+      },
+      note
+    },
+    casesPage {
+      hero,
+      heroImage {
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      }
+    },
+    blogPage {
+      hero,
+      heroImage {
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      newsletter
+    },
+    contactPage {
+      hero,
+      fields[]
+    }
+  },
   "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     title,
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     gallery[] {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
@@ -36,18 +223,29 @@ const collectionsQuery = `{
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     gallery[] {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     location,
     summary,
+    description,
     challenge,
     solution,
     result,
@@ -58,14 +256,92 @@ const collectionsQuery = `{
     slug,
     image {
       asset -> {
-        url
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
+      },
+      alt
+    },
+    gallery[] {
+      asset -> {
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
       },
       alt
     },
     excerpt,
     publishedAt,
     category,
-    body
+    body,
+    article {
+      pt[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      },
+      en[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      },
+      es[] {
+        ...,
+        markDefs[] {
+          ...
+        },
+        children[] {
+          ...
+        },
+        asset -> {
+          url,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        rows[] {
+          ...
+        }
+      }
+    }
   }
 }`
 

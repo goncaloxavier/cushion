@@ -11,6 +11,7 @@
 
   let node: HTMLDivElement
   let visible = $state(false)
+  const isVisible = $derived(priority || visible)
 
   onMount(() => {
     if (!node) return
@@ -43,7 +44,7 @@
     }
 
     if (priority) {
-      show()
+      visible = true
       return () => {
         cancelAnimationFrame(firstFrame)
         cancelAnimationFrame(secondFrame)
@@ -79,7 +80,7 @@
 
 <div
   bind:this={node}
-  class={`reveal ${visible ? 'visible' : ''} ${className}`}
+  class={`reveal ${isVisible ? 'visible' : ''} ${className}`}
   data-reveal={variant}
   style={`--delay: ${delay}ms`}
 >

@@ -1,17 +1,30 @@
 <script lang="ts">
+  import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
+  import {changeListPage} from '$lib/scroll'
+  import {tick} from 'svelte'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
   let query = $state('')
   let page = $state(1)
-  const pageSize = 2
+  let swapping = $state(false)
+  let collectionSection: HTMLElement | null = null
+  const pageSize = 9
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredCases = $derived(
     content.caseStudies.filter((item) =>
-      [item.title, item.location, item.summary, item.challenge, item.solution, item.result]
+      [
+        item.title,
+        item.location,
+        item.summary,
+        item.description,
+        item.challenge,
+        item.solution,
+        item.result,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(normalizedQuery),
@@ -28,6 +41,23 @@
   $effect(() => {
     if (page > totalPages) page = totalPages
   })
+
+  const setCollectionPage = (nextPage: number) => {
+    const boundedPage = Math.min(totalPages, Math.max(1, nextPage))
+
+    if (boundedPage === page || swapping) return
+
+    changeListPage(
+      collectionSection,
+      () => {
+        page = boundedPage
+      },
+      tick,
+      (value) => {
+        swapping = value
+      },
+    )
+  }
 </script>
 
 <svelte:head>
@@ -42,14 +72,17 @@
       <p>{content.casesPage.hero.lead}</p>
     </Reveal>
 
-    <Reveal class="case-index-proof" delay={120} variant="panel" priority>
-      <span>{content.common.challenge}</span>
-      <span>{content.common.solution}</span>
-      <span>{content.common.result}</span>
+    <Reveal class="case-index-media" delay={120} variant="media" priority>
+      <img
+        src={content.casesPage.heroImage.url}
+        alt={content.casesPage.heroImage.alt}
+        loading="eager"
+        decoding="async"
+      />
     </Reveal>
   </section>
 
-  <section class="section collection-section case-collection-section">
+  <section class="section collection-section case-collection-section" bind:this={collectionSection}>
     <Reveal variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -65,7 +98,7 @@
       </div>
     </Reveal>
 
-    <div class="case-strip">
+    <div class="collection-results" class:page-swap-out={swapping}>
       {#each visibleCases as item}
         {@const image = imageFor(item, caseStudyImageFallback)}
         <a class="case-card" href={`/casos-de-estudo/${item.slug}${langQuery}`}>
@@ -85,26 +118,14 @@
       <p class="empty-state collection-empty">{content.common.noResults}</p>
     {/if}
 
-    <nav class="pagination collection-pagination" aria-label={content.common.pageLabel}>
-      <button
-        type="button"
-        disabled={page === 1}
-        onclick={() => {
-          page = Math.max(1, page - 1)
-        }}
-      >
-        {content.common.previous}
-      </button>
-      <span>{content.common.pageLabel} {page} / {totalPages}</span>
-      <button
-        type="button"
-        disabled={page === totalPages}
-        onclick={() => {
-          page = Math.min(totalPages, page + 1)
-        }}
-      >
-        {content.common.next}
-      </button>
-    </nav>
+    <Pagination
+      {page}
+      {totalPages}
+      onchange={setCollectionPage}
+      label={content.common.pageLabel}
+      previousLabel={content.common.previous}
+      nextLabel={content.common.next}
+      disabled={swapping}
+    />
   </section>
 </main>

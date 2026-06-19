@@ -2,24 +2,24 @@ import {defineField, defineType} from 'sanity'
 
 export const impactStat = defineType({
   name: 'impactStat',
-  title: 'Impact stat',
+  title: 'Métrica de impacto',
   type: 'object',
   fields: [
     defineField({
       name: 'value',
-      title: 'Value',
+      title: 'Valor',
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'label',
-      title: 'Label',
+      title: 'Legenda',
       type: 'localizedString',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'note',
-      title: 'Note',
+      title: 'Nota',
       type: 'localizedString',
     }),
   ],

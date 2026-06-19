@@ -1,10 +1,12 @@
 <script lang="ts">
-  import {blogImageFallback, imageFor} from '$lib/site-content'
+  import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
+  import {blogImageFallback, blogImagesFor} from '$lib/site-content'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
-  const image = $derived(imageFor(data.post, blogImageFallback))
+  const images = $derived(blogImagesFor(data.post, blogImageFallback))
 </script>
 
 <svelte:head>
@@ -24,11 +26,14 @@
       </div>
       <p class="article-lead">{data.post.excerpt}</p>
     </header>
-    <div class="blog-detail-media">
-      <img src={image.url} alt={image.alt} decoding="async" fetchpriority="high" />
-    </div>
+    <ImageGallery
+      {images}
+      label={content.common.zoomImage}
+      closeLabel={content.common.close}
+      className="blog-detail-gallery"
+    />
     <div class="article-body blog-body">
-      <p>{data.post.body}</p>
+      <StructuredArticleBody body={data.post.body} article={data.post.article} />
     </div>
   </article>
 </main>
