@@ -911,7 +911,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'Em 2011, ao ver um documentário da National Geographic Portugal sobre o planeta que estávamos a deixar às gerações futuras — abate massivo de árvores, consumo de plástico a crescer a dois dígitos por ano e consequências como o desaparecimento de mais de 200 espécies marinhas nos próximos 30 anos — tomei uma decisão: dar o meu contributo para minimizar este drama.',
+          text: 'Em 2011, ao ver um documentário na National Geographic Portugal, acerca do Planeta que estávamos a deixar para gerações futuras, com abates de árvores massivamente, consumo de plástico a crescer a dois dígitos anualmente e todas as consequências que de aqui advém, como o desaparecimento de mais de 200 espécies marinhas, nos próximos 30 anos, tomei uma decisão!\n\nDar minha contribuição para minimizar este DRAMA.',
         },
         {
           title: '2018',
@@ -1159,7 +1159,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'In 2011, watching a National Geographic Portugal documentary about the planet we were leaving to future generations — mass tree felling, plastic consumption growing by double digits every year, and consequences such as the loss of more than 200 marine species over the next 30 years — I made a decision: to do my part to help reduce this drama.',
+          text: 'In 2011, while watching a documentary on National Geographic Portugal about the planet we were leaving for future generations, with massive tree felling, plastic consumption growing annually in double digits and all the consequences that arise from this, such as the disappearance of more than 200 marine species over the next 30 years, I made a decision!\n\nTo make my contribution to minimizing this DRAMA.',
         },
         {
           title: '2018',
@@ -1407,7 +1407,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'En 2011, al ver un documental de National Geographic Portugal sobre el planeta que estábamos dejando a las generaciones futuras — tala masiva de árboles, consumo de plástico creciendo a dos dígitos al año y consecuencias como la desaparición de más de 200 especies marinas en los próximos 30 años — tomé una decisión: aportar mi parte para minimizar este drama.',
+          text: 'En 2011, al ver un documental en National Geographic Portugal acerca del planeta que estábamos dejando para las generaciones futuras, con talas masivas de árboles, el consumo de plástico creciendo anualmente a dos dígitos y todas las consecuencias que de ahí se derivan, como la desaparición de más de 200 especies marinas en los próximos 30 años, tomé una decisión!\n\nDar mi contribución para minimizar este DRAMA.',
         },
         {
           title: '2018',

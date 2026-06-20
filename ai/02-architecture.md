@@ -29,7 +29,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
 - `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
-- `src/routes/+page.svelte` - homepage; the hero is a full-bleed institutional-video facade (poster image + click-to-play YouTube embed, loaded only on click) over the editable `home.heroVideoUrl`, with partner/project logos below the impact section.
+- `src/routes/+page.svelte` - homepage; the hero uses the editable `home.heroVideoUrl` as a muted looping background YouTube embed and opens a full YouTube player from the video button; partner/project logos sit below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
 - `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route.
@@ -51,7 +51,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, case-study, and blog list routes; page state lives in each route, which passes `page`/`totalPages`/`onchange`.
 - `src/lib/article-structure.ts` and `src/lib/components/StructuredArticleBody.svelte` - shared plain-text article parser plus renderer for Studio-authored rich blog articles, with legacy body fallback for migrated posts.
 - `src/lib/scroll.ts` - `changeListPage` runs a page change as a market-standard cross-fade: fade the `.collection-results` grid out, swap + render while hidden, instant-reposition to the list top under the fade, then fade back in (opacity/transform only — no per-frame scroll loop). The three list routes (products, case studies, blog) share one `.collection-results` grid + card layout defined in `src/app.css`.
-- `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts an optional `{autoplay}` flag used by the homepage hero facade.
+- `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts optional autoplay, controls, loop, mute, and playsinline flags for background and full-player embeds.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
 - `src/lib/sanity.ts` - Sanity client and site/product/case/blog query.
 - `sanity.config.ts` - Studio title, project id, dataset, plugins, and schema registration.
@@ -111,7 +111,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - Product categories, case studies, and blog posts should keep editable Sanity image/gallery fields with hotspot support and localized alt text.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
 - Partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, public route rendering, and tests.
-- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a full-bleed click-to-play hero facade (poster = `home.heroImage`). The old homepage media/gallery section has been removed; keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
+- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a muted looping hero background and as a full modal player from the video button. The old homepage media/gallery section has been removed; keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
 - Desktop navigation should expose the full primary route set. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
 - When adding public routes or fallback CMS items, update Playwright route/visual coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.

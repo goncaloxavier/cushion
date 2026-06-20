@@ -485,14 +485,14 @@ main {
   isolation: isolate;
 }
 
-/* Full-bleed poster / video layer behind the copy */
+/* Full-bleed muted video layer behind the copy */
 .home-hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
 }
 
-.home-hero-poster,
 .home-hero-video {
   display: block;
   width: 100%;
@@ -500,21 +500,18 @@ main {
   border: 0;
 }
 
-.home-hero-poster {
-  object-fit: cover;
-  filter: saturate(0.98) contrast(1.02);
-  animation: hero-poster-in 760ms var(--ease) both;
-}
-
-@keyframes hero-poster-in {
-  from {
-    opacity: 0;
-    transform: scale(1.04);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.home-hero-video-bg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78svh);
+  height: max(56.25vw, 100svh);
+  min-width: 100%;
+  min-height: 100%;
+  pointer-events: none;
+  filter: saturate(1.02) contrast(1.04);
+  transform: translate3d(-50%, -50%, 0);
 }
 
 /* Contrast scrim: strong on the left where the copy sits, lighter over the image */
@@ -534,10 +531,6 @@ main {
     linear-gradient(180deg, rgba(6, 28, 32, 0.2), transparent 32%, rgba(6, 28, 32, 0.42));
   pointer-events: none;
   animation: hero-shade-in 620ms ease both;
-}
-
-.home-hero.playing::after {
-  opacity: 0;
 }
 
 @keyframes hero-shade-in {
@@ -582,7 +575,7 @@ main {
   animation: hero-line 680ms var(--ease) 120ms both;
 }
 
-/* Click-to-play control (poster state) */
+/* Opens the full video player with sound/fullscreen controls */
 .home-hero-play {
   position: absolute;
   z-index: 3;
@@ -634,34 +627,6 @@ main {
   border-style: solid;
   border-width: 0.42rem 0 0.42rem 0.66rem;
   border-color: transparent transparent transparent #ffffff;
-}
-
-/* Close control (playing state) */
-.home-hero-close {
-  position: absolute;
-  z-index: 3;
-  top: clamp(1rem, 3vw, 1.6rem);
-  right: max(1.25rem, calc((100% - var(--max)) / 2));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.8rem;
-  height: 2.8rem;
-  color: #ffffff;
-  font-size: 1.7rem;
-  line-height: 1;
-  background: rgba(8, 30, 34, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 999px;
-  backdrop-filter: blur(6px);
-  transition:
-    background 200ms ease,
-    transform 200ms var(--ease-press);
-}
-
-.home-hero-close:hover {
-  background: rgba(8, 30, 34, 0.88);
-  transform: scale(1.05);
 }
 
 .home-hero-copy .reveal.visible .kicker,
@@ -1969,6 +1934,7 @@ dt {
   color: #303d37;
   font-size: 1.05rem;
   line-height: 1.7;
+  white-space: pre-line;
 }
 
 .about-principles {
@@ -2801,6 +2767,50 @@ body.lightbox-open {
 
 .lightbox-next {
   right: 1rem;
+}
+
+.video-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: rgba(7, 16, 17, 0.86);
+  backdrop-filter: blur(18px);
+  overscroll-behavior: contain;
+}
+
+.video-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  cursor: default;
+  background: transparent;
+  border: 0;
+}
+
+.video-lightbox-frame {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 1120px);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #071011;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.38);
+}
+
+.video-lightbox-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video-lightbox-close {
+  z-index: 1;
 }
 
 .detail-hero-copy h1 {
@@ -3891,6 +3901,18 @@ body.lightbox-open {
     font-size: 2.6rem;
   }
 
+  .home-hero-actions {
+    align-self: center;
+    width: min(100%, 20rem);
+  }
+
+  .home-hero .hero-actions {
+    justify-content: center;
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
   .page-hero,
   .home-brief,
   .home-impact-ledger,
@@ -4069,10 +4091,6 @@ body.lightbox-open {
     right: auto;
     left: var(--mobile-gutter);
     bottom: 1.6rem;
-  }
-
-  .home-hero-close {
-    right: var(--mobile-gutter);
   }
 
   .hero-proof-strip {

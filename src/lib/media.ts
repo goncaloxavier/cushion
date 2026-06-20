@@ -40,13 +40,34 @@ export const youtubeDetails = (url: string | undefined) => {
   }
 }
 
-export const youtubeEmbedUrl = (url: string | undefined, options?: {autoplay?: boolean}) => {
+type YoutubeEmbedOptions = {
+  autoplay?: boolean
+  controls?: boolean
+  loop?: boolean
+  muted?: boolean
+  playsInline?: boolean
+}
+
+export const youtubeEmbedUrl = (url: string | undefined, options?: YoutubeEmbedOptions) => {
   const details = youtubeDetails(url)
   if (!details) return undefined
 
   const params = new URLSearchParams({rel: '0'})
   if (details.start > 0) params.set('start', String(details.start))
   if (options?.autoplay) params.set('autoplay', '1')
+  if (options?.controls === false) {
+    params.set('controls', '0')
+    params.set('disablekb', '1')
+    params.set('fs', '0')
+    params.set('iv_load_policy', '3')
+    params.set('modestbranding', '1')
+  }
+  if (options?.loop) {
+    params.set('loop', '1')
+    params.set('playlist', details.id)
+  }
+  if (options?.muted) params.set('mute', '1')
+  if (options?.playsInline) params.set('playsinline', '1')
 
   return `https://www.youtube-nocookie.com/embed/${details.id}?${params.toString()}`
 }
