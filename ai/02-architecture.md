@@ -43,6 +43,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
 - `scripts/old-blog-posts.ts`, `scripts/update-old-blog-bodies.ts`, and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog, a raw-body/translation refresh helper, and the generator for `.sanity/blog-import.ndjson`.
 - `scripts/old-case-studies.ts` and `scripts/write-case-study-import.ts` - reviewable trilingual migration data for the previous Webnode case-study page and the generator for `.sanity/case-study-import.ndjson`.
+- `scripts/scrape-product-images.ts`, `scripts/product-images.json`, `scripts/old-products.ts`, and `scripts/write-product-import.ts` - the product migration: a scraper that pulls every full-resolution gallery photo per old "PRODUTOS" category into a committed JSON, the reviewable trilingual product copy (one entry per category = one `productCategory`), and the generator for `.sanity/product-import.ndjson` (`npm run scrape:products`, `import:products:write`, `import:products`).
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
@@ -82,7 +83,7 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `npm run build:studio` - builds Sanity Studio.
 - `npm run preview` - previews the built SvelteKit website.
 - `npm run start:studio` - serves a built Sanity Studio.
-- `npm run deploy:content` - intentionally imports code-managed Content Lake documents: the `siteContent` seed, starter products, historical case studies, and historical blog posts.
+- `npm run deploy:content` - intentionally imports code-managed Content Lake documents: the `siteContent` seed, historical case studies, historical blog posts, and the migrated product catalogue (`import:products`).
 - `npm run deploy:studio` - deploys Sanity Studio through Sanity CLI.
 - `npm run deploy-graphql` - deploys Sanity GraphQL.
 
