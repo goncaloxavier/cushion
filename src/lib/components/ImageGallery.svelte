@@ -17,9 +17,25 @@
   let selectedImageIndex = $state(0)
   let zoomOpen = $state(false)
   let lightbox = $state<HTMLDivElement | null>(null)
+
+  // Render the lightbox as a direct child of <body> so it escapes the routed
+  // page's clip-path stacking context (otherwise the sticky header paints over
+  // it on the product/case detail pages, breaking the blurred full-screen focus).
+  const portal = (node: HTMLElement) => {
+    document.body.appendChild(node)
+    return {
+      destroy() {
+        node.remove()
+      },
+    }
+  }
   const image = $derived(images[selectedImageIndex] ?? images[0])
   const hasMultiple = $derived(images.length > 1)
   const position = $derived(`${selectedImageIndex + 1} / ${images.length}`)
+  const previousImageIndex = $derived(
+    images.length ? (selectedImageIndex - 1 + images.length) % images.length : 0,
+  )
+  const nextImageIndex = $derived(images.length ? (selectedImageIndex + 1) % images.length : 0)
 
   const selectImage = (index: number) => {
     selectedImageIndex = Math.min(images.length - 1, Math.max(0, index))
@@ -65,7 +81,7 @@
       onclick={openLightbox}
     >
       <img src={image.url} alt={image.alt} decoding="async" fetchpriority="high" />
-      <span class="image-gallery-zoom">{label}</span>
+      <span class="image-gallery-zoom" aria-hidden="true"></span>
       {#if hasMultiple}
         <span class="image-gallery-count">{position}</span>
       {/if}
@@ -97,6 +113,7 @@
     aria-modal="true"
     aria-label={label}
     tabindex="-1"
+    use:portal
     bind:this={lightbox}
     onclick={(event) => {
       if (event.currentTarget === event.target) closeLightbox()
@@ -107,38 +124,44 @@
       if (event.key === 'ArrowRight') moveImage(1)
     }}
   >
-    <button class="lightbox-close" type="button" aria-label={closeLabel} onclick={closeLightbox}>
-      {closeLabel}
-    </button>
+    <figure class="lightbox-frame">
+      <img src={image.url} alt={image.alt} decoding="async" />
+      {#if hasMultiple}
+        <figcaption class="lightbox-counter">{position}</figcaption>
+      {/if}
+    </figure>
 
     {#if hasMultiple}
       <button
         class="lightbox-nav lightbox-prev"
         type="button"
-        aria-label={`${label} ${selectedImageIndex === 0 ? images.length : selectedImageIndex}`}
+        aria-label={`${label} ${previousImageIndex + 1}`}
         onclick={() => {
           moveImage(-1)
         }}
       >
-        ←
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
       </button>
       <button
         class="lightbox-nav lightbox-next"
         type="button"
-        aria-label={`${label} ${(selectedImageIndex + 2 - 1) % images.length + 1}`}
+        aria-label={`${label} ${nextImageIndex + 1}`}
         onclick={() => {
           moveImage(1)
         }}
       >
-        →
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </button>
     {/if}
 
-    <figure class="lightbox-frame">
-      <img src={image.url} alt={image.alt} decoding="async" />
-      {#if hasMultiple}
-        <figcaption>{position}</figcaption>
-      {/if}
-    </figure>
+    <button class="lightbox-close" type="button" aria-label={closeLabel} onclick={closeLightbox}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
   </div>
 {/if}
