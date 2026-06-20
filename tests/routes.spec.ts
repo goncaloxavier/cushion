@@ -8,7 +8,7 @@ type PublicRoute = {
 }
 
 const publicRoutes: PublicRoute[] = [
-  {path: '/?lang=pt', heading: 'Resíduos do ecoponto amarelo', active: 'Início'},
+  {path: '/?lang=pt', heading: 'produtos sem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {

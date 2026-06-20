@@ -833,7 +833,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Matéria-prima do ecoponto amarelo',
-        title: 'Resíduos do ecoponto amarelo para exteriores vivos',
+        title: 'Transformamos resíduos do ecoponto amarelo em produtos sem manutenção',
         lead: 'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
       heroImage: fallbackImages.home,
@@ -911,7 +911,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'A consciência do problema nasce após contacto com dados sobre abate de árvores, crescimento do consumo de plástico e impacto nos ecossistemas marinhos.',
+          text: 'Em 2011, ao ver um documentário da National Geographic Portugal sobre o planeta que estávamos a deixar às gerações futuras — abate massivo de árvores, consumo de plástico a crescer a dois dígitos por ano e consequências como o desaparecimento de mais de 200 espécies marinhas nos próximos 30 anos — tomei uma decisão: dar o meu contributo para minimizar este drama.',
         },
         {
           title: '2018',
@@ -1081,7 +1081,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Raw material from the yellow-bin stream',
-        title: 'Yellow-bin waste for living outdoor spaces',
+        title: 'We turn yellow-bin waste into maintenance-free products',
         lead: 'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
       heroImage: fallbackImages.home,
@@ -1159,7 +1159,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'Awareness grows through data on tree felling, plastic consumption and marine impact.',
+          text: 'In 2011, watching a National Geographic Portugal documentary about the planet we were leaving to future generations — mass tree felling, plastic consumption growing by double digits every year, and consequences such as the loss of more than 200 marine species over the next 30 years — I made a decision: to do my part to help reduce this drama.',
         },
         {
           title: '2018',
@@ -1329,7 +1329,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Materia prima del contenedor amarillo',
-        title: 'Residuos del contenedor amarillo para exteriores vivos',
+        title: 'Transformamos residuos del contenedor amarillo en productos sin mantenimiento',
         lead: 'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
       heroImage: fallbackImages.home,
@@ -1407,7 +1407,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       timeline: [
         {
           title: '2011',
-          text: 'La conciencia del problema crece con datos sobre tala de árboles, consumo de plástico e impacto marino.',
+          text: 'En 2011, al ver un documental de National Geographic Portugal sobre el planeta que estábamos dejando a las generaciones futuras — tala masiva de árboles, consumo de plástico creciendo a dos dígitos al año y consecuencias como la desaparición de más de 200 especies marinas en los próximos 30 años — tomé una decisión: aportar mi parte para minimizar este drama.',
         },
         {
           title: '2018',

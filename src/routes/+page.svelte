@@ -46,7 +46,6 @@
       <div class="home-hero-copy">
         <Reveal variant="hero" priority>
           <h1>{content.home.hero.title}</h1>
-          <p>{content.home.hero.lead}</p>
         </Reveal>
         <Reveal class="home-hero-actions" delay={130} variant="scale" priority>
           <div class="hero-actions">
@@ -79,29 +78,9 @@
     {/if}
   </section>
 
-  <section class="section home-brief">
-    <Reveal class="home-brief-lead" variant="panel">
-      <p class="kicker">{content.home.intro.kicker}</p>
-      <h2>{content.home.intro.title}</h2>
-      <p>{content.home.intro.lead}</p>
-    </Reveal>
-
-    <div class="home-story-rail">
-      {#each content.about.timeline as item, index}
-        <Reveal delay={index * 60} variant="list">
-          <article>
-            <span>{item.title}</span>
-            <p>{item.text}</p>
-          </article>
-        </Reveal>
-      {/each}
-    </div>
-  </section>
-
   <section class="section home-impact-ledger">
     <Reveal class="impact-copy" variant="panel">
       <h2>{content.home.impact.title}</h2>
-      <p>{content.home.impact.lead}</p>
     </Reveal>
 
     <div class="impact-ledger">
