@@ -15,11 +15,11 @@ export const staffUser = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: 'email',
-      title: 'Email',
-      description: 'Usado para iniciar sessão. Deve ser único.',
+      name: 'username',
+      title: 'Utilizador',
+      description: 'Nome de utilizador para iniciar sessão. Deve ser único (minúsculas).',
       type: 'string',
-      validation: (Rule) => Rule.required().email(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'role',
@@ -63,11 +63,11 @@ export const staffUser = defineType({
     }),
   ],
   preview: {
-    select: {title: 'name', email: 'email', role: 'role', active: 'active'},
-    prepare({title, email, role, active}) {
+    select: {title: 'name', username: 'username', role: 'role', active: 'active'},
+    prepare({title, username, role, active}) {
       return {
-        title: title || email || 'Conta',
-        subtitle: `${role || 'staff'}${active === false ? ' · inativa' : ''} · ${email || ''}`,
+        title: title || username || 'Conta',
+        subtitle: `@${username || ''} · ${role || 'staff'}${active === false ? ' · inativa' : ''}`,
       }
     },
   },

@@ -3,7 +3,7 @@ import {createClient} from '@sanity/client'
 
 // Creates (or updates the password of) a /painel staff account in the private
 // crm dataset. Run locally:
-//   SANITY_CRM_WRITE_TOKEN=... npm run staff:create -- --name "Ana" --email ana@x.pt --password 'secret'
+//   SANITY_CRM_WRITE_TOKEN=... npm run staff:create -- --name "Ana" --username ana --password 'secret'
 // Password hashing MUST stay identical to src/lib/server/auth.ts (scrypt, no pepper).
 
 const scrypt = (password: string, salt: Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> =>
@@ -33,7 +33,7 @@ const arg = (name: string) => {
 }
 
 const name = arg('name')
-const email = arg('email')?.trim().toLowerCase()
+const username = arg('username')?.trim().toLowerCase()
 const password = arg('password') ?? process.env.STAFF_PASSWORD
 const role = arg('role') ?? 'admin'
 
@@ -41,21 +41,23 @@ const token = process.env.SANITY_CRM_WRITE_TOKEN
 const dataset = process.env.SANITY_CRM_DATASET || 'crm'
 
 if (!token) throw new Error('Set SANITY_CRM_WRITE_TOKEN in the environment.')
-if (!name || !email || !password) {
-  throw new Error('Usage: npm run staff:create -- --name "Nome" --email me@x.pt --password "secret"')
+if (!name || !username || !password) {
+  throw new Error('Usage: npm run staff:create -- --name "Nome" --username nome --password "secret"')
 }
-if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Invalid email.')
+if (!/^[a-z0-9._-]{3,}$/.test(username)) {
+  throw new Error('Username must be 3+ chars: lowercase letters, numbers, dot, dash or underscore.')
+}
 if (password.length < 10) throw new Error('Password must be at least 10 characters.')
 
 const client = createClient({projectId: 'u4uyfix8', dataset, apiVersion: '2026-06-10', useCdn: false, token})
 
-const id = `staffUser.${createHash('sha256').update(email).digest('hex').slice(0, 32)}`
+const id = `staffUser.${createHash('sha256').update(username).digest('hex').slice(0, 32)}`
 const passwordHash = await hashPassword(password)
 
 await client
   .transaction()
-  .createIfNotExists({_id: id, _type: 'staffUser', email, createdAt: new Date().toISOString(), active: true, role})
-  .patch(id, (patch) => patch.set({name, email, role, active: true, passwordHash}))
+  .createIfNotExists({_id: id, _type: 'staffUser', username, createdAt: new Date().toISOString(), active: true, role})
+  .patch(id, (patch) => patch.set({name, username, role, active: true, passwordHash}))
   .commit()
 
-console.log(`Staff account ready: ${email} (${role})  id=${id}`)
+console.log(`Staff account ready: ${username} (${role})  id=${id}`)

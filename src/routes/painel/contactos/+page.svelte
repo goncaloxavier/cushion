@@ -1,6 +1,5 @@
 <script lang="ts">
-  import PainelRequestCard from '$lib/components/PainelRequestCard.svelte'
-  import {submissionStatuses} from '$lib/painel'
+  import PainelRequestTable from '$lib/components/PainelRequestTable.svelte'
 
   let {data} = $props()
 </script>
@@ -14,12 +13,4 @@
   <p>{data.rows.length} mensagem(ns)</p>
 </header>
 
-{#if data.rows.length === 0}
-  <p class="painel-empty">Ainda não há mensagens de contacto.</p>
-{:else}
-  <div class="req-list">
-    {#each data.rows as row (row._id)}
-      <PainelRequestCard {row} statuses={submissionStatuses} />
-    {/each}
-  </div>
-{/if}
+<PainelRequestTable rows={data.rows} />

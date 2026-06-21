@@ -1,15 +1,7 @@
 <script lang="ts">
+  import PainelRequestTable from '$lib/components/PainelRequestTable.svelte'
+
   let {data} = $props()
-  const statusLabels: Record<string, string> = {
-    new: 'Novo',
-    read: 'Lido',
-    inProgress: 'Em acompanhamento',
-    resolved: 'Resolvido',
-    spam: 'Spam',
-    archived: 'Arquivado',
-  }
-  const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleString('pt-PT') : '')
-  const sourceLabel = (source: string) => (source === 'catalogue' ? 'Catálogo' : 'Contacto')
 </script>
 
 <svelte:head>
@@ -41,24 +33,5 @@
 
 <section class="painel-section">
   <h2>Pedidos recentes</h2>
-  {#if data.recent.length === 0}
-    <p class="painel-empty">Ainda não há pedidos.</p>
-  {:else}
-    <table class="painel-table">
-      <thead>
-        <tr><th>Data</th><th>Origem</th><th>Nome</th><th>Email</th><th>Estado</th></tr>
-      </thead>
-      <tbody>
-        {#each data.recent as row}
-          <tr>
-            <td>{fmtDate(row.submittedAt)}</td>
-            <td>{sourceLabel(row.source)}</td>
-            <td>{row.name}</td>
-            <td><a href={`mailto:${row.email}`}>{row.email}</a></td>
-            <td>{statusLabels[row.status] ?? row.status}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
+  <PainelRequestTable rows={data.recent} showSource />
 </section>

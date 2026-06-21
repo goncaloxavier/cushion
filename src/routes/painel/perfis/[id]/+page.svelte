@@ -1,6 +1,6 @@
 <script lang="ts">
-  import PainelRequestCard from '$lib/components/PainelRequestCard.svelte'
-  import {fmtDateTime, profileStatuses, profileStatusLabels, submissionStatuses} from '$lib/painel'
+  import PainelRequestTable from '$lib/components/PainelRequestTable.svelte'
+  import {fmtDateTime, profileStatuses, profileStatusLabels} from '$lib/painel'
 
   let {data} = $props()
   const p = $derived(data.profile)
@@ -50,13 +50,5 @@
 
 <section class="painel-section">
   <h2>Pedidos deste cliente</h2>
-  {#if !p.submissions || p.submissions.length === 0}
-    <p class="painel-empty">Sem pedidos.</p>
-  {:else}
-    <div class="req-list">
-      {#each p.submissions as row (row._id)}
-        <PainelRequestCard {row} statuses={submissionStatuses} />
-      {/each}
-    </div>
-  {/if}
+  <PainelRequestTable rows={p.submissions ?? []} showSource />
 </section>

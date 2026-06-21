@@ -22,7 +22,7 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000 // sliding window
 
 export const sessionCookieName = 'df4y_painel_session'
 
-export type StaffUser = {_id: string; name: string; email: string; role: string}
+export type StaffUser = {_id: string; name: string; username: string; role: string}
 
 // ---- rate limiting (per-instance, in-memory) ----
 const rateBuckets = new Map<string, {count: number; resetAt: number}>()
@@ -72,23 +72,23 @@ const dummyHash = `scrypt$${SCRYPT_N}.${SCRYPT_R}.${SCRYPT_P}$${Buffer.alloc(SAL
   'base64',
 )}$${Buffer.alloc(KEY_LEN).toString('base64')}`
 
-export const normalizeEmail = (value: string) => value.trim().toLowerCase()
+export const normalizeUsername = (value: string) => value.trim().toLowerCase()
 
 // ---- authentication ----
-export const authenticate = async (email: string, password: string): Promise<StaffUser | null> => {
+export const authenticate = async (username: string, password: string): Promise<StaffUser | null> => {
   const client = crmClient()
   if (!client) return null
 
   const user = await client.fetch<{
     _id: string
     name: string
-    email: string
+    username: string
     role: string
     active?: boolean
     passwordHash?: string
   } | null>(
-    `*[_type=="staffUser" && email==$e && ${notDraft}][0]{_id, name, email, role, active, passwordHash}`,
-    {e: normalizeEmail(email)},
+    `*[_type=="staffUser" && username==$u && ${notDraft}][0]{_id, name, username, role, active, passwordHash}`,
+    {u: normalizeUsername(username)},
   )
 
   const ok = await verifyPassword(password, user?.passwordHash || dummyHash)
@@ -100,7 +100,7 @@ export const authenticate = async (email: string, password: string): Promise<Sta
     .commit()
     .catch(() => undefined)
 
-  return {_id: user._id, name: user.name, email: user.email, role: user.role}
+  return {_id: user._id, name: user.name, username: user.username, role: user.role}
 }
 
 // ---- sessions (only the token hash is stored) ----
@@ -141,10 +141,10 @@ export const validateSession = async (token: string | undefined): Promise<StaffU
   const session = await client.fetch<{
     _id: string
     expiresAt: string
-    user: {_id: string; name: string; email: string; role: string; active?: boolean} | null
+    user: {_id: string; name: string; username: string; role: string; active?: boolean} | null
   } | null>(
     `*[_type=="staffSession" && tokenHash==$h && ${notDraft}][0]{
-      _id, expiresAt, "user": user->{_id, name, email, role, active}
+      _id, expiresAt, "user": user->{_id, name, username, role, active}
     }`,
     {h: tokenHashOf(token)},
   )
@@ -167,7 +167,7 @@ export const validateSession = async (token: string | undefined): Promise<StaffU
   }
 
   const {user} = session
-  return {_id: user._id, name: user.name, email: user.email, role: user.role}
+  return {_id: user._id, name: user.name, username: user.username, role: user.role}
 }
 
 export const destroySession = async (token: string | undefined) => {

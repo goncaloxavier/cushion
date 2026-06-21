@@ -30,7 +30,7 @@
       </nav>
       <form method="POST" action="/painel?/logout" class="painel-account">
         <span class="painel-account-name">{staff.name}</span>
-        <span class="painel-account-email">{staff.email}</span>
+        <span class="painel-account-email">@{staff.username}</span>
         <button type="submit" class="painel-logout">Terminar sessão</button>
       </form>
     </aside>

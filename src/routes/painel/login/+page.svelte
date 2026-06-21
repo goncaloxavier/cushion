@@ -17,15 +17,17 @@
       <p class="painel-login-error" role="alert">{form.message}</p>
     {/if}
 
-    <label for="login-email">
-      <span>Email</span>
+    <label for="login-username">
+      <span>Utilizador</span>
       <input
-        id="login-email"
-        name="email"
-        type="email"
+        id="login-username"
+        name="username"
+        type="text"
         autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
         required
-        value={form?.email ?? ''}
+        value={form?.username ?? ''}
       />
     </label>
 

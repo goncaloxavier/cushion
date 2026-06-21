@@ -5202,6 +5202,135 @@ body.lightbox-open {
   color: #5a6b63;
 }
 
+.painel-detail-link {
+  margin-top: 1rem;
+}
+
+.painel-detail-link a {
+  color: #2d7b57;
+  font-weight: 650;
+}
+
+.painel-table a {
+  font-weight: 650;
+}
+
+.painel-record {
+  max-width: 52rem;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 0.8rem 2rem rgba(33, 34, 31, 0.05);
+}
+
+.painel-record-section + .painel-record-section {
+  margin-top: 1.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.painel-record-title {
+  margin: 0 0 1.1rem;
+  font-size: 1.15rem;
+}
+
+.painel-field-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #5a6b63;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.painel-record-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.painel-record-status-row select {
+  flex: 1;
+  min-width: 12rem;
+  max-width: 20rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.painel-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1.2rem 1.6rem;
+}
+
+.painel-field-value {
+  color: #1c2a26;
+  font-size: 1rem;
+}
+
+.painel-field-value a {
+  color: #2d7b57;
+}
+
+.painel-field-block {
+  grid-column: 1 / -1;
+  margin-top: 1.2rem;
+}
+
+.painel-field-text {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  white-space: pre-line;
+  background: #f4f7f5;
+  border-radius: 8px;
+}
+
+.painel-notes-log {
+  margin: 0 0 0.9rem;
+  padding: 0.85rem 1rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  background: #fbfaf3;
+  border: 1px solid #ece8d5;
+  border-radius: 8px;
+}
+
+.painel-note-add {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.painel-note-add textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.painel-btn-ghost {
+  padding: 0.5rem 1rem;
+  color: #2d7b57;
+  font-weight: 650;
+  background: #ffffff;
+  border: 1px solid #2d7b57;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.painel-btn-ghost:hover {
+  background: #f0f6f2;
+}
+
 .painel-search {
   display: flex;
   gap: 0.5rem;
@@ -5396,7 +5525,8 @@ body.lightbox-open {
 
 .req-actions button,
 .painel-search button,
-.painel-profile-manage button {
+.painel-profile-manage button,
+.painel-record-status-row button {
   padding: 0.45rem 0.9rem;
   color: #ffffff;
   font-weight: 650;
