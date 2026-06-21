@@ -32,10 +32,10 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 - `src/routes/+page.svelte` - homepage; the hero uses the editable `home.heroVideoUrl` as a muted looping background YouTube embed and opens a full YouTube player from the video button; partner/project logos sit below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
-- `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route.
+- `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route with a text-first editorial layout: one focused description sourced from product detail copy, an optional separated resistance/maintenance paragraph, full-frame shared `ImageGallery`, and quote/catalogue CTA.
 - `src/routes/catalogo/+page.svelte` - catalogue and quote-flow route.
 - `src/routes/casos-de-estudo/+page.svelte` - case-study route.
-- `src/routes/casos-de-estudo/[slug]/+page.server.ts` and `+page.svelte` - case-study detail route.
+- `src/routes/casos-de-estudo/[slug]/+page.server.ts` and `+page.svelte` - case-study detail route with the description folded into the hero lead, shared `ImageGallery`, and optional challenge/solution/result cards.
 - `src/routes/blog/+page.svelte` - blog index route.
 - `src/routes/blog/[slug]/+page.server.ts` and `+page.svelte` - blog article route.
 - `src/routes/contacto/+page.svelte` - contact route.

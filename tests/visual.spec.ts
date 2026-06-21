@@ -7,8 +7,43 @@ const primeRevealAnimations = async (page: Page) => {
       .whatsapp-float {
         display: none !important;
       }
+
+      iframe {
+        background: #0b3436 !important;
+      }
+
+      @media (max-width: 700px) {
+        .home-hero,
+        .home-hero-copy {
+          min-height: 658px !important;
+        }
+      }
     `,
   })
+
+  const waitForImages = async (timeout = 2500) => {
+    await page.evaluate(async (timeoutMs) => {
+      const images = Array.from(document.images)
+      await Promise.race([
+        Promise.all(
+          images.map((image) => {
+            if (image.complete) return Promise.resolve()
+
+            return new Promise<void>((resolve) => {
+              image.addEventListener('load', () => resolve(), {once: true})
+              image.addEventListener('error', () => resolve(), {once: true})
+            })
+          }),
+        ),
+        new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+      ])
+      await Promise.all(
+        images
+          .filter((image) => image.complete)
+          .map((image) => image.decode?.().catch(() => undefined)),
+      )
+    }, timeout)
+  }
 
   await page.evaluate(async () => {
     const pause = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration))
@@ -25,12 +60,16 @@ const primeRevealAnimations = async (page: Page) => {
     window.scrollTo(0, 0)
   })
 
+  await waitForImages()
+
   await page.evaluate(() => {
     document.querySelectorAll('.reveal').forEach((element) => {
       element.classList.add('visible')
     })
     window.scrollTo(0, 0)
   })
+
+  await waitForImages()
 }
 
 const visualRoutes = [
@@ -93,14 +132,27 @@ const visualRoutes = [
 
 test.describe('visual regression', () => {
   for (const route of visualRoutes) {
-    test(`${route.name} full page`, async ({page}) => {
+    test(`${route.name} full page`, async ({page}, testInfo) => {
       await page.goto(route.path)
       await expect(page.locator('h1')).toBeVisible()
       await page.evaluate(() => document.fonts.ready)
       await primeRevealAnimations(page)
 
+      const mobileClip =
+        testInfo.project.name === 'mobile-chrome'
+          ? await page.evaluate(() => ({
+              x: 0,
+              y: 0,
+              width: window.innerWidth,
+              height: Math.max(window.innerHeight, Math.floor(document.documentElement.scrollHeight / 8) * 8),
+            }))
+          : undefined
+
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
-        fullPage: true,
+        fullPage: !mobileClip,
+        clip: mobileClip,
+        mask: [page.locator('iframe')],
+        maskColor: '#0b3436',
       })
     })
   }

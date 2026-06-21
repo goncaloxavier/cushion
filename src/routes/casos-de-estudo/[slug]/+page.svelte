@@ -6,6 +6,7 @@
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
   const images = $derived(caseStudyImagesFor(data.caseStudy, caseStudyImageFallback))
+  const lead = $derived(data.caseStudy.description || data.caseStudy.summary)
   const hasProcess = $derived(
     Boolean(data.caseStudy.challenge || data.caseStudy.solution || data.caseStudy.result),
   )
@@ -25,7 +26,7 @@
         </a>
         <p class="kicker">{data.caseStudy.location}</p>
         <h1>{data.caseStudy.title}</h1>
-        <p class="article-lead">{data.caseStudy.summary}</p>
+        <p class="article-lead">{lead}</p>
       </div>
       <ImageGallery
         {images}
@@ -34,12 +35,6 @@
         className="case-gallery"
       />
     </section>
-
-    {#if data.caseStudy.description}
-      <section class="case-detail-description">
-        <p>{data.caseStudy.description}</p>
-      </section>
-    {/if}
 
     {#if hasProcess}
       <section class="case-detail-list">

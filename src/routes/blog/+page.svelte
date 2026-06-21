@@ -92,12 +92,10 @@
         <a class="journal-card" href={`/blog/${post.slug}${langQuery}`}>
           <div class="journal-card-media">
             <img src={image.url} alt={image.alt} loading="lazy" decoding="async" />
+            <time class="card-meta" datetime={post.publishedAt}>{post.publishedAt}</time>
           </div>
           <div class="journal-card-copy">
-            <span>{post.category}</span>
-            <time datetime={post.publishedAt}>{post.publishedAt}</time>
             <h2>{post.title}</h2>
-            <p>{post.excerpt}</p>
           </div>
         </a>
       {/each}

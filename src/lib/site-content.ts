@@ -31,6 +31,7 @@ export type ContentImage = {
   url: string
   alt: string
   aspectRatio?: number
+  sourceName?: string
 }
 
 export type PartnerItem = {
@@ -329,6 +330,7 @@ type SanitySiteContent = {
 type SanityImage = {
   asset?: {
     url?: string
+    originalFilename?: string
     metadata?: {
       dimensions?: {
         aspectRatio?: number
@@ -1619,6 +1621,75 @@ const commonFromSanity = (
 export const imageFor = (item: {image?: ContentImage}, fallback: ContentImage) =>
   item.image ?? fallback
 
+const normalizeProductMaterialPhrase = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const redundantProductMaterialFeatures = new Set([
+  '100% plastico reciclado',
+  '100% recycled plastic',
+])
+
+export const isRedundantProductMaterialFeature = (feature: string) =>
+  redundantProductMaterialFeatures.has(normalizeProductMaterialPhrase(feature))
+
+export const cleanProductMaterialCopy = (value: string) =>
+  value
+    .replace(
+      /\s+(feitos?|feitas?|constru[ií]dos?|constru[ií]das?)\s+em\s+pl[aá]stico\s+100%\s+reciclado,?\s*/gi,
+      ' ',
+    )
+    .replace(
+      /\s+(hechos?|hechas?|construidos?|construidas?)\s+en\s+pl[aá]stico\s+100%\s+reciclado,?\s*/gi,
+      ' ',
+    )
+    .replace(/\s+(made from|built from)\s+100%\s+recycled\s+plastic,?\s*/gi, ' ')
+    .replace(/\s+(em|en)\s+pl[aá]stico\s+100%\s+reciclado,?\s*/gi, ' ')
+    .replace(/\s+in\s+100%\s+recycled\s+plastic,?\s*/gi, ' ')
+    .replace(/\s+100%\s+recycled-plastic\s*/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim()
+
+const normalizeProductImageName = (value: string) =>
+  decodeURIComponent(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+const productSheetImagePatterns = [
+  /\bdimens(?:oes?|ao|a[oã])?\b/,
+  /\bmedidas?\b/,
+  /\bficha\b/,
+  /\btecnica\b/,
+  /\btechnical\b/,
+  /\bdesenho\b/,
+  /\bdesign\b/,
+  /\bcatalogo\b/,
+  /\bdeck premium\b/,
+  /\bdeck classico\b/,
+]
+
+const productImageName = (image: ContentImage) =>
+  image.sourceName || image.url.split('/').pop() || image.alt
+
+const isProductSheetImage = (image: ContentImage) => {
+  const name = normalizeProductImageName(productImageName(image))
+  return productSheetImagePatterns.some((pattern) => pattern.test(name))
+}
+
+export const prioritizeProductImages = (images: ContentImage[]) => {
+  const productPhotos = images.filter((image) => !isProductSheetImage(image))
+  if (!productPhotos.length) return images
+
+  const sheetImages = images.filter(isProductSheetImage)
+  return [...productPhotos, ...sheetImages]
+}
+
 export const productImagesFor = (item: ProductItem, fallback: ContentImage) => {
   if (item.images?.length) return item.images
   if (item.image) return [item.image]
@@ -1649,6 +1720,7 @@ const imageFromSanity = (
   url: image?.asset?.url || fallback.url,
   alt: localized(image?.alt, language, fallback.alt),
   aspectRatio: image?.asset?.metadata?.dimensions?.aspectRatio ?? fallback.aspectRatio,
+  sourceName: image?.asset?.originalFilename,
 })
 
 const partnersFromSanity = (
@@ -1709,29 +1781,37 @@ const productsFromSanity = (
 
   return products
     .filter((product) => product.slug?.current)
-    .map((product, index) => ({
-      title: localized(product.title, language, fallback[index]?.title ?? 'Product'),
-      slug: product.slug?.current ?? fallback[index]?.slug ?? `product-${index + 1}`,
-      image: imageFromSanity(
-        product.image,
-        language,
-        fallback[index]?.image ?? fallbackImages.product,
-      ),
-      images: imagesFromSanity(
-        product.image,
-        product.gallery,
-        language,
-        fallback[index]?.image ?? fallbackImages.product,
-      ),
-      summary: localized(product.summary, language, fallback[index]?.summary ?? ''),
-      description: localized(product.description, language, fallback[index]?.description ?? ''),
-      features: localizedList(product.features, language, fallback[index]?.features ?? []),
-      applications: localizedList(
-        product.applications,
-        language,
-        fallback[index]?.applications ?? [],
-      ),
-    }))
+    .map((product, index) => {
+      const productImages = prioritizeProductImages(
+        imagesFromSanity(
+          product.image,
+          product.gallery,
+          language,
+          fallback[index]?.image ?? fallbackImages.product,
+        ),
+      )
+
+      return {
+        title: localized(product.title, language, fallback[index]?.title ?? 'Product'),
+        slug: product.slug?.current ?? fallback[index]?.slug ?? `product-${index + 1}`,
+        image: productImages[0],
+        images: productImages,
+        summary: cleanProductMaterialCopy(
+          localized(product.summary, language, fallback[index]?.summary ?? ''),
+        ),
+        description: cleanProductMaterialCopy(
+          localized(product.description, language, fallback[index]?.description ?? ''),
+        ),
+        features: localizedList(product.features, language, fallback[index]?.features ?? []).filter(
+          (feature) => !isRedundantProductMaterialFeature(feature),
+        ),
+        applications: localizedList(
+          product.applications,
+          language,
+          fallback[index]?.applications ?? [],
+        ),
+      }
+    })
 }
 
 const casesFromSanity = (

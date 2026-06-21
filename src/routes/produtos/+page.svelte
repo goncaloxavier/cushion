@@ -98,9 +98,7 @@
             <img src={image.url} alt={image.alt} loading="lazy" decoding="async" />
           </div>
           <div class="product-panel-copy">
-            <span>{product.features[0]}</span>
             <h2>{product.title}</h2>
-            <p>{product.summary}</p>
           </div>
         </a>
       {/each}

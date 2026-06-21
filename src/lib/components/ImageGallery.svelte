@@ -36,6 +36,11 @@
     images.length ? (selectedImageIndex - 1 + images.length) % images.length : 0,
   )
   const nextImageIndex = $derived(images.length ? (selectedImageIndex + 1) % images.length : 0)
+  const imageStyle = $derived(
+    image?.aspectRatio && Number.isFinite(image.aspectRatio)
+      ? `--image-aspect: ${image.aspectRatio}`
+      : undefined,
+  )
 
   const selectImage = (index: number) => {
     selectedImageIndex = Math.min(images.length - 1, Math.max(0, index))
@@ -78,6 +83,7 @@
       class="detail-hero-media product-gallery-main image-gallery-main"
       type="button"
       aria-label={label}
+      style={imageStyle}
       onclick={openLightbox}
     >
       <img src={image.url} alt={image.alt} decoding="async" fetchpriority="high" />

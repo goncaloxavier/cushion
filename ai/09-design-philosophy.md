@@ -77,7 +77,7 @@ The website should feel premium, useful, calm, and alive.
 - Home should not rely on low-effort quick-access blocks to products, blog, or case studies. It should explain the company, material logic, impact, and route the visitor with intent.
 - About should explain origin, values, and experience direction with stronger presentation than simple stacked text. Long/tall titles should be broken into better composition, often title first and cards below.
 - Products should feel like a commercial directory: practical, searchable, paginated, and visually confident. Product list cards should not include quote CTAs; detail pages can.
-- Product detail pages should support multiple images, gallery behavior, and zoom/inspection patterns when content exists.
+- Product detail pages should support multiple images, gallery behavior, and zoom/inspection patterns when content exists. Prefer actual product/project photos as the primary image; design, dimensions, catalogue, and technical sheets belong later in the gallery.
 - Catalogue should feel like a buying/request surface, not a broken price table, generic brochure, or hover-heavy card grid.
 - Case studies should feel project-based and evidence-led. Avoid unnecessary categories/kickers when they do not help the reader.
 - Case-study detail pages should support multiple images, gallery behavior, and zoom/inspection patterns when content exists, similar to product detail pages.
@@ -109,6 +109,7 @@ The website should feel premium, useful, calm, and alive.
 ## Copy And Claims
 
 - Copy can sell, but it must stay anchored in confirmed facts.
+- Body, card, and detail copy must stay comfortably readable for low-vision users: use strong contrast, generous line-height, and avoid small muted text for meaningful content.
 - Do not invent certifications, guarantees, exact pricing, or precise impact claims.
 - When pricing is not confirmed, explain what affects the quote and what information the visitor should send.
 - When explaining material origin, prefer the confirmed yellow-bin stream language: packaging, Tetra Pak, and cans/metal packaging. Avoid vague recycled-plastic wording when the more specific fact is relevant.

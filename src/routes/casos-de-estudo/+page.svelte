@@ -104,11 +104,10 @@
         <a class="case-card" href={`/casos-de-estudo/${item.slug}${langQuery}`}>
           <div class="case-card-media">
             <img src={image.url} alt={image.alt} loading="lazy" decoding="async" />
+            <span class="card-meta">{item.location}</span>
           </div>
           <div class="case-card-copy">
-            <span>{item.location}</span>
             <h2>{item.title}</h2>
-            <p>{item.summary}</p>
           </div>
         </a>
       {/each}

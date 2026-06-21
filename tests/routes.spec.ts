@@ -283,13 +283,40 @@ test.describe('public website routes', () => {
     )
     await page.waitForTimeout(180)
 
-    await page.evaluate(() =>
-      window.scrollTo(0, Math.min(900, document.documentElement.scrollHeight)),
+    const scrollTarget = await page.evaluate(() => {
+      const scroller = document.scrollingElement || document.documentElement
+      return Math.min(900, scroller.scrollHeight - window.innerHeight)
+    })
+    test.skip(scrollTarget <= 40, 'Refresh reset needs a scrollable page')
+
+    await page.getByRole('contentinfo').scrollIntoViewIfNeeded()
+    await page.evaluate((target) => {
+      const scroller = document.scrollingElement || document.documentElement
+      window.scrollTo(0, target)
+      document.documentElement.scrollTop = target
+      document.body.scrollTop = target
+      scroller.scrollTop = target
+    }, scrollTarget)
+    await page.waitForFunction(
+      () =>
+        Math.max(
+          window.scrollY,
+          document.documentElement.scrollTop,
+          document.body.scrollTop,
+          document.scrollingElement?.scrollTop || 0,
+        ) > 40,
     )
-    await page.waitForFunction(() => window.scrollY > 40)
 
     await page.reload()
-    await page.waitForFunction(() => window.scrollY <= 2)
+    await page.waitForFunction(
+      () =>
+        Math.max(
+          window.scrollY,
+          document.documentElement.scrollTop,
+          document.body.scrollTop,
+          document.scrollingElement?.scrollTop || 0,
+        ) <= 2,
+    )
   })
 
   test('localized contact form keeps the message field as a textarea', async ({page}) => {

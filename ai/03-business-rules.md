@@ -15,7 +15,14 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - The old homepage mixed media/gallery section has been removed. The institutional video remains the editable homepage `heroVideoUrl`, and product/case/blog detail galleries remain supported.
 - Product, case-study, and blog images/galleries should be editable through Sanity; project-local fallback images are used only when an entry has no published image.
 - Product and case-study indexes show 9 cards per page; blog already uses 9 cards per page.
-- Product, case-study, and blog detail galleries should preserve the full image frame and lock background scrolling while the lightbox is open.
+- Product list cards should show image and title only; case-study list cards should show image, title, and location metadata; blog list cards should show image, title, and date metadata. Summaries, excerpts, and categories stay searchable/detail-page content but should not appear as subtitles on the list cards.
+- Product, case-study, and blog list/detail imagery should preserve the full image frame instead of cropping or stretching; detail galleries should use known image aspect ratios where available and lock background scrolling while the lightbox is open.
+- Product primary images should prefer real product/project photos over obvious design sheets, dimensions sheets, catalogue panels, or technical drawings; those sheet images can remain later in the gallery.
+- Public text content should meet comfortable low-vision readability expectations: strong contrast, body copy at readable sizes, generous line-height, and support for OS high-contrast preferences.
+- Product detail pages should not render the product summary and description as two competing text blocks; use one focused detail description, optionally followed by a separated resistance/maintenance paragraph.
+- Product detail pages should not render generic `Características`/`Aplicações` chip or list bands when they duplicate obvious sales points already present in the detail copy.
+- Case-study detail pages should fold the description into the hero lead and should not render a separate standalone description band below the hero.
+- Product list cards and product detail copy should avoid repeating generic material-origin badges such as "100% plástico reciclado" when that claim already appears in the surrounding product/site copy.
 - Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
 - Starter product, case-study, and blog documents have been seeded into Sanity `production` using deterministic IDs.

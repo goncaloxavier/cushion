@@ -161,6 +161,7 @@ const collectionsQuery = `{
     image {
       asset -> {
         url,
+        originalFilename,
         metadata {
           dimensions {
             aspectRatio
@@ -172,6 +173,7 @@ const collectionsQuery = `{
     gallery[] {
       asset -> {
         url,
+        originalFilename,
         metadata {
           dimensions {
             aspectRatio
