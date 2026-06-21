@@ -17,7 +17,7 @@ const publicRoutes: PublicRoute[] = [
     active: 'Produtos',
     mobile: false,
   },
-  {path: '/catalogo?lang=en', heading: 'A serious price starts with context', active: 'Catalogue'},
+  {path: '/catalogo?lang=en', heading: 'Request the catalogue through the form', active: 'Catalogue'},
   {path: '/casos-de-estudo?lang=es', heading: 'Proyectos que muestran', active: 'Casos'},
   {
     path: '/casos-de-estudo/vedacao-piscina-moita?lang=es',

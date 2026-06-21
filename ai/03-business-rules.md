@@ -23,7 +23,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Product detail pages should not render generic `Características`/`Aplicações` chip or list bands when they duplicate obvious sales points already present in the detail copy.
 - Case-study detail pages should fold the description into the hero lead and should not render a separate standalone description band below the hero.
 - Product list cards and product detail copy should avoid repeating generic material-origin badges such as "100% plástico reciclado" when that claim already appears in the surrounding product/site copy.
-- Pricing is not confirmed. Present catalogue/quote guidance instead of pretending to have final product prices.
+- Pricing is not confirmed. Present catalogue/request guidance instead of pretending to have final product prices.
+- The catalogue page should explain that visitors must request the catalogue through the form; the form submission should preserve the catalogue intent for follow-up.
 - Product categories, case studies, and blog posts expose detail routes from their slugs.
 - Starter product, case-study, and blog documents have been seeded into Sanity `production` using deterministic IDs.
 - Historical Webnode case studies are migrated through `scripts/old-case-studies.ts` as 11 title-separated cases with PT/EN/ES title, summary, description, product area, location, main image, gallery images, and no date fields. Imports use deterministic public-read-safe `caseStudy-<slug>` IDs and populate the Studio-editable `description` plus image/gallery fields.
@@ -32,7 +33,9 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
 - The floating WhatsApp shortcut is useful on public browsing routes, but it should not obstruct the contact form.
-- The contact form includes a marketing/personal-data consent checkbox and should not allow submission until every field is filled and consent is checked. This is a visible consent UI only; no form submission backend is currently implemented.
+- The contact form includes a marketing/personal-data consent checkbox and should not allow submission until every field is filled and consent is checked.
+- Valid contact/catalogue form submissions create a private `formSubmission` document and update/create a private `clientProfile` document in the Sanity `crm` dataset. These records are for business follow-up and must not be rendered on the public website.
+- The contact form backend must keep stable internal field names even when Studio editors change the visible labels.
 
 ## Inputs
 
@@ -41,12 +44,14 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Optional published Sanity `Product category`, `Case study`, and `Blog post` documents.
 - Optional Sanity image uploads, galleries, and localized image alt text for those documents; blog article images and product/case/blog detail-gallery images should render uncropped in article/detail contexts.
 - Optional Sanity social, WhatsApp, complaints-book, and contact details.
+- Visitor contact/catalogue form submissions with name, email, phone, postal code, locality, message, language, source, and consent state.
 - Fallback multilingual content in `src/lib/site-content.ts`.
 
 ## Outputs
 
 - Public SvelteKit routed website.
-- Sanity Studio for editing multilingual page copy, contact/footer content, product categories, case studies, and blog posts.
+- Sanity Studio website workspace for editing multilingual page copy, contact/footer content, product categories, case studies, and blog posts.
+- Sanity Studio CRM workspace for reviewing form submissions, changing request status, adding internal notes, and maintaining client profiles.
 
 ## Pricing Or Quantities
 
@@ -60,8 +65,10 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 ## Access Or Permissions
 
-- Sanity access is handled by Sanity project permissions.
-- No local app-level roles or permissions are defined in this repo.
+- Sanity website editing access is handled by Sanity project permissions and login.
+- CRM access is handled by Sanity project permissions plus the private `crm` dataset.
+- The public SvelteKit app uses a server-side write token for CRM writes only; no Sanity write token should ever be bundled into client-side code.
+- Required private runtime variables for live CRM writes: `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`; optional override: `SANITY_CRM_DATASET`.
 
 ## Edge Cases
 
@@ -75,7 +82,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 ## Do Not Change Without Confirmation
 
 - Sanity project id `u4uyfix8`.
-- Sanity dataset `production`.
+- Sanity public dataset `production`.
+- Sanity private CRM dataset `crm`.
 - Public impact metrics, client-facing product claims, and contact details.
 - Social links, WhatsApp number/link, complaints-book link, and marketing-consent wording.
 - Institutional video URL, partner names/links/logos, and claims about partnerships/projects.

@@ -2,22 +2,77 @@
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
 
-  let {data} = $props()
+  type ContactFormValues = Partial<Record<ContactFieldKey, string>>
+
+  let {data, form} = $props()
   const content = $derived(data.site[data.language])
-  let fieldValues = $state<string[]>([])
+  const fallbackFieldLabels: Record<string, Record<ContactFieldKey, string>> = {
+    pt: {
+      name: 'Nome',
+      email: 'Email',
+      phone: 'Telefone',
+      postalCode: 'Código postal',
+      locality: 'Localidade',
+      message: 'Mensagem',
+    },
+    en: {
+      name: 'Name',
+      email: 'Email',
+      phone: 'Phone',
+      postalCode: 'Postcode',
+      locality: 'Location',
+      message: 'Message',
+    },
+    es: {
+      name: 'Nombre',
+      email: 'Email',
+      phone: 'Teléfono',
+      postalCode: 'Código postal',
+      locality: 'Localidad',
+      message: 'Mensaje',
+    },
+  }
+  let fieldValues = $state<Record<ContactFieldKey, string>>({
+    name: '',
+    email: '',
+    phone: '',
+    postalCode: '',
+    locality: '',
+    message: '',
+  })
   let consentAccepted = $state(false)
+  let lastFormValues = $state<ContactFormValues | undefined>(undefined)
 
   $effect(() => {
-    const fields = content.contactPage.fields
-    if (fieldValues.length !== fields.length) {
-      fieldValues = fields.map((_, index) => fieldValues[index] ?? '')
+    const currentFormValues = form?.values as ContactFormValues | undefined
+
+    if (currentFormValues && currentFormValues !== lastFormValues) {
+      fieldValues = {
+        name: currentFormValues.name ?? '',
+        email: currentFormValues.email ?? '',
+        phone: currentFormValues.phone ?? '',
+        postalCode: currentFormValues.postalCode ?? '',
+        locality: currentFormValues.locality ?? '',
+        message: currentFormValues.message ?? '',
+      }
+      lastFormValues = currentFormValues
     }
   })
 
   const formIsComplete = $derived(
-    content.contactPage.fields.every((_, index) => Boolean(fieldValues[index]?.trim())) &&
-      consentAccepted,
+    contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) && consentAccepted,
+  )
+  const contactFields = $derived(
+    contactFieldKeys.map((key, index) => ({
+      key,
+      label:
+        content.contactPage.formLabels[key] ||
+        content.contactPage.fields[index] ||
+        fallbackFieldLabels[data.language]?.[key] ||
+        fallbackFieldLabels.pt[key],
+    })),
   )
 
   const socialLinks = $derived(
@@ -27,44 +82,20 @@
       {href: content.common.youtubeUrl, label: 'YouTube', icon: 'youtube' as const},
     ].filter((link) => link.href),
   )
-  const isMessageField = (field: string) =>
-    field.toLowerCase().includes('mensagem') ||
-    field.toLowerCase().includes('message') ||
-    field.toLowerCase().includes('mensaje')
+  const isMessageField = (field: ContactFieldKey) => field === 'message'
 
-  const inputType = (field: string) => {
-    const normalized = field.toLowerCase()
-    if (normalized.includes('email')) return 'email'
-    if (
-      normalized.includes('telefone') ||
-      normalized.includes('phone') ||
-      normalized.includes('teléfono')
-    ) {
-      return 'tel'
-    }
+  const inputType = (field: ContactFieldKey) => {
+    if (field === 'email') return 'email'
+    if (field === 'phone') return 'tel'
     return 'text'
   }
 
-  const autocomplete = (field: string) => {
-    const normalized = field.toLowerCase()
-    if (normalized.includes('nome') || normalized.includes('name') || normalized.includes('nombre')) {
-      return 'name'
-    }
-    if (normalized.includes('email')) return 'email'
-    if (
-      normalized.includes('telefone') ||
-      normalized.includes('phone') ||
-      normalized.includes('teléfono')
-    ) {
-      return 'tel'
-    }
-    if (normalized.includes('postal')) return 'postal-code'
+  const autocomplete = (field: ContactFieldKey) => {
+    if (field === 'name') return 'name'
+    if (field === 'email') return 'email'
+    if (field === 'phone') return 'tel'
+    if (field === 'postalCode') return 'postal-code'
     return 'off'
-  }
-
-  const handleSubmit = (event: SubmitEvent) => {
-    event.preventDefault()
-    if (!formIsComplete) return
   }
 </script>
 
@@ -106,35 +137,56 @@
       </div>
     </Reveal>
     <Reveal class="contact-form-reveal" delay={180} variant="panel" priority>
-      <form class="contact-form" onsubmit={handleSubmit}>
-        {#each content.contactPage.fields as field, index}
-          {@const fieldId = `contact-field-${index}`}
-          <label class:message-field={isMessageField(field)} for={fieldId}>
-            <span>{field}</span>
-            {#if isMessageField(field)}
+      <form class="contact-form" method="POST">
+        <input type="hidden" name="csrfToken" value={data.csrfToken} />
+        <input type="hidden" name="language" value={data.language} />
+        <input type="hidden" name="source" value={data.submissionSource} />
+        <input type="hidden" name="consentText" value={content.common.marketingConsent} />
+        <label class="visually-hidden" aria-hidden="true">
+          Website
+          <input name="companyWebsite" tabindex="-1" autocomplete="off" />
+        </label>
+
+        {#if form?.message}
+          <p class:success={form?.success} class="form-feedback" role={form?.success ? 'status' : 'alert'}>
+            {form.message}
+          </p>
+        {/if}
+
+        {#each contactFields as field}
+          {@const fieldId = `contact-field-${field.key}`}
+          <label class:message-field={isMessageField(field.key)} for={fieldId}>
+            <span>{field.label}</span>
+            {#if isMessageField(field.key)}
               <textarea
                 id={fieldId}
-                name={field}
+                name={field.key}
                 rows="4"
                 required
                 aria-required="true"
-                bind:value={fieldValues[index]}
+                bind:value={fieldValues[field.key]}
               ></textarea>
             {:else}
               <input
                 id={fieldId}
-                name={field}
-                type={inputType(field)}
-                autocomplete={autocomplete(field)}
+                name={field.key}
+                type={inputType(field.key)}
+                autocomplete={autocomplete(field.key)}
                 required
                 aria-required="true"
-                bind:value={fieldValues[index]}
+                bind:value={fieldValues[field.key]}
               />
             {/if}
           </label>
         {/each}
         <label class="consent-field">
-          <input type="checkbox" required aria-required="true" bind:checked={consentAccepted} />
+          <input
+            name="marketingConsent"
+            type="checkbox"
+            required
+            aria-required="true"
+            bind:checked={consentAccepted}
+          />
           <span>{content.common.marketingConsent}</span>
         </label>
         <button class="button primary" type="submit" disabled={!formIsComplete}>

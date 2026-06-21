@@ -14,17 +14,26 @@ test.describe('Sanity Studio content contract', () => {
   test('collection documents are registered in Studio', () => {
     const schemaIndex = read('schemaTypes/index.ts')
 
+    expect(schemaIndex).toContain('websiteSchemaTypes')
+    expect(schemaIndex).toContain('crmSchemaTypes')
     expect(schemaIndex).toContain('siteLanding')
     expect(schemaIndex).toContain('productCategory')
     expect(schemaIndex).toContain('caseStudy')
     expect(schemaIndex).toContain('blogPost')
     expect(schemaIndex).toContain('partnerItem')
+    expect(schemaIndex).toContain('clientProfile')
+    expect(schemaIndex).toContain('formSubmission')
   })
 
-  test('page copy is managed through a Portuguese Site content singleton', () => {
+  test('public page copy is managed through the website Studio workspace', () => {
+    const studioConfig = read('sanity.config.ts')
     const studioStructure = read('sanity.structure.ts')
     const siteSchema = read('schemaTypes/siteLanding.ts')
 
+    expect(studioConfig).toContain("name: 'website'")
+    expect(studioConfig).toContain("basePath: '/website'")
+    expect(studioConfig).toContain("dataset: 'production'")
+    expect(studioConfig).toContain('types: websiteSchemaTypes')
     expect(studioStructure).toContain("documentId('siteContent')")
     expect(studioStructure).toContain("schemaType('siteLanding')")
     expect(studioStructure).toContain("'Conteúdo do site'")
@@ -42,8 +51,36 @@ test.describe('Sanity Studio content contract', () => {
     expect(siteSchema).toContain("'Link Livro de Reclamações'")
     expect(siteSchema).toContain("'Texto legal junto ao Livro de Reclamações'")
     expect(siteSchema).toContain("'Consentimento de dados/marketing'")
+    expect(siteSchema).toContain("'Labels visíveis do formulário'")
+    expect(siteSchema).toContain("'Labels antigos do formulário'")
     expect(siteSchema).not.toContain("'Navigation labels'")
     expect(siteSchema).not.toContain("'Shared labels and contact'")
+  })
+
+  test('private CRM content is isolated from the public website workspace', () => {
+    const studioConfig = read('sanity.config.ts')
+    const studioStructure = read('sanity.structure.ts')
+    const crmServer = read('src/lib/server/crm.ts')
+    const contactAction = read('src/routes/contacto/+page.server.ts')
+
+    expect(studioConfig).toContain("name: 'crm'")
+    expect(studioConfig).toContain("basePath: '/crm'")
+    expect(studioConfig).toContain("dataset: 'crm'")
+    expect(studioConfig).toContain('types: crmSchemaTypes')
+    expect(studioStructure).toContain('crmStructure')
+    expect(studioStructure).toContain("'Novos pedidos'")
+    expect(studioStructure).toContain("'Pedidos em acompanhamento'")
+    expect(studioStructure).toContain("'Perfis de clientes'")
+    expect(crmServer).toContain("env.SANITY_CRM_DATASET || 'crm'")
+    expect(crmServer).toContain('SANITY_CRM_WRITE_TOKEN')
+    expect(crmServer).toContain('CRM_HASH_SECRET')
+    expect(crmServer).toContain("createIfNotExists({")
+    expect(crmServer).toContain("_type: 'clientProfile'")
+    expect(crmServer).toContain("_type: 'formSubmission'")
+    expect(contactAction).toContain('csrfCookieName')
+    expect(contactAction).toContain('timingSafeEqual')
+    expect(contactAction).toContain('companyWebsite')
+    expect(contactAction).toContain('storeContactSubmission')
   })
 
   test('frontend query reads the same collections editors manage', () => {
@@ -59,6 +96,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('complaintsUrl')
     expect(sanityClient).toContain('complaintsNote')
     expect(sanityClient).toContain('marketingConsent')
+    expect(sanityClient).toContain('formLabels')
     expect(sanityClient).toContain('heroVideoUrl')
     expect(sanityClient).toContain('partners')
     expect(sanityClient).toContain('youtubeUrl')
@@ -66,6 +104,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('logo')
     expect(sanityClient).toContain('asset ->')
     expect(sanityClient).toContain('alt')
+    expect(sanityClient).not.toContain('clientProfile')
+    expect(sanityClient).not.toContain('formSubmission')
   })
 
   test('editable collection documents support uploaded images', () => {

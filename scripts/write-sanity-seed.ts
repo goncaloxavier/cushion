@@ -2,6 +2,7 @@ import {mkdir, writeFile} from 'node:fs/promises'
 import {resolve} from 'node:path'
 import {pathToFileURL} from 'node:url'
 import {
+  contactFieldKeys,
   type ContentImage,
   fallbackContent,
   type ContentCard,
@@ -156,6 +157,7 @@ const siteContentDocument = {
   },
   catalogue: {
     hero: copyBlock((content) => content.catalogue.hero),
+    ctaLabel: localizedSiteValue((content) => content.catalogue.ctaLabel),
     quoteFlow: contentCards((content) => content.catalogue.quoteFlow, 'quote-flow'),
     estimate: {
       kicker: localizedSiteValue((content) => content.catalogue.estimate.kicker),
@@ -181,6 +183,12 @@ const siteContentDocument = {
   },
   contactPage: {
     hero: copyBlock((content) => content.contactPage.hero),
+    formLabels: Object.fromEntries(
+      contactFieldKeys.map((key) => [
+        key,
+        localizedSiteValue((content) => content.contactPage.formLabels[key]),
+      ]),
+    ),
     fields: localizedSiteList((content) => content.contactPage.fields, 'contact-field'),
   },
 }

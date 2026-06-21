@@ -13,7 +13,9 @@ Use this to help agents avoid accidental damage.
 - `eslint.config.mjs` - ignores generated folders; if this regresses, lint can scan Playwright output and fail while tests run.
 - `scripts/write-sanity-seed.ts` - imports fallback content shape into Sanity seed documents.
 - `src/lib/sanity.ts` - Sanity query and project connection.
-- `sanity.config.ts` - contains Studio title, project id, dataset, plugins, and schema registration.
+- `src/lib/server/crm.ts` - private server-side CRM writer; mistakes can leak or fail customer submissions.
+- `src/routes/contacto/+page.server.ts` - contact form validation, CSRF/origin checks, honeypot handling, and CRM submission.
+- `sanity.config.ts` - contains Studio workspaces, project id, datasets, plugins, and schema registration.
 - `sanity.structure.ts` - contains the client-facing Studio navigation.
 - `sanity.cli.ts` - contains Sanity CLI project, dataset, and deployment settings.
 - `schemaTypes/index.ts` - central schema export list; changes affect all Studio content types.
@@ -26,6 +28,8 @@ Use this to help agents avoid accidental damage.
 - Product and case-study detail lookups in their `[slug]` server loads.
 - Sanity schema fields and frontend query field names must stay aligned.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
+- The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
+- Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
 - Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
@@ -42,6 +46,7 @@ Use this to help agents avoid accidental damage.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
+- Editors reviewing new private requests in the CRM Studio workspace, changing statuses, adding internal notes, and using client profiles for follow-up.
 - Developers generating visual snapshots only for local/session review, without committing the generated PNG baselines.
 - Developers seeding Content Lake starter documents with `npm run seed:studio` or intentionally refreshing code-managed content with `npm run deploy:content`.
 
@@ -56,6 +61,8 @@ Use this to help agents avoid accidental damage.
 ## Security Or Access-Control Areas
 
 - Sanity project access and dataset permissions.
+- The private Sanity `crm` dataset, submitted personal data, internal notes, and client profile records.
+- `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` must only exist in server/private runtime environments.
 - Future public/private content boundaries if non-public draft content is introduced.
 
 ## Common Regression Patterns
@@ -70,6 +77,8 @@ Use this to help agents avoid accidental damage.
 - Running lint while Playwright is creating generated output is safe only while generated test folders stay ignored.
 - Rerunning `npm run seed:studio` or `npm run deploy:content` after manual Studio edits can replace deterministic/code-managed documents.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
+- Adding private CRM fields to `src/lib/sanity.ts` or any public route by mistake.
+- Exposing `SANITY_CRM_WRITE_TOKEN` through public environment variables, logs, generated static files, or client-side code.
 - Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.
 - Making Sanity images required before the client has uploaded approved assets.
 - Removing Portuguese Studio labels/descriptions without replacing them with client-friendly wording.

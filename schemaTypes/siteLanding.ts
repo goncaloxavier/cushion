@@ -78,6 +78,23 @@ const localizedStringListField = (name: string, title: string, description?: str
     of: [{type: 'localizedString'}],
   })
 
+const contactFormLabelsField = () =>
+  defineField({
+    name: 'formLabels',
+    title: 'Labels visíveis do formulário',
+    description: 'Edite o texto que aparece junto a cada campo. Os nomes técnicos ficam fixos.',
+    type: 'object',
+    options: {collapsible: true},
+    fields: [
+      localizedStringField('name', 'Nome'),
+      localizedStringField('email', 'Email'),
+      localizedStringField('phone', 'Telefone'),
+      localizedStringField('postalCode', 'Código postal'),
+      localizedStringField('locality', 'Localidade'),
+      localizedStringField('message', 'Mensagem'),
+    ],
+  })
+
 const pageSectionField = (
   name: string,
   title: string,
@@ -205,26 +222,29 @@ export const siteLanding = defineType({
       'Página Catálogo',
       [
         copyBlockField('hero', 'Primeira secção'),
+        localizedStringField('ctaLabel', 'Texto do botão'),
         defineField({
           name: 'estimate',
-          title: 'Explicação do orçamento',
+          title: 'Pedido de catálogo',
           description:
-            'Bloco principal e cartões pequenos sobre os fatores que influenciam o preço.',
+            'Bloco principal que explica que o catálogo deve ser pedido através do formulário.',
           type: 'object',
           options: {collapsible: true},
           fields: [
             localizedStringField('kicker', 'Etiqueta pequena'),
             localizedStringField('title', 'Título da secção'),
             localizedTextField('lead', 'Texto da secção'),
-            contentCardsField('cards', 'Fatores de preço'),
             localizedStringField('checklistTitle', 'Título da checklist'),
             localizedStringListField('checklist', 'Itens da checklist'),
           ],
         }),
-        localizedTextField('note', 'Nota do catálogo'),
-        contentCardsField('quoteFlow', 'Passos para pedir orçamento'),
+        localizedTextField(
+          'note',
+          'Nota junto ao botão',
+          'Texto curto de apoio junto ao botão que envia para o formulário.',
+        ),
       ],
-      'Edite a página Catálogo: introdução, explicação do orçamento, checklist e passos do pedido.',
+      'Edite a página Catálogo: texto principal, lista de informação útil e botão para o formulário.',
     ),
     pageSectionField(
       'casesPage',
@@ -258,7 +278,16 @@ export const siteLanding = defineType({
       'Página Contacto',
       [
         copyBlockField('hero', 'Primeira secção'),
-        localizedStringListField('fields', 'Campos do formulário'),
+        contactFormLabelsField(),
+        defineField({
+          name: 'fields',
+          title: 'Labels antigos do formulário',
+          description:
+            'Compatibilidade com conteúdo antigo. Não editar; use os campos nomeados acima.',
+          type: 'array',
+          of: [{type: 'localizedString'}],
+          hidden: true,
+        }),
       ],
       'Edite o título, texto introdutório e labels do formulário de contacto.',
     ),

@@ -2373,6 +2373,83 @@ dt {
   border-top: 1px solid var(--line);
 }
 
+.catalogue-request-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(18rem, 0.65fr);
+  gap: 1rem;
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 9% 18%, rgba(45, 123, 87, 0.12), transparent 24rem),
+    linear-gradient(135deg, #e8f3ef, #f5faf7);
+}
+
+.catalogue-request-panel,
+.catalogue-request-checklist {
+  min-width: 0;
+  padding: clamp(1.35rem, 3vw, 2.35rem);
+  overflow: hidden;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.catalogue-request-panel {
+  display: grid;
+  align-content: center;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(21, 95, 119, 0.13), transparent 16rem),
+    linear-gradient(135deg, rgba(45, 123, 87, 0.11), transparent 48%), #ffffff;
+  transform-origin: left center;
+}
+
+.catalogue-request-panel h2 {
+  max-width: 12ch;
+  font-size: clamp(2.45rem, 5vw, 4.5rem);
+  line-height: 0.92;
+}
+
+.catalogue-request-panel p:not(.kicker) {
+  max-width: 50rem;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.catalogue-request-panel .button {
+  width: fit-content;
+  margin-top: 0.8rem;
+}
+
+.catalogue-request-checklist {
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(21, 95, 119, 0.08), transparent 45%), #ffffff;
+}
+
+.catalogue-request-checklist h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+}
+
+.catalogue-request-checklist ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.catalogue-request-checklist li::marker {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.catalogue-request-checklist p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
 .catalogue-board {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
@@ -3758,6 +3835,25 @@ body.lightbox-open {
   transform: translate3d(0, -2px, 0);
 }
 
+.form-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  color: #5e231f;
+  font-size: 0.95rem;
+  font-weight: 760;
+  line-height: 1.35;
+  background: #fff3ef;
+  border: 1px solid rgba(150, 54, 42, 0.22);
+  border-radius: 8px;
+}
+
+.form-feedback.success {
+  color: #123a2b;
+  background: #e8f5ee;
+  border-color: rgba(45, 123, 87, 0.24);
+}
+
 .contact-form label {
   display: grid;
   gap: 0.45rem;
@@ -4148,7 +4244,9 @@ body.lightbox-open {
   .about-principles,
   .impact-panel,
   .contact-grid,
+  .catalogue-request-section,
   .catalogue-board,
+  .catalogue-request-checklist,
   .quote-checklist,
   .detail-hero,
   .blog-detail-header,
@@ -4160,11 +4258,13 @@ body.lightbox-open {
     grid-template-rows: auto;
   }
 
+  .catalogue-request-panel,
   .catalogue-intro {
     grid-column: auto;
     grid-row: auto;
   }
 
+  .catalogue-request-checklist,
   .quote-checklist,
   .compact-flow {
     grid-column: auto;
@@ -4609,12 +4709,23 @@ body.lightbox-open {
     grid-auto-columns: minmax(4.35rem, 5.35rem);
   }
 
+  .catalogue-request-section {
+    gap: 0.75rem;
+  }
+
+  .catalogue-request-panel,
+  .catalogue-request-checklist,
   .catalogue-intro {
     padding: 1.25rem;
   }
 
+  .catalogue-request-panel h2,
   .catalogue-intro h2 {
     font-size: 2rem;
+  }
+
+  .catalogue-request-panel .button {
+    width: 100%;
   }
 
   .price-factors {

@@ -15,6 +15,19 @@ npm run dev
 npm run dev:studio
 ```
 
+Sanity Studio now exposes two workspaces:
+
+- `/website` edits public website content in dataset `production`.
+- `/crm` reviews private requests and client profiles in dataset `crm`.
+
+Live form submissions require private server environment variables:
+
+```bash
+SANITY_CRM_WRITE_TOKEN=...
+CRM_HASH_SECRET=...
+SANITY_CRM_DATASET=crm
+```
+
 ## Validation
 
 ```bash
@@ -64,6 +77,16 @@ npm run deploy:content
 - `seed:studio` imports those starter documents into Sanity dataset `production` with `--replace`.
 - `deploy:content` intentionally refreshes code-managed Sanity content by running the starter seed, historical case-study import, and historical blog import in sequence. Keep it out of Railway builds unless replacing Content Lake documents on every website deploy is intended.
 
+## Sanity CRM Dataset
+
+```bash
+npx sanity datasets visibility get crm
+```
+
+- The `crm` dataset should remain private.
+- Do not import public seed/content data into `crm`.
+- Do not add `SANITY_CRM_WRITE_TOKEN` to public/client environment variables.
+
 ## Historical Blog Import
 
 ```bash
@@ -100,7 +123,7 @@ npm ls @playwright/test
 ## Notes
 
 - `npm run dev` is the SvelteKit website.
-- `npm run dev:studio` is Sanity Studio on port `3333`.
+- `npm run dev:studio` is Sanity Studio on port `3333` with `/website` and `/crm` workspaces.
 - `npm run build` produces the SvelteKit Node build used by Railway.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
 - The repo is on Sanity Studio 6 with Vite 7 and Svelte 5.

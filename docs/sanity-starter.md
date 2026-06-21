@@ -10,15 +10,21 @@ npm run dev:studio
 - `npm run dev` starts the SvelteKit website.
 - `npm run dev:studio` starts Sanity Studio on port `3333`.
 
+Studio has two workspaces:
+
+- `/website` edits the public website content in dataset `production`.
+- `/crm` reviews private form requests and client profiles in dataset `crm`.
+
 ## What To Do In Sanity
 
 1. Open the Studio.
-2. Open `Conteúdo do site`, `Products`, `Case studies`, or `Blog posts` from the Studio sidebar.
-3. Create or edit an entry.
-4. Fill the Portuguese, English, and Spanish fields.
-5. Upload the image/cover/project image and add alt text in Portuguese, English, and Spanish.
-6. Publish the document.
-7. Refresh the SvelteKit website.
+2. Open the `Website` workspace.
+3. Open `Conteúdo do site`, `Produtos`, `Casos de estudo`, or `Artigos do blog` from the Studio sidebar.
+4. Create or edit an entry.
+5. Fill the Portuguese, English, and Spanish fields.
+6. Upload the image/cover/project image and add alt text in Portuguese, English, and Spanish.
+7. Publish the document.
+8. Refresh the SvelteKit website.
 
 The website has built-in fallback content, so it works even before Sanity has content. Once collection documents are published, the website uses the Sanity collection content instead of the fallback items for that collection.
 
@@ -75,6 +81,27 @@ Detail pages are generated from slugs:
 - `Localized long text` is for paragraphs.
 - `Content card` and `Impact stat` are still available for landing-page experiments.
 
+## Contact Requests And CRM
+
+The public contact form writes to the private Sanity dataset `crm` through SvelteKit server code. A successful submission creates a `Pedido recebido` document and updates or creates a `Perfil de cliente`.
+
+Use the Studio `/crm` workspace to:
+
+1. Review `Novos pedidos`.
+2. Move requests through `Lido`, `Em acompanhamento`, `Resolvido`, `Spam`, or `Arquivado`.
+3. Add internal notes that never appear on the website.
+4. Open the related client profile to see submission count, latest message, source, and contact details.
+
+Live CRM writes need private server environment variables:
+
+```bash
+SANITY_CRM_WRITE_TOKEN=...
+CRM_HASH_SECRET=...
+SANITY_CRM_DATASET=crm
+```
+
+Keep the `crm` dataset private. The public website must not query `formSubmission` or `clientProfile` documents.
+
 ## Tests
 
 ```bash
@@ -98,6 +125,7 @@ The Playwright server runs with `SANITY_DISABLE_REMOTE=true`, which means tests 
 ## Current Sanity Project
 
 - Project ID: `u4uyfix8`
-- Dataset: `production`
+- Public website dataset: `production`
+- Private CRM dataset: `crm`
 
 Do not change the project ID or dataset unless the client/project setup changes intentionally.

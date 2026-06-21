@@ -27,6 +27,19 @@ export type ContentCard = {
   text: string
 }
 
+export type ContactFieldKey = 'name' | 'email' | 'phone' | 'postalCode' | 'locality' | 'message'
+
+export type ContactFormLabels = Record<ContactFieldKey, string>
+
+export const contactFieldKeys: ContactFieldKey[] = [
+  'name',
+  'email',
+  'phone',
+  'postalCode',
+  'locality',
+  'message',
+]
+
 export type ContentImage = {
   url: string
   alt: string
@@ -161,6 +174,7 @@ export type SiteContent = {
   }
   catalogue: {
     hero: CopyBlock
+    ctaLabel: string
     quoteFlow: ContentCard[]
     estimate: {
       kicker: string
@@ -184,6 +198,7 @@ export type SiteContent = {
   contactPage: {
     hero: CopyBlock
     fields: string[]
+    formLabels: ContactFormLabels
   }
   footer: {
     line: string
@@ -301,6 +316,7 @@ type SanitySiteContent = {
   }
   catalogue?: {
     hero?: SanityCopyBlock
+    ctaLabel?: LocalizedValue
     quoteFlow?: SanityContentCard[]
     estimate?: {
       kicker?: LocalizedValue
@@ -324,6 +340,7 @@ type SanitySiteContent = {
   contactPage?: {
     hero?: SanityCopyBlock
     fields?: LocalizedValue[]
+    formLabels?: Partial<Record<ContactFieldKey, LocalizedValue>>
   }
 }
 
@@ -950,46 +967,47 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     catalogue: {
       hero: {
-        kicker: 'Catálogo e orçamento',
-        title: 'Preço sério começa com contexto',
-        lead: 'Em vez de uma tabela quebrada, o site deve transformar o pedido de catálogo numa conversa objetiva sobre quantidades, transporte e aplicação.',
+        kicker: 'Catálogo',
+        title: 'Peça o catálogo através do formulário',
+        lead: 'Para receber o catálogo DaFábrica4You, faça o pedido através do formulário. Assim a equipa consegue responder com a informação certa para o seu caso.',
       },
+      ctaLabel: 'Pedir catálogo',
       quoteFlow: [
-        {title: 'Aplicação', text: 'Produto pretendido, local de uso e objetivo da solução.'},
+        {title: 'Pedido', text: 'O visitante pede o catálogo através do formulário.'},
         {
-          title: 'Quantidades',
-          text: 'Metros lineares, área, número de peças ou uma estimativa inicial.',
+          title: 'Contexto',
+          text: 'A equipa recebe contactos e informação básica sobre o interesse do cliente.',
         },
-        {title: 'Descarga', text: 'Código postal e condições de acesso para calcular transporte.'},
+        {title: 'Resposta', text: 'A resposta segue com o catálogo e próximos passos úteis.'},
         {
-          title: 'Resposta',
-          text: 'Catálogo, alternativa recomendada e orçamento por material, transporte e montagem.',
+          title: 'Acompanhamento',
+          text: 'O pedido fica registado para acompanhamento comercial.',
         },
       ],
       estimate: {
-        kicker: 'Como o orçamento é formado',
-        title: 'O preço muda quando muda o projeto',
-        lead: 'A página deve ajudar o visitante a pedir um valor sério sem fingir que uma tabela genérica resolve transporte, corte, montagem e contexto de instalação.',
+        kicker: 'Pedido de catálogo',
+        title: 'Como receber o catálogo',
+        lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário. O contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
         cards: [
           {
-            title: 'Material',
-            text: 'Tipo de produto, perfil, cor, acabamento e quantidade aproximada.',
+            title: 'Contacto',
+            text: 'Nome, email e telefone para resposta.',
           },
-          {title: 'Logística', text: 'Código postal, descarga, acessos e volume a transportar.'},
+          {title: 'Localização', text: 'Código postal e localidade para enquadrar o pedido.'},
           {
-            title: 'Montagem',
-            text: 'Instalação simples, obra à medida, recortes, fixações ou preparação do local.',
+            title: 'Mensagem',
+            text: 'Explique se procura catálogo geral, produto específico ou apoio para projeto.',
           },
         ],
-        checklistTitle: 'Enviar logo no primeiro contacto',
+        checklistTitle: 'No formulário, indique',
         checklist: [
-          'Produto ou aplicação',
-          'Medidas ou quantidades',
-          'Código postal',
-          'Fotografias do local',
+          'Nome e contacto',
+          'Localidade ou código postal',
+          'Produto ou aplicação de interesse, se já souber',
+          'Mensagem curta sobre o que pretende receber',
         ],
       },
-      note: 'A empresa comunica que tem mais de 2000 produtos; quando o cliente não encontra o que precisa, o caminho certo é pedir orçamento.',
+      note: 'Depois do pedido, a equipa pode enviar o catálogo e orientar a escolha sem obrigar o visitante a procurar tudo sozinho.',
     },
     casesPage: {
       hero: {
@@ -1019,6 +1037,14 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Nós ajudamos a escolher o caminho. Para acelerar resposta, envie objetivo, quantidades aproximadas, código postal e fotografias do local.',
       },
       fields: ['Nome', 'Email', 'Telefone', 'Código postal', 'Localidade', 'Mensagem'],
+      formLabels: {
+        name: 'Nome',
+        email: 'Email',
+        phone: 'Telefone',
+        postalCode: 'Código postal',
+        locality: 'Localidade',
+        message: 'Mensagem',
+      },
     },
     footer: {
       line: '',
@@ -1198,46 +1224,50 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     catalogue: {
       hero: {
-        kicker: 'Catalogue and quote',
-        title: 'A serious price starts with context',
-        lead: 'Instead of a broken price table, the website turns the catalogue request into a clear conversation about quantity, transport and application.',
+        kicker: 'Catalogue',
+        title: 'Request the catalogue through the form',
+        lead: 'To receive the DaFábrica4You catalogue, send the request through the form. This helps the team answer with the right information for your case.',
       },
+      ctaLabel: 'Request catalogue',
       quoteFlow: [
-        {title: 'Application', text: 'Desired product, use location and goal.'},
-        {title: 'Quantities', text: 'Linear meters, area, piece count or an initial estimate.'},
-        {title: 'Delivery', text: 'Postcode and access conditions to estimate transport.'},
+        {title: 'Request', text: 'The visitor requests the catalogue through the form.'},
         {
-          title: 'Response',
-          text: 'Catalogue, recommended alternative and quote split by material, transport and installation.',
+          title: 'Context',
+          text: 'The team receives contact details and basic information about the interest.',
+        },
+        {title: 'Reply', text: 'The reply includes the catalogue and useful next steps.'},
+        {
+          title: 'Follow-up',
+          text: 'The request is saved for commercial follow-up.',
         },
       ],
       estimate: {
-        kicker: 'How quotes are shaped',
-        title: 'The price changes when the project changes',
-        lead: 'This page should help visitors request a serious number without pretending a generic table can solve transport, cutting, installation and site context.',
+        kicker: 'Catalogue request',
+        title: 'How to receive the catalogue',
+        lead: 'If you want to consult the catalogue, send the request through the form. The contact is saved so the team can send the information and follow up.',
         cards: [
           {
-            title: 'Material',
-            text: 'Product type, profile, colour, finish and approximate quantity.',
+            title: 'Contact',
+            text: 'Name, email and phone for the reply.',
           },
           {
-            title: 'Logistics',
-            text: 'Postcode, unloading conditions, access and transport volume.',
+            title: 'Location',
+            text: 'Postcode and locality to frame the request.',
           },
           {
-            title: 'Installation',
-            text: 'Simple placement, custom work, cuts, fixing systems or site preparation.',
+            title: 'Message',
+            text: 'Explain whether you want the general catalogue, a specific product or project support.',
           },
         ],
-        checklistTitle: 'Send this in the first contact',
+        checklistTitle: 'In the form, include',
         checklist: [
-          'Product or application',
-          'Measurements or quantities',
-          'Postcode',
-          'Photos of the site',
+          'Name and contact details',
+          'Location or postcode',
+          'Product or application of interest, if known',
+          'Short message about what you want to receive',
         ],
       },
-      note: 'The company communicates more than 2000 products; when visitors cannot find what they need, the right next step is requesting a quote.',
+      note: 'After the request, the team can send the catalogue and guide the choice without making visitors search alone.',
     },
     casesPage: {
       hero: {
@@ -1267,6 +1297,14 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'We help choose the path. To speed up the answer, send the goal, approximate quantities, postcode and photos of the place.',
       },
       fields: ['Name', 'Email', 'Phone', 'Postcode', 'Location', 'Message'],
+      formLabels: {
+        name: 'Name',
+        email: 'Email',
+        phone: 'Phone',
+        postalCode: 'Postcode',
+        locality: 'Location',
+        message: 'Message',
+      },
     },
     footer: {
       line: '',
@@ -1446,46 +1484,47 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     },
     catalogue: {
       hero: {
-        kicker: 'Catálogo y presupuesto',
-        title: 'Un precio serio empieza con contexto',
-        lead: 'En lugar de una tabla rota, el sitio convierte la solicitud de catálogo en una conversación clara sobre cantidades, transporte y aplicación.',
+        kicker: 'Catálogo',
+        title: 'Solicita el catálogo a través del formulario',
+        lead: 'Para recibir el catálogo de DaFábrica4You, realiza el pedido a través del formulario. Así el equipo puede responder con la información adecuada para tu caso.',
       },
+      ctaLabel: 'Solicitar catálogo',
       quoteFlow: [
-        {title: 'Aplicación', text: 'Producto deseado, lugar de uso y objetivo.'},
+        {title: 'Solicitud', text: 'El visitante solicita el catálogo a través del formulario.'},
         {
-          title: 'Cantidades',
-          text: 'Metros lineales, área, número de piezas o estimación inicial.',
+          title: 'Contexto',
+          text: 'El equipo recibe contactos e información básica sobre el interés.',
         },
-        {title: 'Descarga', text: 'Código postal y condiciones de acceso para estimar transporte.'},
+        {title: 'Respuesta', text: 'La respuesta incluye el catálogo y próximos pasos útiles.'},
         {
-          title: 'Respuesta',
-          text: 'Catálogo, alternativa recomendada y presupuesto por material, transporte y montaje.',
+          title: 'Seguimiento',
+          text: 'La solicitud queda registrada para seguimiento comercial.',
         },
       ],
       estimate: {
-        kicker: 'Cómo se forma el presupuesto',
-        title: 'El precio cambia cuando cambia el proyecto',
-        lead: 'La página debe ayudar a pedir un valor serio sin fingir que una tabla genérica resuelve transporte, cortes, montaje y contexto de instalación.',
+        kicker: 'Solicitud de catálogo',
+        title: 'Cómo recibir el catálogo',
+        lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario. El contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
         cards: [
           {
-            title: 'Material',
-            text: 'Tipo de producto, perfil, color, acabado y cantidad aproximada.',
+            title: 'Contacto',
+            text: 'Nombre, email y teléfono para la respuesta.',
           },
-          {title: 'Logística', text: 'Código postal, descarga, accesos y volumen a transportar.'},
+          {title: 'Ubicación', text: 'Código postal y localidad para contextualizar la solicitud.'},
           {
-            title: 'Montaje',
-            text: 'Instalación simple, obra a medida, cortes, fijaciones o preparación del lugar.',
+            title: 'Mensaje',
+            text: 'Explica si buscas catálogo general, producto específico o apoyo para un proyecto.',
           },
         ],
-        checklistTitle: 'Enviar en el primer contacto',
+        checklistTitle: 'En el formulario, indica',
         checklist: [
-          'Producto o aplicación',
-          'Medidas o cantidades',
-          'Código postal',
-          'Fotos del lugar',
+          'Nombre y datos de contacto',
+          'Localidad o código postal',
+          'Producto o aplicación de interés, si ya lo sabes',
+          'Mensaje corto sobre lo que quieres recibir',
         ],
       },
-      note: 'La empresa comunica más de 2000 productos; cuando el visitante no encuentra lo que necesita, el camino correcto es pedir presupuesto.',
+      note: 'Después de la solicitud, el equipo puede enviar el catálogo y orientar la elección sin obligar al visitante a buscar solo.',
     },
     casesPage: {
       hero: {
@@ -1515,6 +1554,14 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Ayudamos a elegir el camino. Para acelerar la respuesta, envía objetivo, cantidades aproximadas, código postal y fotos del lugar.',
       },
       fields: ['Nombre', 'Email', 'Teléfono', 'Código postal', 'Localidad', 'Mensaje'],
+      formLabels: {
+        name: 'Nombre',
+        email: 'Email',
+        phone: 'Teléfono',
+        postalCode: 'Código postal',
+        locality: 'Localidad',
+        message: 'Mensaje',
+      },
     },
     footer: {
       line: '',
@@ -1942,6 +1989,7 @@ const applySiteContentFromSanity = (
 
   target.catalogue = {
     hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
+    ctaLabel: localized(source.catalogue?.ctaLabel, language, fallback.catalogue.ctaLabel),
     quoteFlow: contentCardsFromSanity(
       source.catalogue?.quoteFlow,
       language,
@@ -1993,13 +2041,25 @@ const applySiteContentFromSanity = (
     ),
   }
 
+  const legacyContactFields = localizedListFromSanity(
+    source.contactPage?.fields,
+    language,
+    fallback.contactPage.fields,
+  )
+
   target.contactPage = {
     hero: copyBlockFromSanity(source.contactPage?.hero, language, fallback.contactPage.hero),
-    fields: localizedListFromSanity(
-      source.contactPage?.fields,
-      language,
-      fallback.contactPage.fields,
-    ),
+    fields: legacyContactFields,
+    formLabels: Object.fromEntries(
+      contactFieldKeys.map((key, index) => [
+        key,
+        localized(
+          source.contactPage?.formLabels?.[key],
+          language,
+          fallback.contactPage.formLabels[key] || legacyContactFields[index] || key,
+        ),
+      ]),
+    ) as ContactFormLabels,
   }
 }
 

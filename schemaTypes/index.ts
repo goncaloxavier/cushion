@@ -8,8 +8,10 @@ import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
 import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
+import {clientProfile} from './crm/clientProfile'
+import {formSubmission} from './crm/formSubmission'
 
-export const schemaTypes = [
+export const websiteSchemaTypes = [
   siteLanding,
   productCategory,
   caseStudy,
@@ -21,3 +23,7 @@ export const schemaTypes = [
   contentCard,
   impactStat,
 ]
+
+export const crmSchemaTypes = [clientProfile, formSubmission]
+
+export const schemaTypes = [...websiteSchemaTypes, ...crmSchemaTypes]

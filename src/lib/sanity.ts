@@ -104,6 +104,7 @@ const collectionsQuery = `{
     },
     catalogue {
       hero,
+      ctaLabel,
       quoteFlow[] {
         title,
         text
@@ -152,6 +153,7 @@ const collectionsQuery = `{
     },
     contactPage {
       hero,
+      formLabels,
       fields[]
     }
   },

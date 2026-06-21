@@ -1,0 +1,175 @@
+import {defineField, defineType} from 'sanity'
+
+const statusOptions = [
+  {title: 'Novo', value: 'new'},
+  {title: 'Contactado', value: 'contacted'},
+  {title: 'Qualificado', value: 'qualified'},
+  {title: 'Cliente', value: 'customer'},
+  {title: 'Arquivado', value: 'archived'},
+]
+
+export const clientProfile = defineType({
+  name: 'clientProfile',
+  title: 'Perfil de cliente',
+  type: 'document',
+  groups: [
+    {name: 'client', title: 'Cliente', default: true},
+    {name: 'management', title: 'Gestão'},
+    {name: 'history', title: 'Histórico'},
+    {name: 'system', title: 'Sistema'},
+  ],
+  fields: [
+    defineField({
+      name: 'name',
+      title: 'Nome',
+      type: 'string',
+      group: 'client',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'email',
+      title: 'Email',
+      type: 'email',
+      group: 'client',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'phone',
+      title: 'Telefone',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
+      name: 'postalCode',
+      title: 'Código postal',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
+      name: 'locality',
+      title: 'Localidade',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
+      name: 'preferredLanguage',
+      title: 'Idioma',
+      type: 'string',
+      group: 'client',
+      options: {
+        list: [
+          {title: 'Português', value: 'pt'},
+          {title: 'Inglês', value: 'en'},
+          {title: 'Espanhol', value: 'es'},
+        ],
+        layout: 'radio',
+      },
+    }),
+    defineField({
+      name: 'status',
+      title: 'Estado',
+      type: 'string',
+      group: 'management',
+      initialValue: 'new',
+      options: {list: statusOptions, layout: 'radio'},
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'tags',
+      title: 'Etiquetas internas',
+      description: 'Exemplos: catálogo, município, agricultura, urgente.',
+      type: 'array',
+      group: 'management',
+      of: [{type: 'string'}],
+      options: {layout: 'tags'},
+    }),
+    defineField({
+      name: 'notes',
+      title: 'Notas internas',
+      description: 'Notas comerciais. Nunca aparecem no website.',
+      type: 'text',
+      rows: 5,
+      group: 'management',
+    }),
+    defineField({
+      name: 'marketingConsent',
+      title: 'Aceitou contacto comercial/marketing',
+      type: 'boolean',
+      group: 'management',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'submissionCount',
+      title: 'Número de pedidos',
+      type: 'number',
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'firstSubmittedAt',
+      title: 'Primeiro pedido',
+      type: 'datetime',
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'lastSubmittedAt',
+      title: 'Último pedido',
+      type: 'datetime',
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'firstSource',
+      title: 'Primeira origem',
+      type: 'string',
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'lastSource',
+      title: 'Última origem',
+      type: 'string',
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'latestMessage',
+      title: 'Última mensagem recebida',
+      type: 'text',
+      rows: 4,
+      group: 'history',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'emailHash',
+      title: 'Hash do email',
+      type: 'string',
+      group: 'system',
+      hidden: true,
+      readOnly: true,
+    }),
+    defineField({
+      name: 'phoneHash',
+      title: 'Hash do telefone',
+      type: 'string',
+      group: 'system',
+      hidden: true,
+      readOnly: true,
+    }),
+  ],
+  preview: {
+    select: {
+      title: 'name',
+      email: 'email',
+      status: 'status',
+      count: 'submissionCount',
+    },
+    prepare({title, email, status, count}) {
+      return {
+        title: title || email || 'Cliente sem nome',
+        subtitle: `${status || 'new'} · ${count || 0} pedido(s) · ${email || 'sem email'}`,
+      }
+    },
+  },
+})
