@@ -921,7 +921,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         },
         {
           title: 'Hoje',
-          text: 'A empresa produz soluções para espaços privados, municípios, agricultura, mobiliário urbano e projetos à medida.',
+          text: 'A empresa produz soluções para espaços privados, municípios e agricultura.',
         },
       ],
       principles: [
@@ -1169,7 +1169,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         },
         {
           title: 'Today',
-          text: 'The company produces solutions for private spaces, municipalities, agriculture, urban furniture and custom projects.',
+          text: 'The company produces solutions for private spaces, municipalities and agriculture.',
         },
       ],
       principles: [
@@ -1417,7 +1417,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         },
         {
           title: 'Hoy',
-          text: 'La empresa produce soluciones para espacios privados, municipios, agricultura, mobiliario urbano y proyectos a medida.',
+          text: 'La empresa produce soluciones para espacios privados, municipios y agricultura.',
         },
       ],
       principles: [
