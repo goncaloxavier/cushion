@@ -37,13 +37,14 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
 - `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route with a text-first editorial layout: one focused description sourced from product detail copy, an optional separated resistance/maintenance paragraph, full-frame shared `ImageGallery`, and quote/catalogue CTA.
-- `src/routes/catalogo/+page.svelte` - catalogue request route that sends visitors to the contact form with catalogue intent.
+- `src/routes/catalogo/+page.svelte` and `+page.server.ts` - catalogue route with its own request form (name, email, phone, morada, código postal, localidade; no message) and a dedicated server action that stores a `source: 'catalogue'` submission, separate from contact requests.
 - `src/routes/casos-de-estudo/+page.svelte` - case-study route.
 - `src/routes/casos-de-estudo/[slug]/+page.server.ts` and `+page.svelte` - case-study detail route with the description folded into the hero lead, shared `ImageGallery`, and optional challenge/solution/result cards.
 - `src/routes/blog/+page.svelte` - blog index route.
 - `src/routes/blog/[slug]/+page.server.ts` and `+page.svelte` - blog article route.
 - `src/routes/contacto/+page.svelte` - contact route with required fields, consent checkbox, stable backend field names, and server action submission.
 - `src/routes/contacto/+page.server.ts` - contact form load/action: CSRF cookie, origin check, honeypot, server validation, and CRM submission.
+- `src/routes/painel/**` - private, server-rendered CRM backoffice (NOT Sanity Studio): `login`, dashboard, `perfis`/`perfis/[id]`, `catalogo`, `contactos`. `noindex`; guarded by the session check in `src/hooks.server.ts` (which sets `locals.staff`); reads/writes the private `crm` dataset only on the server. The root `+layout.svelte` hides the public chrome for `/painel`.
 - `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
 - `scripts/old-blog-posts.ts`, `scripts/update-old-blog-bodies.ts`, and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog, a raw-body/translation refresh helper, and the generator for `.sanity/blog-import.ndjson`.
@@ -60,11 +61,18 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts optional autoplay, controls, loop, mute, and playsinline flags for background and full-player embeds.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
 - `src/lib/sanity.ts` - public Sanity client and site/product/case/blog query for dataset `production`.
-- `src/lib/server/crm.ts` - private server-only Sanity writer for client profiles and form submissions in dataset `crm`.
+- `src/lib/server/crm.ts` - private server-only Sanity writer for client profiles and form submissions in dataset `crm` (now also stores `address`; validation is per-source so catalogue needs an address and contact needs a message).
+- `src/lib/server/crm-client.ts` - shared server-only Sanity client for the `crm` dataset (null when `SANITY_CRM_WRITE_TOKEN` is unset, so the form/backoffice fail closed).
+- `src/lib/server/auth.ts` - backoffice auth with Node `crypto` only: scrypt password hashing (no global pepper, so hashes are portable), hashed-token sessions stored in `staffSession`, login with enumeration-resistant timing, and an in-memory login rate limiter.
+- `src/lib/server/crm-admin.ts` - server-only read/write helpers for the backoffice (list/search profiles and submissions, status + internal-note updates); excludes Studio drafts.
+- `src/lib/server/painel-actions.ts` - shared SvelteKit form actions (status + notes) reused by the backoffice pages; each re-checks `locals.staff`.
+- `src/lib/server/form-guard.ts` - shared CSRF token + same-origin helpers for the public forms.
+- `src/lib/painel.ts` - client-safe backoffice constants (status lists/labels, date formatting); kept out of server modules so components don't pull in the CRM client.
+- `scripts/create-staff.ts` - `npm run staff:create` CLI to create/update a backoffice account in `crm` (scrypt hash identical to `auth.ts`); run locally with `SANITY_CRM_WRITE_TOKEN`.
 - `sanity.config.ts` - multi-workspace Studio config: website editing at `/website`, private requests/client profiles at `/crm`.
 - `sanity.structure.ts` - client-friendly Studio navigation for public website content and private CRM workflows.
 - `sanity.cli.ts` - Sanity CLI project, dataset, and deployment settings.
-- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, case studies, blog posts, and private CRM documents.
+- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, case studies, blog posts, and private CRM documents (`clientProfile`, `formSubmission`, `staffUser`, `staffSession`).
 - `static/logo/brand_mark.png` - provided brand mark.
 - `static/images/recycled-products-hero.png` - generated hero image for this project.
 - `static/images/product-materials.png`, `static/images/case-installation.png`, and `static/images/blog-editorial.png` - generated fallback collection images used until Sanity entries have uploaded images.

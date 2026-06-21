@@ -15,6 +15,7 @@ export type ContactSubmission = {
   name: string
   email: string
   phone: string
+  address: string
   postalCode: string
   locality: string
   message: string
@@ -78,8 +79,15 @@ export const validateSubmission = (input: ContactSubmission): string[] => {
   if (input.phone.length < 6) errors.push('phone')
   if (input.postalCode.length < 3) errors.push('postalCode')
   if (input.locality.length < 2) errors.push('locality')
-  if (input.message.length < 8) errors.push('message')
   if (!input.marketingConsent) errors.push('marketingConsent')
+
+  // The catalogue request needs a shipping address but no message; every other
+  // source (contact, product, …) needs a message but not a street address.
+  if (input.source === 'catalogue') {
+    if (input.address.length < 4) errors.push('address')
+  } else if (input.message.length < 8) {
+    errors.push('message')
+  }
 
   return errors
 }
@@ -157,6 +165,7 @@ export const storeContactSubmission = async (
           name: input.name,
           email: input.email,
           phone: input.phone,
+          ...(input.address ? {address: input.address} : {}),
           postalCode: input.postalCode,
           locality: input.locality,
           preferredLanguage: input.language,
@@ -182,6 +191,7 @@ export const storeContactSubmission = async (
       name: input.name,
       email: input.email,
       phone: input.phone,
+      address: input.address,
       postalCode: input.postalCode,
       locality: input.locality,
       marketingConsent: input.marketingConsent,

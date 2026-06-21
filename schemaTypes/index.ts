@@ -10,6 +10,8 @@ import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
 import {clientProfile} from './crm/clientProfile'
 import {formSubmission} from './crm/formSubmission'
+import {staffUser} from './crm/staffUser'
+import {staffSession} from './crm/staffSession'
 
 export const websiteSchemaTypes = [
   siteLanding,
@@ -24,6 +26,6 @@ export const websiteSchemaTypes = [
   impactStat,
 ]
 
-export const crmSchemaTypes = [clientProfile, formSubmission]
+export const crmSchemaTypes = [clientProfile, formSubmission, staffUser, staffSession]
 
 export const schemaTypes = [...websiteSchemaTypes, ...crmSchemaTypes]

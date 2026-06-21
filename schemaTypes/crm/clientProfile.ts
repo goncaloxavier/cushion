@@ -40,6 +40,13 @@ export const clientProfile = defineType({
       group: 'client',
     }),
     defineField({
+      name: 'address',
+      title: 'Morada',
+      description: 'Morada para envio do catálogo (quando aplicável).',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
       name: 'postalCode',
       title: 'Código postal',
       type: 'string',

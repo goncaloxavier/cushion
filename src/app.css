@@ -4980,3 +4980,503 @@ body.lightbox-open {
     font-size: 2.28rem;
   }
 }
+
+/* ---- Catalogue request form ---- */
+.catalogue-request-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.6rem);
+  align-items: start;
+}
+
+.catalogue-checklist-title {
+  margin: 1.4rem 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.catalogue-checklist {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+}
+
+.catalogue-note {
+  color: #5a6b63;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 760px) {
+  .catalogue-request-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Backoffice (/painel) ---- */
+.painel {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f4f7f5;
+  color: #1c2a26;
+}
+
+.painel-side {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 100vh;
+  padding: 1.5rem 1.25rem;
+  background: #10211c;
+  color: #e8efe9;
+}
+
+.painel-brand {
+  font-size: 1.1rem;
+  font-weight: 850;
+}
+
+.painel-brand-sub {
+  margin: 0;
+  color: #9fb6ab;
+  font-size: 0.8rem;
+}
+
+.painel-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 1.2rem;
+}
+
+.painel-nav a {
+  padding: 0.6rem 0.75rem;
+  color: #cdddd4;
+  font-weight: 650;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.painel-nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.painel-nav a.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.painel-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: auto;
+  font-size: 0.85rem;
+}
+
+.painel-account-name {
+  font-weight: 750;
+}
+
+.painel-account-email {
+  color: #9fb6ab;
+}
+
+.painel-logout {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: #e8efe9;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.painel-logout:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.painel-main {
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.painel-page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.painel-page-head h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.painel-back {
+  color: #2d7b57;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.painel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.painel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1.2rem;
+  color: inherit;
+  text-decoration: none;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.painel-stat strong {
+  font-size: 2rem;
+}
+
+.painel-stat span {
+  color: #5a6b63;
+  font-size: 0.9rem;
+}
+
+.painel-stat[data-tone='accent'] {
+  color: #ffffff;
+  background: #10211c;
+}
+
+.painel-stat[data-tone='accent'] span {
+  color: #9fb6ab;
+}
+
+.painel-section {
+  margin-top: 2rem;
+}
+
+.painel-section h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.2rem;
+}
+
+.painel-table {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+.painel-table th,
+.painel-table td {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.painel-table th {
+  font-weight: 750;
+  background: #eef3f0;
+}
+
+.painel-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.painel-table a {
+  color: #2d7b57;
+}
+
+.painel-empty {
+  padding: 1rem 0;
+  color: #5a6b63;
+}
+
+.painel-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.painel-search input {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.painel-login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: #10211c;
+}
+
+.painel-login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: min(100%, 24rem);
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 14px;
+}
+
+.painel-login-card h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.painel-login-sub {
+  margin: 0;
+  color: #5a6b63;
+  font-size: 0.9rem;
+}
+
+.painel-login-error {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  color: #a12626;
+  font-size: 0.9rem;
+  background: #fdeaea;
+  border-radius: 8px;
+}
+
+.painel-login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.painel-login-card input {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.req-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.req-card {
+  padding: 1.25rem;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-left: 4px solid #c4d3cb;
+  border-radius: 12px;
+}
+
+.req-card[data-status='new'] {
+  border-left-color: #2d7b57;
+}
+
+.req-card[data-status='resolved'] {
+  border-left-color: #9fb6ab;
+}
+
+.req-card[data-status='spam'] {
+  border-left-color: #c98a8a;
+}
+
+.req-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.req-card-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.req-meta {
+  margin: 0.1rem 0 0;
+  color: #5a6b63;
+  font-size: 0.82rem;
+}
+
+.req-status-badge {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+  white-space: nowrap;
+  background: #eef3f0;
+  border-radius: 999px;
+}
+
+.req-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.4rem 1rem;
+  margin: 0 0 0.8rem;
+}
+
+.req-fields div {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.req-fields dt {
+  min-width: 4.5rem;
+  color: #5a6b63;
+}
+
+.req-fields dd {
+  margin: 0;
+}
+
+.req-message {
+  margin: 0 0 0.8rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  white-space: pre-line;
+  background: #f4f7f5;
+  border-radius: 8px;
+}
+
+.req-notes {
+  margin: 0 0 0.8rem;
+  padding: 0.7rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  background: #fbfaf3;
+  border: 1px solid #ece8d5;
+  border-radius: 8px;
+}
+
+.req-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.req-status-form,
+.req-note-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.req-note-form {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.req-note-form input {
+  flex: 1;
+}
+
+.req-actions select,
+.req-actions input,
+.painel-profile-manage select,
+.painel-profile-manage input {
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.req-actions button,
+.painel-search button,
+.painel-profile-manage button {
+  padding: 0.45rem 0.9rem;
+  color: #ffffff;
+  font-weight: 650;
+  background: #2d7b57;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.req-actions button:hover,
+.painel-search button:hover,
+.painel-profile-manage button:hover {
+  background: #256346;
+}
+
+.painel-profile {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.painel-profile-fields {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.painel-profile-fields div {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.painel-profile-fields dt {
+  min-width: 8rem;
+  color: #5a6b63;
+}
+
+.painel-profile-fields dd {
+  margin: 0;
+}
+
+.painel-profile-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+@media (max-width: 860px) {
+  .painel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .painel-side {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .painel-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 0;
+  }
+
+  .painel-account {
+    flex-direction: row;
+    gap: 0.6rem;
+    align-items: center;
+    margin: 0 0 0 auto;
+  }
+
+  .painel-profile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

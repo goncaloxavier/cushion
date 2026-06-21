@@ -43,6 +43,7 @@
     if (data.currentPath.startsWith('/sobre-nos')) return 'about'
     return 'home'
   })
+  const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
   const routeItems = $derived(allRouteItems)
   const dockItems = $derived(allDockItems.filter((item) => item.key !== 'blog'))
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
@@ -86,7 +87,10 @@
   <title>DaFábrica4You</title>
 </svelte:head>
 
-<RouteProgress />
+{#if isPainel}
+  {@render children()}
+{:else}
+  <RouteProgress />
 
 <header class="site-header">
   <div class="brand">
@@ -181,4 +185,5 @@
     <span class="whatsapp-mark" aria-hidden="true"><BrandIcon name="whatsapp" /></span>
     <strong>{content.common.whatsappLabel}</strong>
   </a>
+  {/if}
 {/if}

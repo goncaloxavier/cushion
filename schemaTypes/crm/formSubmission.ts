@@ -108,6 +108,13 @@ export const formSubmission = defineType({
       readOnly: true,
     }),
     defineField({
+      name: 'address',
+      title: 'Morada',
+      type: 'string',
+      group: 'client',
+      readOnly: true,
+    }),
+    defineField({
       name: 'postalCode',
       title: 'Código postal',
       type: 'string',

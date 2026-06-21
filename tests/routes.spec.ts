@@ -356,3 +356,24 @@ test.describe('public website routes', () => {
     await expect(submit).toBeEnabled()
   })
 })
+
+test.describe('catalogue + private backoffice', () => {
+  test('catalogue page hosts its own request form without a message field', async ({page}) => {
+    await page.goto('/catalogo?lang=pt')
+    const form = page.locator('form.catalogue-form')
+    await expect(form).toBeVisible()
+    await expect(form.getByLabel('Morada')).toBeVisible()
+    await expect(form.locator('textarea')).toHaveCount(0)
+  })
+
+  test('unauthenticated backoffice redirects to the login page', async ({page}) => {
+    await page.goto('/painel')
+    await expect(page).toHaveURL(/\/painel\/login/)
+    await expect(page.getByRole('heading', {name: 'Backoffice'})).toBeVisible()
+  })
+
+  test('backoffice subpages require login', async ({page}) => {
+    await page.goto('/painel/contactos')
+    await expect(page).toHaveURL(/\/painel\/login/)
+  })
+})
