@@ -18,6 +18,14 @@ const client = createClient({
   useCdn: true,
 })
 
+// Never fail a build/deploy over image warming — warm what we can, exit 0.
+try {
+  await warm()
+} catch (error) {
+  console.warn('Image warm-up skipped:', error instanceof Error ? error.message : error)
+}
+
+async function warm() {
 const data = await client.fetch<{
   items: {main: string | null; gallery: (string | null)[] | null}[]
   heroes: (string | null)[] | null
@@ -72,3 +80,4 @@ const worker = async () => {
 
 await Promise.all(Array.from({length: CONCURRENCY}, worker))
 console.log(`Done. Warmed ${done - failed}/${variants.length} variants (${failed} failed).`)
+}

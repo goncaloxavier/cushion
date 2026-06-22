@@ -108,6 +108,7 @@ npm run import:cases
 
 - `import:cases:write` generates `.sanity/case-study-import.ndjson` from `scripts/old-case-studies.ts`, with no date fields.
 - `import:cases` imports the generated case-study documents and images into Sanity dataset `production` with `--replace`.
+- `warm:images` (`scripts/warm-images.ts`) pre-generates the resized `fm=webp` variants the site serves on the Sanity CDN so visitors never hit a cold transform. It runs automatically: appended to `import:products`, and via `postbuild` on Railway when `WARM_ON_BUILD=true` is set (local builds skip it). Day-to-day Studio image edits self-warm — the deterministic webp URL is cached globally on first request — so no one needs to run a command.
 
 ## Useful Debug Commands
 
