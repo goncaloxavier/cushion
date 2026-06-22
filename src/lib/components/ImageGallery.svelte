@@ -6,6 +6,14 @@
   const lqipBackground = (img: ContentImage) =>
     img.lqip ? `center / cover no-repeat url(${img.lqip})` : undefined
 
+  // Full-size lightbox width (warmed by scripts/warm-images.ts, so never cold).
+  const lightboxWidth = 1600
+  const preloadFull = (img: ContentImage | undefined) => {
+    if (typeof Image === 'undefined' || !img?.url) return
+    const preloader = new Image()
+    preloader.src = sizedImage(img.url, lightboxWidth)
+  }
+
   let {
     images,
     label,
@@ -79,6 +87,14 @@
       document.body.classList.remove('lightbox-open')
     }
   })
+
+  // While the lightbox is open, preload the neighbouring full-size images so
+  // arrowing through the gallery is instant instead of fetching on each step.
+  $effect(() => {
+    if (!zoomOpen) return
+    preloadFull(images[nextImageIndex])
+    preloadFull(images[previousImageIndex])
+  })
 </script>
 
 {#if image}
@@ -88,6 +104,8 @@
       type="button"
       aria-label={label}
       style={imageStyle}
+      onmouseenter={() => preloadFull(image)}
+      onfocus={() => preloadFull(image)}
       onclick={openLightbox}
     >
       <img
@@ -152,8 +170,8 @@
   >
     <figure class="lightbox-frame">
       <img
-        src={sizedImage(image.url, 1600)}
-        srcset={imageSrcset(image.url, [800, 1200, 1600, 2000])}
+        src={sizedImage(image.url, lightboxWidth)}
+        srcset={imageSrcset(image.url, [800, 1200, 1600])}
         sizes="94vw"
         alt={image.alt}
         decoding="async"
