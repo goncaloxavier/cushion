@@ -5,6 +5,7 @@
     type PortableTextBlock,
     type RichArticleBlock,
   } from '$lib/article-structure'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
 
   type RichListBlock = {
@@ -152,7 +153,17 @@
         class="article-embedded-media article-embedded-image"
         style={imageStyle(block.asset.metadata?.dimensions?.aspectRatio)}
       >
-        <img src={block.asset.url} alt={block.alt ?? ''} loading="lazy" decoding="async" />
+        <img
+          src={sizedImage(block.asset.url, 1000)}
+          srcset={imageSrcset(block.asset.url, [500, 760, 1000, 1400])}
+          sizes="(max-width: 820px) 92vw, 760px"
+          alt={block.alt ?? ''}
+          loading="lazy"
+          decoding="async"
+          style:background={block.asset.metadata?.lqip
+            ? `center / cover no-repeat url(${block.asset.metadata.lqip})`
+            : undefined}
+        />
         {#if block.caption}
           <figcaption>{block.caption}</figcaption>
         {/if}

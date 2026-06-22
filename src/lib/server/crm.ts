@@ -9,7 +9,14 @@ const apiVersion = '2026-06-10'
 
 const rateBuckets = new Map<string, {count: number; resetAt: number}>()
 
-export type SubmissionSource = 'contact' | 'catalogue' | 'product' | 'case' | 'blog' | 'unknown'
+export type SubmissionSource =
+  | 'contact'
+  | 'catalogue'
+  | 'product'
+  | 'store'
+  | 'case'
+  | 'blog'
+  | 'unknown'
 
 export type ContactSubmission = {
   name: string

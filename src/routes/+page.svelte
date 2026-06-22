@@ -1,5 +1,6 @@
 <script lang="ts">
   import Reveal from '$lib/components/Reveal.svelte'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
 
   let {data} = $props()
@@ -161,7 +162,14 @@
         {#each content.home.partners.items as partner}
           <a class="partner-logo-card" href={partner.url} target="_blank" rel="noreferrer">
             <span class="partner-logo-wrap" data-logo-tone={partner.logoTone}>
-              <img src={partner.logo.url} alt={partner.logo.alt} loading="lazy" decoding="async" />
+              <img
+                src={sizedImage(partner.logo.url, 320)}
+                srcset={imageSrcset(partner.logo.url, [160, 240, 320])}
+                sizes="160px"
+                alt={partner.logo.alt}
+                loading="lazy"
+                decoding="async"
+              />
             </span>
             <span class="partner-name">{partner.name}</span>
             <span class="partner-text">{partner.text}</span>

@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {blogImageFallback, imageFor} from '$lib/site-content'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
 
@@ -16,7 +17,7 @@
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredPosts = $derived(
     content.blogPosts.filter((post) =>
-      [post.title, post.excerpt, post.category, post.body].join(' ').toLowerCase().includes(normalizedQuery),
+      [post.title, post.excerpt, post.category].join(' ').toLowerCase().includes(normalizedQuery),
     ),
   )
   const totalPages = $derived(Math.max(1, Math.ceil(filteredPosts.length / pageSize)))
@@ -62,10 +63,16 @@
 
     <Reveal class="blog-index-media" delay={120} variant="media" priority>
       <img
-        src={content.blogPage.heroImage.url}
+        src={sizedImage(content.blogPage.heroImage.url, 1100)}
+        srcset={imageSrcset(content.blogPage.heroImage.url, [600, 900, 1200, 1600])}
+        sizes="(max-width: 900px) 92vw, 600px"
         alt={content.blogPage.heroImage.alt}
         loading="eager"
+        fetchpriority="high"
         decoding="async"
+        style:background={content.blogPage.heroImage.lqip
+          ? `center / cover no-repeat url(${content.blogPage.heroImage.lqip})`
+          : undefined}
       />
     </Reveal>
   </section>
@@ -91,7 +98,17 @@
         {@const image = imageFor(post, blogImageFallback)}
         <a class="journal-card" href={`/blog/${post.slug}${langQuery}`}>
           <div class="journal-card-media">
-            <img src={image.url} alt={image.alt} loading="lazy" decoding="async" />
+            <img
+              src={sizedImage(image.url, 640)}
+              srcset={imageSrcset(image.url, [360, 480, 640, 800])}
+              sizes="(max-width: 700px) 92vw, 360px"
+              alt={image.alt}
+              loading="lazy"
+              decoding="async"
+              style:background={image.lqip
+                ? `center / cover no-repeat url(${image.lqip})`
+                : undefined}
+            />
             <time class="card-meta" datetime={post.publishedAt}>{post.publishedAt}</time>
           </div>
           <div class="journal-card-copy">

@@ -7,7 +7,10 @@ export const sanityClient = createClient({
   projectId,
   dataset,
   apiVersion: '2026-06-10',
-  useCdn: false,
+  // Serve published content from Sanity's cached CDN edge instead of hitting the
+  // live API on every SSR render — far faster page loads (content changes show
+  // within ~a minute, which is fine for this site).
+  useCdn: true,
 })
 
 const collectionsQuery = `{
@@ -102,6 +105,10 @@ const collectionsQuery = `{
       },
       lead
     },
+    storePage {
+      hero,
+      lead
+    },
     catalogue {
       hero,
       ctaLabel,
@@ -189,6 +196,33 @@ const collectionsQuery = `{
     features,
     applications
   },
+  "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
+    title,
+    slug,
+    category,
+    summary,
+    cataloguePage,
+    image {
+      asset -> {
+        url,
+        originalFilename,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
+      },
+      alt
+    },
+    variants[] {
+      label,
+      dimensions[],
+      weightKg,
+      priceNatural,
+      priceDark,
+      note
+    }
+  },
   "caseStudies": *[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     title,
     slug,
@@ -249,68 +283,74 @@ const collectionsQuery = `{
     },
     excerpt,
     publishedAt,
-    category,
-    body,
-    article {
-      pt[] {
-        ...,
-        markDefs[] {
-          ...
-        },
-        children[] {
-          ...
-        },
-        asset -> {
-          url,
-          metadata {
-            dimensions {
-              aspectRatio
-            }
+    category
+  }
+}`
+
+// Article bodies are large (~2.6 MB across all posts) and only needed on a
+// single blog detail page, so they are loaded per-slug here instead of in the
+// global query that runs on every route.
+const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] {
+  body,
+  article {
+    pt[] {
+      ...,
+      markDefs[] {
+        ...
+      },
+      children[] {
+        ...
+      },
+      asset -> {
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
           }
-        },
-        rows[] {
-          ...
         }
       },
-      en[] {
-        ...,
-        markDefs[] {
-          ...
-        },
-        children[] {
-          ...
-        },
-        asset -> {
-          url,
-          metadata {
-            dimensions {
-              aspectRatio
-            }
+      rows[] {
+        ...
+      }
+    },
+    en[] {
+      ...,
+      markDefs[] {
+        ...
+      },
+      children[] {
+        ...
+      },
+      asset -> {
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
           }
-        },
-        rows[] {
-          ...
         }
       },
-      es[] {
-        ...,
-        markDefs[] {
-          ...
-        },
-        children[] {
-          ...
-        },
-        asset -> {
-          url,
-          metadata {
-            dimensions {
-              aspectRatio
-            }
+      rows[] {
+        ...
+      }
+    },
+    es[] {
+      ...,
+      markDefs[] {
+        ...
+      },
+      children[] {
+        ...
+      },
+      asset -> {
+        url,
+        metadata {
+          dimensions {
+            aspectRatio
           }
-        },
-        rows[] {
-          ...
         }
+      },
+      rows[] {
+        ...
       }
     }
   }
@@ -321,6 +361,16 @@ export const getSanityCollections = async () => {
 
   try {
     return await sanityClient.fetch(collectionsQuery)
+  } catch {
+    return null
+  }
+}
+
+export const getBlogPostDetail = async (slug: string) => {
+  if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
+
+  try {
+    return await sanityClient.fetch(blogPostDetailQuery, {slug})
   } catch {
     return null
   }

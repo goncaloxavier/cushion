@@ -1,6 +1,10 @@
 <script lang="ts">
   import type {ContentImage} from '$lib/site-content'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {tick} from 'svelte'
+
+  const lqipBackground = (img: ContentImage) =>
+    img.lqip ? `center / cover no-repeat url(${img.lqip})` : undefined
 
   let {
     images,
@@ -86,7 +90,15 @@
       style={imageStyle}
       onclick={openLightbox}
     >
-      <img src={image.url} alt={image.alt} decoding="async" fetchpriority="high" />
+      <img
+        src={sizedImage(image.url, 1100)}
+        srcset={imageSrcset(image.url, [600, 900, 1200, 1600])}
+        sizes="(max-width: 900px) 92vw, 620px"
+        alt={image.alt}
+        decoding="async"
+        fetchpriority="high"
+        style:background={lqipBackground(image)}
+      />
       <span class="image-gallery-zoom" aria-hidden="true"></span>
       {#if hasMultiple}
         <span class="image-gallery-count">{position}</span>
@@ -104,7 +116,15 @@
               selectImage(index)
             }}
           >
-            <img src={galleryImage.url} alt={galleryImage.alt} loading="lazy" decoding="async" />
+            <img
+              src={sizedImage(galleryImage.url, 220)}
+              srcset={imageSrcset(galleryImage.url, [120, 180, 240, 320])}
+              sizes="6rem"
+              alt={galleryImage.alt}
+              loading="lazy"
+              decoding="async"
+              style:background={lqipBackground(galleryImage)}
+            />
           </button>
         {/each}
       </div>
@@ -131,7 +151,14 @@
     }}
   >
     <figure class="lightbox-frame">
-      <img src={image.url} alt={image.alt} decoding="async" />
+      <img
+        src={sizedImage(image.url, 1600)}
+        srcset={imageSrcset(image.url, [800, 1200, 1600, 2000])}
+        sizes="94vw"
+        alt={image.alt}
+        decoding="async"
+        style:background={lqipBackground(image)}
+      />
       {#if hasMultiple}
         <figcaption class="lightbox-counter">{position}</figcaption>
       {/if}

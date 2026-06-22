@@ -19,7 +19,7 @@ Studio has two workspaces:
 
 1. Open the Studio.
 2. Open the `Website` workspace.
-3. Open `Conteúdo do site`, `Produtos`, `Casos de estudo`, or `Artigos do blog` from the Studio sidebar.
+3. Open `Conteúdo do site`, `Produtos`, `Loja`, `Casos de estudo`, or `Artigos do blog` from the Studio sidebar.
 4. Create or edit an entry.
 5. Fill the Portuguese, English, and Spanish fields.
 6. Upload the image/cover/project image and add alt text in Portuguese, English, and Spanish.
@@ -32,13 +32,13 @@ If Studio is empty and the website still looks complete, that is expected. The f
 
 If a Sanity entry has no uploaded image yet, the website uses a project-local fallback image. As soon as an editor uploads an image in Studio and publishes the entry, the public route uses the Sanity image instead.
 
-This project also has a seed workflow. It writes the current site-wide content and starter products into Sanity so Studio becomes the editing surface immediately:
+This project also has a seed workflow. It writes the current site-wide content, starter products, and starter Loja products into Sanity so Studio becomes the editing surface immediately:
 
 ```bash
 npm run seed:studio
 ```
 
-The seed currently imports 6 deterministic documents: the `siteContent` singleton and 5 product categories. It uses `--replace`, so rerunning it updates only those seed document IDs.
+The seed currently imports 21 deterministic documents: the `siteContent` singleton, 5 product categories, and 15 Loja products. It uses `--replace`, so rerunning it updates only those seed document IDs.
 
 For a deliberate full content refresh, including the migrated historical cases and blog posts, run:
 
@@ -61,11 +61,12 @@ Use this as the low-friction Sanity learning loop:
 7. Edit the post title, body, or image, publish again, and refresh the website.
 8. Unpublish or delete the post and confirm the website falls back if no published blog posts remain.
 
-The same publish/edit/remove loop applies to `Product category` documents on `/produtos` and `Case study` documents on `/casos-de-estudo`.
+The same publish/edit/remove loop applies to `Product category` documents on `/produtos`, `Produto da loja` documents on `/loja`, and `Case study` documents on `/casos-de-estudo`.
 
 Detail pages are generated from slugs:
 
 - Product categories: `/produtos/[slug]`
+- Loja products: `/loja/[slug]`
 - Case studies: `/casos-de-estudo/[slug]`
 - Blog posts: `/blog/[slug]`
 
@@ -73,6 +74,8 @@ Detail pages are generated from slugs:
 
 - `Conteúdo do site` feeds page-level copy, contact/legal fields, the homepage video/media area, partner logos, and footer content.
 - `Product category` feeds the `/produtos` route.
+- `Produto da loja` feeds `/loja` with category, short summary, variants and finish prices. The public list shows only a starting price; `/loja/[slug]` lets visitors choose measure/variant and finish/color before adding the item to Carrinho.
+- Carrinho is frontend-only quote preparation. It uses the published `Produto da loja` content, stores only the selection on the visitor's device, and sends the visitor to the contact form for the real CRM-backed request.
 - `Case study` feeds the `/casos-de-estudo` route.
 - `Blog post` feeds `/blog` and `/blog/[slug]`.
 - Each public collection type has an editable Sanity image field with hotspot support and localized alt text.
@@ -84,6 +87,8 @@ Detail pages are generated from slugs:
 ## Contact Requests And CRM
 
 The public contact form writes to the private Sanity dataset `crm` through SvelteKit server code. A successful submission creates a `Pedido recebido` document and updates or creates a `Perfil de cliente`.
+
+When a visitor arrives from Carrinho, the contact message is prefilled with the selected Loja products, variants, finishes, quantities, and current catalogue-derived prices. Personal data is still collected only by the contact form and stored only in `crm` after submission.
 
 Use the Studio `/crm` workspace to:
 
@@ -119,7 +124,8 @@ The Playwright server runs with `SANITY_DISABLE_REMOTE=true`, which means tests 
 
 - Keep the Portuguese, English, and Spanish versions aligned in meaning.
 - Do not add unsupported certifications, guarantees, or impact claims.
-- Product pricing is intentionally framed as quote/catalogue flow for now because the existing client price page is broken and final pricing has not been confirmed.
+- Product-category pricing is intentionally framed as quote/catalogue flow. Loja has catalogue-derived starter prices from `Catalogo 244.pdf`, but final live pricing and approved Loja product images still need client confirmation.
+- Do not use PDF catalogue crops as Loja product images. Leave the no-image placeholders until the client supplies proper images.
 - Do not use assets from the current public DaFábrica4You site unless the client explicitly approves it.
 
 ## Current Sanity Project

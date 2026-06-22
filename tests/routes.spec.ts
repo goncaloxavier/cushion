@@ -11,6 +11,9 @@ const publicRoutes: PublicRoute[] = [
   {path: '/?lang=pt', heading: 'produtos sem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
+  {path: '/loja?lang=pt', heading: 'Produtos com preço', active: 'Loja'},
+  {path: '/loja/banco-gaviao?lang=pt', heading: 'Banco Gavião', active: 'Loja'},
+  {path: '/carrinho?lang=pt', heading: 'Reveja os produtos', active: null},
   {
     path: '/produtos/decking-pavimentos-passadicos?lang=pt',
     heading: 'Decking, pavimentos e passadiços',
@@ -36,15 +39,15 @@ const publicRoutes: PublicRoute[] = [
 ]
 
 const desktopNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Catálogo', 'Casos', 'Blog'],
-  en: ['Home', 'About', 'Products', 'Catalogue', 'Cases', 'Blog'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Catálogo', 'Casos', 'Blog'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog'],
+  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog'],
 }
 
 const mobileNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Catálogo', 'Casos', 'Contacto'],
-  en: ['Home', 'About', 'Products', 'Catalogue', 'Cases', 'Contact'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Catálogo', 'Casos', 'Contacto'],
+  pt: ['Início', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Contacto'],
+  en: ['Home', 'Products', 'Store', 'Catalogue', 'Cases', 'Contact'],
+  es: ['Inicio', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Contacto'],
 }
 
 const productSlugs = [
@@ -65,6 +68,24 @@ const caseSlugs = [
   'vedacao-piscina-moita',
   'decking-mobiliario-torres-mondego',
   'floreiras-moscavide',
+]
+
+const storeSlugs = [
+  'banco-gaviao',
+  'banco-foros-domingao',
+  'banco-fazenda',
+  'banco-montargil',
+  'mesa-vale-do-arco',
+  'mesa-octogonal',
+  'conjunto-atalia',
+  'cadeirao-atalia',
+  'cadeira-de-bar',
+  'mesa-ervideira',
+  'papeleira-reta',
+  'ecoponto-triplo-com-portas',
+  'ecoponto-4-residuos',
+  'mesa-de-cultivo',
+  'canteiro-com-trelica',
 ]
 
 async function goToNextPage(page: Page) {
@@ -115,6 +136,26 @@ async function collectPagedCards(page: Page, cardSelector: string, imageSelector
   }
 
   return {links, imageLinks}
+}
+
+async function collectPagedStoreCards(page: Page) {
+  const slugs = new Set<string>()
+
+  for (let pageIndex = 0; pageIndex < 8; pageIndex += 1) {
+    const pageSlugs = await page
+      .locator('.store-card')
+      .evaluateAll((cards) =>
+        cards
+          .map((card) => (card as HTMLElement).dataset.storeProduct ?? '')
+          .filter(Boolean),
+      )
+
+    for (const slug of pageSlugs) slugs.add(slug)
+
+    if (!(await goToNextPage(page))) break
+  }
+
+  return slugs
 }
 
 async function waitForCollectionStart(page: Page, selector: string) {
@@ -243,6 +284,72 @@ test.describe('public website routes', () => {
       for (const slug of caseSlugs) {
         expect(imageLinks.has(`/casos-de-estudo/${slug}?lang=pt`)).toBe(true)
       }
+    })
+
+    test('store page exposes catalogue-priced products with filters and pagination', async ({
+      page,
+    }) => {
+      await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
+
+      await expect(page.locator('.store-card')).toHaveCount(9)
+      const slugs = await collectPagedStoreCards(page)
+      for (const slug of storeSlugs) {
+        expect(slugs.has(slug)).toBe(true)
+      }
+
+      await page.getByLabel('Pesquisar na loja').fill('Gavião')
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).toBeVisible()
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).toHaveAttribute(
+        'href',
+        '/loja/banco-gaviao?lang=pt',
+      )
+      await expect(page.locator('[data-store-product="banco-fazenda"]')).toHaveCount(0)
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).toContainText('185,00')
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).not.toContainText('2000 mm')
+      await expect(page.getByRole('link', {name: 'Pedir proposta'})).toHaveCount(0)
+
+      await page.getByLabel('Pesquisar na loja').fill('')
+      await page.getByLabel('Categoria').selectOption('residuos')
+      await expect(page.locator('[data-store-product="ecoponto-4-residuos"]')).toBeVisible()
+      await expect(page.locator('[data-store-product="mesa-de-cultivo"]')).toHaveCount(0)
+    })
+
+    test('store detail lets visitors choose variant, finish and cart before requesting', async ({
+      page,
+    }) => {
+      await page.goto('/loja/mesa-vale-do-arco?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+
+      await expect(page.getByRole('heading', {name: 'Mesa Vale do Arco'})).toBeVisible()
+      await expect(page.locator('.store-spec-price')).toContainText('322,00')
+
+      await page.getByRole('button', {name: '2450 mm'}).click()
+      await expect(page.locator('.store-spec-price')).toContainText('445,00')
+
+      await page.getByRole('button', {name: 'Castanho / Preto'}).click()
+      await expect(page.locator('.store-spec-price')).toContainText('565,00')
+      await expect(page.locator('.store-spec-grid')).toContainText('Comprimento 2450 mm')
+
+      await page.getByRole('button', {name: 'Adicionar ao carrinho'}).click()
+      await expect(page.getByRole('status')).toContainText('Adicionado ao carrinho')
+      await expect(page.locator('.cart-count')).toHaveText('1')
+
+      await page.getByRole('link', {name: 'Ver carrinho'}).click()
+      await expect(page).toHaveURL(/\/carrinho\?lang=pt/)
+      await expect(page.getByRole('heading', {name: 'Reveja os produtos antes de pedir orçamento'})).toBeVisible()
+      await expect(page.locator('.cart-item')).toContainText('Mesa Vale do Arco')
+      await expect(page.locator('.cart-item')).toContainText('2450 mm')
+      await expect(page.locator('.cart-item')).toContainText('Castanho / Preto')
+      await expect(page.locator('.cart-item')).toContainText('565,00')
+
+      await page.locator('.cart-item').getByLabel('Quantidade').fill('2')
+      await expect(page.locator('.cart-summary')).toContainText(/1.?130,00/)
+
+      await page.getByRole('link', {name: 'Pedir orçamento'}).click()
+      await expect(page).toHaveURL(/\/contacto\?lang=pt&source=loja/)
+      await expect(page.getByLabel('Mensagem')).toHaveValue(
+        /Mesa Vale do Arco[\s\S]*2450 mm[\s\S]*Castanho \/ Preto[\s\S]*2 x 565,00/,
+      )
     })
 
     test('unknown CMS slugs return a not found page', async ({page}) => {

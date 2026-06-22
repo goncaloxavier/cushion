@@ -218,6 +218,19 @@ export const siteLanding = defineType({
       'Edite apenas os textos da listagem de produtos. Cada produto é editado na área Produtos.',
     ),
     pageSectionField(
+      'storePage',
+      'Página Loja',
+      [
+        copyBlockField('hero', 'Primeira secção'),
+        localizedTextField(
+          'lead',
+          'Texto junto aos filtros',
+          'Texto curto usado antes da grelha da Loja, junto aos filtros e preços.',
+        ),
+      ],
+      'Edite os textos públicos da Loja. Cada produto, variante e preço é editado na área Loja.',
+    ),
+    pageSectionField(
       'catalogue',
       'Página Catálogo',
       [

@@ -2,7 +2,9 @@
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {clearCart, readCart, type StoreCartItem} from '$lib/cart'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
+  import {onMount} from 'svelte'
 
   type ContactFormValues = Partial<Record<ContactFieldKey, string>>
 
@@ -34,6 +36,11 @@
       message: 'Mensaje',
     },
   }
+  const cartMessageIntro: Record<string, string> = {
+    pt: 'Pedido da loja:',
+    en: 'Store request:',
+    es: 'Solicitud de tienda:',
+  }
   let fieldValues = $state<Record<ContactFieldKey, string>>({
     name: '',
     email: '',
@@ -58,6 +65,12 @@
         message: currentFormValues.message ?? '',
       }
       lastFormValues = currentFormValues
+    }
+  })
+
+  $effect(() => {
+    if (form?.success && data.submissionSource === 'store') {
+      clearCart()
     }
   })
 
@@ -97,6 +110,36 @@
     if (field === 'postalCode') return 'postal-code'
     return 'off'
   }
+
+  const cartItemToMessageLine = (item: StoreCartItem) => {
+    const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
+    const variant = product?.variants[item.variantIndex]
+    if (!product || !variant) return ''
+
+    const finish = content.storePage.finishLabels[item.finish]
+    const unitPrice = new Intl.NumberFormat(
+      data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
+      {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+      },
+    ).format(variant.prices[item.finish])
+
+    return `- ${product.title} | ${variant.label} | ${finish} | ${item.quantity} x ${unitPrice}`
+  }
+
+  onMount(() => {
+    if (data.submissionSource !== 'store' || fieldValues.message.trim()) return
+
+    const cartLines = readCart().map(cartItemToMessageLine).filter(Boolean)
+    if (cartLines.length === 0) return
+
+    fieldValues = {
+      ...fieldValues,
+      message: `${cartMessageIntro[data.language] ?? cartMessageIntro.pt}\n${cartLines.join('\n')}`,
+    }
+  })
 </script>
 
 <svelte:head>

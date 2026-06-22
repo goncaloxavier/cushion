@@ -8,6 +8,7 @@ Use this to help agents avoid accidental damage.
 - `src/routes/+layout.server.ts` - shared content load for all public routes.
 - `src/routes/+layout.svelte` - shared public navigation, language toggle, footer, social links, complaints link, and WhatsApp shortcut.
 - `src/routes/+page.svelte` and route folders under `src/routes/` - public presentation UI.
+- `src/routes/loja/+page.svelte`, `src/routes/loja/[slug]/+page.svelte`, `src/routes/carrinho/+page.svelte`, `src/lib/cart.ts`, and `src/lib/store-fallback.ts` - Loja list/detail/cart behavior and catalogue-derived starter prices; avoid inventing prices, names, product images, or checkout semantics.
 - `tests/visual.spec.ts` - optional visual screenshot coverage; generated `tests/*-snapshots/` folders are ignored session output.
 - `playwright.config.ts` - local browser-test server, worker/timeouts, and desktop/mobile projects.
 - `eslint.config.mjs` - ignores generated folders; if this regresses, lint can scan Playwright output and fail while tests run.
@@ -28,6 +29,8 @@ Use this to help agents avoid accidental damage.
 - Product and case-study detail lookups in their `[slug]` server loads.
 - Sanity schema fields and frontend query field names must stay aligned.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
+- Loja schema, fallback prices, seed generation, GROQ projection, route filters/pagination, and tests must stay aligned.
+- Carrinho resolves local browser selections against the current public Loja content. If product slugs, variant order, or finish keys change, update fallback/Sanity content and tests together.
 - The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
@@ -42,7 +45,9 @@ Use this to help agents avoid accidental damage.
 - Public visitors moving through routed pages and contacting the company.
 - Editors opening Sanity Studio, creating product categories, case studies, and blog posts, filling localized fields, using structured blog article blocks where needed, and publishing.
 - Editors uploading product, case-study, and blog images with localized alt text.
+- Editors maintaining Loja products, variants, finish prices, and future approved product images in Studio.
 - Visitors opening product, case-study, or blog gallery lightboxes; the page behind the modal should not scroll or change position until the lightbox closes.
+- Visitors adding Loja products to Carrinho, adjusting quantities locally, and continuing to Contacto with a prefilled quote message.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
@@ -62,6 +67,7 @@ Use this to help agents avoid accidental damage.
 
 - Sanity project access and dataset permissions.
 - The private Sanity `crm` dataset, submitted personal data, internal notes, and client profile records.
+- The Carrinho localStorage key stores only non-personal product selections. Do not add names, emails, addresses, phone numbers, or free-text messages to localStorage.
 - `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` must only exist in server/private runtime environments.
 - Future public/private content boundaries if non-public draft content is introduced.
 
@@ -76,6 +82,9 @@ Use this to help agents avoid accidental damage.
 - Forgetting that Playwright uses fallback fixtures while local/dev website reads live Sanity content.
 - Running lint while Playwright is creating generated output is safe only while generated test folders stay ignored.
 - Rerunning `npm run seed:studio` or `npm run deploy:content` after manual Studio edits can replace deterministic/code-managed documents.
+- Treating PDF catalogue crops as product photography for the Loja before the client supplies approved images.
+- Showing Loja variants, dimensions, finish selectors, catalogue page badges, or proposal links on the list; those belong on the Loja detail route.
+- Turning Carrinho into checkout by accident. It is only a quote builder: no payments, login, registration, stock, shipping, or final order records.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
 - Adding private CRM fields to `src/lib/sanity.ts` or any public route by mistake.
 - Exposing `SANITY_CRM_WRITE_TOKEN` through public environment variables, logs, generated static files, or client-side code.

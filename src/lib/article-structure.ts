@@ -40,6 +40,7 @@ export type ArticleImageBlock = {
   asset?: {
     url?: string
     metadata?: {
+      lqip?: string
       dimensions?: {
         aspectRatio?: number
       }

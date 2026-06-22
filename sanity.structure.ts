@@ -1,6 +1,6 @@
 import type {StructureResolver} from 'sanity/structure'
 
-const managedTypes = ['siteLanding', 'productCategory', 'caseStudy', 'blogPost']
+const managedTypes = ['siteLanding', 'productCategory', 'storeProduct', 'caseStudy', 'blogPost']
 const crmManagedTypes = ['formSubmission', 'clientProfile', 'staffUser', 'staffSession']
 
 export const websiteStructure: StructureResolver = (S) =>
@@ -13,6 +13,7 @@ export const websiteStructure: StructureResolver = (S) =>
         .child(S.document().schemaType('siteLanding').documentId('siteContent').title('Conteúdo do site')),
       S.divider(),
       S.documentTypeListItem('productCategory').title('Produtos'),
+      S.documentTypeListItem('storeProduct').title('Loja'),
       S.documentTypeListItem('caseStudy').title('Casos de estudo'),
       S.documentTypeListItem('blogPost').title('Artigos do blog'),
       S.divider(),

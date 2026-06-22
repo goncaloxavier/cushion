@@ -14,6 +14,7 @@ export const load: LayoutServerLoad = async ({url}) => {
     isUsingSanityContent: Boolean(
       collections?.siteContent ||
         collections?.products?.length ||
+        collections?.storeProducts?.length ||
         collections?.caseStudies?.length ||
         collections?.blogPosts?.length,
     ),

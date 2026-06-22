@@ -9,6 +9,7 @@ import {
   type LanguageCode,
   type ProductItem,
   type SiteContent,
+  type StoreProduct,
 } from '../src/lib/site-content'
 
 const languages: LanguageCode[] = ['pt', 'en', 'es']
@@ -31,6 +32,28 @@ const localizedProductField = (
       fallbackContent[language].products[index][key] as string,
     ]),
   )
+
+const localizedStoreValue = (index: number, read: (product: StoreProduct) => string) =>
+  Object.fromEntries(
+    languages.map((language) => [language, read(fallbackContent[language].storeProducts[index])]),
+  )
+
+const localizedStoreDimensions = (productIndex: number, variantIndex: number) => {
+  const canonical = fallbackContent.pt.storeProducts[productIndex].variants[variantIndex].dimensions
+
+  return canonical.map((_, itemIndex) => ({
+    _key: `dimension-${variantIndex}-${itemIndex}`,
+    _type: 'localizedString',
+    ...Object.fromEntries(
+      languages.map((language) => [
+        language,
+        fallbackContent[language].storeProducts[productIndex].variants[variantIndex].dimensions[
+          itemIndex
+        ],
+      ]),
+    ),
+  }))
+}
 
 const localizedArray = (
   collection: 'products',
@@ -155,6 +178,10 @@ const siteContentDocument = {
     heroImage: imageFromSiteContent((content) => content.productsPage.heroImage),
     lead: localizedSiteValue((content) => content.productsPage.lead),
   },
+  storePage: {
+    hero: copyBlock((content) => content.storePage.hero),
+    lead: localizedSiteValue((content) => content.storePage.lead),
+  },
   catalogue: {
     hero: copyBlock((content) => content.catalogue.hero),
     ctaLabel: localizedSiteValue((content) => content.catalogue.ctaLabel),
@@ -205,7 +232,35 @@ const productDocuments = fallbackContent.pt.products.map((product, index) => ({
   orderRank: (index + 1) * 10,
 }))
 
-const documents = [siteContentDocument, ...productDocuments]
+const storeProductDocuments = fallbackContent.pt.storeProducts.map((product, productIndex) => ({
+  _id: `storeProduct-${product.slug}`,
+  _type: 'storeProduct',
+  title: localizedStoreValue(productIndex, (item) => item.title),
+  slug: {_type: 'slug', current: product.slug},
+  category: product.category,
+  summary: localizedStoreValue(productIndex, (item) => item.summary),
+  cataloguePage: product.cataloguePage,
+  variants: product.variants.map((variant, variantIndex) => ({
+    _key: `variant-${variantIndex}`,
+    _type: 'storeProductVariant',
+    label: localizedStoreValue(
+      productIndex,
+      (item) => item.variants[variantIndex]?.label || variant.label,
+    ),
+    dimensions: localizedStoreDimensions(productIndex, variantIndex),
+    weightKg: variant.weightKg,
+    priceNatural: variant.prices.natural,
+    priceDark: variant.prices.dark,
+    note: localizedStoreValue(
+      productIndex,
+      (item) => item.variants[variantIndex]?.note || variant.note || '',
+    ),
+  })),
+  active: true,
+  orderRank: (productIndex + 1) * 10,
+}))
+
+const documents = [siteContentDocument, ...productDocuments, ...storeProductDocuments]
 
 await mkdir('.sanity', {recursive: true})
 await writeFile(outputFile, `${documents.map((document) => JSON.stringify(document)).join('\n')}\n`)

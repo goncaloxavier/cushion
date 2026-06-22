@@ -18,6 +18,8 @@
   <Reveal class="page-hero-copy" variant="hero" priority>
     <p class="kicker">{kicker}</p>
     <h1>{title}</h1>
-    <p class="hero-copy">{lead}</p>
+    {#if lead}
+      <p class="hero-copy">{lead}</p>
+    {/if}
   </Reveal>
 </section>

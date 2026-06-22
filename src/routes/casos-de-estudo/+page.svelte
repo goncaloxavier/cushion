@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
 
@@ -74,10 +75,16 @@
 
     <Reveal class="case-index-media" delay={120} variant="media" priority>
       <img
-        src={content.casesPage.heroImage.url}
+        src={sizedImage(content.casesPage.heroImage.url, 1100)}
+        srcset={imageSrcset(content.casesPage.heroImage.url, [600, 900, 1200, 1600])}
+        sizes="(max-width: 900px) 92vw, 600px"
         alt={content.casesPage.heroImage.alt}
         loading="eager"
+        fetchpriority="high"
         decoding="async"
+        style:background={content.casesPage.heroImage.lqip
+          ? `center / cover no-repeat url(${content.casesPage.heroImage.lqip})`
+          : undefined}
       />
     </Reveal>
   </section>
@@ -103,7 +110,17 @@
         {@const image = imageFor(item, caseStudyImageFallback)}
         <a class="case-card" href={`/casos-de-estudo/${item.slug}${langQuery}`}>
           <div class="case-card-media">
-            <img src={image.url} alt={image.alt} loading="lazy" decoding="async" />
+            <img
+              src={sizedImage(image.url, 640)}
+              srcset={imageSrcset(image.url, [360, 480, 640, 800])}
+              sizes="(max-width: 700px) 92vw, 360px"
+              alt={image.alt}
+              loading="lazy"
+              decoding="async"
+              style:background={image.lqip
+                ? `center / cover no-repeat url(${image.lqip})`
+                : undefined}
+            />
             <span class="card-meta">{item.location}</span>
           </div>
           <div class="case-card-copy">

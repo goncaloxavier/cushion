@@ -1,4 +1,5 @@
 import type {RichArticleBlock} from './article-structure'
+import {storeProductsForLanguage} from './store-fallback'
 
 export type LanguageCode = 'pt' | 'en' | 'es'
 
@@ -45,6 +46,7 @@ export type ContentImage = {
   alt: string
   aspectRatio?: number
   sourceName?: string
+  lqip?: string
 }
 
 export type PartnerItem = {
@@ -92,11 +94,35 @@ export type BlogPost = {
   article?: RichArticleBlock[]
 }
 
+export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'residuos' | 'cultivo'
+
+export type StoreFinish = 'natural' | 'dark'
+
+export type StoreProductVariant = {
+  label: string
+  dimensions: string[]
+  weightKg?: number
+  prices: Record<StoreFinish, number>
+  note?: string
+}
+
+export type StoreProduct = {
+  title: string
+  slug: string
+  category: StoreCategory
+  summary: string
+  cataloguePage?: number
+  image?: ContentImage
+  variants: StoreProductVariant[]
+}
+
 export type SiteContent = {
   nav: {
     home: string
     about: string
     products: string
+    store: string
+    cart: string
     catalogue: string
     cases: string
     blog: string
@@ -172,6 +198,21 @@ export type SiteContent = {
     heroImage: ContentImage
     lead: string
   }
+  storePage: {
+    hero: CopyBlock
+    lead: string
+    searchLabel: string
+    categoryLabel: string
+    finishLabel: string
+    sortLabel: string
+    allCategoriesLabel: string
+    categoryLabels: Record<StoreCategory, string>
+    finishLabels: Record<StoreFinish, string>
+    priceFromLabel: string
+    requestLabel: string
+    noResults: string
+    vatNote: string
+  }
   catalogue: {
     hero: CopyBlock
     ctaLabel: string
@@ -205,6 +246,7 @@ export type SiteContent = {
     note: string
   }
   products: ProductItem[]
+  storeProducts: StoreProduct[]
   caseStudies: CaseStudy[]
   blogPosts: BlogPost[]
 }
@@ -244,6 +286,25 @@ type SanityBlogPost = {
   category?: LocalizedValue
   body?: LocalizedValue
   article?: LocalizedArticleValue
+}
+
+type SanityStoreProductVariant = {
+  label?: LocalizedValue
+  dimensions?: LocalizedValue[]
+  weightKg?: number
+  priceNatural?: number
+  priceDark?: number
+  note?: LocalizedValue
+}
+
+type SanityStoreProduct = {
+  title?: LocalizedValue
+  slug?: {current?: string}
+  category?: StoreCategory
+  summary?: LocalizedValue
+  cataloguePage?: number
+  image?: SanityImage
+  variants?: SanityStoreProductVariant[]
 }
 
 type SanityContentCard = {
@@ -314,6 +375,10 @@ type SanitySiteContent = {
     heroImage?: SanityImage
     lead?: LocalizedValue
   }
+  storePage?: {
+    hero?: SanityCopyBlock
+    lead?: LocalizedValue
+  }
   catalogue?: {
     hero?: SanityCopyBlock
     ctaLabel?: LocalizedValue
@@ -349,6 +414,7 @@ type SanityImage = {
     url?: string
     originalFilename?: string
     metadata?: {
+      lqip?: string
       dimensions?: {
         aspectRatio?: number
       }
@@ -360,6 +426,7 @@ type SanityImage = {
 export type SanityCollections = {
   siteContent?: SanitySiteContent
   products?: SanityProduct[]
+  storeProducts?: SanityStoreProduct[]
   caseStudies?: SanityCaseStudy[]
   blogPosts?: SanityBlogPost[]
 }
@@ -803,6 +870,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       home: 'Início',
       about: 'Sobre',
       products: 'Produtos',
+      store: 'Loja',
+      cart: 'Carrinho',
       catalogue: 'Catálogo',
       cases: 'Casos',
       blog: 'Blog',
@@ -965,6 +1034,34 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       heroImage: fallbackImages.product,
       lead: 'Escolha a aplicação que mais se aproxima do seu projeto e avance para uma página com usos, vantagens e pedido de orçamento.',
     },
+    storePage: {
+      hero: {
+        kicker: 'Loja',
+        title: 'Produtos com preço para pedido direto',
+        lead: '',
+      },
+      lead: '',
+      searchLabel: 'Pesquisar na loja',
+      categoryLabel: 'Categoria',
+      finishLabel: 'Acabamento',
+      sortLabel: 'Ordenar',
+      allCategoriesLabel: 'Todas',
+      categoryLabels: {
+        bancos: 'Bancos',
+        mesas: 'Mesas e conjuntos',
+        cadeiras: 'Cadeiras',
+        residuos: 'Resíduos',
+        cultivo: 'Cultivo',
+      },
+      finishLabels: {
+        natural: 'Natural / Cinza',
+        dark: 'Castanho / Preto',
+      },
+      priceFromLabel: 'desde',
+      requestLabel: 'Pedir proposta',
+      noResults: 'Sem produtos para estes filtros.',
+      vatNote: '',
+    },
     catalogue: {
       hero: {
         kicker: 'Catálogo',
@@ -1051,6 +1148,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       note: '',
     },
     products: productCategories.pt,
+    storeProducts: storeProductsForLanguage('pt'),
     caseStudies: caseStudies.pt,
     blogPosts: blogPosts.pt,
   },
@@ -1059,6 +1157,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       home: 'Home',
       about: 'About',
       products: 'Products',
+      store: 'Store',
+      cart: 'Cart',
       catalogue: 'Catalogue',
       cases: 'Cases',
       blog: 'Blog',
@@ -1222,6 +1322,34 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       heroImage: fallbackImages.product,
       lead: 'Choose the application closest to your project and move into a page with uses, advantages and quote context.',
     },
+    storePage: {
+      hero: {
+        kicker: 'Store',
+        title: 'Priced products ready for direct request',
+        lead: '',
+      },
+      lead: '',
+      searchLabel: 'Search store',
+      categoryLabel: 'Category',
+      finishLabel: 'Finish',
+      sortLabel: 'Sort',
+      allCategoriesLabel: 'All',
+      categoryLabels: {
+        bancos: 'Benches',
+        mesas: 'Tables and sets',
+        cadeiras: 'Chairs',
+        residuos: 'Waste',
+        cultivo: 'Growing',
+      },
+      finishLabels: {
+        natural: 'Natural / Grey',
+        dark: 'Brown / Black',
+      },
+      priceFromLabel: 'from',
+      requestLabel: 'Request proposal',
+      noResults: 'No products for these filters.',
+      vatNote: '',
+    },
     catalogue: {
       hero: {
         kicker: 'Catalogue',
@@ -1311,6 +1439,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       note: '',
     },
     products: productCategories.en,
+    storeProducts: storeProductsForLanguage('en'),
     caseStudies: caseStudies.en,
     blogPosts: blogPosts.en,
   },
@@ -1319,6 +1448,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       home: 'Inicio',
       about: 'Sobre',
       products: 'Productos',
+      store: 'Tienda',
+      cart: 'Carrito',
       catalogue: 'Catálogo',
       cases: 'Casos',
       blog: 'Blog',
@@ -1482,6 +1613,34 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       heroImage: fallbackImages.product,
       lead: 'Elige la aplicación más cercana a tu proyecto y entra en una página con usos, ventajas y contexto de presupuesto.',
     },
+    storePage: {
+      hero: {
+        kicker: 'Tienda',
+        title: 'Productos con precio para solicitud directa',
+        lead: '',
+      },
+      lead: '',
+      searchLabel: 'Buscar en tienda',
+      categoryLabel: 'Categoría',
+      finishLabel: 'Acabado',
+      sortLabel: 'Ordenar',
+      allCategoriesLabel: 'Todas',
+      categoryLabels: {
+        bancos: 'Bancos',
+        mesas: 'Mesas y conjuntos',
+        cadeiras: 'Sillas',
+        residuos: 'Residuos',
+        cultivo: 'Cultivo',
+      },
+      finishLabels: {
+        natural: 'Natural / Gris',
+        dark: 'Marrón / Negro',
+      },
+      priceFromLabel: 'desde',
+      requestLabel: 'Solicitar propuesta',
+      noResults: 'No hay productos para estos filtros.',
+      vatNote: '',
+    },
     catalogue: {
       hero: {
         kicker: 'Catálogo',
@@ -1568,6 +1727,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       note: '',
     },
     products: productCategories.es,
+    storeProducts: storeProductsForLanguage('es'),
     caseStudies: caseStudies.es,
     blogPosts: blogPosts.es,
   },
@@ -1768,7 +1928,22 @@ const imageFromSanity = (
   alt: localized(image?.alt, language, fallback.alt),
   aspectRatio: image?.asset?.metadata?.dimensions?.aspectRatio ?? fallback.aspectRatio,
   sourceName: image?.asset?.originalFilename,
+  lqip: image?.asset?.metadata?.lqip ?? fallback.lqip,
 })
+
+const optionalImageFromSanity = (
+  image: SanityImage | undefined,
+  language: LanguageCode,
+): ContentImage | undefined =>
+  image?.asset?.url
+    ? {
+        url: image.asset.url,
+        alt: localized(image.alt, language, ''),
+        aspectRatio: image.asset.metadata?.dimensions?.aspectRatio,
+        sourceName: image.asset.originalFilename,
+        lqip: image.asset.metadata?.lqip,
+      }
+    : undefined
 
 const partnersFromSanity = (
   items: SanityPartnerItem[] | undefined,
@@ -1861,6 +2036,59 @@ const productsFromSanity = (
     })
 }
 
+const storeProductsFromSanity = (
+  products: SanityStoreProduct[] | undefined,
+  language: LanguageCode,
+  fallback: StoreProduct[],
+) => {
+  if (!products?.length) return fallback
+
+  const normalized = products
+    .filter((product) => product.slug?.current)
+    .map((product, index) => {
+      const fallbackProduct = fallback[index]
+      const variants = (product.variants ?? [])
+        .map<StoreProductVariant | null>((variant, variantIndex) => {
+          const fallbackVariant = fallbackProduct?.variants[variantIndex]
+          const natural = variant.priceNatural ?? fallbackVariant?.prices.natural
+          const dark = variant.priceDark ?? fallbackVariant?.prices.dark
+
+          if (typeof natural !== 'number' || typeof dark !== 'number') return null
+
+          const nextVariant: StoreProductVariant = {
+            label: localized(variant.label, language, fallbackVariant?.label ?? 'Variante'),
+            dimensions: localizedList(
+              variant.dimensions,
+              language,
+              fallbackVariant?.dimensions ?? [],
+            ),
+            prices: {natural, dark},
+          }
+          const weightKg = variant.weightKg ?? fallbackVariant?.weightKg
+          const note = localized(variant.note, language, fallbackVariant?.note ?? '')
+
+          if (typeof weightKg === 'number') nextVariant.weightKg = weightKg
+          if (note) nextVariant.note = note
+
+          return nextVariant
+        })
+        .filter((variant): variant is StoreProductVariant => variant !== null)
+
+      return {
+        title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
+        slug: product.slug?.current ?? fallbackProduct?.slug ?? `store-product-${index + 1}`,
+        category: product.category ?? fallbackProduct?.category ?? 'bancos',
+        summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
+        cataloguePage: product.cataloguePage ?? fallbackProduct?.cataloguePage,
+        image: optionalImageFromSanity(product.image, language) ?? fallbackProduct?.image,
+        variants,
+      } satisfies StoreProduct
+    })
+    .filter((product) => product.variants.length)
+
+  return normalized.length ? normalized : fallback
+}
+
 const casesFromSanity = (
   cases: SanityCaseStudy[] | undefined,
   language: LanguageCode,
@@ -1920,6 +2148,16 @@ const postsFromSanity = (
       article: localizedArticle(post.article, language, fallback[index]?.article),
     }))
 }
+
+// Localizes the per-slug blog detail (body + article) fetched separately so the
+// heavy article bodies stay out of the global query.
+export const blogDetailContent = (
+  raw: {body?: LocalizedValue; article?: LocalizedArticleValue} | null | undefined,
+  language: LanguageCode,
+): {body: string; article?: RichArticleBlock[]} => ({
+  body: localized(raw?.body, language, ''),
+  article: localizedArticle(raw?.article, language, undefined),
+})
 
 const applySiteContentFromSanity = (
   target: SiteContent,
@@ -1985,6 +2223,12 @@ const applySiteContentFromSanity = (
       fallback.productsPage.heroImage,
     ),
     lead: localized(source.productsPage?.lead, language, fallback.productsPage.lead),
+  }
+
+  target.storePage = {
+    ...fallback.storePage,
+    hero: copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero),
+    lead: localized(source.storePage?.lead, language, fallback.storePage.lead),
   }
 
   target.catalogue = {
@@ -2081,6 +2325,11 @@ export const contentFromSanity = (
       collections.products,
       language,
       fallbackContent[language].products,
+    )
+    next[language].storeProducts = storeProductsFromSanity(
+      collections.storeProducts,
+      language,
+      fallbackContent[language].storeProducts,
     )
     next[language].caseStudies = casesFromSanity(
       collections.caseStudies,

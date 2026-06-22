@@ -2,6 +2,8 @@
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
+  import Toaster from '$lib/components/Toaster.svelte'
+  import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {onMount} from 'svelte'
   import '../app.css'
 
@@ -9,12 +11,22 @@
 
   const content = $derived(data.site[data.language])
 
-  type NavKey = 'home' | 'about' | 'products' | 'catalogue' | 'cases' | 'blog' | 'contact'
+  type NavKey =
+    | 'home'
+    | 'about'
+    | 'products'
+    | 'store'
+    | 'cart'
+    | 'catalogue'
+    | 'cases'
+    | 'blog'
+    | 'contact'
 
   const allRouteItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
     {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
@@ -22,11 +34,10 @@
 
   const allDockItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
-    {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
     {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
-    {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
     {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
   ])
 
@@ -36,6 +47,8 @@
   const currentNavKey = $derived.by<NavKey>(() => {
     if (data.currentPath === '/') return 'home'
     if (data.currentPath.startsWith('/produtos')) return 'products'
+    if (data.currentPath.startsWith('/loja')) return 'store'
+    if (data.currentPath.startsWith('/carrinho')) return 'cart'
     if (data.currentPath.startsWith('/catalogo')) return 'catalogue'
     if (data.currentPath.startsWith('/casos-de-estudo')) return 'cases'
     if (data.currentPath.startsWith('/blog')) return 'blog'
@@ -45,7 +58,8 @@
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
   const routeItems = $derived(allRouteItems)
-  const dockItems = $derived(allDockItems.filter((item) => item.key !== 'blog'))
+  const dockItems = $derived(allDockItems)
+  let cartCount = $state(0)
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
     [
@@ -58,6 +72,8 @@
     if (data.currentPath === '/') return 'home'
     if (data.currentPath.startsWith('/produtos/')) return 'product-detail'
     if (data.currentPath.startsWith('/produtos')) return 'products'
+    if (data.currentPath.startsWith('/loja')) return 'store'
+    if (data.currentPath.startsWith('/carrinho')) return 'store'
     if (data.currentPath.startsWith('/catalogo')) return 'catalogue'
     if (data.currentPath.startsWith('/casos-de-estudo/')) return 'case-detail'
     if (data.currentPath.startsWith('/casos-de-estudo')) return 'cases'
@@ -70,16 +86,26 @@
 
   onMount(() => {
     const resetScroll = () => window.scrollTo(0, 0)
+    const refreshCartCount = () => {
+      cartCount = cartTotalQuantity(readCart())
+    }
 
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual'
     }
+
+    refreshCartCount()
+    window.addEventListener(cartEventName, refreshCartCount)
 
     resetScroll()
     requestAnimationFrame(() => {
       resetScroll()
       window.setTimeout(resetScroll, 120)
     })
+
+    return () => {
+      window.removeEventListener(cartEventName, refreshCartCount)
+    }
   })
 </script>
 
@@ -117,6 +143,18 @@
       href={withLanguage('/contacto', data.language)}
     >
       {content.nav.contact}
+    </a>
+    <a
+      class="cart-link"
+      class:active={currentNavKey === 'cart'}
+      aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+      aria-label={`${content.nav.cart} (${cartCount})`}
+      href={withLanguage('/carrinho', data.language)}
+    >
+      <span class="cart-label">{content.nav.cart}</span>
+      {#if cartCount > 0}
+        <span class="cart-count">{cartCount}</span>
+      {/if}
     </a>
     <div class="language-switcher" aria-label="Language">
       {#each data.languages as language}
@@ -187,3 +225,5 @@
   </a>
   {/if}
 {/if}
+
+<Toaster />

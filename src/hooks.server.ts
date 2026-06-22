@@ -29,7 +29,11 @@ export const handle: Handle = async ({event, resolve}) => {
   }
 
   const headers = new Headers(response.headers)
-  headers.set('cache-control', 'no-store, max-age=0')
+  // Private backoffice: never store. Public pages: allow the browser's
+  // back/forward cache (no-store would disable it) while still revalidating,
+  // so navigation feels instant without serving stale content.
+  const isPrivate = pathname === '/painel' || pathname.startsWith('/painel/')
+  headers.set('cache-control', isPrivate ? 'no-store, max-age=0' : 'private, no-cache')
 
   return new Response(response.body, {
     headers,

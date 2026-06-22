@@ -24,7 +24,14 @@ export const profileStatusLabels: Record<string, string> = {
   archived: 'Arquivado',
 }
 
-export const sourceLabel = (source: string) => (source === 'catalogue' ? 'Catálogo' : 'Contacto')
+export const sourceLabel = (source: string) => {
+  if (source === 'catalogue') return 'Catálogo'
+  if (source === 'store') return 'Loja'
+  if (source === 'product') return 'Produto'
+  if (source === 'case') return 'Caso'
+  if (source === 'blog') return 'Blog'
+  return 'Contacto'
+}
 
 export const fmtDateTime = (iso?: string) => (iso ? new Date(iso).toLocaleString('pt-PT') : '')
 export const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('pt-PT') : '')

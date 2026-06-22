@@ -10,7 +10,9 @@
     const base = {delay: 20, duration: 660, easing: cubicOut, opacity: 0.12}
 
     if (kind === 'home') return {...base, y: 0, duration: 560, opacity: 0.72}
-    if (kind === 'products' || kind === 'product-detail') return {...base, y: 26}
+    if (kind === 'products' || kind === 'product-detail' || kind === 'store') {
+      return {...base, y: 26}
+    }
     if (kind === 'catalogue') return {...base, x: -18, y: 16}
     if (kind === 'cases' || kind === 'case-detail') return {...base, y: 18}
     if (kind === 'blog' || kind === 'blog-detail') return {...base, x: 18, y: 14}

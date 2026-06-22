@@ -4,6 +4,7 @@ const sourceOptions = [
   {title: 'Contacto', value: 'contact'},
   {title: 'Catálogo', value: 'catalogue'},
   {title: 'Produto', value: 'product'},
+  {title: 'Loja', value: 'store'},
   {title: 'Caso de estudo', value: 'case'},
   {title: 'Blog', value: 'blog'},
   {title: 'Outro', value: 'unknown'},

@@ -73,7 +73,7 @@ npm run seed:studio
 npm run deploy:content
 ```
 
-- `seed:studio:write` generates `.sanity/seed.ndjson` locally, including the `siteContent` singleton, page copy, contact/legal footer fields, homepage video URL, partner/media sections, and starter product documents.
+- `seed:studio:write` generates `.sanity/seed.ndjson` locally, including the `siteContent` singleton, page copy, contact/legal footer fields, homepage video URL, partner/media sections, starter product documents, and starter Loja product/price documents.
 - `seed:studio` imports those starter documents into Sanity dataset `production` with `--replace`.
 - `deploy:content` intentionally refreshes code-managed Sanity content by running the starter seed, historical case-study import, and historical blog import in sequence. Keep it out of Railway builds unless replacing Content Lake documents on every website deploy is intended.
 
