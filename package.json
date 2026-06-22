@@ -36,6 +36,7 @@
     "import:products:write": "tsx scripts/write-product-import.ts",
     "import:products": "npm run import:products:write && sanity datasets import .sanity/product-import.ndjson --dataset production --replace",
     "staff:create": "tsx scripts/create-staff.ts",
+    "warm:images": "tsx scripts/warm-images.ts",
     "deploy:content": "npm run seed:studio && npm run import:cases && npm run import:blog && npm run import:products",
     "deploy:studio": "sanity deploy",
     "deploy-graphql": "sanity graphql deploy",
