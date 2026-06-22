@@ -138,6 +138,9 @@
           </div>
           <div class="product-panel-copy">
             <h2>{product.title}</h2>
+            {#if product.summary}
+              <p>{product.summary}</p>
+            {/if}
           </div>
         </a>
       {/each}
