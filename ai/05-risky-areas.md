@@ -29,6 +29,7 @@ Use this to help agents avoid accidental damage.
 - Product and case-study detail lookups in their `[slug]` server loads.
 - Sanity schema fields and frontend query field names must stay aligned.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
+- The public Sanity document client must stay `useCdn: false`; otherwise Studio edits can look unpublished/stale on the website even when renderers are wired correctly.
 - Loja schema, fallback prices, seed generation, GROQ projection, route filters/pagination, and tests must stay aligned.
 - Carrinho resolves local browser selections against the current public Loja content. If product slugs, variant order, or finish keys change, update fallback/Sanity content and tests together.
 - The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
@@ -86,6 +87,7 @@ Use this to help agents avoid accidental damage.
 - Showing Loja variants, dimensions, finish selectors, catalogue page badges, or proposal links on the list; those belong on the Loja detail route.
 - Turning Carrinho into checkout by accident. It is only a quote builder: no payments, login, registration, stock, shipping, or final order records.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
+- Switching public Sanity document fetches to the cached CDN while expecting live CMS edits to appear immediately.
 - Adding private CRM fields to `src/lib/sanity.ts` or any public route by mistake.
 - Exposing `SANITY_CRM_WRITE_TOKEN` through public environment variables, logs, generated static files, or client-side code.
 - Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.

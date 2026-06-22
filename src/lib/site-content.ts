@@ -1029,7 +1029,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Produtos',
         title: 'Soluções para exterior que não querem manutenção constante',
-        lead: 'Da sinalética aos decks, das floreiras aos resguardos, os produtos partem da mesma lógica: resíduos do ecoponto amarelo transformados com sentido prático.',
+        lead: '',
       },
       heroImage: fallbackImages.product,
       lead: 'Escolha a aplicação que mais se aproxima do seu projeto e avance para uma página com usos, vantagens e pedido de orçamento.',
@@ -1110,7 +1110,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Casos de estudo',
         title: 'Projetos que mostram o material em uso real',
-        lead: 'Casos curtos e objetivos para perceber o problema, a solução aplicada e o resultado no espaço.',
+        lead: '',
       },
       heroImage: fallbackImages.caseStudy,
     },
@@ -1118,7 +1118,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Blog ambiental',
         title: 'Conteúdo que vende ensinando',
-        lead: 'O blog deve responder a dúvidas reais sobre resíduos, madeira plástica, compostagem, manutenção e decisão de materiais.',
+        lead: '',
       },
       heroImage: fallbackImages.blog,
       newsletter: {
@@ -1317,7 +1317,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Products',
         title: 'Outdoor solutions that avoid constant maintenance',
-        lead: 'From signage to decking, from planters to screens, the product logic is the same: yellow-bin waste transformed with practical sense.',
+        lead: '',
       },
       heroImage: fallbackImages.product,
       lead: 'Choose the application closest to your project and move into a page with uses, advantages and quote context.',
@@ -1401,7 +1401,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Case studies',
         title: 'Projects that show the material in real use',
-        lead: 'Short, useful cases showing the problem, the applied solution and the result in place.',
+        lead: '',
       },
       heroImage: fallbackImages.caseStudy,
     },
@@ -1409,7 +1409,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Environmental blog',
         title: 'Content that sells by teaching',
-        lead: 'The blog should answer real questions about waste, recycled-plastic timber, composting, maintenance and material choice.',
+        lead: '',
       },
       heroImage: fallbackImages.blog,
       newsletter: {
@@ -1608,7 +1608,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Productos',
         title: 'Soluciones exteriores sin mantenimiento constante',
-        lead: 'Desde señalética hasta tarimas, jardineras o resguardos, la lógica es la misma: residuos del contenedor amarillo transformados con sentido práctico.',
+        lead: '',
       },
       heroImage: fallbackImages.product,
       lead: 'Elige la aplicación más cercana a tu proyecto y entra en una página con usos, ventajas y contexto de presupuesto.',
@@ -1689,7 +1689,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Casos de estudio',
         title: 'Proyectos que muestran el material en uso real',
-        lead: 'Casos cortos y útiles que muestran el problema, la solución aplicada y el resultado en el espacio.',
+        lead: '',
       },
       heroImage: fallbackImages.caseStudy,
     },
@@ -1697,7 +1697,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Blog ambiental',
         title: 'Contenido que vende enseñando',
-        lead: 'El blog debe responder dudas reales sobre residuos, madera plástica, compostaje, mantenimiento y elección de materiales.',
+        lead: '',
       },
       heroImage: fallbackImages.blog,
       newsletter: {
@@ -2216,7 +2216,7 @@ const applySiteContentFromSanity = (
   }
 
   target.productsPage = {
-    hero: copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero),
+    hero: {...copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero), lead: ''},
     heroImage: imageFromSanity(
       source.productsPage?.heroImage,
       language,
@@ -2271,12 +2271,12 @@ const applySiteContentFromSanity = (
   }
 
   target.casesPage = {
-    hero: copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero),
+    hero: {...copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero), lead: ''},
     heroImage: imageFromSanity(source.casesPage?.heroImage, language, fallback.casesPage.heroImage),
   }
 
   target.blogPage = {
-    hero: copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero),
+    hero: {...copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero), lead: ''},
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
     newsletter: copyBlockFromSanity(
       source.blogPage?.newsletter,

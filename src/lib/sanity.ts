@@ -7,10 +7,10 @@ export const sanityClient = createClient({
   projectId,
   dataset,
   apiVersion: '2026-06-10',
-  // Serve published content from Sanity's cached CDN edge instead of hitting the
-  // live API on every SSR render — far faster page loads (content changes show
-  // within ~a minute, which is fine for this site).
-  useCdn: true,
+  // This is a CMS-driven site: editors expect published Studio changes, especially
+  // image swaps, to show up immediately. Image assets still come from Sanity's CDN;
+  // only the document query bypasses the cached API edge.
+  useCdn: false,
 })
 
 const collectionsQuery = `{
@@ -91,7 +91,10 @@ const collectionsQuery = `{
       }
     },
     productsPage {
-      hero,
+      hero {
+        kicker,
+        title
+      },
       heroImage {
         asset -> {
           url,
@@ -130,7 +133,10 @@ const collectionsQuery = `{
       note
     },
     casesPage {
-      hero,
+      hero {
+        kicker,
+        title
+      },
       heroImage {
         asset -> {
           url,
@@ -144,7 +150,10 @@ const collectionsQuery = `{
       }
     },
     blogPage {
-      hero,
+      hero {
+        kicker,
+        title
+      },
       heroImage {
         asset -> {
           url,

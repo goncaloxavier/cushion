@@ -56,6 +56,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(siteSchema).toContain("'Consentimento de dados/marketing'")
     expect(siteSchema).toContain("'Labels visíveis do formulário'")
     expect(siteSchema).toContain("'Labels antigos do formulário'")
+    expect(siteSchema).toContain("copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false})")
     expect(siteSchema).not.toContain("'Navigation labels'")
     expect(siteSchema).not.toContain("'Shared labels and contact'")
   })
@@ -88,7 +89,10 @@ test.describe('Sanity Studio content contract', () => {
 
   test('frontend query reads the same collections editors manage', () => {
     const sanityClient = read('src/lib/sanity.ts')
+    const warmImages = read('scripts/warm-images.ts')
 
+    expect(sanityClient).toContain('useCdn: false')
+    expect(warmImages).toContain('useCdn: false')
     expect(sanityClient).toContain('_id == "siteContent"')
     expect(sanityClient).toContain('_type == "siteLanding"')
     expect(sanityClient).toContain('_type == "productCategory"')

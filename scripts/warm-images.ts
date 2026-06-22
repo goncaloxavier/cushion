@@ -15,7 +15,8 @@ const client = createClient({
   projectId: 'u4uyfix8',
   dataset: 'production',
   apiVersion: '2026-06-10',
-  useCdn: true,
+  // Warm the current published image set, not a stale cached document list.
+  useCdn: false,
 })
 
 // Never fail a build/deploy over image warming — warm what we can, exit 0.

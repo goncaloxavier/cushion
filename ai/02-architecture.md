@@ -89,6 +89,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 ## Data Boundaries
 
 - Public source of truth: Sanity project `u4uyfix8`, dataset `production`, schema definitions committed in this repo, and fallback content in `src/lib/site-content.ts` until Sanity is populated.
+- Public Sanity document queries intentionally use `useCdn: false` so published Studio edits, especially image swaps, show immediately. Image asset URLs still use Sanity's CDN and the warm-up script only pre-generates transformed image variants.
 - Private source of truth: Sanity project `u4uyfix8`, private dataset `crm`, document types `formSubmission` and `clientProfile`.
 - Confidential data: submitted names, email addresses, phone numbers, messages, consent text, internal notes, and CRM statuses belong only in the private `crm` dataset and must not be queried by public frontend loaders.
 - Local browser data: the Loja cart stores only product slugs, variant indexes, finish keys, and quantities under `df4y-store-cart-v1`; it must not store visitor identity, contact details, or free-text messages.
@@ -134,6 +135,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - Public content in dataset `production` can be readable by the website. Editing that content happens through Sanity login/permissions in Studio.
 - Private form/client data belongs in dataset `crm`; writes happen only through SvelteKit server code using `SANITY_CRM_WRITE_TOKEN`, and the token must never be exposed to the browser.
 - Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
+- Do not switch the public Sanity document client back to `useCdn: true` without explicit acceptance that Studio edits can appear stale. This site is meant to feel CMS-live for editors.
 - Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
 - Keep page video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.

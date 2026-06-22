@@ -16,7 +16,7 @@ npm run seed:studio:write
 ## What Is Protected
 
 - Unit tests: none configured.
-- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, plus public website workspace vs private CRM workspace separation, once in the desktop Playwright project because the file contract is viewport independent.
+- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, confirms public Sanity document queries bypass the cached API CDN, plus public website workspace vs private CRM workspace separation, once in the desktop Playwright project because the file contract is viewport independent.
 - E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable mobile bottom dock, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/quote-prefill flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, and 404 handling across desktop/mobile where the viewport matters.
 - Visual tests: `tests/visual.spec.ts` can generate/review full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages. Snapshot output is ignored and session-only.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 21 starter Sanity documents from fallback content: the site singleton, 5 product categories, and 15 Loja products.

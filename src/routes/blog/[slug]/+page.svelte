@@ -1,11 +1,12 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
+  import {collectionListHref} from '$lib/collection-page'
   import {blogImageFallback, blogImagesFor} from '$lib/site-content'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
-  const langQuery = $derived(`?lang=${data.language}`)
+  const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
 </script>
 
@@ -17,7 +18,7 @@
   <article class="detail-page blog-detail">
     <header class="blog-detail-header">
       <div>
-        <a class="detail-back-link" href={`/blog${langQuery}`}>
+        <a class="detail-back-link" href={backHref}>
           <span aria-hidden="true">←</span>
           {content.common.backToBlog}
         </a>

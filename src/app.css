@@ -2108,6 +2108,97 @@ dt {
   background: linear-gradient(180deg, #ffffff, #f8fbfa);
 }
 
+.blog-collection-section .collection-results {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  align-items: stretch;
+}
+
+.blog-collection-section .collection-results > .journal-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  height: 100%;
+  min-height: 31rem;
+  padding: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.blog-collection-section .collection-results > .journal-card > .journal-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #f7fbf8;
+  border-bottom: 1px solid rgba(17, 57, 60, 0.12);
+}
+
+.blog-collection-section .collection-results > .journal-card > .journal-card-media img {
+  object-fit: cover;
+  background: #f7fbf8;
+}
+
+.blog-collection-section .collection-results > .journal-card > .journal-card-copy {
+  display: flex;
+  flex-direction: column;
+  align-content: start;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  min-height: 0;
+  padding: 1.05rem 1.15rem 1.2rem;
+}
+
+.blog-collection-section .journal-card-copy span,
+.blog-collection-section .journal-card-copy time {
+  color: var(--sea);
+  font-size: 0.78rem;
+  font-weight: 880;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.blog-collection-section .journal-card-copy time {
+  margin-top: -0.22rem;
+  color: #34443d;
+}
+
+.blog-collection-section .journal-card h2 {
+  display: -webkit-box;
+  margin: 0.12rem 0 0;
+  overflow: hidden;
+  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-size: clamp(1.45rem, 2.2vw, 1.95rem);
+  font-weight: 850;
+  line-height: 1.08;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.blog-collection-section .journal-card-copy p {
+  display: -webkit-box;
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  color: #34443d;
+  font-size: 1.02rem;
+  line-height: 1.58;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.blog-collection-section .journal-card-copy strong {
+  align-self: start;
+  width: fit-content;
+  margin-top: auto;
+  padding-top: 0.7rem;
+  color: var(--green-dark);
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: rgba(17, 57, 60, 0.35);
+  text-underline-offset: 0.28rem;
+}
+
 .collection-control-band {
   padding-top: 0;
   padding-bottom: 1.6rem;

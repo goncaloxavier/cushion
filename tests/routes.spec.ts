@@ -121,7 +121,14 @@ async function collectPagedCards(page: Page, cardSelector: string, imageSelector
     const pageCards = await page.locator(cardSelector).evaluateAll(
       (anchors, selector) =>
         anchors.map((anchor) => ({
-          href: (anchor as HTMLAnchorElement).getAttribute('href') ?? '',
+          href: (() => {
+            const rawHref = (anchor as HTMLAnchorElement).getAttribute('href') ?? ''
+            if (!rawHref) return ''
+
+            const url = new URL(rawHref, window.location.origin)
+            url.searchParams.delete('fromPage')
+            return `${url.pathname}${url.search}`
+          })(),
           hasImage: typeof selector === 'string' ? Boolean(anchor.querySelector(selector)) : false,
         })),
       imageSelector,
@@ -173,12 +180,6 @@ async function waitForCollectionStart(page: Page, selector: string) {
     selector,
     {timeout: 5000},
   )
-}
-
-async function clickVisibleButton(page: Page, selector: string) {
-  const box = await page.locator(selector).boundingBox()
-  expect(box).not.toBeNull()
-  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2)
 }
 
 async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: TestInfo) {
@@ -374,12 +375,49 @@ test.describe('public website routes', () => {
     await page.locator('.pagination').scrollIntoViewIfNeeded()
     const beforePaginationScroll = await page.evaluate(() => window.scrollY)
 
-    await clickVisibleButton(page, 'button[aria-label="Seguinte"]')
+    await page.getByRole('button', {name: 'Seguinte'}).click()
     await expect(page.locator('.pagination-page.active')).toHaveText('2')
     await waitForCollectionStart(page, '.case-collection-section')
 
     const afterPaginationScroll = await page.evaluate(() => window.scrollY)
     expect(afterPaginationScroll).toBeLessThan(beforePaginationScroll)
+  })
+
+  test('collection detail links preserve the current list page', async ({page}) => {
+    await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
+    await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+
+    test.skip(
+      (await page.locator('.pagination-page').count()) < 2,
+      'Return-page behavior needs a second collection page',
+    )
+
+    await page.getByRole('button', {name: 'Seguinte'}).click()
+    await expect(page.locator('.pagination-page.active')).toHaveText('2')
+    await expect(page).toHaveURL(/\/loja\?lang=pt&page=2/)
+
+    const storeCard = page.locator('.store-card').first()
+    await expect(storeCard).toHaveAttribute('href', /fromPage=2/)
+
+    await storeCard.click()
+    await expect(page).toHaveURL(/\/loja\/.+fromPage=2/)
+    await expect(page.getByRole('link', {name: 'Voltar à loja'})).toHaveAttribute(
+      'href',
+      '/loja?lang=pt&page=2',
+    )
+
+    await page.getByRole('link', {name: 'Voltar à loja'}).click()
+    await expect(page).toHaveURL(/\/loja\?lang=pt&page=2/)
+    await expect(page.locator('.pagination-page.active')).toHaveText('2')
+  })
+
+  test('blog cards present article context and read action', async ({page}) => {
+    await page.goto('/blog?lang=pt', {waitUntil: 'domcontentloaded'})
+
+    const article = page.locator('.journal-card').first()
+    await expect(article).toContainText('Ler artigo')
+    await expect(article.locator('p')).toBeVisible()
+    await expect(article.locator('time')).toBeVisible()
   })
 
   test('refresh starts at the beginning of the page', async ({page}) => {

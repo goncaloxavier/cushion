@@ -1,10 +1,13 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import {collectionListHref} from '$lib/collection-page'
   import {caseStudyImageFallback, caseStudyImagesFor} from '$lib/site-content'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
-  const langQuery = $derived(`?lang=${data.language}`)
+  const backHref = $derived(
+    collectionListHref('/casos-de-estudo', data.language, data.returnPage),
+  )
   const images = $derived(caseStudyImagesFor(data.caseStudy, caseStudyImageFallback))
   const lead = $derived(data.caseStudy.description || data.caseStudy.summary)
   const hasProcess = $derived(
@@ -20,7 +23,7 @@
   <article class="detail-page case-detail">
     <section class="case-detail-hero">
       <div class="case-detail-overlay">
-        <a class="detail-back-link" href={`/casos-de-estudo${langQuery}`}>
+        <a class="detail-back-link" href={backHref}>
           <span aria-hidden="true">←</span>
           {content.common.backToCases}
         </a>

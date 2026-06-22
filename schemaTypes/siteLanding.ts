@@ -16,23 +16,30 @@ const localizedTextField = (name: string, title: string, description?: string) =
     type: 'localizedText',
   })
 
-const copyBlockField = (name: string, title: string, description?: string) =>
-  defineField({
+const copyBlockField = (
+  name: string,
+  title: string,
+  description?: string,
+  options: {includeLead?: boolean} = {},
+) => {
+  const fields = [
+    localizedStringField('kicker', 'Etiqueta pequena', 'Texto curto acima do título, quando existir.'),
+    localizedStringField('title', 'Título principal', 'O título visível nesta zona da página.'),
+  ]
+
+  if (options.includeLead !== false) {
+    fields.push(localizedTextField('lead', 'Texto de apoio', 'Texto curto logo abaixo do título.'))
+  }
+
+  return defineField({
     name,
     title,
     description,
     type: 'object',
     options: {collapsible: true},
-    fields: [
-      localizedStringField(
-        'kicker',
-        'Etiqueta pequena',
-        'Texto curto acima do título, quando existir.',
-      ),
-      localizedStringField('title', 'Título principal', 'O título visível nesta zona da página.'),
-      localizedTextField('lead', 'Texto de apoio', 'Texto curto logo abaixo do título.'),
-    ],
+    fields,
   })
+}
 
 const pageImageField = (name: string, title: string, description?: string) =>
   defineField({
@@ -207,7 +214,7 @@ export const siteLanding = defineType({
       'productsPage',
       'Página Produtos',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
         pageImageField(
           'heroImage',
           'Imagem principal da primeira secção',
@@ -263,7 +270,7 @@ export const siteLanding = defineType({
       'casesPage',
       'Página Casos',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
         pageImageField(
           'heroImage',
           'Imagem principal da primeira secção',
@@ -276,7 +283,7 @@ export const siteLanding = defineType({
       'blogPage',
       'Página Blog',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
         pageImageField(
           'heroImage',
           'Imagem principal da primeira secção',

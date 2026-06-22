@@ -1,6 +1,8 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {browser} from '$app/environment'
+  import {collectionDetailHref} from '$lib/collection-page'
   import {imageFor, productImageFallback} from '$lib/site-content'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -8,10 +10,10 @@
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
-  const langQuery = $derived(`?lang=${data.language}`)
   let query = $state('')
-  let page = $state(1)
+  let page = $state((() => data.initialPage)())
   let swapping = $state(false)
+  let queryEffectInitialized = false
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
   const normalizedQuery = $derived(query.trim().toLowerCase())
@@ -25,14 +27,31 @@
   )
   const totalPages = $derived(Math.max(1, Math.ceil(filteredProducts.length / pageSize)))
   const visibleProducts = $derived(filteredProducts.slice((page - 1) * pageSize, page * pageSize))
+  const updatePageUrl = (nextPage: number) => {
+    if (!browser) return
+
+    const url = new URL(window.location.href)
+    if (nextPage > 1) url.searchParams.set('page', String(nextPage))
+    else url.searchParams.delete('page')
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }
 
   $effect(() => {
     query
+    if (!queryEffectInitialized) {
+      queryEffectInitialized = true
+      return
+    }
+
     page = 1
+    updatePageUrl(1)
   })
 
   $effect(() => {
-    if (page > totalPages) page = totalPages
+    if (page > totalPages) {
+      page = totalPages
+      updatePageUrl(totalPages)
+    }
   })
 
   const setCollectionPage = (nextPage: number) => {
@@ -44,6 +63,7 @@
       collectionSection,
       () => {
         page = boundedPage
+        updatePageUrl(boundedPage)
       },
       tick,
       (value) => {
@@ -62,7 +82,6 @@
     <Reveal class="product-index-copy" variant="hero" priority>
       <p class="kicker">{content.productsPage.hero.kicker}</p>
       <h1>{content.productsPage.hero.title}</h1>
-      <p>{content.productsPage.hero.lead}</p>
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>
@@ -100,7 +119,10 @@
     <div class="collection-results" class:page-swap-out={swapping}>
       {#each visibleProducts as product}
         {@const image = imageFor(product, productImageFallback)}
-        <a class="product-panel" href={`/produtos/${product.slug}${langQuery}`}>
+        <a
+          class="product-panel"
+          href={collectionDetailHref(`/produtos/${product.slug}`, data.language, page)}
+        >
           <div class="product-panel-media">
             <img
               src={sizedImage(image.url, 640)}

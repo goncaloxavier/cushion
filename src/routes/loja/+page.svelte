@@ -2,6 +2,8 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {browser} from '$app/environment'
+  import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import type {LanguageCode, StoreCategory, StoreProduct} from '$lib/site-content'
@@ -37,8 +39,9 @@
   let query = $state('')
   let category = $state<CategoryFilter>('all')
   let sort = $state<SortKey>('featured')
-  let page = $state(1)
+  let page = $state((() => data.initialPage)())
   let swapping = $state(false)
+  let filterEffectInitialized = false
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
 
@@ -95,16 +98,33 @@
   })
   const totalPages = $derived(Math.max(1, Math.ceil(filteredProducts.length / pageSize)))
   const visibleProducts = $derived(filteredProducts.slice((page - 1) * pageSize, page * pageSize))
+  const updatePageUrl = (nextPage: number) => {
+    if (!browser) return
+
+    const url = new URL(window.location.href)
+    if (nextPage > 1) url.searchParams.set('page', String(nextPage))
+    else url.searchParams.delete('page')
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }
 
   $effect(() => {
     query
     category
     sort
+    if (!filterEffectInitialized) {
+      filterEffectInitialized = true
+      return
+    }
+
     page = 1
+    updatePageUrl(1)
   })
 
   $effect(() => {
-    if (page > totalPages) page = totalPages
+    if (page > totalPages) {
+      page = totalPages
+      updatePageUrl(totalPages)
+    }
   })
 
   const setCollectionPage = (nextPage: number) => {
@@ -116,6 +136,7 @@
       collectionSection,
       () => {
         page = boundedPage
+        updatePageUrl(boundedPage)
       },
       tick,
       (value) => {
@@ -168,7 +189,11 @@
       <div class="store-grid" class:page-swap-out={swapping}>
         {#each visibleProducts as product, index}
           <Reveal class="store-card-reveal" delay={Math.min(index * 35, 180)} variant="card">
-            <a class="store-card" href={`/loja/${product.slug}${langQuery}`} data-store-product={product.slug}>
+            <a
+              class="store-card"
+              href={collectionDetailHref(`/loja/${product.slug}`, data.language, page)}
+              data-store-product={product.slug}
+            >
               <div class={`store-card-visual ${product.image ? '' : 'no-image'}`}>
                 {#if product.image}
                   <img

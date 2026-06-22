@@ -1,5 +1,6 @@
 <script lang="ts">
   import {addCartItem} from '$lib/cart'
+  import {collectionListHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {showToast} from '$lib/toast'
   import type {LanguageCode, StoreFinish} from '$lib/site-content'
@@ -74,6 +75,7 @@
 
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
+  const backHref = $derived(collectionListHref('/loja', data.language, data.returnPage))
   const labels = $derived(pageCopy[data.language])
   const selectedVariant = $derived(
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
@@ -118,7 +120,7 @@
 <main class="store-detail-page">
   <article class="detail-page store-detail">
     <div class="store-detail-head">
-      <a class="detail-back-link" href={`/loja${langQuery}`}>
+      <a class="detail-back-link" href={backHref}>
         <span aria-hidden="true">←</span>
         {labels.back}
       </a>
