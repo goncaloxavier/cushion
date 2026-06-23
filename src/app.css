@@ -4551,11 +4551,11 @@ body.lightbox-open {
 }
 
 .product-editorial-stage {
-  padding: clamp(2rem, 4.4vw, 3.8rem) max(1.25rem, calc((100% - var(--max)) / 2))
-    clamp(2.1rem, 4.6vw, 4rem);
-  background: #ffffff;
-  border-top: 1px solid rgba(17, 57, 60, 0.08);
-  border-bottom: 1px solid rgba(17, 57, 60, 0.08);
+  padding: clamp(2.6rem, 5vw, 4.6rem) max(1.25rem, calc((100% - var(--max)) / 2))
+    clamp(2.6rem, 5vw, 4.6rem);
+  background:
+    radial-gradient(circle at 82% 8%, rgba(34, 111, 136, 0.3), transparent 26rem),
+    linear-gradient(135deg, #082c34, #123f43 58%, #0f3033);
 }
 
 .product-stage-gallery {
