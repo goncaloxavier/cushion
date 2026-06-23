@@ -101,14 +101,31 @@
 
   let smooth: SmoothScroll | null = null
 
+  const detailRoute = /^\/(produtos|casos-de-estudo|blog)\/[^/]+$/
+  const transitionKind = (from: string, to: string) => {
+    if (to === '/') return 'home'
+    const toDetail = detailRoute.test(to)
+    const fromDetail = detailRoute.test(from)
+    if (toDetail && !fromDetail) return 'forward'
+    if (fromDetail && !toDetail) return 'back'
+    return 'lateral'
+  }
+
   onNavigate((navigation) => {
     if (prefersReducedMotion()) return
     if (!document.startViewTransition) return
 
+    const from = navigation.from?.url.pathname ?? ''
+    const to = navigation.to?.url.pathname ?? ''
+    document.documentElement.dataset.transition = transitionKind(from, to)
+
     return new Promise<void>((resolve) => {
-      document.startViewTransition(async () => {
+      const transition = document.startViewTransition(async () => {
         resolve()
         await navigation.complete
+      })
+      transition.finished.finally(() => {
+        delete document.documentElement.dataset.transition
       })
     })
   })

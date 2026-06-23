@@ -7264,6 +7264,75 @@ html.reduce-motion {
   animation: vt-fade-in 640ms var(--ease-snap) both;
 }
 
+/* Depth/direction-aware variants (base above = the lateral default). The kind is
+   set on <html data-transition> in onNavigate; all GPU-composited snapshot
+   animation, no extra JS or content. */
+html[data-transition='forward']::view-transition-old(root) {
+  animation: vt-recede 400ms var(--ease) both;
+}
+
+html[data-transition='forward']::view-transition-new(root) {
+  animation: vt-zoom-in 640ms var(--ease-snap) both;
+}
+
+html[data-transition='back']::view-transition-old(root) {
+  animation: vt-approach 360ms var(--ease) both;
+}
+
+html[data-transition='back']::view-transition-new(root) {
+  animation: vt-zoom-out 600ms var(--ease-snap) both;
+}
+
+html[data-transition='home']::view-transition-old(root) {
+  animation: vt-fade-out 320ms var(--ease) both;
+}
+
+html[data-transition='home']::view-transition-new(root) {
+  animation: vt-home-in 820ms var(--ease-snap) both;
+}
+
+@keyframes vt-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes vt-recede {
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes vt-zoom-out {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes vt-approach {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes vt-home-in {
+  from {
+    opacity: 0;
+    clip-path: inset(16% 0 0 0);
+    transform: translateY(44px) scale(0.984);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+
 /* --- Smooth scroll (Lenis) --- */
 html.lenis,
 html.lenis body {
