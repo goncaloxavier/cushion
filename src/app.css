@@ -7351,85 +7351,6 @@ html.lenis body {
   overflow: hidden;
 }
 
-/* --- Custom cursor (desktop pointer:fine only) --- */
-html.has-custom-cursor,
-html.has-custom-cursor a,
-html.has-custom-cursor button,
-html.has-custom-cursor [role='button'],
-html.has-custom-cursor input,
-html.has-custom-cursor textarea,
-html.has-custom-cursor label {
-  cursor: none;
-}
-
-.cursor-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 200;
-  pointer-events: none;
-  /* Invert against whatever is underneath — always crisp on dark heroes + light
-     sections without picking a colour. */
-  mix-blend-mode: difference;
-}
-
-.cursor-dot,
-.cursor-ring {
-  position: fixed;
-  top: 0;
-  left: 0;
-  border-radius: 999px;
-  pointer-events: none;
-  will-change: transform;
-}
-
-.cursor-dot {
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  background: #ffffff;
-  transition:
-    opacity 180ms ease,
-    width 200ms var(--ease-snap),
-    height 200ms var(--ease-snap),
-    margin 200ms var(--ease-snap);
-}
-
-.cursor-ring {
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
-  border: 1.5px solid #ffffff;
-  transition:
-    width 240ms var(--ease-snap),
-    height 240ms var(--ease-snap),
-    margin 240ms var(--ease-snap),
-    opacity 180ms ease;
-}
-
-.cursor-root.is-hover .cursor-ring {
-  width: 42px;
-  height: 42px;
-  margin: -21px 0 0 -21px;
-}
-
-.cursor-root.is-hover .cursor-dot {
-  width: 0;
-  height: 0;
-  margin: 0;
-}
-
-.cursor-root.is-down .cursor-ring {
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-}
-
-.cursor-root.is-hidden .cursor-dot,
-.cursor-root.is-hidden .cursor-ring {
-  opacity: 0;
-}
-
 /* --- Magnetic --- */
 .is-magnetic {
   transition: transform 460ms var(--ease-snap);
@@ -7524,15 +7445,8 @@ html.reduce-motion .line-reveal .line-inner {
   transition: none !important;
 }
 
-html.reduce-motion .cursor-root,
 html.reduce-motion .intro-overlay {
   display: none !important;
-}
-
-html.reduce-motion.has-custom-cursor,
-html.reduce-motion.has-custom-cursor a,
-html.reduce-motion.has-custom-cursor button {
-  cursor: auto;
 }
 
 html.reduce-motion .is-magnetic {

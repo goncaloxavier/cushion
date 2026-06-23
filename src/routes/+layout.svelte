@@ -1,6 +1,5 @@
 <script lang="ts">
   import BrandIcon from '$lib/components/BrandIcon.svelte'
-  import Cursor from '$lib/components/Cursor.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
@@ -179,7 +178,6 @@
 {:else}
   <RouteProgress />
   <Intro />
-  <Cursor />
 
 <header class="site-header">
   <div class="brand">
