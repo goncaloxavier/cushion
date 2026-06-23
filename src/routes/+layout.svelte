@@ -5,7 +5,6 @@
   import RouteScene from '$lib/components/RouteScene.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
   import {afterNavigate, onNavigate} from '$app/navigation'
-  import {magnetic} from '$lib/actions/magnetic'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
@@ -236,7 +235,6 @@
       class:active={currentNavKey === 'contact'}
       aria-current={currentNavKey === 'contact' ? 'page' : undefined}
       href={withLanguage('/contacto', data.language)}
-      use:magnetic={{strength: 0.2}}
     >
       {content.nav.contact}
     </a>
