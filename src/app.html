@@ -40,6 +40,18 @@
         )
       })()
     </script>
+    <script>
+      ;(() => {
+        try {
+          const motion = new URLSearchParams(location.search).get('motion')
+          if (motion === 'on') localStorage.setItem('df4y-force-motion', '1')
+          if (motion === 'off') localStorage.removeItem('df4y-force-motion')
+          const forced = localStorage.getItem('df4y-force-motion') === '1'
+          const reduce = !forced && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          if (reduce) document.documentElement.classList.add('reduce-motion')
+        } catch (e) {}
+      })()
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

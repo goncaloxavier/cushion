@@ -320,18 +320,16 @@ img {
    the viewport. Progressive enhancement (Chrome/Edge); other browsers show the
    static card. Gated to motion-friendly users. */
 @supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .collection-results > a {
-      animation: card-enter linear both;
-      animation-timeline: view();
-      animation-range: entry 2% cover 18%;
-    }
+  html:not(.reduce-motion) .collection-results > a {
+    animation: card-enter linear both;
+    animation-timeline: view();
+    animation-range: entry 2% cover 18%;
+  }
 
-    .collection-results > a :is(img) {
-      animation: card-media-enter linear both;
-      animation-timeline: view();
-      animation-range: entry 2% cover 22%;
-    }
+  html:not(.reduce-motion) .collection-results > a :is(img) {
+    animation: card-media-enter linear both;
+    animation-timeline: view();
+    animation-range: entry 2% cover 22%;
   }
 }
 
@@ -5595,10 +5593,8 @@ body.lightbox-open {
   transform: translate3d(0, 1px, 0);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+html.reduce-motion {
+  scroll-behavior: auto;
 }
 
 @media (max-width: 1040px) {
@@ -7432,38 +7428,38 @@ html.has-custom-cursor label {
   }
 }
 
-/* --- Reduced motion: neutralise the motion layer --- */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
-  }
+/* --- Reduced motion: neutralise the motion layer. Gated on the .reduce-motion
+   class (set before paint in app.html) instead of the raw media query, so the
+   ?motion=on override can re-enable motion even when the OS prefers reduced. --- */
+html.reduce-motion::view-transition-old(root),
+html.reduce-motion::view-transition-new(root) {
+  animation: none !important;
+}
 
-  .reveal {
-    clip-path: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
+html.reduce-motion .reveal {
+  clip-path: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
 
-  .line-reveal .line-inner {
-    transform: none !important;
-    transition: none !important;
-  }
+html.reduce-motion .line-reveal .line-inner {
+  transform: none !important;
+  transition: none !important;
+}
 
-  .cursor-root,
-  .intro-overlay {
-    display: none !important;
-  }
+html.reduce-motion .cursor-root,
+html.reduce-motion .intro-overlay {
+  display: none !important;
+}
 
-  html.has-custom-cursor,
-  html.has-custom-cursor a,
-  html.has-custom-cursor button {
-    cursor: auto;
-  }
+html.reduce-motion.has-custom-cursor,
+html.reduce-motion.has-custom-cursor a,
+html.reduce-motion.has-custom-cursor button {
+  cursor: auto;
+}
 
-  .is-magnetic {
-    transform: none !important;
-    transition: none !important;
-  }
+html.reduce-motion .is-magnetic {
+  transform: none !important;
+  transition: none !important;
 }
