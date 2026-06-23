@@ -3,10 +3,34 @@
   import Reveal from '$lib/components/Reveal.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
+  import {
+    caseStudyImageFallback,
+    imageFor,
+    productImageFallback,
+    type LanguageCode,
+  } from '$lib/site-content'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
+
+  const featuredSolutions = $derived(content.products.slice(0, 4))
+  const viewAllLabel: Record<LanguageCode, string> = {
+    pt: 'Ver todas as soluções',
+    en: 'View all solutions',
+    es: 'Ver todas las soluciones',
+  }
+  const selectedWorkLabel: Record<LanguageCode, string> = {
+    pt: 'Casos em uso real',
+    en: 'In the field',
+    es: 'Casos reales',
+  }
+  const viewAllWorkLabel: Record<LanguageCode, string> = {
+    pt: 'Ver todos os casos',
+    en: 'View all case studies',
+    es: 'Ver todos los casos',
+  }
+  const featuredWork = $derived(content.caseStudies.slice(0, 3))
 
   const heroBackgroundVideoEmbed = $derived(
     youtubeEmbedUrl(content.home.heroVideoUrl, {
@@ -134,6 +158,53 @@
     </div>
   {/if}
 
+  <section class="section home-solutions">
+    <Reveal class="home-section-head" variant="panel">
+      <p class="kicker">{content.nav.products}</p>
+      <h2>{content.productsPage.hero.title}</h2>
+      {#if content.productsPage.lead}
+        <p class="home-section-lead">{content.productsPage.lead}</p>
+      {/if}
+    </Reveal>
+
+    <div class="home-solutions-grid">
+      {#each featuredSolutions as product, index}
+        {@const image = imageFor(product, productImageFallback)}
+        <Reveal class="home-solution-card-wrap" delay={index * 70} variant="card">
+          <a class="home-solution-card" href={`/produtos/${product.slug}${langQuery}`}>
+            <div class="home-solution-media">
+              <img
+                src={sizedImage(image.url, 720)}
+                srcset={imageSrcset(image.url, [400, 640, 800, 1100])}
+                sizes="(max-width: 760px) 92vw, 30vw"
+                alt={image.alt}
+                loading="lazy"
+                decoding="async"
+                style:background={image.lqip
+                  ? `center / cover no-repeat url(${image.lqip})`
+                  : undefined}
+                style:view-transition-name={`vt-${product.slug}`}
+              />
+            </div>
+            <div class="home-solution-copy">
+              <h3>{product.title}</h3>
+              {#if product.summary}
+                <p>{product.summary}</p>
+              {/if}
+            </div>
+          </a>
+        </Reveal>
+      {/each}
+    </div>
+
+    <Reveal variant="scale">
+      <a class="home-section-cta" href={`/produtos${langQuery}`}>
+        {viewAllLabel[data.language]}
+        <span aria-hidden="true">→</span>
+      </a>
+    </Reveal>
+  </section>
+
   <section class="section home-impact-ledger">
     <Reveal class="impact-copy" variant="panel">
       <h2>{content.home.impact.title}</h2>
@@ -150,6 +221,48 @@
       {/each}
     </div>
   </section>
+
+  {#if featuredWork.length}
+    <section class="section home-work">
+      <Reveal class="home-section-head" variant="panel">
+        <p class="kicker">{selectedWorkLabel[data.language]}</p>
+        <h2>{content.casesPage.hero.title}</h2>
+      </Reveal>
+
+      <div class="home-work-grid">
+        {#each featuredWork as item, index}
+          {@const image = imageFor(item, caseStudyImageFallback)}
+          <Reveal class="home-work-card-wrap" delay={index * 70} variant="card">
+            <a class="home-work-card" href={`/casos-de-estudo/${item.slug}${langQuery}`}>
+              <div class="home-work-media">
+                <img
+                  src={sizedImage(image.url, 720)}
+                  srcset={imageSrcset(image.url, [400, 640, 800, 1100])}
+                  sizes="(max-width: 760px) 92vw, 30vw"
+                  alt={image.alt}
+                  loading="lazy"
+                  decoding="async"
+                  style:background={image.lqip
+                    ? `center / cover no-repeat url(${image.lqip})`
+                    : undefined}
+                  style:view-transition-name={`vt-${item.slug}`}
+                />
+                <span class="card-meta">{item.location}</span>
+              </div>
+              <h3>{item.title}</h3>
+            </a>
+          </Reveal>
+        {/each}
+      </div>
+
+      <Reveal variant="scale">
+        <a class="home-section-cta" href={`/casos-de-estudo${langQuery}`}>
+          {viewAllWorkLabel[data.language]}
+          <span aria-hidden="true">→</span>
+        </a>
+      </Reveal>
+    </section>
+  {/if}
 
   <section class="section home-partners-section">
     <Reveal class="partner-panel" variant="panel">

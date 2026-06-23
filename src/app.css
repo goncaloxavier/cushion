@@ -977,21 +977,21 @@ h1 {
   max-width: 11ch;
   margin-bottom: 1.25rem;
   color: inherit;
-  font-size: clamp(3.2rem, 6vw, 4.6rem);
-  line-height: 0.96;
+  font-size: clamp(3.4rem, 6.4vw, 5.4rem);
+  line-height: 0.95;
 }
 
 .home-hero h1 {
   max-width: 16ch;
-  font-size: clamp(2.6rem, 5vw, 4rem);
+  font-size: clamp(2.9rem, 5.8vw, 5rem);
   overflow-wrap: break-word;
 }
 
 h2 {
   margin-bottom: 1rem;
   color: var(--ink);
-  font-size: 3rem;
-  line-height: 1.03;
+  font-size: clamp(2.3rem, 4vw, 3.5rem);
+  line-height: 1.02;
 }
 
 h3 {
@@ -1616,8 +1616,9 @@ dt {
 .impact-ledger strong {
   color: #ffffff;
   font-family: var(--display);
-  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-size: clamp(2.6rem, 5.4vw, 4.4rem);
   line-height: 1;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
@@ -1626,6 +1627,123 @@ dt {
   margin-bottom: 0;
   color: rgba(255, 255, 255, 0.86);
   line-height: 1.55;
+}
+
+/* --- Home editorial showcases (solutions + selected work) --- */
+.home-section-head {
+  max-width: 42rem;
+  margin-bottom: clamp(2rem, 4vw, 3.4rem);
+}
+
+.home-section-head h2 {
+  max-width: 18ch;
+  margin: 0.7rem 0 0;
+}
+
+.home-section-lead {
+  max-width: 34rem;
+  margin: 1.1rem 0 0;
+  color: var(--muted);
+  font-size: clamp(1.02rem, 1.5vw, 1.16rem);
+  line-height: 1.6;
+}
+
+.home-solutions-grid,
+.home-work-grid {
+  display: grid;
+  gap: clamp(0.9rem, 1.8vw, 1.5rem);
+}
+
+.home-solutions-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
+}
+
+.home-work-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.home-solution-card,
+.home-work-card {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 420ms var(--ease-snap);
+}
+
+.home-solution-card:hover,
+.home-work-card:hover {
+  transform: translateY(-5px);
+}
+
+.home-solution-media,
+.home-work-media {
+  position: relative;
+  overflow: hidden;
+  background: var(--soft);
+  border-radius: 16px;
+}
+
+.home-solution-media {
+  aspect-ratio: 4 / 5;
+}
+
+.home-work-media {
+  aspect-ratio: 3 / 2;
+}
+
+.home-solution-media img,
+.home-work-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-work-media .card-meta {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 0.8rem;
+}
+
+.home-solution-copy h3,
+.home-work-card h3 {
+  margin: 0.9rem 0 0;
+  font-family: var(--display);
+  font-size: clamp(1.12rem, 1.6vw, 1.32rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.home-solution-copy p {
+  display: -webkit-box;
+  margin: 0.4rem 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.home-section-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: clamp(1.8rem, 3.4vw, 2.8rem);
+  color: var(--green-dark);
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.home-section-cta span {
+  transition: transform 320ms var(--ease-snap);
+}
+
+.home-section-cta:hover span {
+  transform: translateX(5px);
 }
 
 .home-partners-section {
