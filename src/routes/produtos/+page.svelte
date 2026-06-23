@@ -3,6 +3,7 @@
   import Reveal from '$lib/components/Reveal.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
+  import {lineReveal} from '$lib/actions/line-reveal'
   import {imageFor, productImageFallback} from '$lib/site-content'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -81,7 +82,7 @@
   <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
       <p class="kicker">{content.productsPage.hero.kicker}</p>
-      <h1>{content.productsPage.hero.title}</h1>
+      <h1 use:lineReveal>{content.productsPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>

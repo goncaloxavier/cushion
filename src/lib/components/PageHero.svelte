@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {lineReveal} from '$lib/actions/line-reveal'
   import Reveal from './Reveal.svelte'
 
   let {
@@ -17,7 +18,7 @@
 <section class={`page-hero page-hero-${align}`}>
   <Reveal class="page-hero-copy" variant="hero" priority>
     <p class="kicker">{kicker}</p>
-    <h1>{title}</h1>
+    <h1 use:lineReveal>{title}</h1>
     {#if lead}
       <p class="hero-copy">{lead}</p>
     {/if}

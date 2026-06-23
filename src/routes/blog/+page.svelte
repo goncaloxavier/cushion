@@ -3,6 +3,7 @@
   import Reveal from '$lib/components/Reveal.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
+  import {lineReveal} from '$lib/actions/line-reveal'
   import {blogImageFallback, imageFor, type LanguageCode} from '$lib/site-content'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -83,7 +84,7 @@
   <section class="blog-index-hero">
     <Reveal class="blog-index-copy" variant="hero" priority>
       <p class="kicker">{content.blogPage.hero.kicker}</p>
-      <h1>{content.blogPage.hero.title}</h1>
+      <h1 use:lineReveal>{content.blogPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="blog-index-media" delay={120} variant="media" priority>

@@ -14,6 +14,30 @@
   src: url('/fonts/InterVariable-Italic.woff2') format('woff2');
 }
 
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/Fraunces.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
+    U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/Fraunces-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   font-family:
     Inter,
@@ -52,6 +76,7 @@
   --eco-mint: #dceee4;
   --brand-fog: #e8f3ef;
   --max: 1180px;
+  --display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -274,10 +299,53 @@ img {
 }
 
 .reveal[data-reveal='media'] {
-  --reveal-y: 18px;
-  --reveal-scale: 1.015;
-  --reveal-duration: 720ms;
-  clip-path: inset(0 0 10% 0);
+  --reveal-y: 0;
+  --reveal-scale: 1;
+  --reveal-duration: 980ms;
+  overflow: hidden;
+  clip-path: inset(0 0 24% 0);
+}
+
+.reveal[data-reveal='media'] :is(img, picture, iframe, video) {
+  transform: scale(1.16);
+  transition: transform 1180ms var(--ease-snap) var(--delay);
+  will-change: transform;
+}
+
+.reveal.visible[data-reveal='media'] :is(img, picture, iframe, video) {
+  transform: scale(1);
+}
+
+/* Scroll-linked card reveals on the list pages — each card lifts in as it enters
+   the viewport. Progressive enhancement (Chrome/Edge); other browsers show the
+   static card. Gated to motion-friendly users. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .collection-results > a {
+      animation: card-enter linear both;
+      animation-timeline: view();
+      animation-range: entry 2% cover 18%;
+    }
+
+    .collection-results > a :is(img) {
+      animation: card-media-enter linear both;
+      animation-timeline: view();
+      animation-range: entry 2% cover 22%;
+    }
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(46px) scale(0.965);
+  }
+}
+
+@keyframes card-media-enter {
+  from {
+    transform: scale(1.12);
+  }
 }
 
 .reveal.visible {
@@ -348,6 +416,13 @@ html[data-scrolled='true'] .site-header {
   font-weight: 820;
 }
 
+.nav-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0;
+}
+
 .nav-links a,
 .contact-link,
 .footer-links a,
@@ -405,6 +480,102 @@ html[data-scrolled='true'] .site-header {
 .nav-links a:hover::after,
 .nav-links a.active::after {
   transform: scaleX(1);
+}
+
+.nav-group.active .nav-group-trigger::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nav-group.active .nav-group-trigger::after {
+  transform: scaleX(1);
+}
+
+.nav-group-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.nav-caret {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.72;
+  transform: translateY(-0.08rem) rotate(45deg);
+  transition:
+    opacity 220ms ease,
+    transform 260ms var(--ease-snap);
+}
+
+.nav-group:hover .nav-caret,
+.nav-group:focus-within .nav-caret {
+  opacity: 1;
+  transform: translateY(0.06rem) rotate(225deg);
+}
+
+.nav-group::after {
+  position: absolute;
+  top: 100%;
+  right: -1rem;
+  left: -1rem;
+  height: 0.9rem;
+  content: '';
+}
+
+.nav-group-menu {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 50%;
+  z-index: 45;
+  display: grid;
+  min-width: 10.5rem;
+  padding: 0.42rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(17, 57, 60, 0.13);
+  border-radius: 8px;
+  box-shadow: 0 1rem 2.2rem rgba(17, 57, 60, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  backdrop-filter: blur(16px);
+  pointer-events: none;
+  transform: translate3d(-50%, -0.35rem, 0) scale(0.98);
+  transform-origin: 50% 0;
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease,
+    transform 260ms var(--ease-snap);
+}
+
+.nav-group:hover .nav-group-menu,
+.nav-group:focus-within .nav-group-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(-50%, 0, 0) scale(1);
+}
+
+.nav-group-menu a {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+
+.nav-group-menu a::before,
+.nav-group-menu a::after {
+  display: none;
+  content: none;
+}
+
+.nav-group-menu a:hover,
+.nav-group-menu a.active {
+  color: var(--green-dark);
+  background: rgba(34, 95, 120, 0.08);
+  transform: none;
 }
 
 .header-actions {
@@ -797,9 +968,10 @@ dl {
 
 h1,
 h2 {
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
-  font-weight: 640;
-  letter-spacing: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
   text-wrap: balance;
 }
 
@@ -1340,7 +1512,7 @@ dt {
   display: block;
   margin-bottom: 0.18rem;
   color: #ffffff;
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 1.45rem;
   line-height: 1;
 }
@@ -1383,7 +1555,7 @@ dt {
 
 .home-story-rail span {
   color: var(--green);
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 1.85rem;
   line-height: 1;
 }
@@ -1445,7 +1617,7 @@ dt {
 
 .impact-ledger strong {
   color: #ffffff;
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: clamp(2rem, 4vw, 3.1rem);
   line-height: 1;
   white-space: nowrap;
@@ -1734,7 +1906,7 @@ dt {
   max-width: 900px;
   margin-bottom: 1rem;
   color: var(--ink);
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 3.2rem;
   line-height: 1.08;
 }
@@ -1956,7 +2128,7 @@ dt {
 
 .timeline-row span {
   color: var(--green);
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 2.2rem;
 }
 
@@ -2005,7 +2177,7 @@ dt {
 
 .about-moment span {
   color: var(--green);
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 2.1rem;
   line-height: 1;
 }
@@ -2040,7 +2212,7 @@ dt {
 
 .about-timeline-year {
   color: var(--green);
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: clamp(2rem, 4vw, 2.6rem);
   line-height: 1;
 }
@@ -2177,7 +2349,7 @@ dt {
   display: -webkit-box;
   margin: 0.12rem 0 0;
   overflow: hidden;
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: clamp(1.45rem, 2.2vw, 1.95rem);
   font-weight: 850;
   line-height: 1.08;
@@ -3688,7 +3860,7 @@ dt {
 
 .factor-card h3 {
   margin-top: 0.35rem;
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--display);
   font-size: 1.45rem;
 }
 
@@ -7065,4 +7237,233 @@ body.lightbox-open {
 .toast-mark svg {
   width: 0.85rem;
   height: 0.85rem;
+}
+
+/* ============================================================
+   MOTION SYSTEM — page transitions, custom cursor, smooth
+   scroll, line reveals, magnetic CTAs, branded intro.
+   Restrained + cohesive + reduced-motion safe.
+   ============================================================ */
+
+/* --- Seamless page transitions (View Transitions API) --- */
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985) translateY(-8px);
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.992);
+  }
+}
+
+::view-transition-old(root) {
+  animation: vt-fade-out 360ms var(--ease) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-fade-in 640ms var(--ease-snap) both;
+}
+
+/* --- Smooth scroll (Lenis) --- */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* --- Custom cursor (desktop pointer:fine only) --- */
+html.has-custom-cursor,
+html.has-custom-cursor a,
+html.has-custom-cursor button,
+html.has-custom-cursor [role='button'],
+html.has-custom-cursor input,
+html.has-custom-cursor textarea,
+html.has-custom-cursor label {
+  cursor: none;
+}
+
+.cursor-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--green-dark);
+  transition:
+    opacity 200ms ease,
+    transform 90ms linear;
+}
+
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1px solid rgba(13, 52, 56, 0.42);
+  transition:
+    width 260ms var(--ease-snap),
+    height 260ms var(--ease-snap),
+    margin 260ms var(--ease-snap),
+    background 260ms ease,
+    border-color 260ms ease,
+    opacity 220ms ease;
+}
+
+.cursor-root.is-hover .cursor-ring {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: rgba(45, 123, 87, 0.1);
+  border-color: rgba(45, 123, 87, 0.55);
+}
+
+.cursor-root.is-down .cursor-ring {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+}
+
+.cursor-root.is-hidden .cursor-dot,
+.cursor-root.is-hidden .cursor-ring {
+  opacity: 0;
+}
+
+/* --- Magnetic --- */
+.is-magnetic {
+  transition: transform 460ms var(--ease-snap);
+  will-change: transform;
+}
+
+/* --- Line reveal (split headings) --- */
+.line-reveal .line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.line-reveal .line-inner {
+  display: block;
+  transform: translateY(112%);
+  transition: transform 920ms var(--ease-snap);
+  transition-delay: calc(var(--line-index, 0) * 88ms + var(--line-base, 0ms));
+}
+
+.line-reveal.is-revealed .line-inner {
+  transform: translateY(0);
+}
+
+/* When a hero heading uses line-reveal, let it own the entrance (skip the
+   block copy-title-in so the two don't stack). */
+.home-hero-copy .reveal.visible h1.line-reveal,
+.page-hero-copy.visible h1.line-reveal,
+.product-index-copy.visible h1.line-reveal,
+.blog-index-copy.visible h1.line-reveal,
+.case-index-copy.visible h1.line-reveal,
+.about-index-copy.visible h1.line-reveal {
+  animation: none;
+}
+
+/* --- Branded first-load intro --- */
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(45, 123, 87, 0.12), transparent 62%),
+    radial-gradient(circle at 50% 120%, rgba(21, 95, 119, 0.1), transparent 55%), var(--paper);
+  will-change: clip-path;
+}
+
+.intro-overlay.is-leaving {
+  animation: intro-leave 760ms var(--ease-snap) forwards;
+}
+
+@keyframes intro-leave {
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+.intro-mark {
+  width: clamp(116px, 20vw, 188px);
+  height: auto;
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  animation: intro-mark-in 720ms var(--ease-snap) 80ms forwards;
+}
+
+@keyframes intro-mark-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- Reduced motion: neutralise the motion layer --- */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
+  .reveal {
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .line-reveal .line-inner {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .cursor-root,
+  .intro-overlay {
+    display: none !important;
+  }
+
+  html.has-custom-cursor,
+  html.has-custom-cursor a,
+  html.has-custom-cursor button {
+    cursor: auto;
+  }
+
+  .is-magnetic {
+    transform: none !important;
+    transition: none !important;
+  }
 }

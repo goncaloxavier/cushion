@@ -4,6 +4,7 @@
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
+  import {lineReveal} from '$lib/actions/line-reveal'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
@@ -89,7 +90,7 @@
   <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
       <p class="kicker">{content.casesPage.hero.kicker}</p>
-      <h1>{content.casesPage.hero.title}</h1>
+      <h1 use:lineReveal>{content.casesPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="case-index-media" delay={120} variant="media" priority>

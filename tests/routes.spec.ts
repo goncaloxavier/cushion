@@ -39,9 +39,15 @@ const publicRoutes: PublicRoute[] = [
 ]
 
 const desktopNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog'],
-  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Casos', 'Blog'],
+  en: ['Home', 'About', 'Products', 'Cases', 'Blog'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Casos', 'Blog'],
+}
+
+const desktopProductMenuLabels = {
+  pt: ['Produtos', 'Loja', 'Catálogo'],
+  en: ['Products', 'Store', 'Catalogue'],
+  es: ['Productos', 'Tienda', 'Catálogo'],
 }
 
 const mobileNavLabels = {
@@ -216,6 +222,20 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
+  if (!isMobile) {
+    const productLabels =
+      desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
+    const productTrigger = contextualNavigation.getByRole('link', {
+      name: productLabels[0],
+      exact: true,
+    })
+
+    await productTrigger.hover()
+    for (const label of productLabels.slice(1)) {
+      await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
+    }
+  }
+
   if (route.active && labels.includes(route.active)) {
     const currentPageLink = contextualNavigation.getByRole('link', {
       name: route.active,
@@ -223,6 +243,21 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     })
     await expect(currentPageLink).toBeVisible()
     await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
+  } else if (!isMobile && route.active) {
+    const productLabels =
+      desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
+
+    if (productLabels.includes(route.active)) {
+      await contextualNavigation
+        .getByRole('link', {name: productLabels[0], exact: true})
+        .hover()
+      const currentPageLink = contextualNavigation.getByRole('link', {
+        name: route.active,
+        exact: true,
+      })
+      await expect(currentPageLink).toBeVisible()
+      await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
+    }
   }
 }
 

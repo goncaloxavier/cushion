@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {lineReveal} from '$lib/actions/line-reveal'
   import Reveal from '$lib/components/Reveal.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
@@ -74,7 +75,7 @@
 
     <div class="home-hero-copy">
       <Reveal variant="hero" priority>
-        <h1>{content.home.hero.title}</h1>
+        <h1 use:lineReveal>{content.home.hero.title}</h1>
       </Reveal>
       <Reveal class="home-hero-actions" delay={130} variant="scale" priority>
         <div class="hero-actions">

@@ -1,9 +1,15 @@
 <script lang="ts">
   import BrandIcon from '$lib/components/BrandIcon.svelte'
+  import Cursor from '$lib/components/Cursor.svelte'
+  import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
+  import {afterNavigate, onNavigate} from '$app/navigation'
+  import {magnetic} from '$lib/actions/magnetic'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
+  import {prefersReducedMotion} from '$lib/motion'
+  import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
   import {onMount} from 'svelte'
   import '../app.css'
 
@@ -22,14 +28,21 @@
     | 'blog'
     | 'contact'
 
-  const allRouteItems = $derived([
+  const primaryRouteItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
+  ])
+
+  const productNavItem = $derived({key: 'products' as NavKey, href: '/produtos', label: content.nav.products})
+
+  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
+
+  const productMenuItems = $derived([
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
+    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
   ])
 
   const allDockItems = $derived([
@@ -57,8 +70,10 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
-  const routeItems = $derived(allRouteItems)
   const dockItems = $derived(allDockItems)
+  const productGroupActive = $derived(
+    currentNavKey === 'products' || currentNavKey === 'store' || currentNavKey === 'catalogue',
+  )
   let cartCount = $state(0)
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
@@ -84,8 +99,30 @@
     return 'default'
   })
 
+  let smooth: SmoothScroll | null = null
+
+  onNavigate((navigation) => {
+    if (prefersReducedMotion()) return
+    if (!document.startViewTransition) return
+
+    return new Promise<void>((resolve) => {
+      document.startViewTransition(async () => {
+        resolve()
+        await navigation.complete
+      })
+    })
+  })
+
+  afterNavigate(() => {
+    if (smooth) smooth.toTop(true)
+    else window.scrollTo(0, 0)
+  })
+
   onMount(() => {
-    const resetScroll = () => window.scrollTo(0, 0)
+    const resetScroll = () => {
+      if (smooth) smooth.toTop(true)
+      else window.scrollTo(0, 0)
+    }
     const refreshCartCount = () => {
       cartCount = cartTotalQuantity(readCart())
     }
@@ -97,6 +134,12 @@
     refreshCartCount()
     window.addEventListener(cartEventName, refreshCartCount)
 
+    let disposeSmooth = () => {}
+    createSmoothScroll().then((instance) => {
+      smooth = instance
+      if (instance) disposeSmooth = instance.destroy
+    })
+
     resetScroll()
     requestAnimationFrame(() => {
       resetScroll()
@@ -105,6 +148,7 @@
 
     return () => {
       window.removeEventListener(cartEventName, refreshCartCount)
+      disposeSmooth()
     }
   })
 </script>
@@ -117,6 +161,8 @@
   {@render children()}
 {:else}
   <RouteProgress />
+  <Intro />
+  <Cursor />
 
 <header class="site-header">
   <div class="brand">
@@ -124,7 +170,41 @@
   </div>
 
   <nav class="nav-links" aria-label="Main navigation">
-    {#each routeItems as item}
+    {#each primaryRouteItems.slice(0, 2) as item}
+      <a
+        class:active={isActive(item.href)}
+        aria-current={isActive(item.href) ? 'page' : undefined}
+        href={withLanguage(item.href, data.language)}
+      >
+        {item.label}
+      </a>
+    {/each}
+
+    <div class="nav-group" class:active={productGroupActive}>
+      <a
+        class="nav-group-trigger"
+        class:active={isActive(productNavItem.href)}
+        aria-current={isActive(productNavItem.href) ? 'page' : undefined}
+        href={withLanguage(productNavItem.href, data.language)}
+      >
+        <span>{productNavItem.label}</span>
+        <span class="nav-caret" aria-hidden="true"></span>
+      </a>
+
+      <div class="nav-group-menu" aria-label={content.nav.products}>
+        {#each productMenuItems as item}
+          <a
+            class:active={isActive(item.href)}
+            aria-current={isActive(item.href) ? 'page' : undefined}
+            href={withLanguage(item.href, data.language)}
+          >
+            {item.label}
+          </a>
+        {/each}
+      </div>
+    </div>
+
+    {#each primaryRouteItems.slice(2) as item}
       <a
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
@@ -141,6 +221,7 @@
       class:active={currentNavKey === 'contact'}
       aria-current={currentNavKey === 'contact' ? 'page' : undefined}
       href={withLanguage('/contacto', data.language)}
+      use:magnetic={{strength: 0.2}}
     >
       {content.nav.contact}
     </a>
