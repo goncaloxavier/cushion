@@ -77,6 +77,7 @@
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="product-stage-gallery"
+        transitionName={`vt-${data.product.slug}`}
       />
     </section>
 

@@ -135,6 +135,7 @@
               style:background={image.lqip
                 ? `center / cover no-repeat url(${image.lqip})`
                 : undefined}
+              style:view-transition-name={`vt-${product.slug}`}
             />
           </div>
           <div class="product-panel-copy">

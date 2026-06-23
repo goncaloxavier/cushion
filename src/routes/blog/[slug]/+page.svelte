@@ -32,6 +32,7 @@
       label={content.common.zoomImage}
       closeLabel={content.common.close}
       className="blog-detail-gallery"
+      transitionName={`vt-${data.post.slug}`}
     />
     <div class="article-body blog-body">
       <StructuredArticleBody body={data.post.body} article={data.post.article} />

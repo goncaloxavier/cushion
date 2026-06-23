@@ -143,6 +143,7 @@
               style:background={image.lqip
                 ? `center / cover no-repeat url(${image.lqip})`
                 : undefined}
+              style:view-transition-name={`vt-${item.slug}`}
             />
             <span class="card-meta">{item.location}</span>
           </div>

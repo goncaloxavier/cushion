@@ -19,11 +19,13 @@
     label,
     closeLabel,
     className = '',
+    transitionName = undefined,
   } = $props<{
     images: ContentImage[]
     label: string
     closeLabel: string
     className?: string
+    transitionName?: string
   }>()
 
   let selectedImageIndex = $state(0)
@@ -116,6 +118,7 @@
         decoding="async"
         fetchpriority="high"
         style:background={lqipBackground(image)}
+        style:view-transition-name={transitionName}
       />
       <span class="image-gallery-zoom" aria-hidden="true"></span>
       {#if hasMultiple}

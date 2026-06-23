@@ -7264,6 +7264,13 @@ html.reduce-motion {
   animation: vt-fade-in 640ms var(--ease-snap) both;
 }
 
+/* Consistent, premium timing for every transition group — including the shared
+   product image morphing between list card and detail hero. */
+::view-transition-group(*) {
+  animation-duration: 560ms;
+  animation-timing-function: var(--ease-snap);
+}
+
 /* Depth/direction-aware variants (base above = the lateral default). The kind is
    set on <html data-transition> in onNavigate; all GPU-composited snapshot
    animation, no extra JS or content. */
@@ -7294,28 +7301,28 @@ html[data-transition='home']::view-transition-new(root) {
 @keyframes vt-zoom-in {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
 }
 
 @keyframes vt-recede {
   to {
     opacity: 0;
-    transform: scale(1.08);
+    transform: scale(1.04);
   }
 }
 
 @keyframes vt-zoom-out {
   from {
     opacity: 0;
-    transform: scale(1.08);
+    transform: scale(1.05);
   }
 }
 
 @keyframes vt-approach {
   to {
     opacity: 0;
-    transform: scale(0.94);
+    transform: scale(0.96);
   }
 }
 

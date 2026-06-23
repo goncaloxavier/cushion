@@ -36,6 +36,7 @@
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="case-gallery"
+        transitionName={`vt-${data.caseStudy.slug}`}
       />
     </section>
 

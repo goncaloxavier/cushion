@@ -137,6 +137,7 @@
               style:background={image.lqip
                 ? `center / cover no-repeat url(${image.lqip})`
                 : undefined}
+              style:view-transition-name={`vt-${post.slug}`}
             />
           </div>
           <div class="journal-card-copy">
