@@ -36,7 +36,7 @@
       hero: {
         kicker: 'Carrinho',
         title: 'Reveja os produtos antes de pedir orçamento',
-        lead: 'Sem conta, sem pagamento online. O carrinho guarda apenas a seleção neste dispositivo para enviar um pedido claro à equipa.',
+        lead: '',
       },
       empty: 'O carrinho ainda está vazio.',
       continueShopping: 'Continuar na loja',
@@ -55,7 +55,7 @@
       hero: {
         kicker: 'Cart',
         title: 'Review the products before requesting a quote',
-        lead: 'No account, no online payment. The cart only keeps the selection on this device so the team receives a clear request.',
+        lead: '',
       },
       empty: 'Your cart is still empty.',
       continueShopping: 'Continue shopping',
@@ -74,7 +74,7 @@
       hero: {
         kicker: 'Carrito',
         title: 'Revisa los productos antes de pedir presupuesto',
-        lead: 'Sin cuenta ni pago online. El carrito solo guarda la selección en este dispositivo para enviar una solicitud clara al equipo.',
+        lead: '',
       },
       empty: 'El carrito todavía está vacío.',
       continueShopping: 'Seguir en tienda',

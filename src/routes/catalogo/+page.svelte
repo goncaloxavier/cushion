@@ -60,7 +60,7 @@
 </svelte:head>
 
 <main>
-  <PageHero {...content.catalogue.hero} />
+  <PageHero {...content.catalogue.hero} lead="" />
 
   <section class="section catalogue-request-section">
     <Reveal class="catalogue-request-panel" variant="panel">
