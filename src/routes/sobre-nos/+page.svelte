@@ -4,6 +4,17 @@
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
+
+  const principlesKicker: Record<string, string> = {
+    pt: 'Princípios',
+    en: 'Principles',
+    es: 'Principios',
+  }
+  const principlesTitle: Record<string, string> = {
+    pt: 'O que nos guia',
+    en: 'What guides us',
+    es: 'Lo que nos guía',
+  }
 </script>
 
 <svelte:head>
@@ -35,4 +46,24 @@
       {/each}
     </div>
   </section>
+
+  {#if content.about.principles?.length}
+    <section class="section about-principles">
+      <Reveal class="home-section-head" variant="panel">
+        <p class="kicker">{principlesKicker[data.language] ?? 'Princípios'}</p>
+        <h2>{principlesTitle[data.language] ?? 'O que nos guia'}</h2>
+      </Reveal>
+
+      <div class="about-principles-grid">
+        {#each content.about.principles as principle, index}
+          <Reveal delay={index * 70} variant="card">
+            <article class="about-principle">
+              <h3>{principle.title}</h3>
+              <p>{principle.text}</p>
+            </article>
+          </Reveal>
+        {/each}
+      </div>
+    </section>
+  {/if}
 </main>
