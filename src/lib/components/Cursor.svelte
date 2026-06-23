@@ -42,8 +42,8 @@
     const onEnter = () => root.classList.remove('is-hidden')
 
     const loop = () => {
-      ringX += (mouseX - ringX) * 0.18
-      ringY += (mouseY - ringY) * 0.18
+      ringX += (mouseX - ringX) * 0.24
+      ringY += (mouseY - ringY) * 0.24
       ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0)`
       raf = requestAnimationFrame(loop)
     }

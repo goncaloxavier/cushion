@@ -7299,6 +7299,9 @@ html.has-custom-cursor label {
   left: 0;
   z-index: 200;
   pointer-events: none;
+  /* Invert against whatever is underneath — always crisp on dark heroes + light
+     sections without picking a colour. */
+  mix-blend-mode: difference;
 }
 
 .cursor-dot,
@@ -7312,41 +7315,45 @@ html.has-custom-cursor label {
 }
 
 .cursor-dot {
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  background: var(--green-dark);
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  background: #ffffff;
   transition:
-    opacity 200ms ease,
-    transform 90ms linear;
+    opacity 180ms ease,
+    width 200ms var(--ease-snap),
+    height 200ms var(--ease-snap),
+    margin 200ms var(--ease-snap);
 }
 
 .cursor-ring {
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 1px solid rgba(13, 52, 56, 0.42);
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 1.5px solid #ffffff;
   transition:
-    width 260ms var(--ease-snap),
-    height 260ms var(--ease-snap),
-    margin 260ms var(--ease-snap),
-    background 260ms ease,
-    border-color 260ms ease,
-    opacity 220ms ease;
+    width 240ms var(--ease-snap),
+    height 240ms var(--ease-snap),
+    margin 240ms var(--ease-snap),
+    opacity 180ms ease;
 }
 
 .cursor-root.is-hover .cursor-ring {
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  background: rgba(45, 123, 87, 0.1);
-  border-color: rgba(45, 123, 87, 0.55);
+  width: 42px;
+  height: 42px;
+  margin: -21px 0 0 -21px;
+}
+
+.cursor-root.is-hover .cursor-dot {
+  width: 0;
+  height: 0;
+  margin: 0;
 }
 
 .cursor-root.is-down .cursor-ring {
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
 }
 
 .cursor-root.is-hidden .cursor-dot,
