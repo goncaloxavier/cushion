@@ -27,9 +27,22 @@ export async function createSmoothScroll(): Promise<SmoothScroll | null> {
     }
     raf = requestAnimationFrame(loop)
 
+    // Lenis runs its own scroll loop and ignores `overflow: hidden`, so the page
+    // would keep scrolling behind a lightbox/modal. Pause it whenever something
+    // locks scroll via the `lightbox-open` class on <html>.
+    const root = document.documentElement
+    const syncScrollLock = () => {
+      if (root.classList.contains('lightbox-open')) lenis.stop()
+      else lenis.start()
+    }
+    const lockObserver = new MutationObserver(syncScrollLock)
+    lockObserver.observe(root, {attributes: true, attributeFilter: ['class']})
+    syncScrollLock()
+
     return {
       destroy() {
         cancelAnimationFrame(raf)
+        lockObserver.disconnect()
         lenis.destroy()
       },
       toTop(immediate = true) {
