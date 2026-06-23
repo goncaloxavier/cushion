@@ -3867,22 +3867,71 @@ dt {
 .catalogue-request-panel {
   display: grid;
   align-content: center;
+  color: #ffffff;
   background:
-    radial-gradient(circle at 100% 0%, rgba(21, 95, 119, 0.13), transparent 16rem),
-    linear-gradient(135deg, rgba(45, 123, 87, 0.11), transparent 48%), #ffffff;
+    radial-gradient(circle at 100% 0%, rgba(34, 111, 136, 0.34), transparent 22rem),
+    linear-gradient(135deg, #082c34, #123f43 58%, #0f3033);
+  border: 0;
   transform-origin: left center;
 }
 
 .catalogue-request-panel h2 {
   max-width: 12ch;
+  color: #ffffff;
   font-size: clamp(2.45rem, 5vw, 4.5rem);
   line-height: 0.92;
 }
 
+.catalogue-request-panel .kicker {
+  color: #8fd9c6;
+}
+
 .catalogue-request-panel p:not(.kicker) {
   max-width: 50rem;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 1.1rem;
+}
+
+.catalogue-checklist-title {
+  margin: 1.5rem 0 0.7rem;
+  color: #ffffff;
+  font-family: var(--display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.catalogue-checklist {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogue-checklist li {
+  position: relative;
+  padding-left: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.55;
+}
+
+.catalogue-checklist li::before {
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 0.42rem;
+  height: 0.42rem;
+  content: '';
+  background: #8fd9c6;
+  border-radius: 999px;
+}
+
+.catalogue-note {
+  margin-top: 1.4rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.92rem;
 }
 
 .catalogue-request-panel .button {
@@ -5118,17 +5167,27 @@ body.lightbox-open {
 
 .contact-box {
   min-height: 8rem;
-  padding: 1.2rem;
+  padding: 1.3rem 1.4rem;
   overflow: hidden;
-  background: #ffffff;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(45, 123, 87, 0.24), transparent 14rem),
+    linear-gradient(135deg, var(--brand-deep), var(--brand-sea));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   transition:
     border-color 300ms ease,
     background 300ms ease;
 }
 
+.contact-box > span {
+  color: #8fd9c6;
+}
+
 .contact-box a {
   display: block;
   margin-top: 0.5rem;
+  color: #ffffff;
   font-size: 1.4rem;
   font-weight: 820;
   line-height: 1.18;
