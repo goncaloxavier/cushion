@@ -1608,9 +1608,9 @@ dt {
 
 .impact-ledger article {
   display: grid;
-  grid-template-columns: minmax(11.5rem, 0.36fr) minmax(0, 1fr);
+  grid-template-columns: minmax(13rem, 0.42fr) minmax(0, 1fr);
   align-content: start;
-  gap: 1.55rem;
+  gap: 1.8rem;
   min-height: 0;
   padding: 1.1rem 0;
   background: transparent;
@@ -1620,7 +1620,7 @@ dt {
 .impact-ledger strong {
   color: #ffffff;
   font-family: var(--display);
-  font-size: clamp(2.6rem, 5.4vw, 4.4rem);
+  font-size: clamp(2.4rem, 4.4vw, 3.5rem);
   line-height: 1;
   letter-spacing: -0.02em;
   white-space: nowrap;
