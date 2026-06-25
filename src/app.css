@@ -361,6 +361,9 @@ img {
   position: sticky;
   top: 0;
   z-index: 40;
+  /* Persist the header across page transitions so it stays put instead of
+     cross-fading with the page body on every navigation. */
+  view-transition-name: site-header;
   display: grid;
   grid-template-columns: minmax(128px, 180px) minmax(0, 1fr) auto;
   align-items: center;
@@ -5568,6 +5571,7 @@ body.lightbox-open {
 
 .site-footer {
   position: relative;
+  view-transition-name: site-footer;
   display: grid;
   grid-template-columns: minmax(180px, 0.78fr) minmax(0, 1fr) minmax(0, 0.82fr);
   gap: 0.9rem 2rem;
