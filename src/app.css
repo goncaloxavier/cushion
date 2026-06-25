@@ -1707,6 +1707,20 @@ dt {
   position: absolute;
   bottom: 0.8rem;
   left: 0.8rem;
+  z-index: 2;
+  max-width: calc(100% - 1.6rem);
+  padding: 0.34rem 0.7rem;
+  overflow: hidden;
+  color: #10241f;
+  font-size: 0.84rem;
+  font-weight: 820;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(17, 57, 60, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 0.5rem 1.3rem rgba(17, 57, 60, 0.16);
 }
 
 .home-solution-copy h3,
