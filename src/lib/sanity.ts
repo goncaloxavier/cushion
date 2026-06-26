@@ -3,16 +3,32 @@ import {createClient} from '@sanity/client'
 const projectId = 'u4uyfix8'
 const dataset = 'production'
 
+const apiVersion = '2026-06-10'
+
 export const sanityClient = createClient({
   projectId,
   dataset,
-  apiVersion: '2026-06-10',
+  apiVersion,
   // Visitor-facing pages prioritise speed: the cached API edge serves document
   // queries ~13x faster. Published Studio changes (including image swaps) then
   // propagate within a few seconds — editors should hard-refresh shortly after
   // publishing. Flip to `useCdn: false` only if instant edits matter more than speed.
   useCdn: true,
 })
+
+// Preview client for Visual Editing (Presentation tool): reads draft content and
+// embeds Content Source Map metadata (stega) in the returned strings so the
+// click-to-edit overlay can map each on-page value back to its Studio field.
+// Requires a read token with draft access (SANITY_VIEWER_TOKEN).
+const studioUrl = process.env.SANITY_STUDIO_URL || 'http://localhost:3333/website'
+export const previewClient = sanityClient.withConfig({
+  useCdn: false,
+  token: process.env.SANITY_VIEWER_TOKEN,
+  perspective: 'drafts',
+  stega: {enabled: true, studioUrl},
+})
+
+export const previewEnabled = () => Boolean(process.env.SANITY_VIEWER_TOKEN)
 
 const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
@@ -366,21 +382,23 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
   }
 }`
 
-export const getSanityCollections = async () => {
+export const getSanityCollections = async (preview = false) => {
   if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
 
+  const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await sanityClient.fetch(collectionsQuery)
+    return await client.fetch(collectionsQuery)
   } catch {
     return null
   }
 }
 
-export const getBlogPostDetail = async (slug: string) => {
+export const getBlogPostDetail = async (slug: string, preview = false) => {
   if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
 
+  const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await sanityClient.fetch(blogPostDetailQuery, {slug})
+    return await client.fetch(blogPostDetailQuery, {slug})
   } catch {
     return null
   }

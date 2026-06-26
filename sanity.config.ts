@@ -1,5 +1,6 @@
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
+import {presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
 import {crmSchemaTypes, websiteSchemaTypes} from './schemaTypes'
 import {crmStructure, websiteStructure} from './sanity.structure'
@@ -15,7 +16,19 @@ export default defineConfig([
     projectId,
     dataset: 'production',
 
-    plugins: [structureTool({structure: websiteStructure}), visionTool()],
+    plugins: [
+      // Visual Editing: embeds the live site with click-to-edit overlays.
+      presentationTool({
+        previewUrl: {
+          origin: process.env.SANITY_STUDIO_PREVIEW_ORIGIN || 'http://localhost:5173',
+          previewMode: {
+            enable: '/preview/enable',
+          },
+        },
+      }),
+      structureTool({structure: websiteStructure}),
+      visionTool(),
+    ],
 
     schema: {
       types: websiteSchemaTypes,

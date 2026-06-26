@@ -4,6 +4,7 @@
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
+  import {VisualEditing} from '@sanity/visual-editing/svelte'
   import {afterNavigate, onNavigate} from '$app/navigation'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
@@ -321,3 +322,7 @@
 {/if}
 
 <Toaster />
+
+{#if data.preview}
+  <VisualEditing />
+{/if}
