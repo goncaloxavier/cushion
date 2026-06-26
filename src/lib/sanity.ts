@@ -1,4 +1,5 @@
 import {createClient} from '@sanity/client'
+import {env} from '$env/dynamic/private'
 
 const projectId = 'u4uyfix8'
 const dataset = 'production'
@@ -20,15 +21,15 @@ export const sanityClient = createClient({
 // embeds Content Source Map metadata (stega) in the returned strings so the
 // click-to-edit overlay can map each on-page value back to its Studio field.
 // Requires a read token with draft access (SANITY_VIEWER_TOKEN).
-const studioUrl = process.env.SANITY_STUDIO_URL || 'http://localhost:3333/website'
+const studioUrl = env.SANITY_STUDIO_URL || 'http://localhost:3333/website'
 export const previewClient = sanityClient.withConfig({
   useCdn: false,
-  token: process.env.SANITY_VIEWER_TOKEN,
+  token: env.SANITY_VIEWER_TOKEN,
   perspective: 'drafts',
   stega: {enabled: true, studioUrl},
 })
 
-export const previewEnabled = () => Boolean(process.env.SANITY_VIEWER_TOKEN)
+export const previewEnabled = () => Boolean(env.SANITY_VIEWER_TOKEN)
 
 const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
@@ -383,7 +384,7 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
 }`
 
 export const getSanityCollections = async (preview = false) => {
-  if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
   const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
@@ -394,7 +395,7 @@ export const getSanityCollections = async (preview = false) => {
 }
 
 export const getBlogPostDetail = async (slug: string, preview = false) => {
-  if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
   const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
