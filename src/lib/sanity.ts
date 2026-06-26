@@ -31,6 +31,14 @@ export const previewClient = sanityClient.withConfig({
 
 export const previewEnabled = () => Boolean(env.SANITY_VIEWER_TOKEN)
 
+// Plain authed client for validating the preview-url secret. Must NOT use stega,
+// otherwise the stored secret string gets encoded with invisible characters and
+// no longer matches the secret from the URL.
+export const previewSecretClient = sanityClient.withConfig({
+  useCdn: false,
+  token: env.SANITY_VIEWER_TOKEN,
+})
+
 const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
     common {

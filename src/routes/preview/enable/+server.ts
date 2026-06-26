@@ -1,5 +1,5 @@
 import {validatePreviewUrl} from '@sanity/preview-url-secret'
-import {previewClient, previewEnabled} from '$lib/sanity'
+import {previewSecretClient, previewEnabled} from '$lib/sanity'
 import {PREVIEW_COOKIE} from '$lib/server/preview'
 import {redirect} from '@sveltejs/kit'
 import type {RequestHandler} from './$types'
@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({url, cookies}) => {
     return new Response('Preview not configured (missing SANITY_VIEWER_TOKEN).', {status: 500})
   }
 
-  const {isValid, redirectTo = '/'} = await validatePreviewUrl(previewClient, url.toString())
+  const {isValid, redirectTo = '/'} = await validatePreviewUrl(previewSecretClient, url.toString())
   if (!isValid) {
     return new Response('Invalid preview secret.', {status: 401})
   }
