@@ -81,31 +81,6 @@
       />
     </section>
 
-    {#if data.product.features.length || data.product.applications.length}
-      <section class="product-editorial-specs">
-        {#if data.product.features.length}
-          <div class="product-spec-block">
-            <h2>{content.common.featuresLabel}</h2>
-            <ul class="product-spec-tags">
-              {#each data.product.features as feature}
-                <li>{feature}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-        {#if data.product.applications.length}
-          <div class="product-spec-block">
-            <h2>{content.common.applicationsLabel}</h2>
-            <ul class="product-spec-list">
-              {#each data.product.applications as application}
-                <li>{application}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-      </section>
-    {/if}
-
     <section class="product-editorial-cta">
       <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
       <a class="text-link" href={`/catalogo${langQuery}`}>{content.catalogue.estimate.kicker}</a>

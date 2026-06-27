@@ -1,6 +1,6 @@
 import {validatePreviewUrl} from '@sanity/preview-url-secret'
 import {previewSecretClient, previewEnabled} from '$lib/sanity'
-import {PREVIEW_COOKIE} from '$lib/server/preview'
+import {setPreviewCookie} from '$lib/server/preview'
 import {redirect} from '@sveltejs/kit'
 import type {RequestHandler} from './$types'
 
@@ -17,13 +17,7 @@ export const GET: RequestHandler = async ({url, cookies}) => {
     return new Response('Invalid preview secret.', {status: 401})
   }
 
-  cookies.set(PREVIEW_COOKIE, '1', {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'none',
-    secure: true,
-    maxAge: 60 * 60,
-  })
+  setPreviewCookie(cookies, url)
 
   redirect(307, redirectTo)
 }

@@ -59,6 +59,10 @@ test.describe('Sanity Studio content contract', () => {
     expect(siteSchema).toContain("copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false})")
     expect(siteSchema).not.toContain("'Navigation labels'")
     expect(siteSchema).not.toContain("'Shared labels and contact'")
+    expect(siteSchema).not.toContain("'Nota de posicionamento'")
+    expect(siteSchema).not.toContain("'Cartões de princípios'")
+    expect(siteSchema).not.toContain("'Secção newsletter'")
+    expect(siteSchema).not.toContain("title: 'Rodapé'")
   })
 
   test('private CRM content is isolated from the public website workspace', () => {
@@ -91,7 +95,11 @@ test.describe('Sanity Studio content contract', () => {
     const sanityClient = read('src/lib/sanity.ts')
     const warmImages = read('scripts/warm-images.ts')
 
+    expect(sanityClient).toContain('useCdn: true')
+    expect(sanityClient).toContain('previewClient')
     expect(sanityClient).toContain('useCdn: false')
+    expect(sanityClient).toContain("perspective: 'drafts'")
+    expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
     expect(warmImages).toContain('useCdn: false')
     expect(sanityClient).toContain('_id == "siteContent"')
     expect(sanityClient).toContain('_type == "siteLanding"')
@@ -115,8 +123,59 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('logo')
     expect(sanityClient).toContain('asset ->')
     expect(sanityClient).toContain('alt')
+    expect(sanityClient).not.toContain('features,')
+    expect(sanityClient).not.toContain('applications')
+    expect(sanityClient).not.toContain('quoteFlow[]')
+    expect(sanityClient).not.toContain('cards[]')
     expect(sanityClient).not.toContain('clientProfile')
     expect(sanityClient).not.toContain('formSubmission')
+  })
+
+  test('visual editing preview is wired through Studio and draft rendering', () => {
+    const studioConfig = read('sanity.config.ts')
+    const layoutServer = read('src/routes/+layout.server.ts')
+    const layout = read('src/routes/+layout.svelte')
+    const sanityClient = read('src/lib/sanity.ts')
+    const previewHelpers = read('src/lib/server/preview.ts')
+    const previewEnable = read('src/routes/preview/enable/+server.ts')
+    const previewDisable = read('src/routes/preview/disable/+server.ts')
+    const blogDetailServer = read('src/routes/blog/[slug]/+page.server.ts')
+    const envExample = read('.env.example')
+
+    expect(studioConfig).toContain('presentationTool')
+    expect(studioConfig).toContain("enable: '/preview/enable'")
+    expect(studioConfig).toContain('resolve: {')
+    expect(studioConfig).toContain('locations: {')
+    expect(studioConfig).toContain("productCategory: collectionLocation('/produtos', 'Produto')")
+    expect(studioConfig).toContain("storeProduct: collectionLocation('/loja', 'Produto da loja')")
+    expect(studioConfig).toContain("caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo')")
+    expect(studioConfig).toContain("blogPost: collectionLocation('/blog', 'Artigo do blog')")
+    expect(layoutServer).toContain('isPreview(cookies)')
+    expect(layoutServer).toContain('getSanityCollections(preview)')
+    expect(layout).toContain('@sanity/visual-editing/svelte')
+    expect(layout).toContain('<VisualEditing />')
+    expect(sanityClient).toContain('previewClient')
+    expect(sanityClient).toContain('previewSecretClient')
+    expect(sanityClient).toContain("perspective: 'drafts'")
+    expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
+    expect(sanityClient).toContain('getSanityCollections = async (preview = false)')
+    expect(sanityClient).toContain('getBlogPostDetail')
+    expect(previewHelpers).toContain("url.protocol === 'https:'")
+    expect(previewHelpers).toContain("sameSite: secure ? ('none' as const) : ('lax' as const)")
+    expect(previewEnable).toContain('validatePreviewUrl(previewSecretClient')
+    expect(previewEnable).toContain('setPreviewCookie(cookies, url)')
+    expect(previewDisable).toContain('clearPreviewCookie(cookies, url)')
+    expect(blogDetailServer).toContain('getBlogPostDetail(params.slug, preview)')
+    expect(envExample).toContain('SANITY_VIEWER_TOKEN')
+    expect(envExample).toContain('SANITY_STUDIO_PREVIEW_ORIGIN')
+    expect(envExample).toContain('SANITY_STUDIO_URL')
+  })
+
+  test('visual editing metadata does not break custom text reveal animations', () => {
+    const lineReveal = read('src/lib/actions/line-reveal.ts')
+
+    expect(lineReveal).toContain('sanityStegaMetadataPattern')
+    expect(lineReveal).toContain('return {}')
   })
 
   test('editable collection documents support uploaded images', () => {
@@ -124,6 +183,9 @@ test.describe('Sanity Studio content contract', () => {
     const storeSchema = read('schemaTypes/storeProduct.ts')
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const blogSchema = read('schemaTypes/blogPost.ts')
+
+    expect(productSchema).not.toContain("name: 'features'")
+    expect(productSchema).not.toContain("name: 'applications'")
 
     for (const schema of [productSchema, storeSchema, caseSchema, blogSchema]) {
       expect(schema).toContain("title: 'Conteúdo'")

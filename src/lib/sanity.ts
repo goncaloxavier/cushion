@@ -55,9 +55,6 @@ const collectionsQuery = `{
       complaintsNote,
       marketingConsent
     },
-    footer {
-      line
-    },
     home {
       hero,
       heroImage {
@@ -81,7 +78,6 @@ const collectionsQuery = `{
           text
         }
       },
-      manifesto,
       partners {
         kicker,
         title,
@@ -108,10 +104,6 @@ const collectionsQuery = `{
     about {
       hero,
       timeline[] {
-        title,
-        text
-      },
-      principles[] {
         title,
         text
       }
@@ -141,18 +133,10 @@ const collectionsQuery = `{
     catalogue {
       hero,
       ctaLabel,
-      quoteFlow[] {
-        title,
-        text
-      },
       estimate {
         kicker,
         title,
         lead,
-        cards[] {
-          title,
-          text
-        },
         checklistTitle,
         checklist[]
       },
@@ -190,8 +174,7 @@ const collectionsQuery = `{
           }
         },
         alt
-      },
-      newsletter
+      }
     },
     contactPage {
       hero,
@@ -227,9 +210,7 @@ const collectionsQuery = `{
       alt
     },
     summary,
-    description,
-    features,
-    applications
+    description
   },
   "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
     title,

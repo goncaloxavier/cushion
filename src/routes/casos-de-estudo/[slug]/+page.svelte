@@ -36,6 +36,7 @@
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="case-gallery"
+        sizes="(max-width: 900px) 92vw, (max-width: 1300px) 48vw, 650px"
         transitionName={`vt-${data.caseStudy.slug}`}
       />
     </section>

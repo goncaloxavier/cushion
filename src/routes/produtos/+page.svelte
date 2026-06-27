@@ -20,7 +20,7 @@
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredProducts = $derived(
     content.products.filter((product) =>
-      [product.title, product.summary, product.description, ...product.features, ...product.applications]
+      [product.title, product.summary, product.description]
         .join(' ')
         .toLowerCase()
         .includes(normalizedQuery),
@@ -140,9 +140,6 @@
           </div>
           <div class="product-panel-copy">
             <h2>{product.title}</h2>
-            {#if product.summary}
-              <p>{product.summary}</p>
-            {/if}
           </div>
         </a>
       {/each}

@@ -37,6 +37,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Historical Webnode case studies are migrated through `scripts/old-case-studies.ts` as 11 title-separated cases with PT/EN/ES title, summary, description, product area, location, main image, gallery images, and no date fields. Imports use deterministic public-read-safe `caseStudy-<slug>` IDs and populate the Studio-editable `description` plus image/gallery fields.
 - Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, with Portuguese bodies extracted from the raw Webnode HTML and EN/ES full-body translations generated for review, then imported with public-read-safe deterministic `blogPost-<slug>` IDs, hash-shortened only when a slug would exceed Sanity's document ID length. Imports keep the legacy full-text `body` and also populate the rich `article` field so Studio editors can preserve headings, lists, simple tables, links, images, and YouTube embeds.
 - Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate local visual review output.
+- Sanity Presentation/Visual Editing should let editors preview draft website content and click through to Studio fields without changing the public visitor content until publishing.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
 - The floating WhatsApp shortcut is useful on public browsing routes, but it should not obstruct the contact form.
@@ -76,9 +77,11 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 ## Access Or Permissions
 
 - Sanity website editing access is handled by Sanity project permissions and login.
+- Sanity Presentation/Visual Editing requires server-only preview credentials that can read drafts and preview-secret documents; public visitors must never receive those credentials.
 - CRM access is handled by Sanity project permissions plus the private `crm` dataset.
 - The public SvelteKit app uses a server-side write token for CRM writes only; no Sanity write token should ever be bundled into client-side code.
 - Required private runtime variables for live CRM writes: `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`; optional override: `SANITY_CRM_DATASET`.
+- Required private/runtime variables for Visual Editing preview: `SANITY_VIEWER_TOKEN`, `SANITY_STUDIO_PREVIEW_ORIGIN`, and `SANITY_STUDIO_URL`.
 
 ## Edge Cases
 

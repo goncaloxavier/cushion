@@ -35,24 +35,6 @@ const cleanLocalizedCopy = (value: LocalizedValue): LocalizedValue => ({
   es: cleanProductMaterialCopy(value.es),
 })
 
-const normalizeProductMaterialPhrase = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim()
-
-const redundantProductMaterialFeatures = new Set([
-  '100% plastico reciclado',
-  '100% recycled plastic',
-])
-
-const isRedundantProductMaterialFeature = (feature: LocalizedValue) =>
-  [feature.pt, feature.en, feature.es].some((value) =>
-    redundantProductMaterialFeatures.has(normalizeProductMaterialPhrase(value)),
-  )
-
 const normalizeProductImageName = (value: string) =>
   decodeURIComponent(value)
     .normalize('NFD')
@@ -107,16 +89,6 @@ const documents = oldProducts.map((product) => {
     slug: {_type: 'slug', current: product.slug},
     summary: {_type: 'localizedText', ...cleanLocalizedCopy(product.summary)},
     description: {_type: 'localizedText', ...cleanLocalizedCopy(product.description)},
-    features: product.features
-      .filter((feature) => !isRedundantProductMaterialFeature(feature))
-      .map((feature, index) => ({
-        _key: `feat-${index}`,
-        ...localizedString(feature),
-      })),
-    applications: product.applications.map((application, index) => ({
-      _key: `app-${index}`,
-      ...localizedString(application),
-    })),
     orderRank: product.orderRank,
     image: {
       _type: 'image',

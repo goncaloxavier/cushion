@@ -29,7 +29,7 @@ Use this to help agents avoid accidental damage.
 - Product and case-study detail lookups in their `[slug]` server loads.
 - Sanity schema fields and frontend query field names must stay aligned.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
-- The public Sanity document client must stay `useCdn: false`; otherwise Studio edits can look unpublished/stale on the website even when renderers are wired correctly.
+- The public visitor Sanity client uses `useCdn: true` for speed, while the Visual Editing preview client must stay `useCdn: false` with draft perspective and stega metadata. Do not collapse those two clients into one.
 - Loja schema, fallback prices, seed generation, GROQ projection, route filters/pagination, and tests must stay aligned.
 - Carrinho resolves local browser selections against the current public Loja content. If product slugs, variant order, or finish keys change, update fallback/Sanity content and tests together.
 - The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
@@ -70,6 +70,7 @@ Use this to help agents avoid accidental damage.
 - The private Sanity `crm` dataset, submitted personal data, internal notes, and client profile records.
 - The Carrinho localStorage key stores only non-personal product selections. Do not add names, emails, addresses, phone numbers, or free-text messages to localStorage.
 - `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` must only exist in server/private runtime environments.
+- `SANITY_VIEWER_TOKEN` is server-only too. It enables Presentation preview by reading drafts and `sanity.previewUrlSecret` documents; never expose it through public env vars, client code, logs, or generated files.
 - Future public/private content boundaries if non-public draft content is introduced.
 
 ## Common Regression Patterns
@@ -87,7 +88,12 @@ Use this to help agents avoid accidental damage.
 - Showing Loja variants, dimensions, finish selectors, catalogue page badges, or proposal links on the list; those belong on the Loja detail route.
 - Turning Carrinho into checkout by accident. It is only a quote builder: no payments, login, registration, stock, shipping, or final order records.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
-- Switching public Sanity document fetches to the cached CDN while expecting live CMS edits to appear immediately.
+- Expecting visitor pages that use the cached public Sanity client to update instantly after publish. Immediate review belongs in Presentation/Visual Editing, which uses the uncached draft client.
+- Mixing `localhost` and `127.0.0.1` during Visual Editing review. Preview mode is cookie based, and those hosts do not share cookies; keep Studio and website preview on the same hostname.
+- Setting the preview cookie as always `Secure; SameSite=None`; local HTTP Studio preview may silently fail because the browser refuses that cookie.
+- Validating the preview URL secret with the stega client; invisible stega metadata can corrupt the secret comparison.
+- Forgetting to pass the preview flag into large per-detail fetches such as blog article bodies.
+- Exposing `SANITY_VIEWER_TOKEN` to browser-visible environment variables or client-side code.
 - Adding private CRM fields to `src/lib/sanity.ts` or any public route by mistake.
 - Exposing `SANITY_CRM_WRITE_TOKEN` through public environment variables, logs, generated static files, or client-side code.
 - Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.

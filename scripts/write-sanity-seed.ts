@@ -55,26 +55,6 @@ const localizedStoreDimensions = (productIndex: number, variantIndex: number) =>
   }))
 }
 
-const localizedArray = (
-  collection: 'products',
-  index: number,
-  key: 'features' | 'applications',
-  keyPrefix: string,
-) => {
-  const canonical = fallbackContent.pt[collection][index][key]
-
-  return canonical.map((_, itemIndex) => ({
-    _key: `${keyPrefix}-${itemIndex}`,
-    _type: 'localizedString',
-    ...Object.fromEntries(
-      languages.map((language) => [
-        language,
-        fallbackContent[language][collection][index][key][itemIndex],
-      ]),
-    ),
-  }))
-}
-
 const localizedSiteList = (
   read: (content: SiteContent) => string[],
   keyPrefix: string,
@@ -133,9 +113,6 @@ const siteContentDocument = {
     complaintsNote: localizedSiteValue((content) => content.common.complaintsNote),
     marketingConsent: localizedSiteValue((content) => content.common.marketingConsent),
   },
-  footer: {
-    line: localizedSiteValue((content) => content.footer.line),
-  },
   home: {
     hero: copyBlock((content) => content.home.hero),
     heroImage: imageFromSiteContent((content) => content.home.heroImage),
@@ -145,10 +122,6 @@ const siteContentDocument = {
       title: localizedSiteValue((content) => content.home.impact.title),
       lead: localizedSiteValue((content) => content.home.impact.lead),
       stats: contentCards((content) => content.home.impact.stats, 'impact-stat'),
-    },
-    manifesto: {
-      quote: localizedSiteValue((content) => content.home.manifesto.quote),
-      attribution: localizedSiteValue((content) => content.home.manifesto.attribution),
     },
     partners: {
       kicker: localizedSiteValue((content) => content.home.partners.kicker),
@@ -171,7 +144,6 @@ const siteContentDocument = {
   about: {
     hero: copyBlock((content) => content.about.hero),
     timeline: contentCards((content) => content.about.timeline, 'timeline'),
-    principles: contentCards((content) => content.about.principles, 'principle'),
   },
   productsPage: {
     hero: copyBlock((content) => content.productsPage.hero),
@@ -185,12 +157,10 @@ const siteContentDocument = {
   catalogue: {
     hero: copyBlock((content) => content.catalogue.hero),
     ctaLabel: localizedSiteValue((content) => content.catalogue.ctaLabel),
-    quoteFlow: contentCards((content) => content.catalogue.quoteFlow, 'quote-flow'),
     estimate: {
       kicker: localizedSiteValue((content) => content.catalogue.estimate.kicker),
       title: localizedSiteValue((content) => content.catalogue.estimate.title),
       lead: localizedSiteValue((content) => content.catalogue.estimate.lead),
-      cards: contentCards((content) => content.catalogue.estimate.cards, 'estimate-card'),
       checklistTitle: localizedSiteValue((content) => content.catalogue.estimate.checklistTitle),
       checklist: localizedSiteList(
         (content) => content.catalogue.estimate.checklist,
@@ -206,7 +176,6 @@ const siteContentDocument = {
   blogPage: {
     hero: copyBlock((content) => content.blogPage.hero),
     heroImage: imageFromSiteContent((content) => content.blogPage.heroImage),
-    newsletter: copyBlock((content) => content.blogPage.newsletter),
   },
   contactPage: {
     hero: copyBlock((content) => content.contactPage.hero),
@@ -227,8 +196,6 @@ const productDocuments = fallbackContent.pt.products.map((product, index) => ({
   slug: {_type: 'slug', current: product.slug},
   summary: localizedProductField(index, 'summary'),
   description: localizedProductField(index, 'description'),
-  features: localizedArray('products', index, 'features', 'feature'),
-  applications: localizedArray('products', index, 'applications', 'application'),
   orderRank: (index + 1) * 10,
 }))
 

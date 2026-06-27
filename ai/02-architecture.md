@@ -65,7 +65,9 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `src/lib/scroll.ts` - `changeListPage` runs a page change as a market-standard cross-fade: fade the list grid out, swap + render while hidden, instant-reposition to the list top under the fade, then fade back in (opacity/transform only — no per-frame scroll loop). Product, Loja, case-study, and blog list routes use this behavior.
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts optional autoplay, controls, loop, mute, and playsinline flags for background and full-player embeds.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
-- `src/lib/sanity.ts` - public Sanity client and site/product/store/case/blog query for dataset `production`.
+- `src/lib/sanity.ts` - public cached Sanity client plus Visual Editing draft/stega clients and site/product/store/case/blog queries for dataset `production`.
+- `src/lib/server/preview.ts` - Visual Editing preview cookie helpers; local HTTP uses a non-secure `SameSite=Lax` cookie, deployed HTTPS uses `SameSite=None; Secure` for Studio iframe preview. Local Studio and local website should use the same hostname (`localhost` by default) because `localhost` and `127.0.0.1` do not share preview cookies.
+- `src/routes/preview/enable/+server.ts` and `src/routes/preview/disable/+server.ts` - Presentation tool preview-mode endpoints; validate the signed preview URL secret with a non-stega authed client before toggling draft rendering.
 - `src/lib/server/crm.ts` - private server-only Sanity writer for client profiles and form submissions in dataset `crm` (now also stores `address`; validation is per-source so catalogue needs an address and contact needs a message).
 - `src/lib/server/crm-client.ts` - shared server-only Sanity client for the `crm` dataset (null when `SANITY_CRM_WRITE_TOKEN` is unset, so the form/backoffice fail closed).
 - `src/lib/server/auth.ts` - backoffice auth with Node `crypto` only: scrypt password hashing (no global pepper, so hashes are portable), hashed-token sessions stored in `staffSession`, login with enumeration-resistant timing, and an in-memory login rate limiter.
@@ -89,7 +91,9 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 ## Data Boundaries
 
 - Public source of truth: Sanity project `u4uyfix8`, dataset `production`, schema definitions committed in this repo, and fallback content in `src/lib/site-content.ts` until Sanity is populated.
-- Public Sanity document queries intentionally use `useCdn: false` so published Studio edits, especially image swaps, show immediately. Image asset URLs still use Sanity's CDN and the warm-up script only pre-generates transformed image variants.
+- Public visitor Sanity document queries use `useCdn: true` for speed. Published Studio edits can take a few seconds to propagate outside preview; editors should use Presentation/Visual Editing when they need immediate draft/live review.
+- Visual Editing/Presentation preview uses a server-only token, `useCdn: false`, draft perspective, and stega metadata so Studio can show drafts and click-to-edit overlays without exposing the token to the browser.
+- Image asset URLs still use Sanity's CDN and the warm-up script uses uncached document queries only to pre-generate transformed image variants.
 - Private source of truth: Sanity project `u4uyfix8`, private dataset `crm`, document types `formSubmission` and `clientProfile`.
 - Confidential data: submitted names, email addresses, phone numbers, messages, consent text, internal notes, and CRM statuses belong only in the private `crm` dataset and must not be queried by public frontend loaders.
 - Local browser data: the Loja cart stores only product slugs, variant indexes, finish keys, and quantities under `df4y-store-cart-v1`; it must not store visitor identity, contact details, or free-text messages.
@@ -135,7 +139,9 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - Public content in dataset `production` can be readable by the website. Editing that content happens through Sanity login/permissions in Studio.
 - Private form/client data belongs in dataset `crm`; writes happen only through SvelteKit server code using `SANITY_CRM_WRITE_TOKEN`, and the token must never be exposed to the browser.
 - Keep public page copy editable through the `siteContent` singleton when the copy belongs to a route rather than a collection item.
-- Do not switch the public Sanity document client back to `useCdn: true` without explicit acceptance that Studio edits can appear stale. This site is meant to feel CMS-live for editors.
+- Keep the public visitor client and preview client separate: the public client may use `useCdn: true`; the preview client must keep `useCdn: false`, `perspective: 'drafts'`, and `stega` enabled.
+- Keep `SANITY_VIEWER_TOKEN` server-only. It needs enough permission to read drafts and preview-secret documents; if the Presentation secret validation fails, check token permissions before changing query code.
+- Keep `/preview/enable` and `/preview/disable` cookie behavior compatible with both local HTTP Studio preview and deployed HTTPS iframe preview.
 - Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
 - Keep page video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.

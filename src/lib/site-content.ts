@@ -2024,14 +2024,8 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallback[index]?.description ?? ''),
         ),
-        features: localizedList(product.features, language, fallback[index]?.features ?? []).filter(
-          (feature) => !isRedundantProductMaterialFeature(feature),
-        ),
-        applications: localizedList(
-          product.applications,
-          language,
-          fallback[index]?.applications ?? [],
-        ),
+        features: [],
+        applications: [],
       }
     })
 }
@@ -2169,8 +2163,6 @@ const applySiteContentFromSanity = (
 
   target.nav = localizedRecord(source.nav, language, fallback.nav)
   target.common = commonFromSanity(source.common, language, fallback.common)
-  target.footer = localizedRecord(source.footer, language, fallback.footer)
-
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
     heroImage: imageFromSanity(source.home?.heroImage, language, fallback.home.heroImage),
@@ -2187,14 +2179,7 @@ const applySiteContentFromSanity = (
         fallback.home.impact.stats,
       ),
     },
-    manifesto: {
-      quote: localized(source.home?.manifesto?.quote, language, fallback.home.manifesto.quote),
-      attribution: localized(
-        source.home?.manifesto?.attribution,
-        language,
-        fallback.home.manifesto.attribution,
-      ),
-    },
+    manifesto: fallback.home.manifesto,
     partners: {
       ...copyBlockFromSanity(source.home?.partners, language, fallback.home.partners),
       items: partnersFromSanity(
@@ -2208,11 +2193,7 @@ const applySiteContentFromSanity = (
   target.about = {
     hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
     timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
-    principles: contentCardsFromSanity(
-      source.about?.principles,
-      language,
-      fallback.about.principles,
-    ),
+    principles: fallback.about.principles,
   }
 
   target.productsPage = {
@@ -2234,11 +2215,7 @@ const applySiteContentFromSanity = (
   target.catalogue = {
     hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
     ctaLabel: localized(source.catalogue?.ctaLabel, language, fallback.catalogue.ctaLabel),
-    quoteFlow: contentCardsFromSanity(
-      source.catalogue?.quoteFlow,
-      language,
-      fallback.catalogue.quoteFlow,
-    ),
+    quoteFlow: fallback.catalogue.quoteFlow,
     estimate: {
       kicker: localized(
         source.catalogue?.estimate?.kicker,
@@ -2251,11 +2228,7 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.title,
       ),
       lead: localized(source.catalogue?.estimate?.lead, language, fallback.catalogue.estimate.lead),
-      cards: contentCardsFromSanity(
-        source.catalogue?.estimate?.cards,
-        language,
-        fallback.catalogue.estimate.cards,
-      ),
+      cards: fallback.catalogue.estimate.cards,
       checklistTitle: localized(
         source.catalogue?.estimate?.checklistTitle,
         language,
@@ -2278,11 +2251,7 @@ const applySiteContentFromSanity = (
   target.blogPage = {
     hero: {...copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero), lead: ''},
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
-    newsletter: copyBlockFromSanity(
-      source.blogPage?.newsletter,
-      language,
-      fallback.blogPage.newsletter,
-    ),
+    newsletter: fallback.blogPage.newsletter,
   }
 
   const legacyContactFields = localizedListFromSanity(

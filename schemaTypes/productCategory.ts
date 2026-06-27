@@ -79,22 +79,6 @@ export const productCategory = defineType({
       group: 'conteudo',
     }),
     defineField({
-      name: 'features',
-      title: 'Características',
-      description: 'Etiquetas curtas como “Não apodrece”, “Lavável” ou “Sem pintura recorrente”.',
-      type: 'array',
-      group: 'conteudo',
-      of: [{type: 'localizedString'}],
-    }),
-    defineField({
-      name: 'applications',
-      title: 'Aplicações',
-      description: 'Onde este produto pode ser usado: condomínios, autarquias, jardins, zonas técnicas...',
-      type: 'array',
-      group: 'conteudo',
-      of: [{type: 'localizedString'}],
-    }),
-    defineField({
       name: 'orderRank',
       title: 'Ordem de apresentação',
       description: 'Número mais baixo aparece primeiro na listagem.',

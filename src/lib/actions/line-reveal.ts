@@ -2,6 +2,8 @@ import {prefersReducedMotion} from '$lib/motion'
 
 type LineRevealOptions = {base?: number}
 
+const sanityStegaMetadataPattern = /[\u200B-\u200D\uFEFF]/
+
 const escapeHtml = (value: string): string =>
   value
     .replace(/&/g, '&amp;')
@@ -18,7 +20,12 @@ export function lineReveal(node: HTMLElement, options: LineRevealOptions = {}) {
     return {}
   }
 
-  const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const rawText = node.textContent ?? ''
+  if (sanityStegaMetadataPattern.test(rawText)) {
+    return {}
+  }
+
+  const text = rawText.replace(/\s+/g, ' ').trim()
   if (!text) return {}
 
   const originalHTML = node.innerHTML
