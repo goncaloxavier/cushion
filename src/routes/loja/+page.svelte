@@ -2,12 +2,19 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import type {LanguageCode, StoreCategory, StoreProduct} from '$lib/site-content'
-  import {tick} from 'svelte'
+  import {
+    calculateStoreEstimate,
+    postalZoneFor,
+    readStorePostalCode,
+    storeDeliveryEventName,
+  } from '$lib/store-shipping'
+  import {onMount, tick} from 'svelte'
 
   let {data} = $props()
 
@@ -36,11 +43,41 @@
       name: 'Nombre',
     },
   }
+  const deliveryLabels: Record<
+    LanguageCode,
+    {
+      postcode: string
+      change: string
+      cardPriceWithDelivery: string
+      cardPriceWithoutDelivery: string
+    }
+  > = {
+    pt: {
+      postcode: 'Código postal',
+      change: 'Alterar',
+      cardPriceWithDelivery: 'Desde c/ transporte e IVA',
+      cardPriceWithoutDelivery: 'Desde s/ transporte',
+    },
+    en: {
+      postcode: 'Postcode',
+      change: 'Change',
+      cardPriceWithDelivery: 'From incl. transport and VAT',
+      cardPriceWithoutDelivery: 'From excl. transport',
+    },
+    es: {
+      postcode: 'Código postal',
+      change: 'Cambiar',
+      cardPriceWithDelivery: 'Desde con transporte e IVA',
+      cardPriceWithoutDelivery: 'Desde sin transporte',
+    },
+  }
   let query = $state('')
   let category = $state<CategoryFilter>('all')
   let sort = $state<SortKey>('featured')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
+  let deliveryPostalCode = $state('')
+  let deliveryModalOpen = $state(false)
   let filterEffectInitialized = false
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
@@ -50,6 +87,8 @@
   const hero = $derived({...content.storePage.hero, lead: ''})
   const normalizedQuery = $derived(query.trim().toLocaleLowerCase(data.language))
   const localizedSortLabels = $derived(sortLabels[data.language])
+  const localizedDeliveryLabels = $derived(deliveryLabels[data.language])
+  const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const priceFormatter = $derived(
     new Intl.NumberFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT', {
       style: 'currency',
@@ -58,8 +97,27 @@
     }),
   )
 
-  const priceFor = (product: StoreProduct) =>
+  const basePriceFor = (product: StoreProduct) =>
     Math.min(...product.variants.flatMap((variant) => [variant.prices.natural, variant.prices.dark]))
+
+  const entryPriceFor = (product: StoreProduct) => {
+    const candidates = product.variants.flatMap((variant) =>
+      (['natural', 'dark'] as const).map((finish) => ({
+        price: variant.prices[finish],
+        weightKg: variant.weightKg,
+      })),
+    )
+    const candidate = candidates.sort((left, right) => left.price - right.price)[0]
+    if (!candidate) return {price: 0, includesDelivery: false}
+
+    const estimate = calculateStoreEstimate(
+      [{unitPrice: candidate.price, quantity: 1, weightKg: candidate.weightKg}],
+      deliveryPostalCode,
+    )
+
+    if (estimate.totalGross !== null) return {price: estimate.totalGross, includesDelivery: true}
+    return {price: candidate.price, includesDelivery: false}
+  }
 
   const formatPrice = (price: number) => priceFormatter.format(price)
 
@@ -90,8 +148,8 @@
     })
 
     return [...products].sort((left, right) => {
-      if (sort === 'priceAsc') return priceFor(left) - priceFor(right)
-      if (sort === 'priceDesc') return priceFor(right) - priceFor(left)
+      if (sort === 'priceAsc') return entryPriceFor(left).price - entryPriceFor(right).price
+      if (sort === 'priceDesc') return entryPriceFor(right).price - entryPriceFor(left).price
       if (sort === 'name') return left.title.localeCompare(right.title, data.language)
       return content.storeProducts.indexOf(left) - content.storeProducts.indexOf(right)
     })
@@ -144,6 +202,20 @@
       },
     )
   }
+
+  onMount(() => {
+    const refreshDelivery = () => {
+      deliveryPostalCode = readStorePostalCode()
+      if (!deliveryPostalCode) deliveryModalOpen = true
+    }
+
+    refreshDelivery()
+    window.addEventListener(storeDeliveryEventName, refreshDelivery)
+
+    return () => {
+      window.removeEventListener(storeDeliveryEventName, refreshDelivery)
+    }
+  })
 </script>
 
 <svelte:head>
@@ -154,95 +226,143 @@
   <PageHero {...hero} />
 
   <section class="section store-section" bind:this={collectionSection}>
-    <Reveal class="store-toolbar" variant="panel">
-      <label class="search-field store-search">
-        <span>{content.storePage.searchLabel}</span>
-        <input
-          bind:value={query}
-          type="search"
-          aria-label={content.storePage.searchLabel}
-          placeholder={content.common.searchPlaceholder}
-        />
-      </label>
-
-      <label class="store-select">
-        <span>{content.storePage.categoryLabel}</span>
-        <select bind:value={category}>
-          <option value="all">{content.storePage.allCategoriesLabel}</option>
-          {#each categories as option}
-            <option value={option}>{content.storePage.categoryLabels[option]}</option>
-          {/each}
-        </select>
-      </label>
-
-      <label class="store-select">
-        <span>{content.storePage.sortLabel}</span>
-        <select bind:value={sort}>
-          {#each sortOptions as option}
-            <option value={option}>{localizedSortLabels[option]}</option>
-          {/each}
-        </select>
-      </label>
-    </Reveal>
-
-    {#if filteredProducts.length}
-      <div class="store-grid" class:page-swap-out={swapping}>
-        {#each visibleProducts as product, index}
-          <Reveal class="store-card-reveal" delay={Math.min(index * 35, 180)} variant="card">
-            <a
-              class="store-card"
-              href={collectionDetailHref(`/loja/${product.slug}`, data.language, page)}
-              data-store-product={product.slug}
-            >
-              <div class={`store-card-visual ${product.image ? '' : 'no-image'}`}>
-                {#if product.image}
-                  <img
-                    src={sizedImage(product.image.url, 640)}
-                    srcset={imageSrcset(product.image.url, [360, 480, 640, 800])}
-                    sizes="(max-width: 700px) 92vw, 360px"
-                    alt={product.image.alt}
-                    loading="lazy"
-                    decoding="async"
-                    style:background={product.image.lqip
-                      ? `center / cover no-repeat url(${product.image.lqip})`
-                      : undefined}
-                  />
-                {:else}
-                  <div aria-hidden="true">
-                    <span>{content.storePage.categoryLabels[product.category]}</span>
-                    <strong>{initials(product.title)}</strong>
-                  </div>
-                {/if}
-              </div>
-
-              <div class="store-card-body">
-                <div class="store-card-heading">
-                  <p>{content.storePage.categoryLabels[product.category]}</p>
-                  <h3>{product.title}</h3>
-                </div>
-                <p class="store-card-summary">{product.summary}</p>
-
-                <div class="store-price-line">
-                  <span>{content.storePage.priceFromLabel}</span>
-                  <strong>{formatPrice(priceFor(product))}</strong>
-                </div>
-              </div>
-            </a>
-          </Reveal>
-        {/each}
-      </div>
-    {:else}
-      <p class="empty-state store-empty">{content.storePage.noResults}</p>
+    {#if deliveryPostalCode}
+      <Reveal class="store-delivery-strip" variant="panel">
+        <div>
+          <span>{localizedDeliveryLabels.postcode}</span>
+          <strong>{deliveryPostalCode}</strong>
+          {#if deliveryZone}
+            <small>{deliveryZone.label}</small>
+          {/if}
+        </div>
+        <button
+          type="button"
+          onclick={() => {
+            deliveryModalOpen = true
+          }}
+        >
+          {localizedDeliveryLabels.change}
+        </button>
+      </Reveal>
     {/if}
 
-    <Pagination
-      {page}
-      {totalPages}
-      onchange={setCollectionPage}
-      label={content.common.pageLabel}
-      previousLabel={content.common.previous}
-      nextLabel={content.common.next}
-      disabled={swapping}
-    />
+    <div
+      class:store-blurred-preview={!deliveryPostalCode || deliveryModalOpen}
+      aria-hidden={!deliveryPostalCode || deliveryModalOpen}
+      inert={!deliveryPostalCode || deliveryModalOpen}
+    >
+      <Reveal class="store-toolbar" variant="panel">
+        <label class="search-field store-search">
+          <span>{content.storePage.searchLabel}</span>
+          <input
+            bind:value={query}
+            type="search"
+            aria-label={content.storePage.searchLabel}
+            placeholder={content.common.searchPlaceholder}
+          />
+        </label>
+
+        <label class="store-select">
+          <span>{content.storePage.categoryLabel}</span>
+          <select bind:value={category}>
+            <option value="all">{content.storePage.allCategoriesLabel}</option>
+            {#each categories as option}
+              <option value={option}>{content.storePage.categoryLabels[option]}</option>
+            {/each}
+          </select>
+        </label>
+
+        <label class="store-select">
+          <span>{content.storePage.sortLabel}</span>
+          <select bind:value={sort}>
+            {#each sortOptions as option}
+              <option value={option}>{localizedSortLabels[option]}</option>
+            {/each}
+          </select>
+        </label>
+      </Reveal>
+
+      {#if filteredProducts.length}
+        <div class="store-grid" class:page-swap-out={swapping}>
+          {#each visibleProducts as product, index}
+            {@const entryPrice = entryPriceFor(product)}
+            <Reveal class="store-card-reveal" delay={Math.min(index * 35, 180)} variant="card">
+              <a
+                class="store-card"
+                href={collectionDetailHref(`/loja/${product.slug}`, data.language, page)}
+                data-store-product={product.slug}
+              >
+                <div class={`store-card-visual ${product.image ? '' : 'no-image'}`}>
+                  {#if product.image}
+                    <img
+                      src={sizedImage(product.image.url, 640)}
+                      srcset={imageSrcset(product.image.url, [360, 480, 640, 800])}
+                      sizes="(max-width: 700px) 92vw, 360px"
+                      alt={product.image.alt}
+                      loading="lazy"
+                      decoding="async"
+                      style:background={product.image.lqip
+                        ? `center / cover no-repeat url(${product.image.lqip})`
+                        : undefined}
+                    />
+                  {:else}
+                    <div aria-hidden="true">
+                      <span>{content.storePage.categoryLabels[product.category]}</span>
+                      <strong>{initials(product.title)}</strong>
+                    </div>
+                  {/if}
+                </div>
+
+                <div class="store-card-body">
+                  <div class="store-card-heading">
+                    <p>{content.storePage.categoryLabels[product.category]}</p>
+                    <h3>{product.title}</h3>
+                  </div>
+                  <p class="store-card-summary">{product.summary}</p>
+
+                  <div class="store-price-line">
+                    <span>
+                      {entryPrice.includesDelivery
+                        ? localizedDeliveryLabels.cardPriceWithDelivery
+                        : localizedDeliveryLabels.cardPriceWithoutDelivery}
+                    </span>
+                    <strong>{formatPrice(entryPrice.price)}</strong>
+                  </div>
+                </div>
+              </a>
+            </Reveal>
+          {/each}
+        </div>
+      {:else}
+        <p class="empty-state store-empty">{content.storePage.noResults}</p>
+      {/if}
+
+      <Pagination
+        {page}
+        {totalPages}
+        onchange={setCollectionPage}
+        label={content.common.pageLabel}
+        previousLabel={content.common.previous}
+        nextLabel={content.common.next}
+        disabled={swapping}
+      />
+    </div>
+
+    {#if !deliveryPostalCode || deliveryModalOpen}
+      <div class="store-gate-layer" role="presentation">
+        <StorePostalGate
+          language={data.language}
+          initialPostalCode={deliveryPostalCode}
+          closable={Boolean(deliveryPostalCode)}
+          onclose={() => {
+            deliveryModalOpen = false
+          }}
+          onconfirm={(postalCode) => {
+            deliveryPostalCode = postalCode
+            deliveryModalOpen = false
+          }}
+        />
+      </div>
+    {/if}
   </section>
 </main>

@@ -4,6 +4,7 @@
   import Reveal from '$lib/components/Reveal.svelte'
   import {clearCart, readCart, type StoreCartItem} from '$lib/cart'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
+  import {calculateStoreEstimate, postalZoneFor, readStorePostalCode} from '$lib/store-shipping'
   import {onMount} from 'svelte'
 
   type ContactFormValues = Partial<Record<ContactFieldKey, string>>
@@ -40,6 +41,46 @@
     pt: 'Pedido da loja:',
     en: 'Store request:',
     es: 'Solicitud de tienda:',
+  }
+  const cartEstimateLabels: Record<
+    string,
+    {
+      postcode: string
+      productSubtotal: string
+      transport: string
+      iva: string
+      total: string
+      weight: string
+      pending: string
+    }
+  > = {
+    pt: {
+      postcode: 'Código postal',
+      productSubtotal: 'Produtos s/ IVA',
+      transport: 'Transporte estimado',
+      iva: 'IVA 23%',
+      total: 'Total c/ IVA',
+      weight: 'Peso total',
+      pending: 'A confirmar',
+    },
+    en: {
+      postcode: 'Postcode',
+      productSubtotal: 'Products excl. VAT',
+      transport: 'Estimated transport',
+      iva: 'VAT 23%',
+      total: 'Total incl. VAT',
+      weight: 'Total weight',
+      pending: 'To confirm',
+    },
+    es: {
+      postcode: 'Código postal',
+      productSubtotal: 'Productos sin IVA',
+      transport: 'Transporte estimado',
+      iva: 'IVA 23%',
+      total: 'Total con IVA',
+      weight: 'Peso total',
+      pending: 'Por confirmar',
+    },
   }
   let fieldValues = $state<Record<ContactFieldKey, string>>({
     name: '',
@@ -129,15 +170,65 @@
     return `- ${product.title} | ${variant.label} | ${finish} | ${item.quantity} x ${unitPrice}`
   }
 
+  const cartEstimateToMessageLines = (items: StoreCartItem[]) => {
+    const labels = cartEstimateLabels[data.language] ?? cartEstimateLabels.pt
+    const postalCode = readStorePostalCode()
+    const zone = postalZoneFor(postalCode)
+    const estimate = calculateStoreEstimate(
+      items
+        .map((item) => {
+          const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
+          const variant = product?.variants[item.variantIndex]
+          if (!product || !variant) return null
+
+          return {
+            unitPrice: variant.prices[item.finish],
+            quantity: item.quantity,
+            weightKg: variant.weightKg,
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+      postalCode,
+    )
+    const formatter = new Intl.NumberFormat(
+      data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
+      {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+      },
+    )
+
+    return [
+      '',
+      `${labels.postcode}: ${postalCode || labels.pending}${zone ? ` (${zone.label})` : ''}`,
+      `${labels.weight}: ${estimate.totalWeightKg.toLocaleString(data.language)} kg`,
+      `${labels.productSubtotal}: ${formatter.format(estimate.productNet)}`,
+      `${labels.transport}: ${
+        estimate.transport ? formatter.format(estimate.transport.transportNet) : labels.pending
+      }`,
+      `${labels.iva}: ${estimate.vat !== null ? formatter.format(estimate.vat) : labels.pending}`,
+      `${labels.total}: ${
+        estimate.totalGross !== null ? formatter.format(estimate.totalGross) : labels.pending
+      }`,
+    ]
+  }
+
   onMount(() => {
     if (data.submissionSource !== 'store' || fieldValues.message.trim()) return
 
-    const cartLines = readCart().map(cartItemToMessageLine).filter(Boolean)
+    const cartItems = readCart()
+    const cartLines = cartItems.map(cartItemToMessageLine).filter(Boolean)
     if (cartLines.length === 0) return
 
+    const postalCode = readStorePostalCode()
     fieldValues = {
       ...fieldValues,
-      message: `${cartMessageIntro[data.language] ?? cartMessageIntro.pt}\n${cartLines.join('\n')}`,
+      postalCode: fieldValues.postalCode || postalCode,
+      message: `${cartMessageIntro[data.language] ?? cartMessageIntro.pt}\n${[
+        ...cartLines,
+        ...cartEstimateToMessageLines(cartItems),
+      ].join('\n')}`,
     }
   })
 </script>

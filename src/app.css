@@ -2836,12 +2836,258 @@ dt {
 }
 
 .store-section {
+  position: relative;
   display: grid;
   gap: 1.15rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.64), transparent 18rem),
     radial-gradient(circle at 82% 12%, rgba(21, 95, 119, 0.09), transparent 24rem),
     #e8f2ee;
+}
+
+.store-section-gated {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}
+
+.store-blurred-preview {
+  filter: blur(7px) saturate(0.85);
+  opacity: 0.45;
+  pointer-events: none;
+  transform: scale(0.992);
+  transform-origin: top center;
+  user-select: none;
+}
+
+.store-gate-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(2.2rem, 6vw, 5rem) max(1rem, calc((100% - var(--max)) / 2));
+  background: linear-gradient(180deg, rgba(238, 246, 242, 0.55), rgba(238, 246, 242, 0.85));
+  pointer-events: none;
+}
+
+.store-postal-gate {
+  position: relative;
+  pointer-events: auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  width: min(100%, 30rem);
+  padding: clamp(1.9rem, 4vw, 2.7rem) clamp(1.6rem, 4vw, 2.4rem) clamp(1.6rem, 4vw, 2.2rem);
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid rgba(17, 57, 60, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 2rem 5rem rgba(17, 57, 60, 0.22);
+}
+
+.store-postal-icon {
+  display: grid;
+  place-items: center;
+  width: 3.1rem;
+  height: 3.1rem;
+  margin-bottom: 0.9rem;
+  color: var(--green-dark);
+  background: var(--brand-fog);
+  border-radius: 999px;
+}
+
+.store-postal-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.store-postal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  padding: 0;
+  color: var(--green-dark);
+  background: #f8fbf9;
+  border: 1px solid rgba(17, 57, 60, 0.14);
+  border-radius: 8px;
+}
+
+.store-postal-close span {
+  font-size: 1.45rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.store-postal-close:hover,
+.store-postal-close:focus-visible {
+  border-color: rgba(21, 95, 119, 0.34);
+}
+
+.store-postal-gate-copy {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.store-postal-gate-copy h2 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 2.05rem);
+  line-height: 1.04;
+}
+
+.store-postal-gate-copy p:last-child {
+  max-width: 33ch;
+  margin: 0;
+  color: #4a584f;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.store-postal-form {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+  margin-top: 1.25rem;
+  min-width: 0;
+}
+
+.store-postal-form .button {
+  width: 100%;
+}
+
+.store-postal-form input {
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+.store-postal-form label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.store-postal-form label span {
+  color: var(--green-dark);
+  font-size: 0.74rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.store-postal-form input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0 0.9rem;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 830;
+  background: #f8fbf9;
+  border: 1px solid rgba(17, 57, 60, 0.16);
+  border-radius: 8px;
+}
+
+.store-postal-form input:focus {
+  outline: 2px solid rgba(21, 95, 119, 0.34);
+  outline-offset: 2px;
+}
+
+.store-postal-form input[aria-invalid='true'] {
+  border-color: rgba(166, 62, 45, 0.58);
+}
+
+.store-postal-error,
+.store-postal-zone {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.store-postal-error {
+  color: #9b3528;
+}
+
+.store-postal-zone {
+  color: var(--green-dark);
+}
+
+.store-postal-gate.compact {
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem;
+  background: #f8fbf9;
+  box-shadow: none;
+}
+
+.store-postal-gate.compact .store-postal-gate-copy h2 {
+  max-width: 100%;
+  font-family: inherit;
+  font-size: 1.18rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.store-postal-gate.compact .store-postal-gate-copy p:last-child {
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.store-delivery-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.8rem 0.95rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(17, 57, 60, 0.13);
+  border-radius: 8px;
+  box-shadow: 0 0.85rem 2rem rgba(17, 57, 60, 0.06);
+}
+
+.store-delivery-strip div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.7rem;
+  min-width: 0;
+}
+
+.store-delivery-strip span,
+.store-delivery-strip small {
+  color: #4c5a54;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.store-delivery-strip strong {
+  color: var(--green-dark);
+  font-size: 1.08rem;
+}
+
+.store-delivery-strip button,
+.store-detail-delivery button {
+  min-height: 2.35rem;
+  padding: 0 0.75rem;
+  color: var(--green-dark);
+  font-size: 0.82rem;
+  font-weight: 850;
+  background: #f8fbf9;
+  border: 1px solid rgba(17, 57, 60, 0.12);
+  border-radius: 8px;
+}
+
+.store-delivery-strip button:hover,
+.store-detail-delivery button:hover {
+  border-color: rgba(21, 95, 119, 0.32);
 }
 
 .store-intro {
@@ -3281,6 +3527,28 @@ dt {
   margin: 0;
 }
 
+.store-detail-delivery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.35rem 0.65rem;
+  max-width: min(100%, 28rem);
+  color: #4c5a54;
+  text-align: right;
+}
+
+.store-detail-delivery span,
+.store-detail-delivery small {
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.store-detail-delivery strong {
+  color: var(--green-dark);
+  font-size: 1.08rem;
+}
+
 .store-detail-shell {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 0.72fr);
@@ -3632,6 +3900,11 @@ dt {
 .store-detail-request {
   justify-self: start;
   min-width: min(100%, 15rem);
+}
+
+.store-detail-page,
+.cart-section {
+  position: relative;
 }
 
 .cart-section {
@@ -6339,6 +6612,35 @@ html.reduce-motion {
     padding: 0.9rem;
   }
 
+  .store-gate-layer {
+    padding: 1.25rem var(--mobile-gutter);
+  }
+
+  .store-postal-gate {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .store-postal-gate-copy h2 {
+    max-width: 100%;
+    font-size: clamp(1.75rem, 8vw, 2.35rem);
+  }
+
+  .store-postal-form input {
+    min-height: 3.05rem;
+  }
+
+  .store-delivery-strip {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .store-delivery-strip button {
+    width: 100%;
+  }
+
   .store-intro h2 {
     max-width: 100%;
     font-size: 2.25rem;
@@ -6380,6 +6682,16 @@ html.reduce-motion {
   .store-detail-head {
     align-items: flex-start;
     padding: 1.1rem var(--mobile-gutter) 0;
+  }
+
+  .store-detail-delivery {
+    display: grid;
+    justify-items: end;
+    gap: 0.22rem;
+  }
+
+  .store-detail-delivery button {
+    margin-top: 0.3rem;
   }
 
   .store-detail-head .kicker {

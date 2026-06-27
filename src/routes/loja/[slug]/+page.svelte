@@ -1,9 +1,17 @@
 <script lang="ts">
+  import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {showToast} from '$lib/toast'
   import type {LanguageCode, StoreFinish} from '$lib/site-content'
+  import {
+    calculateStoreEstimate,
+    postalZoneFor,
+    readStorePostalCode,
+    storeDeliveryEventName,
+  } from '$lib/store-shipping'
+  import {onMount} from 'svelte'
 
   let {data} = $props()
 
@@ -18,6 +26,12 @@
       dimensions: string
       weight: string
       selectedPrice: string
+      productNet: string
+      transport: string
+      totalWithVat: string
+      deliveryPostcode: string
+      changePostcode: string
+      transportPending: string
       addToCart: string
       added: string
       viewCart: string
@@ -33,6 +47,12 @@
       dimensions: 'Dimensões',
       weight: 'Peso',
       selectedPrice: 'Preço selecionado',
+      productNet: 'Produto s/ IVA',
+      transport: 'Transporte estimado',
+      totalWithVat: 'Total c/ IVA',
+      deliveryPostcode: 'Código postal',
+      changePostcode: 'Alterar',
+      transportPending: 'Transporte a confirmar',
       addToCart: 'Adicionar ao carrinho',
       added: 'Adicionado ao carrinho',
       viewCart: 'Ver carrinho',
@@ -47,6 +67,12 @@
       dimensions: 'Dimensions',
       weight: 'Weight',
       selectedPrice: 'Selected price',
+      productNet: 'Product excl. VAT',
+      transport: 'Estimated transport',
+      totalWithVat: 'Total incl. VAT',
+      deliveryPostcode: 'Postcode',
+      changePostcode: 'Change',
+      transportPending: 'Transport to confirm',
       addToCart: 'Add to cart',
       added: 'Added to cart',
       viewCart: 'View cart',
@@ -61,6 +87,12 @@
       dimensions: 'Dimensiones',
       weight: 'Peso',
       selectedPrice: 'Precio seleccionado',
+      productNet: 'Producto sin IVA',
+      transport: 'Transporte estimado',
+      totalWithVat: 'Total con IVA',
+      deliveryPostcode: 'Código postal',
+      changePostcode: 'Cambiar',
+      transportPending: 'Transporte por confirmar',
       addToCart: 'Añadir al carrito',
       added: 'Añadido al carrito',
       viewCart: 'Ver carrito',
@@ -72,6 +104,8 @@
   let selectedVariantIndex = $state(0)
   let selectedFinish = $state<StoreFinish>('natural')
   let quantity = $state(1)
+  let deliveryPostalCode = $state('')
+  let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
@@ -81,6 +115,14 @@
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
   )
   const selectedPrice = $derived(selectedVariant.prices[selectedFinish])
+  const normalizedQuantity = $derived(Math.min(99, Math.max(1, Math.floor(quantity || 1))))
+  const selectedEstimate = $derived(
+    calculateStoreEstimate(
+      [{unitPrice: selectedPrice, quantity: normalizedQuantity, weightKg: selectedVariant.weightKg}],
+      deliveryPostalCode,
+    ),
+  )
+  const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const priceFormatter = $derived(
     new Intl.NumberFormat(
       data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
@@ -107,10 +149,24 @@
       slug: data.storeProduct.slug,
       variantIndex: selectedVariantIndex,
       finish: selectedFinish,
-      quantity,
+      quantity: normalizedQuantity,
     })
     showToast(labels.added)
   }
+
+  onMount(() => {
+    const refreshDelivery = () => {
+      deliveryPostalCode = readStorePostalCode()
+      if (!deliveryPostalCode) deliveryModalOpen = false
+    }
+
+    refreshDelivery()
+    window.addEventListener(storeDeliveryEventName, refreshDelivery)
+
+    return () => {
+      window.removeEventListener(storeDeliveryEventName, refreshDelivery)
+    }
+  })
 </script>
 
 <svelte:head>
@@ -118,13 +174,33 @@
 </svelte:head>
 
 <main class="store-detail-page">
-  <article class="detail-page store-detail">
+  {#if deliveryPostalCode}
+    <article
+      class="detail-page store-detail"
+      class:store-blurred-preview={deliveryModalOpen}
+      aria-hidden={deliveryModalOpen}
+      inert={deliveryModalOpen}
+    >
     <div class="store-detail-head">
       <a class="detail-back-link" href={backHref}>
         <span aria-hidden="true">←</span>
         {labels.back}
       </a>
-      <p class="kicker">{content.nav.store}</p>
+      <div class="store-detail-delivery">
+        <span>{labels.deliveryPostcode}</span>
+        <strong>{deliveryPostalCode}</strong>
+        {#if deliveryZone}
+          <small>{deliveryZone.label}</small>
+        {/if}
+        <button
+          type="button"
+          onclick={() => {
+            deliveryModalOpen = true
+          }}
+        >
+          {labels.changePostcode}
+        </button>
+      </div>
     </div>
 
     <section class="store-detail-shell">
@@ -235,8 +311,26 @@
         {/if}
 
         <section class="store-spec-price">
-          <h2>{labels.selectedPrice}</h2>
-          <p class="store-spec-price-value">{formatPrice(selectedPrice)}</p>
+          <h2>{labels.productNet}</h2>
+          <p class="store-spec-price-value">{formatPrice(selectedEstimate.productNet)}</p>
+        </section>
+
+        <section class="store-spec-transport">
+          <h2>{labels.transport}</h2>
+          {#if selectedEstimate.transport}
+            <p class="store-spec-price-value">{formatPrice(selectedEstimate.transport.transportNet)}</p>
+          {:else}
+            <p>{labels.transportPending}</p>
+          {/if}
+        </section>
+
+        <section class="store-spec-price store-spec-total">
+          <h2>{labels.totalWithVat}</h2>
+          <p class="store-spec-price-value">
+            {selectedEstimate.totalGross !== null
+              ? formatPrice(selectedEstimate.totalGross)
+              : labels.transportPending}
+          </p>
         </section>
       </div>
 
@@ -247,5 +341,32 @@
         <a class="text-link" href={`/carrinho${langQuery}`}>{labels.viewCart}</a>
       </div>
     </section>
-  </article>
+    </article>
+
+    {#if deliveryModalOpen}
+      <div class="store-gate-layer" role="presentation">
+        <StorePostalGate
+          language={data.language}
+          initialPostalCode={deliveryPostalCode}
+          closable
+          onclose={() => {
+            deliveryModalOpen = false
+          }}
+          onconfirm={(postalCode) => {
+            deliveryPostalCode = postalCode
+            deliveryModalOpen = false
+          }}
+        />
+      </div>
+    {/if}
+  {:else}
+    <section class="section store-section store-section-gated">
+      <StorePostalGate
+        language={data.language}
+        onconfirm={(postalCode) => {
+          deliveryPostalCode = postalCode
+        }}
+      />
+    </section>
+  {/if}
 </main>
