@@ -29,6 +29,7 @@
       productNet: string
       transport: string
       totalWithVat: string
+      ivaIncluded: string
       deliveryPostcode: string
       changePostcode: string
       transportPending: string
@@ -48,8 +49,9 @@
       weight: 'Peso',
       selectedPrice: 'Preço selecionado',
       productNet: 'Produto s/ IVA',
-      transport: 'Transporte estimado',
-      totalWithVat: 'Total c/ IVA',
+      transport: 'Transporte',
+      totalWithVat: 'Total',
+      ivaIncluded: 'IVA incluído',
       deliveryPostcode: 'Código postal',
       changePostcode: 'Alterar',
       transportPending: 'Transporte a confirmar',
@@ -68,8 +70,9 @@
       weight: 'Weight',
       selectedPrice: 'Selected price',
       productNet: 'Product excl. VAT',
-      transport: 'Estimated transport',
-      totalWithVat: 'Total incl. VAT',
+      transport: 'Transport',
+      totalWithVat: 'Total',
+      ivaIncluded: 'VAT included',
       deliveryPostcode: 'Postcode',
       changePostcode: 'Change',
       transportPending: 'Transport to confirm',
@@ -88,8 +91,9 @@
       weight: 'Peso',
       selectedPrice: 'Precio seleccionado',
       productNet: 'Producto sin IVA',
-      transport: 'Transporte estimado',
-      totalWithVat: 'Total con IVA',
+      transport: 'Transporte',
+      totalWithVat: 'Total',
+      ivaIncluded: 'IVA incluido',
       deliveryPostcode: 'Código postal',
       changePostcode: 'Cambiar',
       transportPending: 'Transporte por confirmar',
@@ -331,6 +335,9 @@
               ? formatPrice(selectedEstimate.totalGross)
               : labels.transportPending}
           </p>
+          {#if selectedEstimate.totalGross !== null}
+            <small class="store-spec-iva">{labels.ivaIncluded}</small>
+          {/if}
         </section>
       </div>
 

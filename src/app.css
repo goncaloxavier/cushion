@@ -3824,21 +3824,46 @@ dt {
   flex: 1 1 8rem;
 }
 
-.store-spec-grid .store-spec-price {
+.store-spec-grid .store-spec-price,
+.store-spec-grid .store-spec-transport {
   flex: 1 1 11rem;
-  background: var(--green-dark);
-  border-color: var(--green-dark);
 }
 
-.store-spec-grid .store-spec-price h2 {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.store-spec-grid .store-spec-price .store-spec-price-value {
-  color: #ffffff;
-  font-size: clamp(1.55rem, 2.4vw, 2.05rem);
-  font-weight: 850;
+/* Product + transport: plain light cards, but with a clear, sizeable value so
+   transport no longer reads as hidden. */
+.store-spec-grid .store-spec-price-value {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* Total: the one emphasised card — dark teal (no green), bigger number. */
+.store-spec-grid .store-spec-total {
+  color: #ffffff;
+  background: var(--brand-deep);
+  border-color: var(--brand-deep);
+}
+
+.store-spec-grid .store-spec-total h2 {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.store-spec-grid .store-spec-total .store-spec-price-value {
+  color: #ffffff;
+  font-size: clamp(1.65rem, 2.5vw, 2.1rem);
+}
+
+.store-spec-grid .store-spec-iva {
+  margin-top: 0.3rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .store-spec-weight-value {
@@ -3863,8 +3888,8 @@ dt {
 
 .store-spec-grid ul {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem 0.9rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
   margin: 0;
   padding: 0;
   color: #34443d;
