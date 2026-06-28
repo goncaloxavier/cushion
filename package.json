@@ -36,6 +36,8 @@
     "scrape:products": "tsx scripts/scrape-product-images.ts",
     "import:products:write": "tsx scripts/write-product-import.ts",
     "import:products": "npm run import:products:write && sanity datasets import .sanity/product-import.ndjson --dataset production --replace && npm run warm:images",
+    "import:store-products": "tsx scripts/import-store-products.ts",
+    "import:store-images": "tsx scripts/import-store-images.ts",
     "staff:create": "tsx scripts/create-staff.ts",
     "cleanup:removed-fields": "tsx scripts/cleanup-removed-website-fields.ts",
     "warm:images": "tsx scripts/warm-images.ts",

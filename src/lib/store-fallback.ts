@@ -1,9 +1,12 @@
-import type {LanguageCode, StoreProduct, StoreProductVariant} from './site-content'
+import type {ContentImage, LanguageCode, StoreProduct, StoreProductVariant} from './site-content'
 
 type Localized = Record<LanguageCode, string>
+type LocalizedStoreImage = Omit<ContentImage, 'alt'> & {alt: Localized}
 
-type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants'> & {
+type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants' | 'image' | 'images'> & {
   summary: Localized
+  image?: LocalizedStoreImage
+  images?: LocalizedStoreImage[]
   variants: Array<
     Omit<StoreProductVariant, 'label' | 'dimensions' | 'note'> & {
       label: Localized
@@ -14,6 +17,15 @@ type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants'> & {
 }
 
 const same = (value: string): Localized => ({pt: value, en: value, es: value})
+const storeImage = (
+  file: string,
+  alt: Localized,
+  aspectRatio = 4 / 3,
+): LocalizedStoreImage => ({
+  url: `/images/store/${file}`,
+  alt,
+  aspectRatio,
+})
 
 const storeProductBase: StoreProductBase[] = [
   {
@@ -26,6 +38,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Simple, robust outdoor bench for gardens, parks and resting areas.',
       es: 'Banco exterior sencillo y robusto para jardines, parques y zonas de descanso.',
     },
+    image: storeImage('banco-gaviao-01.jpeg', {
+      pt: 'Banco Gavião em acabamento escuro sobre relva artificial.',
+      en: 'Banco Gavião bench in dark finish on artificial grass.',
+      es: 'Banco Gavião en acabado oscuro sobre césped artificial.',
+    }),
+    images: [
+      storeImage('banco-gaviao-01.jpeg', {
+        pt: 'Banco Gavião em acabamento escuro sobre relva artificial.',
+        en: 'Banco Gavião bench in dark finish on artificial grass.',
+        es: 'Banco Gavião en acabado oscuro sobre césped artificial.',
+      }),
+      storeImage('banco-gaviao-02.jpeg', {
+        pt: 'Vista frontal aproximada do Banco Gavião.',
+        en: 'Closer front view of the Banco Gavião bench.',
+        es: 'Vista frontal aproximada del Banco Gavião.',
+      }),
+      storeImage('banco-gaviao-03.jpeg', {
+        pt: 'Banco Gavião visto de frente com os apoios laterais visíveis.',
+        en: 'Front view of the Banco Gavião with side supports visible.',
+        es: 'Banco Gavião visto de frente con los soportes laterales visibles.',
+      }),
+    ],
     variants: [
       {
         label: same('2000 mm'),
@@ -242,18 +276,56 @@ const storeProductBase: StoreProductBase[] = [
     ],
   },
   {
-    title: 'Cadeirão Atalia',
-    slug: 'cadeirao-atalia',
+    title: 'Cadeira Atalaia',
+    slug: 'cadeira-atalaia',
     category: 'cadeiras',
     cataloguePage: 15,
     summary: {
-      pt: 'Cadeirão exterior para jardins, esplanadas e zonas de descanso.',
-      en: 'Outdoor lounge chair for gardens, terraces and resting areas.',
-      es: 'Sillón exterior para jardines, terrazas y zonas de descanso.',
+      pt: 'Cadeira exterior larga para jardins, esplanadas e zonas de descanso.',
+      en: 'Wide outdoor chair for gardens, terraces and resting areas.',
+      es: 'Silla exterior amplia para jardines, terrazas y zonas de descanso.',
     },
+    image: storeImage(
+      'cadeira-atalaia-01.jpeg',
+      {
+        pt: 'Duas cadeiras Atalaia com uma mesa pequena sobre relva artificial.',
+        en: 'Two Cadeira Atalaia chairs with a small table on artificial grass.',
+        es: 'Dos sillas Atalaia con una mesa pequeña sobre césped artificial.',
+      },
+      1,
+    ),
+    images: [
+      storeImage(
+        'cadeira-atalaia-01.jpeg',
+        {
+          pt: 'Duas cadeiras Atalaia com uma mesa pequena sobre relva artificial.',
+          en: 'Two Cadeira Atalaia chairs with a small table on artificial grass.',
+          es: 'Dos sillas Atalaia con una mesa pequeña sobre césped artificial.',
+        },
+        1,
+      ),
+      storeImage(
+        'cadeira-atalaia-02.jpeg',
+        {
+          pt: 'Vista lateral da Cadeira Atalaia em acabamento natural.',
+          en: 'Side view of the Cadeira Atalaia in natural finish.',
+          es: 'Vista lateral de la silla Atalaia en acabado natural.',
+        },
+        1,
+      ),
+      storeImage(
+        'cadeira-atalaia-03.jpeg',
+        {
+          pt: 'Duas pessoas em pé sobre a Cadeira Atalaia.',
+          en: 'Two people standing on the Cadeira Atalaia chair.',
+          es: 'Dos personas de pie sobre la silla Atalaia.',
+        },
+        3 / 4,
+      ),
+    ],
     variants: [
       {
-        label: {pt: 'Cadeirão', en: 'Lounge chair', es: 'Sillón'},
+        label: {pt: 'Cadeira', en: 'Chair', es: 'Silla'},
         dimensions: {
           pt: ['Profundidade 80 cm', 'Largura 70 cm', 'Altura 95 cm'],
           en: ['Depth 80 cm', 'Width 70 cm', 'Height 95 cm'],
@@ -485,6 +557,93 @@ const storeProductBase: StoreProductBase[] = [
       },
     ],
   },
+  {
+    title: 'Conjunto Domingão',
+    slug: 'conjunto-domingao',
+    category: 'mesas',
+    cataloguePage: 13,
+    summary: {
+      pt: 'Conjunto de mesa com bancos integrados para merendas, parques e espaços coletivos.',
+      en: 'Table set with integrated benches for picnics, parks and shared spaces.',
+      es: 'Conjunto de mesa con bancos integrados para meriendas, parques y espacios colectivos.',
+    },
+    variants: [
+      {
+        label: same('1500 mm'),
+        dimensions: {
+          pt: [
+            'Comprimento 1500 mm',
+            'Largura da mesa 685 mm',
+            'Altura 800 mm',
+            'Largura do banco 310 mm',
+            'Largura total 1760 mm',
+          ],
+          en: [
+            'Length 1500 mm',
+            'Table width 685 mm',
+            'Height 800 mm',
+            'Bench width 310 mm',
+            'Total width 1760 mm',
+          ],
+          es: [
+            'Longitud 1500 mm',
+            'Anchura de la mesa 685 mm',
+            'Altura 800 mm',
+            'Anchura del banco 310 mm',
+            'Anchura total 1760 mm',
+          ],
+        },
+        weightKg: 189,
+        prices: {natural: 349.5, dark: 450},
+      },
+    ],
+  },
+  {
+    title: 'Cadeira Páteo',
+    slug: 'cadeira-pateo',
+    category: 'cadeiras',
+    cataloguePage: 16,
+    summary: {
+      pt: 'Cadeira de pátio em plástico reciclado, confortável para esplanadas, jardins e zonas de descanso.',
+      en: 'Patio chair in recycled plastic, comfortable for terraces, gardens and resting areas.',
+      es: 'Silla de patio en plástico reciclado, cómoda para terrazas, jardines y zonas de descanso.',
+    },
+    variants: [
+      {
+        label: same('Cadeira Páteo'),
+        dimensions: {
+          pt: ['Profundidade 630 mm', 'Altura 950 mm', 'Altura do assento 400 mm'],
+          en: ['Depth 630 mm', 'Height 950 mm', 'Seat height 400 mm'],
+          es: ['Profundidad 630 mm', 'Altura 950 mm', 'Altura del asiento 400 mm'],
+        },
+        weightKg: 38,
+        prices: {natural: 140, dark: 170},
+      },
+    ],
+  },
+  {
+    title: 'Mesa de Apoio',
+    slug: 'mesa-de-apoio',
+    category: 'mesas',
+    cataloguePage: 16,
+    summary: {
+      pt: 'Mesa de apoio compacta em plástico reciclado, ideal para acompanhar cadeiras de pátio e esplanadas.',
+      en: 'Compact side table in recycled plastic, ideal alongside patio chairs and terraces.',
+      es: 'Mesa auxiliar compacta en plástico reciclado, ideal para acompañar sillas de patio y terrazas.',
+    },
+    variants: [
+      {
+        label: same('Mesa de Apoio'),
+        dimensions: {
+          pt: ['Comprimento 550 mm', 'Largura 550 mm', 'Altura 480 mm'],
+          en: ['Length 550 mm', 'Width 550 mm', 'Height 480 mm'],
+          es: ['Longitud 550 mm', 'Anchura 550 mm', 'Altura 480 mm'],
+        },
+        weightKg: 22,
+        prices: {natural: 75, dark: 87},
+      },
+    ],
+  },
 ]
 
 export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[] =>
@@ -494,7 +653,8 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     category: product.category,
     summary: product.summary[language],
     cataloguePage: product.cataloguePage,
-    image: product.image,
+    image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
+    images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
     variants: product.variants.map((variant) => ({
       label: variant.label[language],
       dimensions: variant.dimensions[language],

@@ -95,6 +95,30 @@ const staticImageAsset = (image: ContentImage, alt: Record<LanguageCode, string>
 const imageFromSiteContent = (read: (content: SiteContent) => ContentImage) =>
   staticImageAsset(read(fallbackContent.pt), localizedSiteValue((content) => read(content).alt))
 
+const localizedStoreImageAlt = (productIndex: number, imageIndex: number) =>
+  Object.fromEntries(
+    languages.map((language) => {
+      const product = fallbackContent[language].storeProducts[productIndex]
+      const image = product.images?.[imageIndex] ?? product.image
+      return [language, image?.alt ?? '']
+    }),
+  ) as Record<LanguageCode, string>
+
+const storeProductImage = (productIndex: number) => {
+  const image = fallbackContent.pt.storeProducts[productIndex].image
+  return image ? staticImageAsset(image, localizedStoreImageAlt(productIndex, 0)) : undefined
+}
+
+const storeProductGallery = (productIndex: number) => {
+  const images = fallbackContent.pt.storeProducts[productIndex].images?.slice(1) ?? []
+  return images.length
+    ? images.map((image, index) => ({
+        _key: `gallery-${index + 1}`,
+        ...staticImageAsset(image, localizedStoreImageAlt(productIndex, index + 1)),
+      }))
+    : undefined
+}
+
 const siteContentDocument = {
   _id: 'siteContent',
   _type: 'siteLanding',
@@ -207,6 +231,8 @@ const storeProductDocuments = fallbackContent.pt.storeProducts.map((product, pro
   category: product.category,
   summary: localizedStoreValue(productIndex, (item) => item.summary),
   cataloguePage: product.cataloguePage,
+  image: storeProductImage(productIndex),
+  gallery: storeProductGallery(productIndex),
   variants: product.variants.map((variant, variantIndex) => ({
     _key: `variant-${variantIndex}`,
     _type: 'storeProductVariant',

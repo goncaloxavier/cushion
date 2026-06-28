@@ -1,8 +1,8 @@
 <script lang="ts">
+  import ImageGallery from '$lib/components/ImageGallery.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
-  import {imageSrcset, sizedImage} from '$lib/image'
   import {showToast} from '$lib/toast'
   import type {LanguageCode, StoreFinish} from '$lib/site-content'
   import {
@@ -146,6 +146,14 @@
       .join('')
       .toLocaleUpperCase(data.language),
   )
+  const storeImages = $derived(
+    data.storeProduct.images?.length
+      ? data.storeProduct.images
+      : data.storeProduct.image
+        ? [data.storeProduct.image]
+        : [],
+  )
+  const hasStoreImages = $derived(storeImages.length > 0)
 
   const formatPrice = (price: number) => priceFormatter.format(price)
   const addSelectedToCart = () => {
@@ -217,19 +225,14 @@
         <p class="article-lead">{data.storeProduct.summary}</p>
       </div>
 
-      <div class="store-detail-visual" class:no-image={!data.storeProduct.image}>
-        {#if data.storeProduct.image}
-          <img
-            src={sizedImage(data.storeProduct.image.url, 900)}
-            srcset={imageSrcset(data.storeProduct.image.url, [500, 760, 1000, 1400])}
+      <div class="store-detail-visual" class:no-image={!hasStoreImages}>
+        {#if hasStoreImages}
+          <ImageGallery
+            images={storeImages}
+            label={content.common.zoomImage}
+            closeLabel={content.common.close}
+            className="store-detail-gallery"
             sizes="(max-width: 900px) 92vw, 520px"
-            alt={data.storeProduct.image.alt}
-            loading="eager"
-            fetchpriority="high"
-            decoding="async"
-            style:background={data.storeProduct.image.lqip
-              ? `center / cover no-repeat url(${data.storeProduct.image.lqip})`
-              : undefined}
           />
         {:else}
           <div aria-hidden="true">

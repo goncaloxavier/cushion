@@ -40,6 +40,15 @@ npm run seed:studio
 
 The seed currently imports 21 deterministic documents: the `siteContent` singleton, 5 product categories, and 15 Loja products. It uses `--replace`, so rerunning it updates only those seed document IDs.
 
+For missing Loja backend products or incoming approved Loja product photos, prefer the targeted imports instead of a full seed refresh:
+
+```bash
+SANITY_WRITE_TOKEN=... npm run import:store-products
+SANITY_WRITE_TOKEN=... npm run import:store-images
+```
+
+`import:store-products` creates any missing `Produto da loja` documents from the local fallback catalogue without replacing existing manual edits. `import:store-images` uploads the configured files from `static/images/store/` and patches only the matching Loja image fields.
+
 For a deliberate full content refresh, including the migrated historical cases and blog posts, run:
 
 ```bash
@@ -74,11 +83,12 @@ Detail pages are generated from slugs:
 
 - `Conteúdo do site` feeds page-level copy, contact/legal fields, the homepage video/media area, partner logos, and footer content.
 - `Product category` feeds the `/produtos` route.
-- `Produto da loja` feeds `/loja` with category, short summary, variants and finish prices. The public list shows only a starting price; `/loja/[slug]` lets visitors choose measure/variant and finish/color before adding the item to Carrinho.
-- Carrinho is frontend-only quote preparation. It uses the published `Produto da loja` content, stores only the selection on the visitor's device, and sends the visitor to the contact form for the real CRM-backed request.
+- `Produto da loja` feeds `/loja` with category, short summary, primary image, gallery, variants, weights and finish prices. The public list shows only a starting price; `/loja/[slug]` lets visitors choose measure/variant and finish/color before adding the item to Carrinho.
+- The Studio `Loja` section is structured for editing: page text, all products, visible products, category buckets, products missing primary images, products missing weights, and hidden products.
+- Carrinho is frontend-only quote preparation. It uses the published `Produto da loja` content, stores only the selected item details and delivery postal code on the visitor's device, and sends the visitor to the contact form for the real CRM-backed request.
 - `Case study` feeds the `/casos-de-estudo` route.
 - `Blog post` feeds `/blog` and `/blog/[slug]`.
-- Each public collection type has an editable Sanity image field with hotspot support and localized alt text.
+- Each public collection type has an editable Sanity image field with hotspot support and localized alt text. Product categories, Loja products, cases, and blog posts also support galleries where the public detail page needs multiple images.
 - `Conteúdo do site` is a singleton document with the fixed document ID `siteContent`.
 - `Localized short text` is for headings, labels, and CTAs.
 - `Localized long text` is for paragraphs.
@@ -124,13 +134,14 @@ The Playwright server runs with `SANITY_DISABLE_REMOTE=true`, which means tests 
 
 - Keep the Portuguese, English, and Spanish versions aligned in meaning.
 - Do not add unsupported certifications, guarantees, or impact claims.
-- Product-category pricing is intentionally framed as quote/catalogue flow. Loja has catalogue-derived starter prices from `Catalogo 244.pdf`, but final live pricing and approved Loja product images still need client confirmation.
-- Do not use PDF catalogue crops as Loja product images. Leave the no-image placeholders until the client supplies proper images.
+- Product-category pricing is intentionally framed as quote/catalogue flow. Loja has catalogue-derived starter prices from `Catalogo 244.pdf`, plus transport/IVA estimates from the stored postal code, but final live pricing still needs client confirmation.
+- Do not use PDF catalogue crops as Loja product images. Use approved client photos in the Loja primary image/gallery fields; leave no-image placeholders only for products that still lack proper photos.
 - Do not use assets from the current public DaFábrica4You site unless the client explicitly approves it.
 
 ## Current Sanity Project
 
 - Project ID: `u4uyfix8`
+- Hosted Studio: `https://dafabrica4you.sanity.studio/`
 - Public website dataset: `production`
 - Private CRM dataset: `crm`
 

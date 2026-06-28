@@ -39,5 +39,5 @@
 - What is the final pricing/catalogue strategy once the client confirms whether the Loja catalogue prices should be treated as current live commercial prices?
 - What approved product photography should replace the current Loja no-image placeholders?
 - Which production domains will point at the Railway website and deployed Studio?
-- Which deployed Studio URL and website origin should be used for Sanity Presentation/Visual Editing in production?
+- Which production website origin should be used for Sanity Presentation/Visual Editing in production? The hosted Studio URL is now `https://dafabrica4you.sanity.studio/`.
 - What is the best automated import strategy for existing DaFabrica4You blog posts, case studies, products, and images?

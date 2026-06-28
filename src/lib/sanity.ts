@@ -230,6 +230,18 @@ const collectionsQuery = `{
       },
       alt
     },
+    gallery[] {
+      asset -> {
+        url,
+        originalFilename,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
+      },
+      alt
+    },
     variants[] {
       label,
       dimensions[],
