@@ -132,6 +132,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Bench with backrest for comfortable use in gardens, parks or shared facilities.',
       es: 'Banco con respaldo para uso cómodo en jardines, parques o equipamientos colectivos.',
     },
+    image: storeImage('banco-montargil-01.jpeg', {
+      pt: 'Banco Montargil com costas em plástico reciclado cinza sobre relva artificial.',
+      en: 'Banco Montargil bench with backrest in grey recycled plastic on artificial grass.',
+      es: 'Banco Montargil con respaldo en plástico reciclado gris sobre césped artificial.',
+    }),
+    images: [
+      storeImage('banco-montargil-01.jpeg', {
+        pt: 'Banco Montargil com costas em plástico reciclado cinza sobre relva artificial.',
+        en: 'Banco Montargil bench with backrest in grey recycled plastic on artificial grass.',
+        es: 'Banco Montargil con respaldo en plástico reciclado gris sobre césped artificial.',
+      }),
+      storeImage('banco-montargil-02.jpeg', {
+        pt: 'Vista frontal do Banco Montargil com o assento ripado e as costas.',
+        en: 'Front view of the Banco Montargil showing the slatted seat and backrest.',
+        es: 'Vista frontal del Banco Montargil con el asiento de listones y el respaldo.',
+      }),
+      storeImage('banco-montargil-03.jpeg', {
+        pt: 'Banco Montargil visto de frente com os apoios em cavalete visíveis.',
+        en: 'Front view of the Banco Montargil with the trestle supports visible.',
+        es: 'Banco Montargil visto de frente con los soportes de caballete visibles.',
+      }),
+    ],
     variants: [
       {
         label: same('1500 mm'),

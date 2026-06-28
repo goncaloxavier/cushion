@@ -140,6 +140,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(storeProductsImport).toContain('setIfMissing(fields)')
     expect(storeImagesImport).toContain("slug: 'banco-gaviao'")
     expect(storeImagesImport).toContain("slug: 'cadeira-atalaia'")
+    expect(storeImagesImport).toContain("slug: 'banco-montargil'")
     expect(storeImagesImport).toContain('client.assets.upload')
     expect(storeImagesImport).toContain('gallery: uploadedImages.slice(1)')
     expect(packageJson).toContain('"import:store-products"')
