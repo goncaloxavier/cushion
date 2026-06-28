@@ -19,6 +19,8 @@ export type SubmissionSource =
   | 'unknown'
 
 export type ContactSubmission = {
+  firstName: string
+  lastName: string
   name: string
   email: string
   phone: string
@@ -81,20 +83,15 @@ const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && v
 export const validateSubmission = (input: ContactSubmission): string[] => {
   const errors: string[] = []
 
-  if (input.name.length < 2) errors.push('name')
+  if (input.firstName.length < 1) errors.push('firstName')
+  if (input.lastName.length < 1) errors.push('lastName')
   if (!isEmail(input.email)) errors.push('email')
   if (input.phone.length < 6) errors.push('phone')
+  if (input.address.length < 4) errors.push('address')
   if (input.postalCode.length < 3) errors.push('postalCode')
   if (input.locality.length < 2) errors.push('locality')
+  if (input.message.length < 8) errors.push('message')
   if (!input.marketingConsent) errors.push('marketingConsent')
-
-  // The catalogue request needs a shipping address but no message; every other
-  // source (contact, product, …) needs a message but not a street address.
-  if (input.source === 'catalogue') {
-    if (input.address.length < 4) errors.push('address')
-  } else if (input.message.length < 8) {
-    errors.push('message')
-  }
 
   return errors
 }
@@ -150,6 +147,8 @@ export const storeContactSubmission = async (
     .createIfNotExists({
       _id: profileId,
       _type: 'clientProfile',
+      firstName: input.firstName,
+      lastName: input.lastName,
       name: input.name,
       email: input.email,
       status: 'new',
@@ -169,6 +168,8 @@ export const storeContactSubmission = async (
           firstSource: input.source,
         })
         .set({
+          firstName: input.firstName,
+          lastName: input.lastName,
           name: input.name,
           email: input.email,
           phone: input.phone,
@@ -195,6 +196,8 @@ export const storeContactSubmission = async (
       language: input.language,
       message: input.message,
       profile: {_type: 'reference', _ref: profileId},
+      firstName: input.firstName,
+      lastName: input.lastName,
       name: input.name,
       email: input.email,
       phone: input.phone,

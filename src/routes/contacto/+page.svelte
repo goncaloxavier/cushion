@@ -13,25 +13,31 @@
   const content = $derived(data.site[data.language])
   const fallbackFieldLabels: Record<string, Record<ContactFieldKey, string>> = {
     pt: {
-      name: 'Nome',
+      firstName: 'Nome',
+      lastName: 'Apelido',
       email: 'Email',
       phone: 'Telefone',
+      address: 'Morada',
       postalCode: 'Código postal',
       locality: 'Localidade',
       message: 'Mensagem',
     },
     en: {
-      name: 'Name',
+      firstName: 'First name',
+      lastName: 'Last name',
       email: 'Email',
       phone: 'Phone',
+      address: 'Address',
       postalCode: 'Postcode',
       locality: 'Location',
       message: 'Message',
     },
     es: {
-      name: 'Nombre',
+      firstName: 'Nombre',
+      lastName: 'Apellidos',
       email: 'Email',
       phone: 'Teléfono',
+      address: 'Dirección',
       postalCode: 'Código postal',
       locality: 'Localidad',
       message: 'Mensaje',
@@ -83,9 +89,11 @@
     },
   }
   let fieldValues = $state<Record<ContactFieldKey, string>>({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
+    address: '',
     postalCode: '',
     locality: '',
     message: '',
@@ -98,9 +106,11 @@
 
     if (currentFormValues && currentFormValues !== lastFormValues) {
       fieldValues = {
-        name: currentFormValues.name ?? '',
+        firstName: currentFormValues.firstName ?? '',
+        lastName: currentFormValues.lastName ?? '',
         email: currentFormValues.email ?? '',
         phone: currentFormValues.phone ?? '',
+        address: currentFormValues.address ?? '',
         postalCode: currentFormValues.postalCode ?? '',
         locality: currentFormValues.locality ?? '',
         message: currentFormValues.message ?? '',
@@ -145,10 +155,13 @@
   }
 
   const autocomplete = (field: ContactFieldKey) => {
-    if (field === 'name') return 'name'
+    if (field === 'firstName') return 'given-name'
+    if (field === 'lastName') return 'family-name'
     if (field === 'email') return 'email'
     if (field === 'phone') return 'tel'
+    if (field === 'address') return 'street-address'
     if (field === 'postalCode') return 'postal-code'
+    if (field === 'locality') return 'address-level2'
     return 'off'
   }
 

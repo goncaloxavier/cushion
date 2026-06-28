@@ -20,8 +20,20 @@ export const clientProfile = defineType({
   ],
   fields: [
     defineField({
-      name: 'name',
+      name: 'firstName',
       title: 'Nome',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
+      name: 'lastName',
+      title: 'Apelido',
+      type: 'string',
+      group: 'client',
+    }),
+    defineField({
+      name: 'name',
+      title: 'Nome completo',
       type: 'string',
       group: 'client',
       validation: (Rule) => Rule.required(),

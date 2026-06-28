@@ -34,14 +34,22 @@ const messages: Record<LanguageCode, Record<string, string>> = {
   },
 }
 
-const valuesFromData = (data: FormData) => ({
-  name: cleanSingleLine(data.get('name'), 120),
-  email: normalizeEmail(cleanSingleLine(data.get('email'), 254)),
-  phone: cleanSingleLine(data.get('phone'), 40),
-  address: cleanSingleLine(data.get('address'), 200),
-  postalCode: cleanSingleLine(data.get('postalCode'), 32),
-  locality: cleanSingleLine(data.get('locality'), 120),
-})
+const valuesFromData = (data: FormData) => {
+  const firstName = cleanSingleLine(data.get('firstName'), 80)
+  const lastName = cleanSingleLine(data.get('lastName'), 80)
+
+  return {
+    firstName,
+    lastName,
+    name: `${firstName} ${lastName}`.trim(),
+    email: normalizeEmail(cleanSingleLine(data.get('email'), 254)),
+    phone: cleanSingleLine(data.get('phone'), 40),
+    address: cleanSingleLine(data.get('address'), 200),
+    postalCode: cleanSingleLine(data.get('postalCode'), 32),
+    locality: cleanSingleLine(data.get('locality'), 120),
+    message: cleanMessage(data.get('message'), 3000),
+  }
+}
 
 export const load: PageServerLoad = async ({cookies, url}) => {
   return {csrfToken: issueCsrfToken(cookies, csrfCookieName, '/catalogo', url.protocol === 'https:')}
@@ -69,7 +77,6 @@ export const actions: Actions = {
     const submission = {
       ...values,
       phone: normalizePhone(values.phone),
-      message: '',
       marketingConsent,
       consentText: cleanMessage(data.get('consentText'), 1000),
       language,

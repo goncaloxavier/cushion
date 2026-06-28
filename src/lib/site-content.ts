@@ -28,14 +28,24 @@ export type ContentCard = {
   text: string
 }
 
-export type ContactFieldKey = 'name' | 'email' | 'phone' | 'postalCode' | 'locality' | 'message'
+export type ContactFieldKey =
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'address'
+  | 'postalCode'
+  | 'locality'
+  | 'message'
 
 export type ContactFormLabels = Record<ContactFieldKey, string>
 
 export const contactFieldKeys: ContactFieldKey[] = [
-  'name',
+  'firstName',
+  'lastName',
   'email',
   'phone',
+  'address',
   'postalCode',
   'locality',
   'message',
@@ -113,6 +123,7 @@ export type StoreProduct = {
   summary: string
   cataloguePage?: number
   image?: ContentImage
+  images?: ContentImage[]
   variants: StoreProductVariant[]
 }
 
@@ -304,6 +315,7 @@ type SanityStoreProduct = {
   summary?: LocalizedValue
   cataloguePage?: number
   image?: SanityImage
+  gallery?: SanityImage[]
   variants?: SanityStoreProductVariant[]
 }
 
@@ -921,7 +933,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Matéria-prima do ecoponto amarelo',
-        title: 'Transformamos resíduos do ecoponto amarelo em produtos sem manutenção',
+        title: 'Transformamos resíduos do amarelo em produtos que não requerem manutenção',
         lead: 'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
       heroImage: fallbackImages.home,
@@ -1084,7 +1096,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Pedido de catálogo',
         title: 'Como receber o catálogo',
-        lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário. O contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
+        lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário.\nO contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
         cards: [
           {
             title: 'Contacto',
@@ -1101,10 +1113,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Nome e contacto',
           'Localidade ou código postal',
           'Produto ou aplicação de interesse, se já souber',
-          'Mensagem curta sobre o que pretende receber',
+          'Mensagem mencionando suas áreas de interesse',
         ],
       },
-      note: 'Depois do pedido, a equipa pode enviar o catálogo e orientar a escolha sem obrigar o visitante a procurar tudo sozinho.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1135,9 +1147,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Nome', 'Email', 'Telefone', 'Código postal', 'Localidade', 'Mensagem'],
       formLabels: {
-        name: 'Nome',
+        firstName: 'Nome',
+        lastName: 'Apelido',
         email: 'Email',
         phone: 'Telefone',
+        address: 'Morada',
         postalCode: 'Código postal',
         locality: 'Localidade',
         message: 'Mensagem',
@@ -1209,7 +1223,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Raw material from the yellow-bin stream',
-        title: 'We turn yellow-bin waste into maintenance-free products',
+        title: 'We turn yellow waste into maintenance-free products',
         lead: 'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
       heroImage: fallbackImages.home,
@@ -1372,7 +1386,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Catalogue request',
         title: 'How to receive the catalogue',
-        lead: 'If you want to consult the catalogue, send the request through the form. The contact is saved so the team can send the information and follow up.',
+        lead: 'If you want to consult the catalogue, send the request through the form.\nThe contact is saved so the team can send the information and follow up.',
         cards: [
           {
             title: 'Contact',
@@ -1392,10 +1406,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Name and contact details',
           'Location or postcode',
           'Product or application of interest, if known',
-          'Short message about what you want to receive',
+          'Message mentioning your areas of interest',
         ],
       },
-      note: 'After the request, the team can send the catalogue and guide the choice without making visitors search alone.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1426,9 +1440,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Name', 'Email', 'Phone', 'Postcode', 'Location', 'Message'],
       formLabels: {
-        name: 'Name',
+        firstName: 'First name',
+        lastName: 'Last name',
         email: 'Email',
         phone: 'Phone',
+        address: 'Address',
         postalCode: 'Postcode',
         locality: 'Location',
         message: 'Message',
@@ -1500,7 +1516,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
     home: {
       hero: {
         kicker: 'Materia prima del contenedor amarillo',
-        title: 'Transformamos residuos del contenedor amarillo en productos sin mantenimiento',
+        title: 'Transformamos residuos del amarillo en productos sin mantenimiento',
         lead: 'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
       heroImage: fallbackImages.home,
@@ -1663,7 +1679,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Solicitud de catálogo',
         title: 'Cómo recibir el catálogo',
-        lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario. El contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
+        lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario.\nEl contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
         cards: [
           {
             title: 'Contacto',
@@ -1680,10 +1696,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Nombre y datos de contacto',
           'Localidad o código postal',
           'Producto o aplicación de interés, si ya lo sabes',
-          'Mensaje corto sobre lo que quieres recibir',
+          'Mensaje mencionando tus áreas de interés',
         ],
       },
-      note: 'Después de la solicitud, el equipo puede enviar el catálogo y orientar la elección sin obligar al visitante a buscar solo.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1714,9 +1730,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Nombre', 'Email', 'Teléfono', 'Código postal', 'Localidad', 'Mensaje'],
       formLabels: {
-        name: 'Nombre',
+        firstName: 'Nombre',
+        lastName: 'Apellidos',
         email: 'Email',
         phone: 'Teléfono',
+        address: 'Dirección',
         postalCode: 'Código postal',
         locality: 'Localidad',
         message: 'Mensaje',
@@ -2067,6 +2085,12 @@ const storeProductsFromSanity = (
           return nextVariant
         })
         .filter((variant): variant is StoreProductVariant => variant !== null)
+      const sanityImages = [
+        optionalImageFromSanity(product.image, language),
+        ...(product.gallery ?? []).map((image) => optionalImageFromSanity(image, language)),
+      ].filter((image): image is ContentImage => Boolean(image))
+      const fallbackImages = fallbackProduct?.images ?? (fallbackProduct?.image ? [fallbackProduct.image] : [])
+      const images = sanityImages.length ? sanityImages : fallbackImages
 
       return {
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
@@ -2074,7 +2098,8 @@ const storeProductsFromSanity = (
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
         cataloguePage: product.cataloguePage ?? fallbackProduct?.cataloguePage,
-        image: optionalImageFromSanity(product.image, language) ?? fallbackProduct?.image,
+        image: images[0],
+        images,
         variants,
       } satisfies StoreProduct
     })

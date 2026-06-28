@@ -1,22 +1,22 @@
 <script lang="ts">
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
 
   let {data, form} = $props()
   const content = $derived(data.site[data.language])
 
-  const addressLabel: Record<string, string> = {pt: 'Morada', en: 'Address', es: 'Dirección'}
+  const fieldKeys = contactFieldKeys
 
-  type FieldKey = 'name' | 'email' | 'phone' | 'address' | 'postalCode' | 'locality'
-  const fieldKeys: FieldKey[] = ['name', 'email', 'phone', 'address', 'postalCode', 'locality']
-
-  let values = $state<Record<FieldKey, string>>({
-    name: '',
+  let values = $state<Record<ContactFieldKey, string>>({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     address: '',
     postalCode: '',
     locality: '',
+    message: '',
   })
   let consentAccepted = $state(false)
   let lastFormValues = $state<Record<string, string> | undefined>(undefined)
@@ -25,29 +25,34 @@
     const fv = form?.values as Record<string, string> | undefined
     if (fv && fv !== lastFormValues) {
       values = {
-        name: fv.name ?? '',
+        firstName: fv.firstName ?? '',
+        lastName: fv.lastName ?? '',
         email: fv.email ?? '',
         phone: fv.phone ?? '',
         address: fv.address ?? '',
         postalCode: fv.postalCode ?? '',
         locality: fv.locality ?? '',
+        message: fv.message ?? '',
       }
       lastFormValues = fv
     }
   })
 
-  const labelFor = (key: FieldKey) =>
-    key === 'address' ? (addressLabel[data.language] ?? 'Morada') : content.contactPage.formLabels[key]
+  const labelFor = (key: ContactFieldKey) => content.contactPage.formLabels[key]
 
-  const inputType = (key: FieldKey) => (key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text')
+  const isMessageField = (key: ContactFieldKey) => key === 'message'
 
-  const autocomplete = (key: FieldKey) => {
-    if (key === 'name') return 'name'
+  const inputType = (key: ContactFieldKey) => (key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text')
+
+  const autocomplete = (key: ContactFieldKey) => {
+    if (key === 'firstName') return 'given-name'
+    if (key === 'lastName') return 'family-name'
     if (key === 'email') return 'email'
     if (key === 'phone') return 'tel'
     if (key === 'address') return 'street-address'
     if (key === 'postalCode') return 'postal-code'
-    return 'address-level2'
+    if (key === 'locality') return 'address-level2'
+    return 'off'
   }
 
   const formIsComplete = $derived(
@@ -66,14 +71,18 @@
     <Reveal class="catalogue-request-panel" variant="panel">
       <p class="kicker">{content.catalogue.estimate.kicker}</p>
       <h2>{content.catalogue.estimate.title}</h2>
-      <p>{content.catalogue.estimate.lead}</p>
+      {#each content.catalogue.estimate.lead.split(/\n+/) as paragraph}
+        <p>{paragraph}</p>
+      {/each}
       <h3 class="catalogue-checklist-title">{content.catalogue.estimate.checklistTitle}</h3>
       <ul class="catalogue-checklist">
         {#each content.catalogue.estimate.checklist as item}
           <li>{item}</li>
         {/each}
       </ul>
-      <p class="catalogue-note">{content.catalogue.note}</p>
+      {#if content.catalogue.note}
+        <p class="catalogue-note">{content.catalogue.note}</p>
+      {/if}
     </Reveal>
 
     <Reveal class="catalogue-form-reveal" delay={120} variant="panel">
@@ -99,17 +108,28 @@
 
         {#each fieldKeys as key}
           {@const fieldId = `catalogue-field-${key}`}
-          <label for={fieldId}>
+          <label class:message-field={isMessageField(key)} for={fieldId}>
             <span>{labelFor(key)}</span>
-            <input
-              id={fieldId}
-              name={key}
-              type={inputType(key)}
-              autocomplete={autocomplete(key)}
-              required
-              aria-required="true"
-              bind:value={values[key]}
-            />
+            {#if isMessageField(key)}
+              <textarea
+                id={fieldId}
+                name={key}
+                rows="4"
+                required
+                aria-required="true"
+                bind:value={values[key]}
+              ></textarea>
+            {:else}
+              <input
+                id={fieldId}
+                name={key}
+                type={inputType(key)}
+                autocomplete={autocomplete(key)}
+                required
+                aria-required="true"
+                bind:value={values[key]}
+              />
+            {/if}
           </label>
         {/each}
 
