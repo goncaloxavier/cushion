@@ -42,7 +42,9 @@ export default defineConfig([
     title: 'DaFábrica4You - Website',
 
     projectId,
-    dataset: 'production',
+    // Local `sanity dev` can target a separate dataset via SANITY_STUDIO_DATASET
+    // (e.g. `development`); defaults to `production` for the deployed Studio.
+    dataset: process.env.SANITY_STUDIO_DATASET || 'production',
 
     plugins: [
       // Visual Editing: embeds the live site with click-to-edit overlays.

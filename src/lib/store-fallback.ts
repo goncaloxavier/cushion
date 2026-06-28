@@ -197,6 +197,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Table with integrated benches for picnic areas, parks, schools and shared spaces.',
       es: 'Mesa con bancos integrados para merenderos, parques, escuelas y espacios colectivos.',
     },
+    image: storeImage('mesa-vale-do-arco-01.jpeg', {
+      pt: 'Mesa de piquenique Vale do Arco com bancos integrados, em plástico reciclado.',
+      en: 'Vale do Arco picnic table with integrated benches in recycled plastic.',
+      es: 'Mesa de picnic Vale do Arco con bancos integrados en plástico reciclado.',
+    }),
+    images: [
+      storeImage('mesa-vale-do-arco-01.jpeg', {
+        pt: 'Mesa de piquenique Vale do Arco com bancos integrados, em plástico reciclado.',
+        en: 'Vale do Arco picnic table with integrated benches in recycled plastic.',
+        es: 'Mesa de picnic Vale do Arco con bancos integrados en plástico reciclado.',
+      }),
+      storeImage('mesa-vale-do-arco-02.jpeg', {
+        pt: 'Vista de três quartos da mesa de piquenique Vale do Arco.',
+        en: 'Three-quarter view of the Vale do Arco picnic table.',
+        es: 'Vista de tres cuartos de la mesa de picnic Vale do Arco.',
+      }),
+      storeImage('mesa-vale-do-arco-03.jpeg', {
+        pt: 'Vista superior da mesa Vale do Arco com o tampo ripado.',
+        en: 'Top view of the Vale do Arco table showing the slatted top.',
+        es: 'Vista superior de la mesa Vale do Arco con el tablero de listones.',
+      }),
+    ],
     variants: [
       {
         label: same('1500 mm'),
@@ -368,6 +390,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'High chair for counters, bars, terraces and outdoor support areas.',
       es: 'Silla alta para mostradores, bares, terrazas y zonas exteriores de apoyo.',
     },
+    image: storeImage('cadeira-de-bar-01.jpeg', {
+      pt: 'Cadeira de bar em plástico reciclado com costas, vista de frente.',
+      en: 'Recycled-plastic bar chair with backrest, front view.',
+      es: 'Silla de bar en plástico reciclado con respaldo, vista frontal.',
+    }),
+    images: [
+      storeImage('cadeira-de-bar-01.jpeg', {
+        pt: 'Cadeira de bar em plástico reciclado com costas, vista de frente.',
+        en: 'Recycled-plastic bar chair with backrest, front view.',
+        es: 'Silla de bar en plástico reciclado con respaldo, vista frontal.',
+      }),
+      storeImage('cadeira-de-bar-02.jpeg', {
+        pt: 'Vista de perfil da cadeira de bar, com o repousa-pés.',
+        en: 'Side profile of the bar chair showing the footrest.',
+        es: 'Vista de perfil de la silla de bar con el reposapiés.',
+      }),
+      storeImage('cadeira-de-bar-03.jpeg', {
+        pt: 'Pessoa sentada na cadeira de bar, mostrando a altura do assento.',
+        en: 'A person seated on the bar chair, showing the seat height.',
+        es: 'Una persona sentada en la silla de bar, mostrando la altura del asiento.',
+      }),
+    ],
     variants: [
       {
         label: {pt: 'Altura 96,5 cm', en: 'Height 96.5 cm', es: 'Altura 96,5 cm'},
@@ -414,6 +458,23 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Vertical bin for outdoor spaces, available with or without lid.',
       es: 'Papelera vertical para espacios exteriores, disponible con o sin tapa.',
     },
+    image: storeImage('papeleira-reta-01.jpeg', {
+      pt: 'Papeleira reta quadrada em plástico reciclado escuro, vista de frente.',
+      en: 'Square straight litter bin in dark recycled plastic, front view.',
+      es: 'Papelera recta cuadrada en plástico reciclado oscuro, vista frontal.',
+    }),
+    images: [
+      storeImage('papeleira-reta-01.jpeg', {
+        pt: 'Papeleira reta quadrada em plástico reciclado escuro, vista de frente.',
+        en: 'Square straight litter bin in dark recycled plastic, front view.',
+        es: 'Papelera recta cuadrada en plástico reciclado oscuro, vista frontal.',
+      }),
+      storeImage('papeleira-reta-02.jpeg', {
+        pt: 'Papeleira reta vista de três quartos, com os pés de apoio visíveis.',
+        en: 'Three-quarter view of the straight litter bin with its support feet visible.',
+        es: 'Vista de tres cuartos de la papelera recta con los pies de apoyo visibles.',
+      }),
+    ],
     variants: [
       {
         label: {pt: 'Sem tampa', en: 'Without lid', es: 'Sin tapa'},
@@ -589,6 +650,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Table set with integrated benches for picnics, parks and shared spaces.',
       es: 'Conjunto de mesa con bancos integrados para meriendas, parques y espacios colectivos.',
     },
+    image: storeImage('conjunto-domingao-01.jpeg', {
+      pt: 'Conjunto Domingão: mesa de piquenique com bancos integrados em plástico reciclado.',
+      en: 'Conjunto Domingão: picnic table with integrated benches in recycled plastic.',
+      es: 'Conjunto Domingão: mesa de picnic con bancos integrados en plástico reciclado.',
+    }),
+    images: [
+      storeImage('conjunto-domingao-01.jpeg', {
+        pt: 'Conjunto Domingão: mesa de piquenique com bancos integrados em plástico reciclado.',
+        en: 'Conjunto Domingão: picnic table with integrated benches in recycled plastic.',
+        es: 'Conjunto Domingão: mesa de picnic con bancos integrados en plástico reciclado.',
+      }),
+      storeImage('conjunto-domingao-02.jpeg', {
+        pt: 'Vista de três quartos do Conjunto Domingão.',
+        en: 'Three-quarter view of the Conjunto Domingão.',
+        es: 'Vista de tres cuartos del Conjunto Domingão.',
+      }),
+      storeImage('conjunto-domingao-03.jpeg', {
+        pt: 'Conjunto Domingão visto de outro ângulo.',
+        en: 'Conjunto Domingão seen from another angle.',
+        es: 'Conjunto Domingão visto desde otro ángulo.',
+      }),
+    ],
     variants: [
       {
         label: same('1500 mm'),
@@ -630,6 +713,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Patio chair in recycled plastic, comfortable for terraces, gardens and resting areas.',
       es: 'Silla de patio en plástico reciclado, cómoda para terrazas, jardines y zonas de descanso.',
     },
+    image: storeImage('cadeira-pateo-01.jpeg', {
+      pt: 'Cadeira Páteo em plástico reciclado sobre relva artificial.',
+      en: 'Cadeira Páteo patio chair in recycled plastic on artificial grass.',
+      es: 'Silla Páteo en plástico reciclado sobre césped artificial.',
+    }),
+    images: [
+      storeImage('cadeira-pateo-01.jpeg', {
+        pt: 'Cadeira Páteo em plástico reciclado sobre relva artificial.',
+        en: 'Cadeira Páteo patio chair in recycled plastic on artificial grass.',
+        es: 'Silla Páteo en plástico reciclado sobre césped artificial.',
+      }),
+      storeImage('cadeira-pateo-02.jpeg', {
+        pt: 'Vista lateral da Cadeira Páteo.',
+        en: 'Side view of the Cadeira Páteo.',
+        es: 'Vista lateral de la silla Páteo.',
+      }),
+      storeImage('cadeira-pateo-03.jpeg', {
+        pt: 'Cadeira Páteo vista de outro ângulo.',
+        en: 'Cadeira Páteo seen from another angle.',
+        es: 'Silla Páteo vista desde otro ángulo.',
+      }),
+    ],
     variants: [
       {
         label: same('Cadeira Páteo'),
@@ -653,6 +758,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Compact side table in recycled plastic, ideal alongside patio chairs and terraces.',
       es: 'Mesa auxiliar compacta en plástico reciclado, ideal para acompañar sillas de patio y terrazas.',
     },
+    image: storeImage('mesa-de-apoio-01.jpeg', {
+      pt: 'Mesa de apoio compacta em plástico reciclado.',
+      en: 'Compact side table in recycled plastic.',
+      es: 'Mesa auxiliar compacta en plástico reciclado.',
+    }),
+    images: [
+      storeImage('mesa-de-apoio-01.jpeg', {
+        pt: 'Mesa de apoio compacta em plástico reciclado.',
+        en: 'Compact side table in recycled plastic.',
+        es: 'Mesa auxiliar compacta en plástico reciclado.',
+      }),
+      storeImage('mesa-de-apoio-02.jpeg', {
+        pt: 'Mesa de apoio vista de outro ângulo.',
+        en: 'Side table seen from another angle.',
+        es: 'Mesa auxiliar vista desde otro ángulo.',
+      }),
+      storeImage('mesa-de-apoio-03.jpeg', {
+        pt: 'Pormenor da mesa de apoio.',
+        en: 'Detail of the side table.',
+        es: 'Detalle de la mesa auxiliar.',
+      }),
+    ],
     variants: [
       {
         label: same('Mesa de Apoio'),

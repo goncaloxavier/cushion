@@ -298,6 +298,15 @@ if (!selectedBatches.length) {
 
 loadLocalEnv()
 
+// Local safe mode: while SANITY_DISABLE_REMOTE is set the site renders the in-code
+// fallback and must never write to the deployed dataset. Unset it deliberately to publish.
+if (process.env.SANITY_DISABLE_REMOTE === 'true') {
+  throw new Error(
+    `Refusing to write: SANITY_DISABLE_REMOTE is set (local mode → dataset "${dataset}"). ` +
+      'Unset it in .env to publish to Sanity.',
+  )
+}
+
 const token =
   process.env.SANITY_WRITE_TOKEN ||
   process.env.SANITY_API_WRITE_TOKEN ||
