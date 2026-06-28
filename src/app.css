@@ -3053,6 +3053,10 @@ dt {
   box-shadow: 0 0.85rem 2rem rgba(17, 57, 60, 0.06);
 }
 
+.cart-delivery-strip {
+  margin-bottom: 1.6rem;
+}
+
 .store-delivery-strip div {
   display: flex;
   flex-wrap: wrap;
@@ -3997,7 +4001,10 @@ dt {
 }
 
 .cart-item-main {
+  display: block;
   min-width: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
 .cart-item h2 {
@@ -4006,6 +4013,14 @@ dt {
   font-size: 1.12rem;
   font-weight: 800;
   line-height: 1.15;
+  transition: color 0.18s ease;
+}
+
+.cart-item-main:hover h2,
+.cart-item-main:focus-visible h2 {
+  color: var(--green-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .cart-item p {

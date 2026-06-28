@@ -57,6 +57,10 @@ const storeProductBase: StoreProductBase[] = [
           en: ['Length 1600 mm', 'Width 380 mm', 'Height 450 mm'],
           es: ['Longitud 1600 mm', 'Anchura 380 mm', 'Altura 450 mm'],
         },
+        // Catalogue lists no weight for this bench; estimated at 45 kg from the
+        // comparable Banco Gavião (2000 mm slat bench = 52 kg). Sits inside the
+        // carrier's 11–50 kg bracket, so the transport price is firm.
+        weightKg: 45,
         prices: {natural: 225, dark: 260},
       },
     ],

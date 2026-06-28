@@ -210,11 +210,29 @@
 
   <section class="section cart-section">
     {#if rows.length}
+      {#if deliveryPostalCode}
+        <div
+          class="store-delivery-strip cart-delivery-strip"
+          class:store-blurred-preview={deliveryModalOpen}
+          inert={deliveryModalOpen}
+        >
+          <div>
+            <span>{labels.deliveryPostcode}</span>
+            <strong>{deliveryPostalCode}</strong>
+            {#if deliveryZone}
+              <small>{deliveryZone.label}</small>
+            {/if}
+          </div>
+          <button type="button" onclick={() => (deliveryModalOpen = true)}>
+            {labels.changePostcode}
+          </button>
+        </div>
+      {/if}
       <div
         class="cart-layout"
-        class:store-blurred-preview={deliveryModalOpen}
-        aria-hidden={deliveryModalOpen}
-        inert={deliveryModalOpen}
+        class:store-blurred-preview={!deliveryPostalCode || deliveryModalOpen}
+        aria-hidden={!deliveryPostalCode || deliveryModalOpen}
+        inert={!deliveryPostalCode || deliveryModalOpen}
       >
         <div class="cart-items">
           <div class="cart-items-head" aria-hidden="true">
@@ -226,7 +244,7 @@
           </div>
           {#each rows as row (itemKey(row.item))}
             <article class="cart-item">
-              <div class="cart-item-main">
+              <a class="cart-item-main" href={`/loja/${row.product.slug}${langQuery}`}>
                 <h2>{row.product.title}</h2>
                 <p class="cart-item-meta">
                   <span>{row.variant.label}</span>
@@ -235,7 +253,7 @@
                     {content.storePage.finishLabels[row.item.finish]}
                   </span>
                 </p>
-              </div>
+              </a>
 
               <div class="cart-item-price">
                 <span class="cart-col-label">{labels.unitPrice}</span>
@@ -292,15 +310,6 @@
             </div>
             {#if deliveryPostalCode}
               <div>
-                <dt>{labels.deliveryPostcode}</dt>
-                <dd>
-                  {deliveryPostalCode}
-                  {#if deliveryZone}
-                    <small>{deliveryZone.label}</small>
-                  {/if}
-                </dd>
-              </div>
-              <div>
                 <dt>{labels.transport}</dt>
                 <dd>
                   {cartEstimate.transport
@@ -328,37 +337,18 @@
             {/if}
           </dl>
 
-          {#if deliveryPostalCode}
-            <button
-              class="cart-clear"
-              type="button"
-              onclick={() => {
-                deliveryModalOpen = true
-              }}
-            >
-              {labels.changePostcode}
-            </button>
-          {:else}
-            <StorePostalGate
-              language={data.language}
-              compact
-              onconfirm={(postalCode) => {
-                deliveryPostalCode = postalCode
-              }}
-            />
-          {/if}
           <a class="button primary" href={`/contacto${langQuery}&source=loja`}>{labels.request}</a>
           <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
           <button class="cart-clear" type="button" onclick={clearCart}>{labels.clear}</button>
         </aside>
       </div>
 
-      {#if deliveryModalOpen}
+      {#if !deliveryPostalCode || deliveryModalOpen}
         <div class="store-gate-layer" role="presentation">
           <StorePostalGate
             language={data.language}
             initialPostalCode={deliveryPostalCode}
-            closable
+            closable={Boolean(deliveryPostalCode)}
             onclose={() => {
               deliveryModalOpen = false
             }}
