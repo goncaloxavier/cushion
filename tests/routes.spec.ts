@@ -8,7 +8,7 @@ type PublicRoute = {
 }
 
 const publicRoutes: PublicRoute[] = [
-  {path: '/?lang=pt', heading: 'produtos sem manutenção', active: 'Início'},
+  {path: '/?lang=pt', heading: 'não requerem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {path: '/loja?lang=pt', heading: 'Produtos com preço', active: 'Loja'},
@@ -84,7 +84,7 @@ const storeSlugs = [
   'mesa-vale-do-arco',
   'mesa-octogonal',
   'conjunto-atalia',
-  'cadeirao-atalia',
+  'cadeira-atalaia',
   'cadeira-de-bar',
   'mesa-ervideira',
   'papeleira-reta',
@@ -93,6 +93,9 @@ const storeSlugs = [
   'mesa-de-cultivo',
   'canteiro-com-trelica',
 ]
+
+const storeDeliveryStorageKey = 'df4y-store-delivery-postal-code-v1'
+const defaultStorePostalCode = '7000-000'
 
 async function goToNextPage(page: Page) {
   await page.locator('.page-transition.entered').waitFor({state: 'visible'})
@@ -171,6 +174,15 @@ async function collectPagedStoreCards(page: Page) {
   return slugs
 }
 
+async function preloadStoreDelivery(page: Page, postalCode = defaultStorePostalCode) {
+  await page.addInitScript(
+    ([storageKey, value]) => {
+      window.localStorage.setItem(storageKey, value)
+    },
+    [storeDeliveryStorageKey, postalCode],
+  )
+}
+
 async function waitForCollectionStart(page: Page, selector: string) {
   await page.waitForFunction(
     (collectionSelector) => {
@@ -190,6 +202,10 @@ async function waitForCollectionStart(page: Page, selector: string) {
 
 async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: TestInfo) {
   const isMobile = testInfo.project.name.includes('mobile')
+
+  if (route.path.includes('/loja')) {
+    await preloadStoreDelivery(page)
+  }
 
   await page.goto(route.path, {waitUntil: 'domcontentloaded'})
 
@@ -325,6 +341,7 @@ test.describe('public website routes', () => {
     test('store page exposes catalogue-priced products with filters and pagination', async ({
       page,
     }) => {
+      await preloadStoreDelivery(page)
       await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
 
       await expect(page.locator('.store-card')).toHaveCount(9)
@@ -339,8 +356,11 @@ test.describe('public website routes', () => {
         'href',
         '/loja/banco-gaviao?lang=pt',
       )
+      await expect(
+        page.locator('[data-store-product="banco-gaviao"] .store-card-visual img'),
+      ).toBeVisible()
       await expect(page.locator('[data-store-product="banco-fazenda"]')).toHaveCount(0)
-      await expect(page.locator('[data-store-product="banco-gaviao"]')).toContainText('185,00')
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).toContainText('276,49')
       await expect(page.locator('[data-store-product="banco-gaviao"]')).not.toContainText('2000 mm')
       await expect(page.getByRole('link', {name: 'Pedir proposta'})).toHaveCount(0)
 
@@ -353,17 +373,18 @@ test.describe('public website routes', () => {
     test('store detail lets visitors choose variant, finish and cart before requesting', async ({
       page,
     }) => {
+      await preloadStoreDelivery(page)
       await page.goto('/loja/mesa-vale-do-arco?lang=pt', {waitUntil: 'domcontentloaded'})
       await page.locator('.page-transition.entered').waitFor({state: 'visible'})
 
       await expect(page.getByRole('heading', {name: 'Mesa Vale do Arco'})).toBeVisible()
-      await expect(page.locator('.store-spec-price')).toContainText('322,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('322,00')
 
       await page.getByRole('button', {name: '2450 mm'}).click()
-      await expect(page.locator('.store-spec-price')).toContainText('445,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('445,00')
 
       await page.getByRole('button', {name: 'Castanho / Preto'}).click()
-      await expect(page.locator('.store-spec-price')).toContainText('565,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('565,00')
       await expect(page.locator('.store-spec-grid')).toContainText('Comprimento 2450 mm')
 
       await page.getByRole('button', {name: 'Adicionar ao carrinho'}).click()
@@ -379,7 +400,7 @@ test.describe('public website routes', () => {
       await expect(page.locator('.cart-item')).toContainText('565,00')
 
       await page.locator('.cart-item').getByLabel('Quantidade').fill('2')
-      await expect(page.locator('.cart-summary')).toContainText(/1.?130,00/)
+      await expect(page.locator('.cart-summary')).toContainText(/1.?588,21/)
 
       await page.getByRole('link', {name: 'Pedir orçamento'}).click()
       await expect(page).toHaveURL(/\/contacto\?lang=pt&source=loja/)
@@ -419,6 +440,7 @@ test.describe('public website routes', () => {
   })
 
   test('collection detail links preserve the current list page', async ({page}) => {
+    await preloadStoreDelivery(page)
     await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
     await page.locator('.page-transition.entered').waitFor({state: 'visible'})
 
@@ -523,9 +545,11 @@ test.describe('public website routes', () => {
 
     await expect(submit).toBeDisabled()
 
-    await form.getByLabel('Nombre').fill('Maria Silva')
+    await form.getByLabel('Nombre').fill('Maria')
+    await form.getByLabel('Apellidos').fill('Silva')
     await form.getByLabel('Email').fill('maria@example.com')
     await form.getByLabel('Teléfono').fill('+351 900 000 000')
+    await form.getByLabel('Dirección').fill('Rua das Flores 10')
     await form.getByLabel('Código postal').fill('2400-000')
     await form.getByLabel('Localidad').fill('Leiria')
     await form.getByLabel('Mensaje').fill('Necesito presupuesto para una terraza.')
@@ -538,12 +562,16 @@ test.describe('public website routes', () => {
 })
 
 test.describe('catalogue + private backoffice', () => {
-  test('catalogue page hosts its own request form without a message field', async ({page}) => {
+  test('catalogue page hosts its own request form with name split and a message field', async ({
+    page,
+  }) => {
     await page.goto('/catalogo?lang=pt')
     const form = page.locator('form.catalogue-form')
     await expect(form).toBeVisible()
+    await expect(form.getByLabel('Nome', {exact: true})).toBeVisible()
+    await expect(form.getByLabel('Apelido')).toBeVisible()
     await expect(form.getByLabel('Morada')).toBeVisible()
-    await expect(form.locator('textarea')).toHaveCount(0)
+    await expect(form.locator('textarea')).toHaveCount(1)
   })
 
   test('unauthenticated backoffice redirects to the login page', async ({page}) => {

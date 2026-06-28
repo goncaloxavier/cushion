@@ -1,5 +1,13 @@
 import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
+import {
+  calculateStoreEstimate,
+  storeDispatchZone,
+  storeTransportFuelSurchargeRate,
+  storeTransportMultiplier,
+  storeVatRate,
+  transportEstimateFor,
+} from '../src/lib/store-shipping'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -40,6 +48,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(studioStructure).toContain("'Conteúdo do site'")
     expect(studioStructure).toContain("'Produtos'")
     expect(studioStructure).toContain("'Loja'")
+    expect(studioStructure).toContain("'Textos da página Loja'")
+    expect(studioStructure).toContain("'Todos os produtos'")
+    expect(studioStructure).toContain("'Produtos visíveis'")
+    expect(studioStructure).toContain("'Sem imagem principal'")
+    expect(studioStructure).toContain("'Sem peso definido'")
+    expect(studioStructure).toContain("'Produtos ocultos'")
     expect(studioStructure).toContain("'Casos de estudo'")
     expect(studioStructure).toContain("'Artigos do blog'")
     expect(siteSchema).toContain("title: 'Conteúdo do site'")
@@ -94,6 +108,9 @@ test.describe('Sanity Studio content contract', () => {
   test('frontend query reads the same collections editors manage', () => {
     const sanityClient = read('src/lib/sanity.ts')
     const warmImages = read('scripts/warm-images.ts')
+    const storeProductsImport = read('scripts/import-store-products.ts')
+    const storeImagesImport = read('scripts/import-store-images.ts')
+    const packageJson = read('package.json')
 
     expect(sanityClient).toContain('useCdn: true')
     expect(sanityClient).toContain('previewClient')
@@ -117,6 +134,16 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('storePage')
     expect(sanityClient).toContain('priceNatural')
     expect(sanityClient).toContain('priceDark')
+    expect(sanityClient).toContain('gallery[]')
+    expect(storeProductsImport).toContain('createIfNotExists(document)')
+    expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
+    expect(storeProductsImport).toContain('setIfMissing(fields)')
+    expect(storeImagesImport).toContain("slug: 'banco-gaviao'")
+    expect(storeImagesImport).toContain("slug: 'cadeira-atalaia'")
+    expect(storeImagesImport).toContain('client.assets.upload')
+    expect(storeImagesImport).toContain('gallery: uploadedImages.slice(1)')
+    expect(packageJson).toContain('"import:store-products"')
+    expect(packageJson).toContain('"import:store-images"')
     expect(sanityClient).toContain('partners')
     expect(sanityClient).toContain('youtubeUrl')
     expect(sanityClient).toContain('logoTone')
@@ -195,6 +222,9 @@ test.describe('Sanity Studio content contract', () => {
       expect(schema).toContain("name: 'alt'")
       expect(schema).toContain("'Descrição da imagem'")
     }
+
+    expect(storeSchema).toContain("name: 'gallery'")
+    expect(storeSchema).toContain("'Galeria do produto'")
   })
 
   test('fallback content remains available when Studio is empty', () => {
@@ -214,6 +244,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('products: productCategories.pt')
     expect(contentModel).toContain('storeProductsForLanguage')
     expect(contentModel).toContain('storeProducts: storeProductsForLanguage')
+    expect(contentModel).toContain('images?: ContentImage[]')
     expect(contentModel).toContain('caseStudies: caseStudies.pt')
     expect(contentModel).toContain('blogPosts: blogPosts.pt')
     expect(contentModel).toContain('contentFromSanity')
@@ -271,5 +302,32 @@ test.describe('Sanity Studio content contract', () => {
     expect(styles).toContain('html.lightbox-open')
     expect(styles).toContain('body.lightbox-open')
     expect(styles).toContain('object-fit: contain')
+  })
+
+  test('Loja transport pricing applies the confirmed Alto Alentejo formula', () => {
+    expect(storeDispatchZone).toBe('alto-alentejo')
+    expect(storeTransportFuelSurchargeRate).toBe(0.1)
+    expect(storeTransportMultiplier).toBe(2.5)
+    expect(storeVatRate).toBe(0.23)
+
+    const transport = transportEstimateFor('7000-000', 52)
+    expect(transport).toMatchObject({
+      destination: expect.objectContaining({label: 'Alto Alentejo'}),
+      transportZone: 2,
+      bracketMaxKg: 75,
+      tableNet: 14.47,
+      fuelSurchargeNet: 1.45,
+      transportNet: 39.79,
+    })
+
+    expect(calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 52}], '7000-000')).toMatchObject(
+      {
+        productNet: 185,
+        totalWeightKg: 52,
+        subtotalNet: 224.79,
+        vat: 51.7,
+        totalGross: 276.49,
+      },
+    )
   })
 })
