@@ -32,7 +32,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
-- `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints link, and floating WhatsApp shortcut.
+- `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints/privacy/cookie links, and floating WhatsApp shortcut.
 - `src/routes/+page.svelte` - homepage; the hero uses the editable `home.heroVideoUrl` as a muted looping background YouTube embed and opens a full YouTube player from the video button; partner/project logos sit below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
@@ -54,7 +54,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `scripts/import-store-images.ts` - targeted, non-destructive Loja image uploader; patches configured store products in Sanity `production` with one primary image and gallery images while preserving existing copy/prices.
 - `scripts/old-blog-posts.ts`, `scripts/update-old-blog-bodies.ts`, and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog, a raw-body/translation refresh helper, and the generator for `.sanity/blog-import.ndjson`.
 - `scripts/old-case-studies.ts` and `scripts/write-case-study-import.ts` - reviewable trilingual migration data for the previous Webnode case-study page and the generator for `.sanity/case-study-import.ndjson`.
-- `scripts/scrape-product-images.ts`, `scripts/product-images.json`, `scripts/old-products.ts`, and `scripts/write-product-import.ts` - the product migration: a scraper that pulls every full-resolution gallery photo per old "PRODUTOS" category into a committed JSON, the reviewable trilingual product copy (one entry per category = one `productCategory`), and the generator for `.sanity/product-import.ndjson` (`npm run scrape:products`, `import:products:write`, `import:products`).
+- `scripts/scrape-product-images.ts`, `scripts/product-images.json`, `scripts/old-products.ts`, and `scripts/write-product-import.ts` - the product migration: a scraper that pulls every full-resolution gallery photo per old "PRODUTOS" category into a committed JSON, the reviewable trilingual product copy/media/tool fields (one entry per category = one `productCategory`), and the generator for `.sanity/product-import.ndjson` (`npm run scrape:products`, `import:products:write`, `import:products`).
 - `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
@@ -68,7 +68,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `src/lib/scroll.ts` - `changeListPage` runs a page change as a market-standard cross-fade: fade the list grid out, swap + render while hidden, instant-reposition to the list top under the fade, then fade back in (opacity/transform only — no per-frame scroll loop). Product, Loja, case-study, and blog list routes use this behavior.
 - `src/lib/media.ts` - YouTube URL parsing and no-cookie embed URL helpers; `youtubeEmbedUrl` accepts optional autoplay, controls, loop, mute, and playsinline flags for background and full-player embeds.
 - `static/fonts/InterVariable*.woff2` - self-hosted Inter variable font loaded via `@font-face` in `src/app.css` and preloaded in `src/app.html`; this is why the fine-grained font weights render as intended.
-- `src/lib/sanity.ts` - public cached Sanity client plus Visual Editing draft/stega clients and site/product/store/case/blog queries for dataset `production`.
+- `src/lib/sanity.ts` - public cached Sanity client plus Visual Editing draft/stega clients and site/product/store/case/blog queries for dataset `production`; product-category queries include optional detail video/tool fields.
 - `src/lib/server/preview.ts` - Visual Editing preview cookie helpers; local HTTP uses a non-secure `SameSite=Lax` cookie, deployed HTTPS uses `SameSite=None; Secure` for Studio iframe preview. Local Studio and local website should use the same hostname (`localhost` by default) because `localhost` and `127.0.0.1` do not share preview cookies.
 - `src/routes/preview/enable/+server.ts` and `src/routes/preview/disable/+server.ts` - Presentation tool preview-mode endpoints; validate the signed preview URL secret with a non-stega authed client before toggling draft rendering.
 - `src/lib/server/crm.ts` - private server-only Sanity writer for client profiles and form submissions in dataset `crm` (now also stores `address`; validation is per-source so catalogue needs an address and contact needs a message).
@@ -147,7 +147,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - Keep the public visitor client and preview client separate: the public client may use `useCdn: true`; the preview client must keep `useCdn: false`, `perspective: 'drafts'`, and `stega` enabled.
 - Keep `SANITY_VIEWER_TOKEN` server-only. It needs enough permission to read drafts and preview-secret documents; if the Presentation secret validation fails, check token permissions before changing query code.
 - Keep `/preview/enable` and `/preview/disable` cookie behavior compatible with both local HTTP Studio preview and deployed HTTPS iframe preview.
-- Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route.
+- Keep shared contact/social/legal fields editable through the `siteContent` singleton when they appear in the layout or contact route, including privacy/cookie policy links.
 - Keep page video sections and partner/logo sections editable through the `siteContent` singleton when they are page-level presentation content.
 - Keep multilingual public copy synchronized between fallback content and Sanity fields until Sanity becomes the only content source.
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, seed scripts, and matching routes together.

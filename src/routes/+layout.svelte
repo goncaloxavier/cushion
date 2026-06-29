@@ -296,6 +296,14 @@
       {content.common.complaintsLabel}
     </a>
     <p>{content.common.complaintsNote}</p>
+    <div class="footer-policy-links">
+      <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer">
+        {content.common.privacyPolicyLabel}
+      </a>
+      <a href={content.common.cookiePolicyUrl} target="_blank" rel="noreferrer">
+        {content.common.cookiePolicyLabel}
+      </a>
+    </div>
   </div>
   <div class="footer-social" aria-label={content.common.socialLabel}>
     {#each socialLinks as link}

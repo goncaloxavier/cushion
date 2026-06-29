@@ -26,12 +26,12 @@ const loadLocalEnv = () => {
 
 loadLocalEnv()
 
-// Local safe mode: while SANITY_DISABLE_REMOTE is set the site renders the in-code
-// fallback and must never write to the deployed dataset. Unset it deliberately to publish.
-if (process.env.SANITY_DISABLE_REMOTE === 'true') {
+// Publishes are opt-in: this writes to the deployed dataset, so it refuses unless
+// SANITY_ALLOW_WRITE=true is set deliberately. Prevents accidental local leaks.
+if (process.env.SANITY_ALLOW_WRITE !== 'true') {
   throw new Error(
-    `Refusing to write: SANITY_DISABLE_REMOTE is set (local mode → dataset "${dataset}"). ` +
-      'Unset it in .env to publish to Sanity.',
+    `Refusing to write to Sanity (dataset "${dataset}"). ` +
+      'Set SANITY_ALLOW_WRITE=true to publish deliberately.',
   )
 }
 

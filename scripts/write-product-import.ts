@@ -89,6 +89,14 @@ const documents = oldProducts.map((product) => {
     slug: {_type: 'slug', current: product.slug},
     summary: {_type: 'localizedText', ...cleanLocalizedCopy(product.summary)},
     description: {_type: 'localizedText', ...cleanLocalizedCopy(product.description)},
+    ...(product.videoUrl ? {videoUrl: product.videoUrl} : {}),
+    ...(product.videoTitle ? {videoTitle: localizedString(product.videoTitle)} : {}),
+    ...(product.toolUrl ? {toolUrl: product.toolUrl} : {}),
+    ...(product.toolTitle ? {toolTitle: localizedString(product.toolTitle)} : {}),
+    ...(product.toolText
+      ? {toolText: {_type: 'localizedText', ...cleanLocalizedCopy(product.toolText)}}
+      : {}),
+    ...(product.toolLabel ? {toolLabel: localizedString(product.toolLabel)} : {}),
     orderRank: product.orderRank,
     image: {
       _type: 'image',

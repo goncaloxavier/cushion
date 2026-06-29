@@ -81,8 +81,8 @@ Detail pages are generated from slugs:
 
 ## Content Model
 
-- `Conteúdo do site` feeds page-level copy, contact/legal fields, the homepage video/media area, partner logos, and footer content.
-- `Product category` feeds the `/produtos` route.
+- `Conteúdo do site` feeds page-level copy, contact/legal fields, privacy/cookie policy footer links, the homepage video/media area, partner logos, and footer content.
+- `Product category` feeds the `/produtos` route, including optional detail-page YouTube video and external tool/simulator CTA fields.
 - `Produto da loja` feeds `/loja` with category, short summary, primary image, gallery, variants, weights and finish prices. The public list shows only a starting price; `/loja/[slug]` lets visitors choose measure/variant and finish/color before adding the item to Carrinho.
 - The Studio `Loja` section is structured for editing: page text, all products, visible products, category buckets, products missing primary images, products missing weights, and hidden products.
 - Carrinho is frontend-only quote preparation. It uses the published `Produto da loja` content, stores only the selected item details and delivery postal code on the visitor's device, and sends the visitor to the contact form for the real CRM-backed request.

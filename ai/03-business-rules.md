@@ -9,7 +9,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Current sales copy must stay anchored in true public facts and avoid invented guarantees, certifications, or unsupported claims.
 - Product, Loja, case-study, and blog content should be editable through Sanity and should remain usable even if Sanity has no published entries.
 - Page-level public copy for home, about, products, catalogue, case studies, blog, contact, footer, and contact details should be editable through the Sanity `siteContent` singleton.
-- Contact, social, WhatsApp, Livro de Reclamacoes, the related legal note, and marketing-consent copy/links should be editable through the Sanity `siteContent` singleton.
+- Contact, social, WhatsApp, Livro de Reclamacoes, privacy/cookie policy links, the related legal note, and marketing-consent copy/links should be editable through the Sanity `siteContent` singleton.
 - Homepage institutional video and partner/project logos should be editable through the Sanity `siteContent` singleton, with fallback content available when Studio is empty.
 - The institutional company video leads the homepage as a full-bleed muted looping background, and the video button opens the full YouTube player for intentional viewing. It is set through the `home.heroVideoUrl` field and is not paired with a placeholder photo.
 - The old homepage mixed media/gallery section has been removed. The institutional video remains the editable homepage `heroVideoUrl`, and product/case/blog detail galleries remain supported.
@@ -29,6 +29,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Public text content should meet comfortable low-vision readability expectations: strong contrast, body copy at readable sizes, generous line-height, and support for OS high-contrast preferences.
 - Product detail pages should not render the product summary and description as two competing text blocks; use one focused detail description, optionally followed by a separated resistance/maintenance paragraph.
 - Product detail pages should not render generic `Características`/`Aplicações` chip or list bands when they duplicate obvious sales points already present in the detail copy.
+- Product detail pages may show optional Studio-managed support content: a YouTube product video and an external tool/simulator CTA. Decking currently uses `https://www.youtube.com/watch?v=VIUVlk51iN0` and the temporary deck calculator URL `https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m`.
 - Case-study detail pages should fold the description into the hero lead and should not render a separate standalone description band below the hero.
 - Product list cards and product detail copy should avoid repeating generic material-origin badges such as "100% plástico reciclado" when that claim already appears in the surrounding product/site copy.
 - Product-category pricing is not confirmed. Present catalogue/request guidance there instead of pretending to have final product prices.
@@ -69,6 +70,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 - Public impact metrics currently used in fallback copy: 25,000+ single-use packages per tonne, 700 kg CO2 avoided per tonne, and 2.5 trees preserved per tonne.
 - Current fallback official complaints-book URL: `https://www.livroreclamacoes.pt/Pedido/Reclamacao`.
+- Current fallback privacy policy URL: `https://www.iubenda.com/privacy-policy/56295339`.
+- Current fallback cookie policy URL: `https://www.iubenda.com/privacy-policy/56295339/cookie-policy`.
 - Whenever the Livro de Reclamacoes link is shown, also show the legal note: `Litígios comerciais serão resolvidos no tribunal da comarca de Leiria`.
 - Current fallback institutional video URL: `https://www.youtube.com/watch?v=h1wVIZRj0Hc`.
 - Current fallback partner/project links: ABAAE `https://abaae.pt/`, Bandeira Azul `https://bandeiraazul.abaae.pt/`, Eco-Escolas `https://ecoescolas.abaae.pt/`, Eco-Freguesias XXI `https://ecofreguesias21.abaae.pt/`, and Animalife `https://animalife.pt/`.
@@ -76,6 +79,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Current fallback WhatsApp URL: `https://wa.me/351914746637`.
 - Current Loja starter content includes 15 items from `Catalogo 244.pdf`: Banco Gavião, Banco Foros Domingão, Banco Fazenda, Banco Montargil, Mesa Vale do Arco, Mesa Octogonal, Conjunto Atalia, Cadeira Atalaia, Cadeira de Bar, Mesa Ervideira, Papeleira Reta, Ecoponto Triplo com Portas, Ecoponto 4 Resíduos, Mesa de Cultivo, and Canteiro com Treliça. `Cadeira Atalaia` replaces the earlier provisional `Cadeirão Atalia` naming for the item shown below Conjunto Atalia on page 15.
 - Current Loja transport estimate uses Alto Alentejo as dispatch origin, the supplied transport table, a 10% fuel surcharge, the current 2.5 transport multiplier, and 23% IVA applied to product plus transport. This is quote-preparation pricing, not payment checkout.
+- Ifthenpay Pay by Link is the preferred future payment direction because it keeps checkout/security surface minimal, but it is not implemented yet and should wait until after the client discussion planned for 2026-07-03.
 
 ## Access Or Permissions
 
@@ -101,6 +105,6 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Sanity public dataset `production`.
 - Sanity private CRM dataset `crm`.
 - Public impact metrics, client-facing product claims, and contact details.
-- Social links, WhatsApp number/link, complaints-book link, and marketing-consent wording.
+- Social links, WhatsApp number/link, complaints-book link, privacy/cookie policy links, and marketing-consent wording.
 - Institutional video URL, partner names/links/logos, and claims about partnerships/projects.
 - Whether fallback content should remain after Sanity is populated.

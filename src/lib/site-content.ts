@@ -74,6 +74,12 @@ export type ProductItem = {
   description: string
   image?: ContentImage
   images?: ContentImage[]
+  videoUrl?: string
+  videoTitle?: string
+  toolUrl?: string
+  toolTitle?: string
+  toolText?: string
+  toolLabel?: string
   features: string[]
   applications: string[]
 }
@@ -177,6 +183,10 @@ export type SiteContent = {
     complaintsLabel: string
     complaintsUrl: string
     complaintsNote: string
+    privacyPolicyLabel: string
+    privacyPolicyUrl: string
+    cookiePolicyLabel: string
+    cookiePolicyUrl: string
     marketingConsent: string
   }
   home: {
@@ -269,6 +279,12 @@ type SanityProduct = {
   gallery?: SanityImage[]
   summary?: LocalizedValue
   description?: LocalizedValue
+  videoUrl?: string
+  videoTitle?: LocalizedValue
+  toolUrl?: string
+  toolTitle?: LocalizedValue
+  toolText?: LocalizedValue
+  toolLabel?: LocalizedValue
   features?: LocalizedValue[]
   applications?: LocalizedValue[]
 }
@@ -348,6 +364,8 @@ type CommonPlainFields =
   | 'facebookUrl'
   | 'instagramUrl'
   | 'complaintsUrl'
+  | 'privacyPolicyUrl'
+  | 'cookiePolicyUrl'
 
 type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], CommonPlainFields>> &
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
@@ -463,6 +481,8 @@ const contact = {
   phone: '+351 914 746 637',
   whatsapp: 'https://wa.me/351914746637',
   complaints: 'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
+  privacyPolicy: 'https://www.iubenda.com/privacy-policy/56295339',
+  cookiePolicy: 'https://www.iubenda.com/privacy-policy/56295339/cookie-policy',
   youtube: 'https://www.youtube.com/@dafabrica4you245',
   facebook: 'https://www.facebook.com/dafabrica4you',
   instagram: 'https://www.instagram.com/dafabrica4you',
@@ -521,6 +541,13 @@ const productCategories = {
         'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
         'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking aplicado em exterior',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Planeie o seu deck',
+      toolText:
+        'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
+      toolLabel: 'Construir o meu deck',
       features: ['Resistente à humidade', 'Sem farpas', 'Baixa manutenção'],
       applications: ['Jardins privados', 'Piscinas', 'Parques', 'Frentes ribeirinhas'],
     },
@@ -572,6 +599,13 @@ const productCategories = {
       summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
         'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking installed outdoors',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Plan your deck',
+      toolText:
+        'Open the simulator to prepare measurements and options before moving to a quote request.',
+      toolLabel: 'Build my deck',
       features: ['Moisture resistant', 'No splinters', 'Low maintenance'],
       applications: ['Private gardens', 'Pools', 'Parks', 'Riverfront areas'],
     },
@@ -623,6 +657,13 @@ const productCategories = {
         'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
         'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking instalado en exterior',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Planifica tu deck',
+      toolText:
+        'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
+      toolLabel: 'Construir mi deck',
       features: ['Resistente a la humedad', 'Sin astillas', 'Bajo mantenimiento'],
       applications: ['Jardines privados', 'Piscinas', 'Parques', 'Frentes fluviales'],
     },
@@ -927,6 +968,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsLabel: 'Livro de reclamações',
       complaintsUrl: contact.complaints,
       complaintsNote: 'Litígios comerciais serão resolvidos no tribunal da comarca de Leiria',
+      privacyPolicyLabel: 'Política de privacidade',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Política de cookies',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
     },
@@ -1217,6 +1262,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsUrl: contact.complaints,
       complaintsNote:
         'Commercial disputes will be resolved in the court of the district of Leiria.',
+      privacyPolicyLabel: 'Privacy policy',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Cookie policy',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'I agree that my data may be used for commercial contact and marketing communications related to this request.',
     },
@@ -1510,6 +1559,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsUrl: contact.complaints,
       complaintsNote:
         'Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.',
+      privacyPolicyLabel: 'Política de privacidad',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Política de cookies',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
     },
@@ -1830,6 +1883,8 @@ const commonFromSanity = (
     facebookUrl,
     instagramUrl,
     complaintsUrl,
+    privacyPolicyUrl,
+    cookiePolicyUrl,
     ...localizedSource
   } = source ?? {}
   const next = localizedRecord(localizedSource, language, fallback)
@@ -1840,6 +1895,8 @@ const commonFromSanity = (
   next.facebookUrl = facebookUrl?.trim() || fallback.facebookUrl
   next.instagramUrl = instagramUrl?.trim() || fallback.instagramUrl
   next.complaintsUrl = complaintsUrl?.trim() || fallback.complaintsUrl
+  next.privacyPolicyUrl = privacyPolicyUrl?.trim() || fallback.privacyPolicyUrl
+  next.cookiePolicyUrl = cookiePolicyUrl?.trim() || fallback.cookiePolicyUrl
   return next
 }
 
@@ -2012,6 +2069,48 @@ const localizedList = (
     .filter(Boolean)
 }
 
+const deckingProductExtras = {
+  pt: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking aplicado em exterior',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Planeie o seu deck',
+    toolText:
+      'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
+    toolLabel: 'Construir o meu deck',
+  },
+  en: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking installed outdoors',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Plan your deck',
+    toolText:
+      'Open the simulator to prepare measurements and options before moving to a quote request.',
+    toolLabel: 'Build my deck',
+  },
+  es: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking instalado en exterior',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Planifica tu deck',
+    toolText:
+      'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
+    toolLabel: 'Construir mi deck',
+  },
+} satisfies Record<LanguageCode, Partial<ProductItem>>
+
+const productFallbackForSlug = (
+  slug: string,
+  language: LanguageCode,
+  fallback: ProductItem[],
+  index: number,
+): Partial<ProductItem> | undefined =>
+  fallback.find((item) => item.slug === slug) ??
+  (slug === 'decking' || slug === 'decking-pavimentos-passadicos'
+    ? deckingProductExtras[language]
+    : undefined) ??
+  fallback[index]
+
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
@@ -2022,26 +2121,34 @@ const productsFromSanity = (
   return products
     .filter((product) => product.slug?.current)
     .map((product, index) => {
+      const slug = product.slug?.current ?? ''
+      const fallbackProduct = productFallbackForSlug(slug, language, fallback, index)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
           product.gallery,
           language,
-          fallback[index]?.image ?? fallbackImages.product,
+          fallbackProduct?.image ?? fallbackImages.product,
         ),
       )
 
       return {
-        title: localized(product.title, language, fallback[index]?.title ?? 'Product'),
-        slug: product.slug?.current ?? fallback[index]?.slug ?? `product-${index + 1}`,
+        title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
+        slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
         images: productImages,
         summary: cleanProductMaterialCopy(
-          localized(product.summary, language, fallback[index]?.summary ?? ''),
+          localized(product.summary, language, fallbackProduct?.summary ?? ''),
         ),
         description: cleanProductMaterialCopy(
-          localized(product.description, language, fallback[index]?.description ?? ''),
+          localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
+        videoUrl: product.videoUrl?.trim() || fallbackProduct?.videoUrl || '',
+        videoTitle: localized(product.videoTitle, language, fallbackProduct?.videoTitle ?? ''),
+        toolUrl: product.toolUrl?.trim() || fallbackProduct?.toolUrl || '',
+        toolTitle: localized(product.toolTitle, language, fallbackProduct?.toolTitle ?? ''),
+        toolText: localized(product.toolText, language, fallbackProduct?.toolText ?? ''),
+        toolLabel: localized(product.toolLabel, language, fallbackProduct?.toolLabel ?? ''),
         features: [],
         applications: [],
       }

@@ -2,7 +2,11 @@ import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
 
 const projectId = 'u4uyfix8'
-const dataset = 'production'
+// Dataset is env-driven (defaults to `production`) so it can be repointed without
+// code changes if a separate dataset is ever provisioned. To keep local work off
+// the deployed content today we instead use SANITY_DISABLE_REMOTE (see below),
+// which renders the in-code fallback and never reads/writes Sanity.
+const dataset = env.SANITY_DATASET || 'production'
 
 const apiVersion = '2026-06-10'
 
@@ -11,9 +15,7 @@ export const sanityClient = createClient({
   dataset,
   apiVersion,
   // Visitor-facing pages prioritise speed: the cached API edge serves document
-  // queries ~13x faster. Published Studio changes (including image swaps) then
-  // propagate within a few seconds — editors should hard-refresh shortly after
-  // publishing. Flip to `useCdn: false` only if instant edits matter more than speed.
+  // queries ~13x faster. Published Studio changes propagate within a few seconds.
   useCdn: true,
 })
 
@@ -53,6 +55,10 @@ const collectionsQuery = `{
       complaintsLabel,
       complaintsUrl,
       complaintsNote,
+      privacyPolicyLabel,
+      privacyPolicyUrl,
+      cookiePolicyLabel,
+      cookiePolicyUrl,
       marketingConsent
     },
     home {
@@ -210,7 +216,13 @@ const collectionsQuery = `{
       alt
     },
     summary,
-    description
+    description,
+    videoUrl,
+    videoTitle,
+    toolUrl,
+    toolTitle,
+    toolText,
+    toolLabel
   },
   "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
     title,
@@ -389,7 +401,14 @@ export const getSanityCollections = async (preview = false) => {
 
   const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await client.fetch(collectionsQuery)
+    const collections = await client.fetch(collectionsQuery)
+    // Local leverage mode: keep reading the real blog/cases/products/content from the
+    // deployed dataset, but drop the store products so the loja renders from the in-code
+    // fallback (unpublished store work shows locally, deployed store stays untouched).
+    if (collections && env.SANITY_STORE_FROM_FALLBACK === 'true') {
+      return {...collections, storeProducts: []}
+    }
+    return collections
   } catch {
     return null
   }

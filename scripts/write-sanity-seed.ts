@@ -135,6 +135,10 @@ const siteContentDocument = {
     complaintsUrl: fallbackContent.pt.common.complaintsUrl,
     complaintsLabel: localizedSiteValue((content) => content.common.complaintsLabel),
     complaintsNote: localizedSiteValue((content) => content.common.complaintsNote),
+    privacyPolicyUrl: fallbackContent.pt.common.privacyPolicyUrl,
+    privacyPolicyLabel: localizedSiteValue((content) => content.common.privacyPolicyLabel),
+    cookiePolicyUrl: fallbackContent.pt.common.cookiePolicyUrl,
+    cookiePolicyLabel: localizedSiteValue((content) => content.common.cookiePolicyLabel),
     marketingConsent: localizedSiteValue((content) => content.common.marketingConsent),
   },
   home: {

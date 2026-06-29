@@ -14,6 +14,12 @@ export type OldProduct = {
   title: LocalizedValue
   summary: LocalizedValue
   description: LocalizedValue
+  videoUrl?: string
+  videoTitle?: LocalizedValue
+  toolUrl?: string
+  toolTitle?: LocalizedValue
+  toolText?: LocalizedValue
+  toolLabel?: LocalizedValue
   features: LocalizedValue[]
   applications: LocalizedValue[]
 }
@@ -250,6 +256,28 @@ export const oldProducts: OldProduct[] = [
       pt: 'Decking e pavimento em plástico 100% reciclado para zonas exteriores, incluindo as próximas de piscinas e da água. Não apodrece, não precisa de envernizar nem pintar e mantém-se estável sob o sol e a chuva ao longo dos anos.',
       en: 'Decking and flooring in 100% recycled plastic for outdoor areas, including those near pools and water. It does not rot, needs no varnishing or painting and stays stable under sun and rain for years.',
       es: 'Decking y pavimento en plástico 100% reciclado para zonas exteriores, incluso cerca de piscinas y del agua. No se pudre, no necesita barniz ni pintura y se mantiene estable bajo el sol y la lluvia durante años.',
+    },
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: {
+      pt: 'Decking aplicado em exterior',
+      en: 'Decking installed outdoors',
+      es: 'Decking instalado en exterior',
+    },
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: {
+      pt: 'Planeie o seu deck',
+      en: 'Plan your deck',
+      es: 'Planifica tu deck',
+    },
+    toolText: {
+      pt: 'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
+      en: 'Open the simulator to prepare measurements and options before moving to a quote request.',
+      es: 'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
+    },
+    toolLabel: {
+      pt: 'Construir o meu deck',
+      en: 'Build my deck',
+      es: 'Construir mi deck',
     },
     features: [f.recycled, f.noRot, f.water, f.noMaintenance],
     applications: [

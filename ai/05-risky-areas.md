@@ -34,8 +34,9 @@ Use this to help agents avoid accidental damage.
 - Carrinho resolves local browser selections and the stored postal code against the current public Loja content. If product slugs, variant order, finish keys, weights, delivery-zone logic, or price tables change, update fallback/Sanity content and tests together.
 - The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
-- Shared contact, social, WhatsApp, complaints-book, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
+- Shared contact, social, WhatsApp, complaints-book, privacy/cookie policy, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
+- Product-category video/tool fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, product imports, and the `/produtos/[slug]` detail route.
 - Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
 - Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable high-value bottom dock and marks the current route when that route is present in the dock.
@@ -50,7 +51,7 @@ Use this to help agents avoid accidental damage.
 - Visitors opening product, case-study, or blog gallery lightboxes; the page behind the modal should not scroll or change position until the lightbox closes.
 - Visitors entering a postal code to unlock Loja pricing, adding Loja products to Carrinho, adjusting quantities locally, reviewing estimated transport/IVA, and continuing to Contacto with a prefilled quote message.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
-- Editors changing social links, WhatsApp, complaints-book link, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
+- Editors changing social links, WhatsApp, complaints-book link, privacy/cookie policy links, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
 - Editors reviewing new private requests in the CRM Studio workspace, changing statuses, adding internal notes, and using client profiles for follow-up.
 - Developers generating visual snapshots only for local/session review, without committing the generated PNG baselines.
