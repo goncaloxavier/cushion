@@ -1,6 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
-  import {cleanSeoText, seoDescription, siteName, titleWithSiteName} from '$lib/seo'
+  import {cleanSeoText, seoDescription, siteName, titleWithSiteName, type JsonLd} from '$lib/seo'
   import {defaultLanguage, languages, type ContentImage, type LanguageCode} from '$lib/site-content'
 
   type SeoType = 'website' | 'article'
@@ -11,9 +11,19 @@
     image?: ContentImage
     type?: SeoType
     noindex?: boolean
+    jsonLd?: JsonLd | JsonLd[]
   }
 
-  let {title, description, image, type = 'website', noindex = false}: Props = $props()
+  let {title, description, image, type = 'website', noindex = false, jsonLd}: Props = $props()
+
+  const jsonLdHtml = $derived(
+    (jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])
+      .map(
+        (item) =>
+          `<script type="application/ld+json">${JSON.stringify(item).replace(/</g, '\\u003c')}<\/script>`,
+      )
+      .join(''),
+  )
 
   const languageQuery = (language: LanguageCode) =>
     language === defaultLanguage ? '' : `?lang=${language}`
@@ -63,5 +73,10 @@
 
   {#if noindex}
     <meta name="robots" content="noindex, nofollow" />
+  {/if}
+
+  {#if jsonLdHtml}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html jsonLdHtml}
   {/if}
 </svelte:head>

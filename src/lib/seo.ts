@@ -42,3 +42,85 @@ export const titleWithSiteName = (title: string) => {
   const titleBudget = Math.max(30, 90 - siteName.length - 3)
   return `${cleanSeoText(title, titleBudget)} | ${siteName}`
 }
+
+export const absoluteUrl = (origin: string, url: string | undefined): string | undefined => {
+  if (!url) return undefined
+  if (/^https?:\/\//i.test(url)) return url
+  return `${origin}${url.startsWith('/') ? url : `/${url}`}`
+}
+
+export type JsonLd = Record<string, unknown>
+
+export const organizationSchema = (params: {
+  origin: string
+  logoUrl?: string
+  email?: string
+  phone?: string
+  sameAs?: Array<string | undefined>
+}): JsonLd => {
+  const sameAs = (params.sameAs ?? []).filter((value): value is string => Boolean(value))
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: siteName,
+    url: params.origin,
+    ...(params.logoUrl ? {logo: params.logoUrl} : {}),
+    ...(params.email || params.phone
+      ? {
+          contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'customer service',
+            ...(params.email ? {email: params.email} : {}),
+            ...(params.phone ? {telephone: params.phone} : {}),
+          },
+        }
+      : {}),
+    ...(sameAs.length ? {sameAs} : {}),
+  }
+}
+
+export const productSchema = (params: {
+  name: string
+  description?: string
+  imageUrl?: string
+  price?: number
+  currency?: string
+}): JsonLd => ({
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: cleanSeoText(params.name, 110),
+  ...(params.description ? {description: cleanSeoText(params.description)} : {}),
+  ...(params.imageUrl ? {image: params.imageUrl} : {}),
+  brand: {'@type': 'Brand', name: siteName},
+  ...(typeof params.price === 'number' && Number.isFinite(params.price)
+    ? {
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: params.currency ?? 'EUR',
+          price: params.price.toFixed(2),
+          availability: 'https://schema.org/InStock',
+        },
+      }
+    : {}),
+})
+
+export const blogPostingSchema = (params: {
+  title: string
+  description?: string
+  imageUrl?: string
+  datePublished?: string
+  logoUrl?: string
+}): JsonLd => ({
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: cleanSeoText(params.title, 110),
+  ...(params.description ? {description: cleanSeoText(params.description)} : {}),
+  ...(params.imageUrl ? {image: params.imageUrl} : {}),
+  ...(params.datePublished ? {datePublished: params.datePublished} : {}),
+  author: {'@type': 'Organization', name: siteName},
+  publisher: {
+    '@type': 'Organization',
+    name: siteName,
+    ...(params.logoUrl ? {logo: {'@type': 'ImageObject', url: params.logoUrl}} : {}),
+  },
+})

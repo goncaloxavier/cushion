@@ -1,8 +1,10 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
+  import {absoluteUrl, productSchema} from '$lib/seo'
   import {
     cleanProductMaterialCopy,
     productImageFallback,
@@ -48,9 +50,21 @@
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
+  const productJsonLd = $derived(
+    productSchema({
+      name: data.product.title,
+      description: copy.intro || data.product.summary,
+      imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
+    }),
+  )
 </script>
 
-<SeoHead title={data.product.title} description={copy.intro || data.product.summary} image={images[0]} />
+<SeoHead
+  title={data.product.title}
+  description={copy.intro || data.product.summary}
+  image={images[0]}
+  jsonLd={productJsonLd}
+/>
 
 <main class="product-detail-page">
   <article class="detail-page product-detail product-editorial">

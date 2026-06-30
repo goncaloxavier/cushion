@@ -1,14 +1,25 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import {collectionListHref} from '$lib/collection-page'
+  import {absoluteUrl, blogPostingSchema} from '$lib/seo'
   import {blogImageFallback, blogImagesFor} from '$lib/site-content'
 
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
+  const blogJsonLd = $derived(
+    blogPostingSchema({
+      title: data.post.title,
+      description: data.post.excerpt || data.post.body,
+      imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
+      datePublished: data.post.publishedAt,
+      logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
+    }),
+  )
 </script>
 
 <SeoHead
@@ -16,6 +27,7 @@
   description={data.post.excerpt || data.post.body}
   image={images[0]}
   type="article"
+  jsonLd={blogJsonLd}
 />
 
 <main>

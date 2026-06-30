@@ -1,7 +1,9 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
+  import {absoluteUrl, productSchema} from '$lib/seo'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {showToast} from '$lib/toast'
@@ -180,12 +182,27 @@
       window.removeEventListener(storeDeliveryEventName, refreshDelivery)
     }
   })
+
+  const storeJsonLd = $derived(
+    productSchema({
+      name: data.storeProduct.title,
+      description: data.storeProduct.summary,
+      imageUrl: absoluteUrl(page.url.origin, storeImages[0]?.url),
+      price: Math.min(
+        ...data.storeProduct.variants.flatMap((variant) => [
+          variant.prices.natural,
+          variant.prices.dark,
+        ]),
+      ),
+    }),
+  )
 </script>
 
 <SeoHead
   title={data.storeProduct.title}
   description={data.storeProduct.summary}
   image={storeImages[0]}
+  jsonLd={storeJsonLd}
 />
 
 <main class="store-detail-page">

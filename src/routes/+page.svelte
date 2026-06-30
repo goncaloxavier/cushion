@@ -1,9 +1,11 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import {lineReveal} from '$lib/actions/line-reveal'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
+  import {absoluteUrl, organizationSchema} from '$lib/seo'
   import {
     caseStudyImageFallback,
     imageFor,
@@ -14,6 +16,20 @@
   let {data} = $props()
   const content = $derived(data.site[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
+
+  const organizationJsonLd = $derived(
+    organizationSchema({
+      origin: page.url.origin,
+      logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
+      email: content.common.contactEmail,
+      phone: content.common.contactPhone,
+      sameAs: [
+        content.common.instagramUrl,
+        content.common.facebookUrl,
+        content.common.youtubeUrl,
+      ],
+    }),
+  )
 
   const featuredSolutions = $derived(content.products.slice(0, 4))
   const viewAllLabel: Record<LanguageCode, string> = {
@@ -84,6 +100,7 @@
   title="DaFábrica4You | Plástico reciclado para exterior"
   description={content.home.hero.lead || content.home.intro.lead}
   image={content.home.heroImage}
+  jsonLd={organizationJsonLd}
 />
 
 <main class="home-page">
