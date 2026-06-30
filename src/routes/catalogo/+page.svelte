@@ -1,6 +1,7 @@
 <script lang="ts">
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
 
   let {data, form} = $props()
@@ -60,9 +61,10 @@
   )
 </script>
 
-<svelte:head>
-  <title>{content.nav.catalogue} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.catalogue}
+  description={content.catalogue.estimate.lead || content.catalogue.hero.title}
+/>
 
 <main>
   <PageHero {...content.catalogue.hero} lead="" />

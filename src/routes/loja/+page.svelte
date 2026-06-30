@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
@@ -218,9 +219,7 @@
   })
 </script>
 
-<svelte:head>
-  <title>{content.nav.store} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead title={content.nav.store} description={content.storePage.hero.title || content.storePage.lead} />
 
 <main class="store-page">
   <PageHero {...hero} />

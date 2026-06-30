@@ -1,5 +1,6 @@
 <script lang="ts">
   import PageHero from '$lib/components/PageHero.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {
     cartEventName,
@@ -201,9 +202,7 @@
   })
 </script>
 
-<svelte:head>
-  <title>{content.nav.cart} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead title={content.nav.cart} description={labels.hero.title} noindex />
 
 <main class="cart-page">
   <PageHero {...labels.hero} />

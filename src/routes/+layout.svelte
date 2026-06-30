@@ -169,10 +169,6 @@
   })
 </script>
 
-<svelte:head>
-  <title>DaFábrica4You</title>
-</svelte:head>
-
 {#if isPainel}
   {@render children()}
 {:else}

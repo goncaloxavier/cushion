@@ -1,6 +1,7 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {lineReveal} from '$lib/actions/line-reveal'
@@ -74,9 +75,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>{content.nav.products} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.products}
+  description={content.productsPage.lead || content.productsPage.hero.title}
+  image={content.productsPage.heroImage}
+/>
 
 <main class="products-page">
   <section class="product-index-hero">

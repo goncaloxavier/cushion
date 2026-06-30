@@ -1,5 +1,6 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {caseStudyImageFallback, caseStudyImagesFor} from '$lib/site-content'
 
@@ -15,9 +16,7 @@
   )
 </script>
 
-<svelte:head>
-  <title>{data.caseStudy.title} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead title={data.caseStudy.title} description={lead} image={images[0]} />
 
 <main>
   <article class="detail-page case-detail">

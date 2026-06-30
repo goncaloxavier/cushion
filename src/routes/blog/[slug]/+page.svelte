@@ -1,5 +1,6 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {blogImageFallback, blogImagesFor} from '$lib/site-content'
@@ -10,9 +11,12 @@
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
 </script>
 
-<svelte:head>
-  <title>{data.post.title} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={data.post.title}
+  description={data.post.excerpt || data.post.body}
+  image={images[0]}
+  type="article"
+/>
 
 <main>
   <article class="detail-page blog-detail">

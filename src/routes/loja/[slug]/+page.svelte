@@ -1,5 +1,6 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
@@ -181,9 +182,11 @@
   })
 </script>
 
-<svelte:head>
-  <title>{data.storeProduct.title} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={data.storeProduct.title}
+  description={data.storeProduct.summary}
+  image={storeImages[0]}
+/>
 
 <main class="store-detail-page">
   {#if deliveryPostalCode}

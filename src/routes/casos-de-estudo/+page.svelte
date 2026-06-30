@@ -1,6 +1,7 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
@@ -82,9 +83,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>{content.nav.cases} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.cases}
+  description={content.casesPage.hero.title}
+  image={content.casesPage.heroImage}
+/>
 
 <main class="cases-page">
   <section class="case-index-hero">

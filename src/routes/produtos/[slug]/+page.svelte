@@ -1,5 +1,6 @@
 <script lang="ts">
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
   import {
@@ -49,9 +50,7 @@
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
 </script>
 
-<svelte:head>
-  <title>{data.product.title} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead title={data.product.title} description={copy.intro || data.product.summary} image={images[0]} />
 
 <main class="product-detail-page">
   <article class="detail-page product-detail product-editorial">

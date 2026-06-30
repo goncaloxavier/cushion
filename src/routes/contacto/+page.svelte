@@ -2,6 +2,7 @@
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {clearCart, readCart, type StoreCartItem} from '$lib/cart'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
   import {calculateStoreEstimate, postalZoneFor, readStorePostalCode} from '$lib/store-shipping'
@@ -246,9 +247,10 @@
   })
 </script>
 
-<svelte:head>
-  <title>{content.nav.contact} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.contact}
+  description={content.contactPage.hero.lead || content.contactPage.hero.title}
+/>
 
 <main>
   <PageHero {...content.contactPage.hero} />

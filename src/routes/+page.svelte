@@ -1,6 +1,7 @@
 <script lang="ts">
   import {lineReveal} from '$lib/actions/line-reveal'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
   import {
@@ -79,9 +80,11 @@
   })
 </script>
 
-<svelte:head>
-  <title>DaFábrica4You | Plástico reciclado para exterior</title>
-</svelte:head>
+<SeoHead
+  title="DaFábrica4You | Plástico reciclado para exterior"
+  description={content.home.hero.lead || content.home.intro.lead}
+  image={content.home.heroImage}
+/>
 
 <main class="home-page">
   <section class="home-hero">

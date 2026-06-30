@@ -211,6 +211,12 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
 
   await expect(page.locator('h1')).toContainText(route.heading)
   await expect(page).toHaveTitle(/DaFábrica4You/)
+  const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
+  await expect(page.locator('html')).toHaveAttribute('lang', routeLanguage)
+  await expect(page.locator('head meta[name="description"]')).toHaveCount(1)
+  await expect(page.locator('head meta[name="description"]')).toHaveAttribute('content', /.{30,}/)
+  await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
+  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\//)
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -227,7 +233,6 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
   const contextualNavigation = page.getByRole('navigation', {
     name: isMobile ? 'Mobile quick navigation' : 'Main navigation',
   })
-  const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
   const labels = isMobile
     ? mobileNavLabels[routeLanguage as keyof typeof mobileNavLabels]
     : desktopNavLabels[routeLanguage as keyof typeof desktopNavLabels]
