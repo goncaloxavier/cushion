@@ -614,3 +614,37 @@ test.describe('catalogue + private backoffice', () => {
     await expect(page).toHaveURL(/\/painel\/login/)
   })
 })
+
+test.describe('SEO endpoints', () => {
+  test('robots.txt allows crawling, blocks private areas and links the sitemap', async ({
+    request,
+  }) => {
+    const response = await request.get('/robots.txt')
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('text/plain')
+
+    const body = await response.text()
+    expect(body).toContain('User-agent: *')
+    expect(body).toContain('Disallow: /painel')
+    expect(body).toContain('Disallow: /carrinho')
+    expect(body).toMatch(/Sitemap: https?:\/\/\S+\/sitemap\.xml/)
+  })
+
+  test('sitemap.xml lists public URLs with hreflang and excludes private pages', async ({
+    request,
+  }) => {
+    const response = await request.get('/sitemap.xml')
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('xml')
+
+    const body = await response.text()
+    expect(body).toContain('<urlset')
+    expect(body).toContain('/sobre-nos')
+    expect(body).toContain('/contacto')
+    expect(body).toContain('hreflang="en"')
+    expect(body).toContain('hreflang="x-default"')
+    expect(body).not.toContain('/painel')
+    expect(body).not.toContain('/carrinho')
+    expect((body.match(/<loc>/g) ?? []).length).toBeGreaterThanOrEqual(8)
+  })
+})
