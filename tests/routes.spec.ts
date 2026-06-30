@@ -498,6 +498,30 @@ test.describe('public website routes', () => {
     await expect(article.locator('time')).toBeVisible()
   })
 
+  test('blog detail exposes related articles and sharing controls', async ({page}) => {
+    await page.goto('/blog/mobiliario-urbano-madeira-metal?lang=pt', {
+      waitUntil: 'domcontentloaded',
+    })
+
+    const extras = page.locator('.blog-article-extras')
+    await expect(extras).toBeVisible()
+    await expect(extras.getByRole('heading', {name: 'Ler também'})).toBeVisible()
+    await expect(extras.locator('.blog-related-panel a')).toHaveCount(2)
+    await expect(extras.locator('.blog-related-panel a').first()).toHaveAttribute(
+      'href',
+      /\/blog\//,
+    )
+    await expect(extras.getByRole('link', {name: /Partilhar no WhatsApp/})).toHaveAttribute(
+      'href',
+      /wa\.me/,
+    )
+    await expect(extras.getByRole('link', {name: /Partilhar no LinkedIn/})).toHaveAttribute(
+      'href',
+      /linkedin\.com/,
+    )
+    await expect(extras.getByRole('button', {name: /Copiar link/})).toBeVisible()
+  })
+
   test('refresh starts at the beginning of the page', async ({page}) => {
     await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
     await page.locator('.page-transition.entered').waitFor({state: 'visible'})
