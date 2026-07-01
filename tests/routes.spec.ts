@@ -56,6 +56,15 @@ const mobileNavLabels = {
   es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
 }
 
+const phoneViewports = [
+  {name: 'iPhone SE 1', width: 320, height: 568},
+  {name: 'iPhone XS', width: 375, height: 812},
+  {name: 'iPhone 14', width: 390, height: 844},
+  {name: 'iPhone 15 Pro Max', width: 430, height: 932},
+  {name: 'Galaxy compact', width: 360, height: 800},
+  {name: 'Pixel 7', width: 412, height: 915},
+]
+
 const productSlugs = [
   'decking-pavimentos-passadicos',
   'vedacoes-divisorias-resguardos',
@@ -308,6 +317,60 @@ test.describe('public website routes', () => {
       test(`${route.path} renders with language-safe navigation`, async ({page}, testInfo) => {
         await expectRouteToRender(route, page, testInfo)
       })
+    }
+  })
+
+  test('mobile layout holds across common phone viewports', async ({page}, testInfo) => {
+    test.skip(!testInfo.project.name.includes('mobile'), 'Phone viewport audit runs once')
+    await page.emulateMedia({reducedMotion: 'no-preference'})
+
+    for (const viewport of phoneViewports) {
+      await page.setViewportSize({width: viewport.width, height: viewport.height})
+
+      for (const path of ['/?lang=pt', '/produtos?lang=pt', '/loja?lang=pt', '/blog?lang=pt']) {
+        if (path.includes('/loja')) await preloadStoreDelivery(page)
+        await page.goto(path, {waitUntil: 'domcontentloaded'})
+        await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+        await expect(page.locator('h1')).toBeVisible()
+
+        const hasHorizontalOverflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth + 1,
+        )
+        expect(hasHorizontalOverflow, `${viewport.name} ${path} should not overflow`).toBe(false)
+
+        const headerFits = await page.evaluate(() => {
+          const header = document.querySelector('.site-header')
+          if (!header) return false
+          const rect = header.getBoundingClientRect()
+          return rect.left >= -1 && rect.right <= window.innerWidth + 1
+        })
+        expect(headerFits, `${viewport.name} ${path} header should fit`).toBe(true)
+      }
+
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-toggle').click()
+      await expect(page.locator('.mobile-menu-nav')).toBeVisible()
+
+      const menuFits = await page.evaluate(() => {
+        const menu = document.querySelector('.mobile-menu')
+        const firstLink = document.querySelector('.mobile-menu-nav a')
+        if (!menu || !firstLink) return false
+        const menuRect = menu.getBoundingClientRect()
+        const linkRect = firstLink.getBoundingClientRect()
+        return (
+          menuRect.left >= -1 &&
+          menuRect.right <= window.innerWidth + 1 &&
+          linkRect.left >= 0 &&
+          linkRect.right <= window.innerWidth
+        )
+      })
+      expect(menuFits, `${viewport.name} menu should fit`).toBe(true)
+
+      await page.locator('.mobile-menu-close').click()
+      await page.waitForTimeout(80)
+      await expect(page.locator('.mobile-menu')).toHaveCount(1)
+      await expect(page.locator('.mobile-menu')).toHaveCount(0)
     }
   })
 
