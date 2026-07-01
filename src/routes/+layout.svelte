@@ -9,7 +9,7 @@
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
-  import {onMount} from 'svelte'
+  import {onDestroy, onMount, untrack} from 'svelte'
   import '../app.css'
 
   let {data, children} = $props()
@@ -44,15 +44,6 @@
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
   ])
 
-  const allDockItems = $derived([
-    {key: 'home' as NavKey, href: '/', label: content.nav.home},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
-    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
-    {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
-  ])
-
   const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
   const isActive = (href: string) =>
     href === '/' ? data.currentPath === '/' : data.currentPath.startsWith(href)
@@ -69,11 +60,64 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
-  const dockItems = $derived(allDockItems)
   const productGroupActive = $derived(
     currentNavKey === 'products' || currentNavKey === 'store' || currentNavKey === 'catalogue',
   )
   let cartCount = $state(0)
+  let menuOpen = $state(false)
+  let menuVisible = $state(false)
+  let menuCloseTimer: ReturnType<typeof setTimeout> | undefined
+  const mobileMenuItems = $derived([
+    {key: 'home' as NavKey, href: '/', label: content.nav.home},
+    {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
+    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
+    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
+    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
+    {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
+    {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
+  ])
+  const menuStringsByLanguage: Record<string, {menu: string; open: string; close: string}> = {
+    pt: {menu: 'Menu', open: 'Abrir menu', close: 'Fechar menu'},
+    en: {menu: 'Menu', open: 'Open menu', close: 'Close menu'},
+    es: {menu: 'Menú', open: 'Abrir menú', close: 'Cerrar menú'},
+  }
+  const menuStrings = $derived(menuStringsByLanguage[data.language] ?? menuStringsByLanguage.pt)
+  const openMenu = () => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
+    menuVisible = true
+    requestAnimationFrame(() => {
+      menuOpen = true
+    })
+  }
+  const closeMenu = () => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
+    if (!menuVisible && !menuOpen) return
+    menuOpen = false
+    menuCloseTimer = setTimeout(() => {
+      menuVisible = false
+      menuCloseTimer = undefined
+    }, 320)
+  }
+  const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && menuOpen) closeMenu()
+  }
+
+  // Close the overlay whenever the route changes.
+  $effect(() => {
+    void data.currentPath
+    untrack(closeMenu)
+  })
+
+  // Lock background scroll while the overlay is open.
+  $effect(() => {
+    if (typeof document === 'undefined') return
+    document.body.style.overflow = menuVisible ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  })
+
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
     [
@@ -135,6 +179,8 @@
   })
 
   onMount(() => {
+    document.documentElement.dataset.appReady = 'true'
+
     const resetScroll = () => {
       if (smooth) smooth.toTop(true)
       else window.scrollTo(0, 0)
@@ -165,9 +211,16 @@
     return () => {
       window.removeEventListener(cartEventName, refreshCartCount)
       disposeSmooth()
+      delete document.documentElement.dataset.appReady
     }
   })
+
+  onDestroy(() => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
+  })
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isPainel}
   {@render children()}
@@ -258,20 +311,95 @@
         </a>
       {/each}
     </div>
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label={menuStrings.open}
+      aria-expanded={menuOpen}
+      aria-controls="mobile-menu"
+      onclick={openMenu}
+    >
+      <span class="nav-toggle-bars" aria-hidden="true"></span>
+    </button>
   </div>
 </header>
 
-<nav class="mobile-dock" aria-label="Mobile quick navigation">
-  {#each dockItems as item}
-    <a
-      class:active={isActive(item.href)}
-      aria-current={isActive(item.href) ? 'page' : undefined}
-      href={withLanguage(item.href, data.language)}
-    >
-      {item.label}
-    </a>
-  {/each}
-</nav>
+{#if menuVisible}
+  <div
+    class="mobile-menu"
+    class:open={menuOpen}
+    id="mobile-menu"
+    role="dialog"
+    aria-modal="true"
+    aria-label={menuStrings.menu}
+    aria-hidden={!menuOpen}
+  >
+    <div class="mobile-menu-bar">
+      <span class="mobile-menu-brand">
+        <img src="/logo/brand_mark_white.png" alt="DaFábrica4You" loading="lazy" decoding="async" />
+      </span>
+      <button
+        class="mobile-menu-close"
+        type="button"
+        aria-label={menuStrings.close}
+        onclick={closeMenu}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" /></svg>
+      </button>
+    </div>
+
+    <nav class="mobile-menu-nav" aria-label={menuStrings.menu}>
+      {#each mobileMenuItems as item, index}
+        <a
+          href={withLanguage(item.href, data.language)}
+          class:active={isActive(item.href)}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+          style={`--menu-index: ${index}`}
+          onclick={closeMenu}
+        >
+          <span class="mobile-menu-label">{item.label}</span>
+        </a>
+      {/each}
+    </nav>
+
+    <div class="mobile-menu-foot">
+      <a
+        class="cart-link mobile-menu-cart"
+        class:active={currentNavKey === 'cart'}
+        aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+        href={withLanguage('/carrinho', data.language)}
+        aria-label={`${content.nav.cart} (${cartCount})`}
+        onclick={closeMenu}
+      >
+        <span class="cart-label">{content.nav.cart}</span>
+        {#if cartCount > 0}
+          <span class="cart-count">{cartCount}</span>
+        {/if}
+      </a>
+      <div class="mobile-menu-lang" aria-label="Language">
+        {#each data.languages as language}
+          <a
+            class:active={data.language === language.code}
+            aria-current={data.language === language.code ? 'true' : undefined}
+            href={withLanguage(data.currentPath, language.code)}
+            onclick={closeMenu}
+          >
+            {language.label}
+          </a>
+        {/each}
+      </div>
+      {#if socialLinks.length}
+        <div class="mobile-menu-social">
+          {#each socialLinks as link}
+            <a href={link.href} target="_blank" rel="noreferrer" aria-label={link.label}>
+              <BrandIcon name={link.icon} />
+            </a>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 {#key `${data.currentPath}-${data.language}`}
   <RouteScene kind={routeKind}>

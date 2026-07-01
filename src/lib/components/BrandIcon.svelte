@@ -2,7 +2,7 @@
   let {
     name,
   }: {
-    name: 'facebook' | 'instagram' | 'whatsapp' | 'youtube'
+    name: 'facebook' | 'instagram' | 'linkedin' | 'whatsapp' | 'youtube'
   } = $props()
 
   const iconUrl = $derived(`/brand-icons/${name}.svg`)

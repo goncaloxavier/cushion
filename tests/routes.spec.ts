@@ -51,9 +51,9 @@ const desktopProductMenuLabels = {
 }
 
 const mobileNavLabels = {
-  pt: ['Início', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Contacto'],
-  en: ['Home', 'Products', 'Store', 'Catalogue', 'Cases', 'Contact'],
-  es: ['Inicio', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Contacto'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
 }
 
 const productSlugs = [
@@ -230,31 +230,46 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
   )
   expect(linksWithoutLanguage).toEqual([])
 
-  const contextualNavigation = page.getByRole('navigation', {
-    name: isMobile ? 'Mobile quick navigation' : 'Main navigation',
-  })
   const labels = isMobile
     ? mobileNavLabels[routeLanguage as keyof typeof mobileNavLabels]
     : desktopNavLabels[routeLanguage as keyof typeof desktopNavLabels]
 
+  if (isMobile) {
+    // The mobile nav lives behind the hamburger: open the full-screen menu first.
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+    await expect(page.locator('.header-actions > .cart-link')).toBeHidden()
+    await expect(page.locator('.header-actions > .language-switcher')).toBeHidden()
+    await page.locator('.nav-toggle').click()
+    const menuNav = page.locator('.mobile-menu-nav')
+    await expect(menuNav).toBeVisible()
+    await expect(page.locator('.mobile-menu .cart-link')).toBeVisible()
+    await expect(page.locator('.mobile-menu-lang')).toBeVisible()
+
+    for (const label of labels) {
+      await expect(menuNav.getByRole('link', {name: label, exact: true})).toBeVisible()
+    }
+
+    if (route.active && labels.includes(route.active)) {
+      await expect(menuNav.getByRole('link', {name: route.active, exact: true})).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    }
+    return
+  }
+
+  const contextualNavigation = page.getByRole('navigation', {name: 'Main navigation'})
   await expect(contextualNavigation).toBeVisible()
 
   for (const label of labels) {
     await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
-  if (!isMobile) {
-    const productLabels =
-      desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
-    const productTrigger = contextualNavigation.getByRole('link', {
-      name: productLabels[0],
-      exact: true,
-    })
-
-    await productTrigger.hover()
-    for (const label of productLabels.slice(1)) {
-      await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
-    }
+  const productLabels =
+    desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
+  await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
+  for (const label of productLabels.slice(1)) {
+    await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
   if (route.active && labels.includes(route.active)) {
@@ -264,21 +279,14 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     })
     await expect(currentPageLink).toBeVisible()
     await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
-  } else if (!isMobile && route.active) {
-    const productLabels =
-      desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
-
-    if (productLabels.includes(route.active)) {
-      await contextualNavigation
-        .getByRole('link', {name: productLabels[0], exact: true})
-        .hover()
-      const currentPageLink = contextualNavigation.getByRole('link', {
-        name: route.active,
-        exact: true,
-      })
-      await expect(currentPageLink).toBeVisible()
-      await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
-    }
+  } else if (route.active && productLabels.includes(route.active)) {
+    await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
+    const currentPageLink = contextualNavigation.getByRole('link', {
+      name: route.active,
+      exact: true,
+    })
+    await expect(currentPageLink).toBeVisible()
+    await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
   }
 }
 
@@ -568,6 +576,7 @@ test.describe('public website routes', () => {
 
   test('localized contact form keeps the message field as a textarea', async ({page}) => {
     await page.goto('/contacto?lang=es', {waitUntil: 'domcontentloaded'})
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
 
     await expect(page.getByText('Teléfono')).toHaveCount(2)
     await expect(page.locator('textarea')).toHaveCount(1)
@@ -609,7 +618,13 @@ test.describe('public website routes', () => {
 
     await expect(submit).toBeDisabled()
 
-    await form.getByRole('checkbox').check()
+    await form.locator('input[name="marketingConsent"]').evaluate((element) => {
+      const checkbox = element as HTMLInputElement
+      checkbox.checked = true
+      checkbox.dispatchEvent(new Event('input', {bubbles: true}))
+      checkbox.dispatchEvent(new Event('change', {bubbles: true}))
+    })
+    await expect(form.getByRole('checkbox')).toBeChecked()
     await expect(submit).toBeEnabled()
   })
 })
