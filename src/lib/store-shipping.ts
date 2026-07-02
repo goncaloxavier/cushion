@@ -152,6 +152,11 @@ export const postalZoneFor = (value: string) => {
   return postalZones.find((zone) => prefix >= zone.minPrefix && prefix <= zone.maxPrefix) ?? null
 }
 
+export const postalZonePrefixFor = (value: string) => {
+  const digits = compactPostalCode(value)
+  return digits.length >= 2 ? digits.slice(0, 2) : ''
+}
+
 export const postalCodeIssue = (value: string): 'incomplete' | 'unsupported' | null => {
   const digits = compactPostalCode(value)
   if (digits.length < 4) return 'incomplete'

@@ -11,6 +11,7 @@
   import type {LanguageCode, StoreCategory, StoreProduct} from '$lib/site-content'
   import {
     calculateStoreEstimate,
+    postalZonePrefixFor,
     postalZoneFor,
     readInitialStorePostalCode,
     readStorePostalCode,
@@ -55,19 +56,19 @@
     }
   > = {
     pt: {
-      postcode: 'Código postal',
+      postcode: 'Zona',
       change: 'Alterar',
       cardPriceWithDelivery: 'Desde c/ transporte e IVA',
       cardPriceWithoutDelivery: 'Desde s/ transporte',
     },
     en: {
-      postcode: 'Postcode',
+      postcode: 'Zone',
       change: 'Change',
       cardPriceWithDelivery: 'From incl. transport and VAT',
       cardPriceWithoutDelivery: 'From excl. transport',
     },
     es: {
-      postcode: 'Código postal',
+      postcode: 'Zona',
       change: 'Cambiar',
       cardPriceWithDelivery: 'Desde con transporte e IVA',
       cardPriceWithoutDelivery: 'Desde sin transporte',
@@ -91,6 +92,7 @@
   const localizedSortLabels = $derived(sortLabels[data.language])
   const localizedDeliveryLabels = $derived(deliveryLabels[data.language])
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
+  const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
   const priceFormatter = $derived(
     new Intl.NumberFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT', {
       style: 'currency',
@@ -230,7 +232,7 @@
       <Reveal class="store-delivery-strip" variant="panel">
         <div>
           <span>{localizedDeliveryLabels.postcode}</span>
-          <strong>{deliveryPostalCode}</strong>
+          <strong>{deliveryZonePrefix}</strong>
           {#if deliveryZone}
             <small>{deliveryZone.label}</small>
           {/if}
