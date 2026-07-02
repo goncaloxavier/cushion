@@ -11,6 +11,7 @@
   import type {LanguageCode, StoreFinish} from '$lib/site-content'
   import {
     calculateStoreEstimate,
+    postalZonePrefixFor,
     postalZoneFor,
     readInitialStorePostalCode,
     readStorePostalCode,
@@ -57,7 +58,7 @@
       transport: 'Transporte',
       totalWithVat: 'Total',
       ivaIncluded: 'IVA incluído',
-      deliveryPostcode: 'Código postal',
+      deliveryPostcode: 'Zona',
       changePostcode: 'Alterar',
       transportPending: 'Transporte a confirmar',
       addToCart: 'Adicionar ao carrinho',
@@ -78,7 +79,7 @@
       transport: 'Transport',
       totalWithVat: 'Total',
       ivaIncluded: 'VAT included',
-      deliveryPostcode: 'Postcode',
+      deliveryPostcode: 'Zone',
       changePostcode: 'Change',
       transportPending: 'Transport to confirm',
       addToCart: 'Add to cart',
@@ -99,7 +100,7 @@
       transport: 'Transporte',
       totalWithVat: 'Total',
       ivaIncluded: 'IVA incluido',
-      deliveryPostcode: 'Código postal',
+      deliveryPostcode: 'Zona',
       changePostcode: 'Cambiar',
       transportPending: 'Transporte por confirmar',
       addToCart: 'Añadir al carrito',
@@ -132,6 +133,7 @@
     ),
   )
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
+  const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
   const priceFormatter = $derived(
     new Intl.NumberFormat(
       data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
@@ -222,7 +224,7 @@
       </a>
       <div class="store-detail-delivery">
         <span>{labels.deliveryPostcode}</span>
-        <strong>{deliveryPostalCode}</strong>
+        <strong>{deliveryZonePrefix}</strong>
         {#if deliveryZone}
           <small>{deliveryZone.label}</small>
         {/if}

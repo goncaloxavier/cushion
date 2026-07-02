@@ -16,6 +16,7 @@
   import type {LanguageCode} from '$lib/site-content'
   import {
     calculateStoreEstimate,
+    postalZonePrefixFor,
     postalZoneFor,
     readInitialStorePostalCode,
     readStorePostalCode,
@@ -71,7 +72,7 @@
       transport: 'Transporte estimado',
       iva: 'IVA 23%',
       finalTotal: 'Total c/ IVA',
-      deliveryPostcode: 'Código postal',
+      deliveryPostcode: 'Zona',
       changePostcode: 'Alterar',
       totalWeight: 'Peso total',
       transportPending: 'A confirmar',
@@ -98,7 +99,7 @@
       transport: 'Estimated transport',
       iva: 'VAT 23%',
       finalTotal: 'Total incl. VAT',
-      deliveryPostcode: 'Postcode',
+      deliveryPostcode: 'Zone',
       changePostcode: 'Change',
       totalWeight: 'Total weight',
       transportPending: 'To confirm',
@@ -125,7 +126,7 @@
       transport: 'Transporte estimado',
       iva: 'IVA 23%',
       finalTotal: 'Total con IVA',
-      deliveryPostcode: 'Código postal',
+      deliveryPostcode: 'Zona',
       changePostcode: 'Cambiar',
       totalWeight: 'Peso total',
       transportPending: 'Por confirmar',
@@ -191,6 +192,7 @@
   )
   const itemCount = $derived(cartTotalQuantity(items))
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
+  const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
 
   const refreshCart = () => {
     items = readCart()
@@ -228,7 +230,7 @@
         >
           <div>
             <span>{labels.deliveryPostcode}</span>
-            <strong>{deliveryPostalCode}</strong>
+            <strong>{deliveryZonePrefix}</strong>
             {#if deliveryZone}
               <small>{deliveryZone.label}</small>
             {/if}

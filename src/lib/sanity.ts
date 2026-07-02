@@ -129,15 +129,19 @@ const collectionsQuery = `{
           }
         },
         alt
-      },
-      lead
+      }
     },
     storePage {
-      hero,
-      lead
+      hero {
+        kicker,
+        title
+      }
     },
     catalogue {
-      hero,
+      hero {
+        kicker,
+        title
+      },
       ctaLabel,
       estimate {
         kicker,

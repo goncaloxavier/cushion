@@ -1,6 +1,11 @@
 <script lang="ts">
   import type {LanguageCode} from '$lib/site-content'
-  import {normalizePostalCode, postalCodeIssue, postalZoneFor, writeStorePostalCode} from '$lib/store-shipping'
+  import {
+    normalizePostalCode,
+    postalCodeIssue,
+    postalZoneFor,
+    writeStorePostalCode,
+  } from '$lib/store-shipping'
 
   type Labels = {
     kicker: string
@@ -11,53 +16,49 @@
     submit: string
     update: string
     close: string
-    zone: string
     incomplete: string
     unsupported: string
   }
 
   const labelsByLanguage: Record<LanguageCode, Labels> = {
     pt: {
-      kicker: 'Entrega',
-      title: 'Para onde entregamos?',
+      kicker: 'Código postal',
+      title: 'Preços certos desde o início',
       lead:
-        'Os preços da loja já incluem o transporte até à sua zona e o IVA. Indique o código postal para ver os valores certos.',
+        'Calculamos transporte e IVA para a sua zona e mostramos logo os valores completos, sem surpresas mais à frente.',
       field: 'Código postal',
       placeholder: '7000',
-      submit: 'Ver loja',
+      submit: 'Entrar na loja',
       update: 'Atualizar código postal',
       close: 'Fechar',
-      zone: 'Zona de entrega',
       incomplete: 'Indique os quatro dígitos do código postal.',
       unsupported:
         'Neste momento a loja calcula transporte apenas para Portugal continental entre 1000 e 8999.',
     },
     en: {
-      kicker: 'Delivery',
-      title: 'Where are we delivering?',
+      kicker: 'Postcode',
+      title: 'The right prices from the start',
       lead:
-        'Store prices already include delivery to your area and VAT. Enter your postcode to see the right values.',
+        'We calculate delivery and VAT for your area so you see complete prices straight away, with no surprises later.',
       field: 'Postcode',
       placeholder: '7000',
-      submit: 'View store',
+      submit: 'Enter store',
       update: 'Update postcode',
       close: 'Close',
-      zone: 'Delivery area',
       incomplete: 'Enter the four postcode digits.',
       unsupported:
         'The store currently estimates transport only for mainland Portugal between 1000 and 8999.',
     },
     es: {
-      kicker: 'Entrega',
-      title: '¿A dónde entregamos?',
+      kicker: 'Código postal',
+      title: 'Precios correctos desde el inicio',
       lead:
-        'Los precios ya incluyen el transporte hasta tu zona y el IVA. Indica el código postal para ver los valores correctos.',
+        'Calculamos transporte e IVA para tu zona y mostramos los valores completos desde el principio, sin sorpresas después.',
       field: 'Código postal',
       placeholder: '7000',
-      submit: 'Ver tienda',
+      submit: 'Entrar en la tienda',
       update: 'Actualizar código postal',
       close: 'Cerrar',
-      zone: 'Zona de entrega',
       incomplete: 'Indica los cuatro dígitos del código postal.',
       unsupported:
         'La tienda calcula transporte solo para Portugal continental entre 1000 y 8999.',
@@ -163,7 +164,7 @@
     {#if error}
       <p class="store-postal-error" role="alert">{error}</p>
     {:else if zone}
-      <p class="store-postal-zone">{labels.zone}: {zone.label}</p>
+      <p class="store-postal-zone">{zone.label}</p>
     {/if}
 
     <button class="button primary" type="submit">{closable ? labels.update : labels.submit}</button>

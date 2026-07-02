@@ -77,7 +77,7 @@
 
 <SeoHead
   title={content.nav.products}
-  description={content.productsPage.lead || content.productsPage.hero.title}
+  description={content.productsPage.hero.title}
   image={content.productsPage.heroImage}
 />
 

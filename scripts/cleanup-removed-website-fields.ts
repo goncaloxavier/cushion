@@ -46,8 +46,11 @@ type SiteDoc = {
   footer?: unknown
   home?: {manifesto?: unknown}
   about?: {principles?: unknown}
-  catalogue?: {quoteFlow?: unknown; estimate?: {cards?: unknown}}
-  blogPage?: {newsletter?: unknown}
+  productsPage?: {hero?: {lead?: unknown}; lead?: unknown}
+  storePage?: {hero?: {lead?: unknown}; lead?: unknown}
+  catalogue?: {hero?: {lead?: unknown}; quoteFlow?: unknown; estimate?: {cards?: unknown}}
+  casesPage?: {hero?: {lead?: unknown}}
+  blogPage?: {hero?: {lead?: unknown}; newsletter?: unknown}
 }
 
 type ProductDoc = {
@@ -62,8 +65,11 @@ const siteDocs = await client.fetch<SiteDoc[]>(
     footer,
     home{manifesto},
     about{principles},
-    catalogue{quoteFlow, estimate{cards}},
-    blogPage{newsletter}
+    productsPage{hero{lead}, lead},
+    storePage{hero{lead}, lead},
+    catalogue{hero{lead}, quoteFlow, estimate{cards}},
+    casesPage{hero{lead}},
+    blogPage{hero{lead}, newsletter}
   }`,
 )
 
@@ -83,8 +89,15 @@ for (const doc of siteDocs) {
     isPresent(doc.footer) ? 'footer' : '',
     isPresent(doc.home?.manifesto) ? 'home.manifesto' : '',
     isPresent(doc.about?.principles) ? 'about.principles' : '',
+    isPresent(doc.productsPage?.hero?.lead) ? 'productsPage.hero.lead' : '',
+    isPresent(doc.productsPage?.lead) ? 'productsPage.lead' : '',
+    isPresent(doc.storePage?.hero?.lead) ? 'storePage.hero.lead' : '',
+    isPresent(doc.storePage?.lead) ? 'storePage.lead' : '',
+    isPresent(doc.catalogue?.hero?.lead) ? 'catalogue.hero.lead' : '',
     isPresent(doc.catalogue?.quoteFlow) ? 'catalogue.quoteFlow' : '',
     isPresent(doc.catalogue?.estimate?.cards) ? 'catalogue.estimate.cards' : '',
+    isPresent(doc.casesPage?.hero?.lead) ? 'casesPage.hero.lead' : '',
+    isPresent(doc.blogPage?.hero?.lead) ? 'blogPage.hero.lead' : '',
     isPresent(doc.blogPage?.newsletter) ? 'blogPage.newsletter' : '',
   ].filter(Boolean)
 
