@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {browser} from '$app/environment'
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -16,6 +17,7 @@
   import {
     calculateStoreEstimate,
     postalZoneFor,
+    readInitialStorePostalCode,
     readStorePostalCode,
     storeDeliveryEventName,
   } from '$lib/store-shipping'
@@ -133,7 +135,7 @@
   }
 
   let items = $state<StoreCartItem[]>([])
-  let deliveryPostalCode = $state('')
+  let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site[data.language])

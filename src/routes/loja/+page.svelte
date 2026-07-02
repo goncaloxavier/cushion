@@ -12,6 +12,7 @@
   import {
     calculateStoreEstimate,
     postalZoneFor,
+    readInitialStorePostalCode,
     readStorePostalCode,
     storeDeliveryEventName,
   } from '$lib/store-shipping'
@@ -77,7 +78,7 @@
   let sort = $state<SortKey>('featured')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
-  let deliveryPostalCode = $state('')
+  let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
   let filterEffectInitialized = false
   let collectionSection: HTMLElement | null = null

@@ -462,6 +462,21 @@ test.describe('public website routes', () => {
       await expect(page.locator('[data-store-product="mesa-de-cultivo"]')).toHaveCount(0)
     })
 
+    test('store postal gate does not flash when a valid postcode is saved', async ({page}) => {
+      await preloadStoreDelivery(page, '7000-000')
+      await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
+
+      await expect(page.locator('html')).toHaveAttribute('data-store-postal-ready', 'true')
+      await expect(page.locator('.store-gate-layer')).toBeHidden()
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await expect(page.locator('.store-gate-layer')).toHaveCount(0)
+      await expect(page.locator('.store-blurred-preview')).toHaveCount(0)
+
+      await page.getByRole('button', {name: 'Alterar'}).click()
+      await expect(page.locator('.store-gate-layer')).toBeVisible()
+      await expect(page.getByRole('button', {name: 'Atualizar código postal'})).toBeVisible()
+    })
+
     test('store detail lets visitors choose variant, finish and cart before requesting', async ({
       page,
     }) => {

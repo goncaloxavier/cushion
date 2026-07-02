@@ -3075,6 +3075,19 @@ dt {
   user-select: none;
 }
 
+html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-blurred-preview {
+  filter: none;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  user-select: auto;
+}
+
+html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-gate-layer,
+html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section-gated {
+  display: none;
+}
+
 .store-gate-layer {
   position: absolute;
   inset: 0;

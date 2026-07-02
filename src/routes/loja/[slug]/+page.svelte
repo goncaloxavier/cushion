@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {browser} from '$app/environment'
   import {page} from '$app/state'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -11,6 +12,7 @@
   import {
     calculateStoreEstimate,
     postalZoneFor,
+    readInitialStorePostalCode,
     readStorePostalCode,
     storeDeliveryEventName,
   } from '$lib/store-shipping'
@@ -111,7 +113,7 @@
   let selectedVariantIndex = $state(0)
   let selectedFinish = $state<StoreFinish>('natural')
   let quantity = $state(1)
-  let deliveryPostalCode = $state('')
+  let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site[data.language])

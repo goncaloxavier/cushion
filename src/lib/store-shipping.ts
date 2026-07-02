@@ -131,6 +131,19 @@ const isBrowser = () => typeof window !== 'undefined'
 
 export const normalizePostalCode = (value: string) => compactPostalCode(value)
 
+const syncStorePostalCodeHint = (postalCode: string) => {
+  if (!isBrowser()) return
+
+  if (postalCode) {
+    document.documentElement.dataset.storePostalCode = postalCode
+    document.documentElement.dataset.storePostalReady = 'true'
+    return
+  }
+
+  delete document.documentElement.dataset.storePostalCode
+  delete document.documentElement.dataset.storePostalReady
+}
+
 export const postalZoneFor = (value: string) => {
   const digits = compactPostalCode(value)
   if (digits.length < 2) return null
@@ -153,7 +166,18 @@ export const readStorePostalCode = () => {
 
   const saved = window.localStorage.getItem(deliveryStorageKey) ?? ''
   const normalized = normalizePostalCode(saved)
-  return isSupportedStorePostalCode(normalized) ? normalized : ''
+  const postalCode = isSupportedStorePostalCode(normalized) ? normalized : ''
+  syncStorePostalCodeHint(postalCode)
+  return postalCode
+}
+
+export const readInitialStorePostalCode = () => {
+  if (!isBrowser()) return ''
+
+  const hinted = normalizePostalCode(document.documentElement.dataset.storePostalCode ?? '')
+  if (isSupportedStorePostalCode(hinted)) return hinted
+
+  return readStorePostalCode()
 }
 
 export const writeStorePostalCode = (value: string) => {
@@ -163,6 +187,7 @@ export const writeStorePostalCode = (value: string) => {
   if (!isSupportedStorePostalCode(normalized)) return ''
 
   window.localStorage.setItem(deliveryStorageKey, normalized)
+  syncStorePostalCodeHint(normalized)
   window.dispatchEvent(new CustomEvent(deliveryChangeEvent, {detail: {postalCode: normalized}}))
   return normalized
 }
@@ -171,6 +196,7 @@ export const clearStorePostalCode = () => {
   if (!isBrowser()) return
 
   window.localStorage.removeItem(deliveryStorageKey)
+  syncStorePostalCodeHint('')
   window.dispatchEvent(new CustomEvent(deliveryChangeEvent, {detail: {postalCode: ''}}))
 }
 

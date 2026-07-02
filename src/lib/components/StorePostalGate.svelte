@@ -80,11 +80,21 @@
     onclose?: () => void
   }>()
 
-  let postalCode = $state(normalizePostalCode(initialPostalCode))
+  let postalCode = $state('')
+  let previousInitialPostalCode = $state<string | null>(null)
   let error = $state('')
 
   const labels = $derived(labelsByLanguage[language])
   const zone = $derived(postalZoneFor(postalCode))
+
+  $effect(() => {
+    const normalized = normalizePostalCode(initialPostalCode)
+    if (normalized === previousInitialPostalCode) return
+
+    previousInitialPostalCode = normalized
+    postalCode = normalized
+    error = ''
+  })
 
   const submitPostalCode = () => {
     const issue = postalCodeIssue(postalCode)

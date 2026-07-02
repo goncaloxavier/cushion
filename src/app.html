@@ -52,6 +52,18 @@
           const forced = localStorage.getItem('df4y-force-motion') === '1'
           const reduce = !forced && window.matchMedia('(prefers-reduced-motion: reduce)').matches
           if (reduce) document.documentElement.classList.add('reduce-motion')
+
+          const storePostalCode = localStorage.getItem('df4y-store-delivery-postal-code-v1') || ''
+          const compactStorePostalCode = storePostalCode.replace(/\D/g, '').slice(0, 4)
+          const storePostalPrefix = Number(compactStorePostalCode.slice(0, 2))
+          if (
+            compactStorePostalCode.length === 4 &&
+            storePostalPrefix >= 10 &&
+            storePostalPrefix <= 89
+          ) {
+            document.documentElement.dataset.storePostalCode = compactStorePostalCode
+            document.documentElement.dataset.storePostalReady = 'true'
+          }
         } catch (e) {}
       })()
     </script>
