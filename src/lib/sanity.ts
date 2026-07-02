@@ -1,16 +1,44 @@
 import {createClient} from '@sanity/client'
+import {env} from '$env/dynamic/private'
 
 const projectId = 'u4uyfix8'
-const dataset = 'production'
+// Dataset is env-driven (defaults to `production`) so it can be repointed without
+// code changes if a separate dataset is ever provisioned. To keep local work off
+// the deployed content today we instead use SANITY_DISABLE_REMOTE (see below),
+// which renders the in-code fallback and never reads/writes Sanity.
+const dataset = env.SANITY_DATASET || 'production'
+
+const apiVersion = '2026-06-10'
 
 export const sanityClient = createClient({
   projectId,
   dataset,
-  apiVersion: '2026-06-10',
-  // This is a CMS-driven site: editors expect published Studio changes, especially
-  // image swaps, to show up immediately. Image assets still come from Sanity's CDN;
-  // only the document query bypasses the cached API edge.
+  apiVersion,
+  // Visitor-facing pages prioritise speed: the cached API edge serves document
+  // queries ~13x faster. Published Studio changes propagate within a few seconds.
+  useCdn: true,
+})
+
+// Preview client for Visual Editing (Presentation tool): reads draft content and
+// embeds Content Source Map metadata (stega) in the returned strings so the
+// click-to-edit overlay can map each on-page value back to its Studio field.
+// Requires a read token with draft access (SANITY_VIEWER_TOKEN).
+const studioUrl = env.SANITY_STUDIO_URL || 'http://localhost:3333/website'
+export const previewClient = sanityClient.withConfig({
   useCdn: false,
+  token: env.SANITY_VIEWER_TOKEN,
+  perspective: 'drafts',
+  stega: {enabled: true, studioUrl},
+})
+
+export const previewEnabled = () => Boolean(env.SANITY_VIEWER_TOKEN)
+
+// Plain authed client for validating the preview-url secret. Must NOT use stega,
+// otherwise the stored secret string gets encoded with invisible characters and
+// no longer matches the secret from the URL.
+export const previewSecretClient = sanityClient.withConfig({
+  useCdn: false,
+  token: env.SANITY_VIEWER_TOKEN,
 })
 
 const collectionsQuery = `{
@@ -27,10 +55,11 @@ const collectionsQuery = `{
       complaintsLabel,
       complaintsUrl,
       complaintsNote,
+      privacyPolicyLabel,
+      privacyPolicyUrl,
+      cookiePolicyLabel,
+      cookiePolicyUrl,
       marketingConsent
-    },
-    footer {
-      line
     },
     home {
       hero,
@@ -55,7 +84,6 @@ const collectionsQuery = `{
           text
         }
       },
-      manifesto,
       partners {
         kicker,
         title,
@@ -82,10 +110,6 @@ const collectionsQuery = `{
     about {
       hero,
       timeline[] {
-        title,
-        text
-      },
-      principles[] {
         title,
         text
       }
@@ -115,18 +139,10 @@ const collectionsQuery = `{
     catalogue {
       hero,
       ctaLabel,
-      quoteFlow[] {
-        title,
-        text
-      },
       estimate {
         kicker,
         title,
         lead,
-        cards[] {
-          title,
-          text
-        },
         checklistTitle,
         checklist[]
       },
@@ -164,8 +180,7 @@ const collectionsQuery = `{
           }
         },
         alt
-      },
-      newsletter
+      }
     },
     contactPage {
       hero,
@@ -202,8 +217,12 @@ const collectionsQuery = `{
     },
     summary,
     description,
-    features,
-    applications
+    videoUrl,
+    videoTitle,
+    toolUrl,
+    toolTitle,
+    toolText,
+    toolLabel
   },
   "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
     title,
@@ -212,6 +231,18 @@ const collectionsQuery = `{
     summary,
     cataloguePage,
     image {
+      asset -> {
+        url,
+        originalFilename,
+        metadata {
+          dimensions {
+            aspectRatio
+          }
+        }
+      },
+      alt
+    },
+    gallery[] {
       asset -> {
         url,
         originalFilename,
@@ -365,21 +396,30 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
   }
 }`
 
-export const getSanityCollections = async () => {
-  if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
+export const getSanityCollections = async (preview = false) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
+  const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await sanityClient.fetch(collectionsQuery)
+    const collections = await client.fetch(collectionsQuery)
+    // Local leverage mode: keep reading the real blog/cases/products/content from the
+    // deployed dataset, but drop the store products so the loja renders from the in-code
+    // fallback (unpublished store work shows locally, deployed store stays untouched).
+    if (collections && env.SANITY_STORE_FROM_FALLBACK === 'true') {
+      return {...collections, storeProducts: []}
+    }
+    return collections
   } catch {
     return null
   }
 }
 
-export const getBlogPostDetail = async (slug: string) => {
-  if (process.env.SANITY_DISABLE_REMOTE === 'true') return null
+export const getBlogPostDetail = async (slug: string, preview = false) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
+  const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await sanityClient.fetch(blogPostDetailQuery, {slug})
+    return await client.fetch(blogPostDetailQuery, {slug})
   } catch {
     return null
   }

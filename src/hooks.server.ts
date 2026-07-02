@@ -3,6 +3,8 @@ import {sessionCookieName, validateSession} from '$lib/server/auth'
 
 export const handle: Handle = async ({event, resolve}) => {
   const {pathname} = event.url
+  const rawLanguage = event.url.searchParams.get('lang')
+  const htmlLanguage = rawLanguage === 'en' || rawLanguage === 'es' ? rawLanguage : 'pt'
 
   // Guard the private CRM backend. Validate the session for every /painel
   // request and expose the staff member on locals; redirect otherwise.
@@ -21,7 +23,9 @@ export const handle: Handle = async ({event, resolve}) => {
     event.locals.staff = null
   }
 
-  const response = await resolve(event)
+  const response = await resolve(event, {
+    transformPageChunk: ({html}) => html.replace('%lang%', htmlLanguage),
+  })
   const contentType = response.headers.get('content-type') ?? ''
 
   if (!contentType.includes('text/html')) {

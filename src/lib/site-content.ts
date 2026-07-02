@@ -28,14 +28,24 @@ export type ContentCard = {
   text: string
 }
 
-export type ContactFieldKey = 'name' | 'email' | 'phone' | 'postalCode' | 'locality' | 'message'
+export type ContactFieldKey =
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'address'
+  | 'postalCode'
+  | 'locality'
+  | 'message'
 
 export type ContactFormLabels = Record<ContactFieldKey, string>
 
 export const contactFieldKeys: ContactFieldKey[] = [
-  'name',
+  'firstName',
+  'lastName',
   'email',
   'phone',
+  'address',
   'postalCode',
   'locality',
   'message',
@@ -64,6 +74,12 @@ export type ProductItem = {
   description: string
   image?: ContentImage
   images?: ContentImage[]
+  videoUrl?: string
+  videoTitle?: string
+  toolUrl?: string
+  toolTitle?: string
+  toolText?: string
+  toolLabel?: string
   features: string[]
   applications: string[]
 }
@@ -113,6 +129,7 @@ export type StoreProduct = {
   summary: string
   cataloguePage?: number
   image?: ContentImage
+  images?: ContentImage[]
   variants: StoreProductVariant[]
 }
 
@@ -166,6 +183,10 @@ export type SiteContent = {
     complaintsLabel: string
     complaintsUrl: string
     complaintsNote: string
+    privacyPolicyLabel: string
+    privacyPolicyUrl: string
+    cookiePolicyLabel: string
+    cookiePolicyUrl: string
     marketingConsent: string
   }
   home: {
@@ -258,6 +279,12 @@ type SanityProduct = {
   gallery?: SanityImage[]
   summary?: LocalizedValue
   description?: LocalizedValue
+  videoUrl?: string
+  videoTitle?: LocalizedValue
+  toolUrl?: string
+  toolTitle?: LocalizedValue
+  toolText?: LocalizedValue
+  toolLabel?: LocalizedValue
   features?: LocalizedValue[]
   applications?: LocalizedValue[]
 }
@@ -304,6 +331,7 @@ type SanityStoreProduct = {
   summary?: LocalizedValue
   cataloguePage?: number
   image?: SanityImage
+  gallery?: SanityImage[]
   variants?: SanityStoreProductVariant[]
 }
 
@@ -336,6 +364,8 @@ type CommonPlainFields =
   | 'facebookUrl'
   | 'instagramUrl'
   | 'complaintsUrl'
+  | 'privacyPolicyUrl'
+  | 'cookiePolicyUrl'
 
 type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], CommonPlainFields>> &
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
@@ -451,6 +481,8 @@ const contact = {
   phone: '+351 914 746 637',
   whatsapp: 'https://wa.me/351914746637',
   complaints: 'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
+  privacyPolicy: 'https://www.iubenda.com/privacy-policy/56295339',
+  cookiePolicy: 'https://www.iubenda.com/privacy-policy/56295339/cookie-policy',
   youtube: 'https://www.youtube.com/@dafabrica4you245',
   facebook: 'https://www.facebook.com/dafabrica4you',
   instagram: 'https://www.instagram.com/dafabrica4you',
@@ -509,6 +541,13 @@ const productCategories = {
         'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
         'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking aplicado em exterior',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Planeie o seu deck',
+      toolText:
+        'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
+      toolLabel: 'Construir o meu deck',
       features: ['Resistente à humidade', 'Sem farpas', 'Baixa manutenção'],
       applications: ['Jardins privados', 'Piscinas', 'Parques', 'Frentes ribeirinhas'],
     },
@@ -560,6 +599,13 @@ const productCategories = {
       summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
         'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking installed outdoors',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Plan your deck',
+      toolText:
+        'Open the simulator to prepare measurements and options before moving to a quote request.',
+      toolLabel: 'Build my deck',
       features: ['Moisture resistant', 'No splinters', 'Low maintenance'],
       applications: ['Private gardens', 'Pools', 'Parks', 'Riverfront areas'],
     },
@@ -611,6 +657,13 @@ const productCategories = {
         'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
         'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
+      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+      videoTitle: 'Decking instalado en exterior',
+      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      toolTitle: 'Planifica tu deck',
+      toolText:
+        'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
+      toolLabel: 'Construir mi deck',
       features: ['Resistente a la humedad', 'Sin astillas', 'Bajo mantenimiento'],
       applications: ['Jardines privados', 'Piscinas', 'Parques', 'Frentes fluviales'],
     },
@@ -915,13 +968,17 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsLabel: 'Livro de reclamações',
       complaintsUrl: contact.complaints,
       complaintsNote: 'Litígios comerciais serão resolvidos no tribunal da comarca de Leiria',
+      privacyPolicyLabel: 'Política de privacidade',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Política de cookies',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
     },
     home: {
       hero: {
         kicker: 'Matéria-prima do ecoponto amarelo',
-        title: 'Transformamos resíduos do ecoponto amarelo em produtos sem manutenção',
+        title: 'Transformamos resíduos do amarelo em produtos que não requerem manutenção',
         lead: 'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
       heroImage: fallbackImages.home,
@@ -1084,7 +1141,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Pedido de catálogo',
         title: 'Como receber o catálogo',
-        lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário. O contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
+        lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário.\nO contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
         cards: [
           {
             title: 'Contacto',
@@ -1101,10 +1158,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Nome e contacto',
           'Localidade ou código postal',
           'Produto ou aplicação de interesse, se já souber',
-          'Mensagem curta sobre o que pretende receber',
+          'Mensagem mencionando suas áreas de interesse',
         ],
       },
-      note: 'Depois do pedido, a equipa pode enviar o catálogo e orientar a escolha sem obrigar o visitante a procurar tudo sozinho.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1135,9 +1192,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Nome', 'Email', 'Telefone', 'Código postal', 'Localidade', 'Mensagem'],
       formLabels: {
-        name: 'Nome',
+        firstName: 'Nome',
+        lastName: 'Apelido',
         email: 'Email',
         phone: 'Telefone',
+        address: 'Morada',
         postalCode: 'Código postal',
         locality: 'Localidade',
         message: 'Mensagem',
@@ -1203,13 +1262,17 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsUrl: contact.complaints,
       complaintsNote:
         'Commercial disputes will be resolved in the court of the district of Leiria.',
+      privacyPolicyLabel: 'Privacy policy',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Cookie policy',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'I agree that my data may be used for commercial contact and marketing communications related to this request.',
     },
     home: {
       hero: {
         kicker: 'Raw material from the yellow-bin stream',
-        title: 'We turn yellow-bin waste into maintenance-free products',
+        title: 'We turn yellow waste into maintenance-free products',
         lead: 'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
       heroImage: fallbackImages.home,
@@ -1372,7 +1435,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Catalogue request',
         title: 'How to receive the catalogue',
-        lead: 'If you want to consult the catalogue, send the request through the form. The contact is saved so the team can send the information and follow up.',
+        lead: 'If you want to consult the catalogue, send the request through the form.\nThe contact is saved so the team can send the information and follow up.',
         cards: [
           {
             title: 'Contact',
@@ -1392,10 +1455,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Name and contact details',
           'Location or postcode',
           'Product or application of interest, if known',
-          'Short message about what you want to receive',
+          'Message mentioning your areas of interest',
         ],
       },
-      note: 'After the request, the team can send the catalogue and guide the choice without making visitors search alone.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1426,9 +1489,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Name', 'Email', 'Phone', 'Postcode', 'Location', 'Message'],
       formLabels: {
-        name: 'Name',
+        firstName: 'First name',
+        lastName: 'Last name',
         email: 'Email',
         phone: 'Phone',
+        address: 'Address',
         postalCode: 'Postcode',
         locality: 'Location',
         message: 'Message',
@@ -1494,13 +1559,17 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       complaintsUrl: contact.complaints,
       complaintsNote:
         'Los litigios comerciales se resolverán en el tribunal de la comarca de Leiria.',
+      privacyPolicyLabel: 'Política de privacidad',
+      privacyPolicyUrl: contact.privacyPolicy,
+      cookiePolicyLabel: 'Política de cookies',
+      cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
     },
     home: {
       hero: {
         kicker: 'Materia prima del contenedor amarillo',
-        title: 'Transformamos residuos del contenedor amarillo en productos sin mantenimiento',
+        title: 'Transformamos residuos del amarillo en productos sin mantenimiento',
         lead: 'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
       heroImage: fallbackImages.home,
@@ -1663,7 +1732,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       estimate: {
         kicker: 'Solicitud de catálogo',
         title: 'Cómo recibir el catálogo',
-        lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario. El contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
+        lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario.\nEl contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
         cards: [
           {
             title: 'Contacto',
@@ -1680,10 +1749,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Nombre y datos de contacto',
           'Localidad o código postal',
           'Producto o aplicación de interés, si ya lo sabes',
-          'Mensaje corto sobre lo que quieres recibir',
+          'Mensaje mencionando tus áreas de interés',
         ],
       },
-      note: 'Después de la solicitud, el equipo puede enviar el catálogo y orientar la elección sin obligar al visitante a buscar solo.',
+      note: '',
     },
     casesPage: {
       hero: {
@@ -1714,9 +1783,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       fields: ['Nombre', 'Email', 'Teléfono', 'Código postal', 'Localidad', 'Mensaje'],
       formLabels: {
-        name: 'Nombre',
+        firstName: 'Nombre',
+        lastName: 'Apellidos',
         email: 'Email',
         phone: 'Teléfono',
+        address: 'Dirección',
         postalCode: 'Código postal',
         locality: 'Localidad',
         message: 'Mensaje',
@@ -1812,6 +1883,8 @@ const commonFromSanity = (
     facebookUrl,
     instagramUrl,
     complaintsUrl,
+    privacyPolicyUrl,
+    cookiePolicyUrl,
     ...localizedSource
   } = source ?? {}
   const next = localizedRecord(localizedSource, language, fallback)
@@ -1822,6 +1895,8 @@ const commonFromSanity = (
   next.facebookUrl = facebookUrl?.trim() || fallback.facebookUrl
   next.instagramUrl = instagramUrl?.trim() || fallback.instagramUrl
   next.complaintsUrl = complaintsUrl?.trim() || fallback.complaintsUrl
+  next.privacyPolicyUrl = privacyPolicyUrl?.trim() || fallback.privacyPolicyUrl
+  next.cookiePolicyUrl = cookiePolicyUrl?.trim() || fallback.cookiePolicyUrl
   return next
 }
 
@@ -1994,6 +2069,48 @@ const localizedList = (
     .filter(Boolean)
 }
 
+const deckingProductExtras = {
+  pt: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking aplicado em exterior',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Planeie o seu deck',
+    toolText:
+      'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
+    toolLabel: 'Construir o meu deck',
+  },
+  en: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking installed outdoors',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Plan your deck',
+    toolText:
+      'Open the simulator to prepare measurements and options before moving to a quote request.',
+    toolLabel: 'Build my deck',
+  },
+  es: {
+    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
+    videoTitle: 'Decking instalado en exterior',
+    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    toolTitle: 'Planifica tu deck',
+    toolText:
+      'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
+    toolLabel: 'Construir mi deck',
+  },
+} satisfies Record<LanguageCode, Partial<ProductItem>>
+
+const productFallbackForSlug = (
+  slug: string,
+  language: LanguageCode,
+  fallback: ProductItem[],
+  index: number,
+): Partial<ProductItem> | undefined =>
+  fallback.find((item) => item.slug === slug) ??
+  (slug === 'decking' || slug === 'decking-pavimentos-passadicos'
+    ? deckingProductExtras[language]
+    : undefined) ??
+  fallback[index]
+
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
@@ -2004,34 +2121,36 @@ const productsFromSanity = (
   return products
     .filter((product) => product.slug?.current)
     .map((product, index) => {
+      const slug = product.slug?.current ?? ''
+      const fallbackProduct = productFallbackForSlug(slug, language, fallback, index)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
           product.gallery,
           language,
-          fallback[index]?.image ?? fallbackImages.product,
+          fallbackProduct?.image ?? fallbackImages.product,
         ),
       )
 
       return {
-        title: localized(product.title, language, fallback[index]?.title ?? 'Product'),
-        slug: product.slug?.current ?? fallback[index]?.slug ?? `product-${index + 1}`,
+        title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
+        slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
         images: productImages,
         summary: cleanProductMaterialCopy(
-          localized(product.summary, language, fallback[index]?.summary ?? ''),
+          localized(product.summary, language, fallbackProduct?.summary ?? ''),
         ),
         description: cleanProductMaterialCopy(
-          localized(product.description, language, fallback[index]?.description ?? ''),
+          localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
-        features: localizedList(product.features, language, fallback[index]?.features ?? []).filter(
-          (feature) => !isRedundantProductMaterialFeature(feature),
-        ),
-        applications: localizedList(
-          product.applications,
-          language,
-          fallback[index]?.applications ?? [],
-        ),
+        videoUrl: product.videoUrl?.trim() || fallbackProduct?.videoUrl || '',
+        videoTitle: localized(product.videoTitle, language, fallbackProduct?.videoTitle ?? ''),
+        toolUrl: product.toolUrl?.trim() || fallbackProduct?.toolUrl || '',
+        toolTitle: localized(product.toolTitle, language, fallbackProduct?.toolTitle ?? ''),
+        toolText: localized(product.toolText, language, fallbackProduct?.toolText ?? ''),
+        toolLabel: localized(product.toolLabel, language, fallbackProduct?.toolLabel ?? ''),
+        features: [],
+        applications: [],
       }
     })
 }
@@ -2073,6 +2192,12 @@ const storeProductsFromSanity = (
           return nextVariant
         })
         .filter((variant): variant is StoreProductVariant => variant !== null)
+      const sanityImages = [
+        optionalImageFromSanity(product.image, language),
+        ...(product.gallery ?? []).map((image) => optionalImageFromSanity(image, language)),
+      ].filter((image): image is ContentImage => Boolean(image))
+      const fallbackImages = fallbackProduct?.images ?? (fallbackProduct?.image ? [fallbackProduct.image] : [])
+      const images = sanityImages.length ? sanityImages : fallbackImages
 
       return {
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
@@ -2080,7 +2205,8 @@ const storeProductsFromSanity = (
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
         cataloguePage: product.cataloguePage ?? fallbackProduct?.cataloguePage,
-        image: optionalImageFromSanity(product.image, language) ?? fallbackProduct?.image,
+        image: images[0],
+        images,
         variants,
       } satisfies StoreProduct
     })
@@ -2169,8 +2295,6 @@ const applySiteContentFromSanity = (
 
   target.nav = localizedRecord(source.nav, language, fallback.nav)
   target.common = commonFromSanity(source.common, language, fallback.common)
-  target.footer = localizedRecord(source.footer, language, fallback.footer)
-
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
     heroImage: imageFromSanity(source.home?.heroImage, language, fallback.home.heroImage),
@@ -2187,14 +2311,7 @@ const applySiteContentFromSanity = (
         fallback.home.impact.stats,
       ),
     },
-    manifesto: {
-      quote: localized(source.home?.manifesto?.quote, language, fallback.home.manifesto.quote),
-      attribution: localized(
-        source.home?.manifesto?.attribution,
-        language,
-        fallback.home.manifesto.attribution,
-      ),
-    },
+    manifesto: fallback.home.manifesto,
     partners: {
       ...copyBlockFromSanity(source.home?.partners, language, fallback.home.partners),
       items: partnersFromSanity(
@@ -2208,11 +2325,7 @@ const applySiteContentFromSanity = (
   target.about = {
     hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
     timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
-    principles: contentCardsFromSanity(
-      source.about?.principles,
-      language,
-      fallback.about.principles,
-    ),
+    principles: fallback.about.principles,
   }
 
   target.productsPage = {
@@ -2234,11 +2347,7 @@ const applySiteContentFromSanity = (
   target.catalogue = {
     hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
     ctaLabel: localized(source.catalogue?.ctaLabel, language, fallback.catalogue.ctaLabel),
-    quoteFlow: contentCardsFromSanity(
-      source.catalogue?.quoteFlow,
-      language,
-      fallback.catalogue.quoteFlow,
-    ),
+    quoteFlow: fallback.catalogue.quoteFlow,
     estimate: {
       kicker: localized(
         source.catalogue?.estimate?.kicker,
@@ -2251,11 +2360,7 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.title,
       ),
       lead: localized(source.catalogue?.estimate?.lead, language, fallback.catalogue.estimate.lead),
-      cards: contentCardsFromSanity(
-        source.catalogue?.estimate?.cards,
-        language,
-        fallback.catalogue.estimate.cards,
-      ),
+      cards: fallback.catalogue.estimate.cards,
       checklistTitle: localized(
         source.catalogue?.estimate?.checklistTitle,
         language,
@@ -2278,11 +2383,7 @@ const applySiteContentFromSanity = (
   target.blogPage = {
     hero: {...copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero), lead: ''},
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
-    newsletter: copyBlockFromSanity(
-      source.blogPage?.newsletter,
-      language,
-      fallback.blogPage.newsletter,
-    ),
+    newsletter: fallback.blogPage.newsletter,
   }
 
   const legacyContactFields = localizedListFromSanity(

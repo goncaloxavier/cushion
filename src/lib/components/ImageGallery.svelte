@@ -19,11 +19,15 @@
     label,
     closeLabel,
     className = '',
+    transitionName = undefined,
+    sizes = '(max-width: 900px) 92vw, (max-width: 1400px) calc(100vw - 2.5rem), 1210px',
   } = $props<{
     images: ContentImage[]
     label: string
     closeLabel: string
     className?: string
+    transitionName?: string
+    sizes?: string
   }>()
 
   let selectedImageIndex = $state(0)
@@ -109,13 +113,14 @@
       onclick={openLightbox}
     >
       <img
-        src={sizedImage(image.url, 1100)}
-        srcset={imageSrcset(image.url, [600, 900, 1200, 1600])}
-        sizes="(max-width: 900px) 92vw, 620px"
+        src={sizedImage(image.url, 1600, 76)}
+        srcset={imageSrcset(image.url, [640, 900, 1200, 1600, 2000], 76)}
+        {sizes}
         alt={image.alt}
         decoding="async"
         fetchpriority="high"
         style:background={lqipBackground(image)}
+        style:view-transition-name={transitionName}
       />
       <span class="image-gallery-zoom" aria-hidden="true"></span>
       {#if hasMultiple}

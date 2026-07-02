@@ -46,6 +46,7 @@ type YoutubeEmbedOptions = {
   loop?: boolean
   muted?: boolean
   playsInline?: boolean
+  quality?: 'large' | 'hd720' | 'hd1080' | 'highres'
 }
 
 export const youtubeEmbedUrl = (url: string | undefined, options?: YoutubeEmbedOptions) => {
@@ -54,6 +55,8 @@ export const youtubeEmbedUrl = (url: string | undefined, options?: YoutubeEmbedO
 
   const params = new URLSearchParams({rel: '0'})
   if (details.start > 0) params.set('start', String(details.start))
+  params.set('vq', options?.quality ?? 'highres')
+  params.set('hd', '1')
   if (options?.autoplay) params.set('autoplay', '1')
   if (options?.controls === false) {
     params.set('controls', '0')

@@ -86,8 +86,22 @@ export const formSubmission = defineType({
       readOnly: true,
     }),
     defineField({
-      name: 'name',
+      name: 'firstName',
       title: 'Nome',
+      type: 'string',
+      group: 'client',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'lastName',
+      title: 'Apelido',
+      type: 'string',
+      group: 'client',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'name',
+      title: 'Nome completo',
       type: 'string',
       group: 'client',
       readOnly: true,

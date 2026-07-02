@@ -1,5 +1,13 @@
 import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
+import {
+  calculateStoreEstimate,
+  storeDispatchZone,
+  storeTransportFuelSurchargeRate,
+  storeTransportMultiplier,
+  storeVatRate,
+  transportEstimateFor,
+} from '../src/lib/store-shipping'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -33,13 +41,20 @@ test.describe('Sanity Studio content contract', () => {
 
     expect(studioConfig).toContain("name: 'website'")
     expect(studioConfig).toContain("basePath: '/website'")
-    expect(studioConfig).toContain("dataset: 'production'")
+    expect(studioConfig).toContain('SANITY_STUDIO_DATASET')
+    expect(studioConfig).toContain("|| 'production'")
     expect(studioConfig).toContain('types: websiteSchemaTypes')
     expect(studioStructure).toContain("documentId('siteContent')")
     expect(studioStructure).toContain("schemaType('siteLanding')")
     expect(studioStructure).toContain("'Conteúdo do site'")
     expect(studioStructure).toContain("'Produtos'")
     expect(studioStructure).toContain("'Loja'")
+    expect(studioStructure).toContain("'Textos da página Loja'")
+    expect(studioStructure).toContain("'Todos os produtos'")
+    expect(studioStructure).toContain("'Produtos visíveis'")
+    expect(studioStructure).toContain("'Sem imagem principal'")
+    expect(studioStructure).toContain("'Sem peso definido'")
+    expect(studioStructure).toContain("'Produtos ocultos'")
     expect(studioStructure).toContain("'Casos de estudo'")
     expect(studioStructure).toContain("'Artigos do blog'")
     expect(siteSchema).toContain("title: 'Conteúdo do site'")
@@ -53,12 +68,18 @@ test.describe('Sanity Studio content contract', () => {
     expect(siteSchema).toContain("'Link do WhatsApp'")
     expect(siteSchema).toContain("'Link Livro de Reclamações'")
     expect(siteSchema).toContain("'Texto legal junto ao Livro de Reclamações'")
+    expect(siteSchema).toContain("'Link Política de Privacidade'")
+    expect(siteSchema).toContain("'Link Política de Cookies'")
     expect(siteSchema).toContain("'Consentimento de dados/marketing'")
     expect(siteSchema).toContain("'Labels visíveis do formulário'")
     expect(siteSchema).toContain("'Labels antigos do formulário'")
     expect(siteSchema).toContain("copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false})")
     expect(siteSchema).not.toContain("'Navigation labels'")
     expect(siteSchema).not.toContain("'Shared labels and contact'")
+    expect(siteSchema).not.toContain("'Nota de posicionamento'")
+    expect(siteSchema).not.toContain("'Cartões de princípios'")
+    expect(siteSchema).not.toContain("'Secção newsletter'")
+    expect(siteSchema).not.toContain("title: 'Rodapé'")
   })
 
   test('private CRM content is isolated from the public website workspace', () => {
@@ -90,8 +111,15 @@ test.describe('Sanity Studio content contract', () => {
   test('frontend query reads the same collections editors manage', () => {
     const sanityClient = read('src/lib/sanity.ts')
     const warmImages = read('scripts/warm-images.ts')
+    const storeProductsImport = read('scripts/import-store-products.ts')
+    const storeImagesImport = read('scripts/import-store-images.ts')
+    const packageJson = read('package.json')
 
+    expect(sanityClient).toContain('useCdn: true')
+    expect(sanityClient).toContain('previewClient')
     expect(sanityClient).toContain('useCdn: false')
+    expect(sanityClient).toContain("perspective: 'drafts'")
+    expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
     expect(warmImages).toContain('useCdn: false')
     expect(sanityClient).toContain('_id == "siteContent"')
     expect(sanityClient).toContain('_type == "siteLanding"')
@@ -103,20 +131,86 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('instagramUrl')
     expect(sanityClient).toContain('complaintsUrl')
     expect(sanityClient).toContain('complaintsNote')
+    expect(sanityClient).toContain('privacyPolicyUrl')
+    expect(sanityClient).toContain('cookiePolicyUrl')
     expect(sanityClient).toContain('marketingConsent')
     expect(sanityClient).toContain('formLabels')
     expect(sanityClient).toContain('heroVideoUrl')
+    expect(sanityClient).toContain('videoUrl')
+    expect(sanityClient).toContain('toolUrl')
     expect(sanityClient).toContain('storePage')
     expect(sanityClient).toContain('priceNatural')
     expect(sanityClient).toContain('priceDark')
+    expect(sanityClient).toContain('gallery[]')
+    expect(storeProductsImport).toContain('createIfNotExists(document)')
+    expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
+    expect(storeProductsImport).toContain('setIfMissing(fields)')
+    expect(storeImagesImport).toContain("slug: 'banco-gaviao'")
+    expect(storeImagesImport).toContain("slug: 'cadeira-atalaia'")
+    expect(storeImagesImport).toContain("slug: 'banco-montargil'")
+    expect(storeImagesImport).toContain('client.assets.upload')
+    expect(storeImagesImport).toContain('gallery: uploadedImages.slice(1)')
+    expect(packageJson).toContain('"import:store-products"')
+    expect(packageJson).toContain('"import:store-images"')
     expect(sanityClient).toContain('partners')
     expect(sanityClient).toContain('youtubeUrl')
     expect(sanityClient).toContain('logoTone')
     expect(sanityClient).toContain('logo')
     expect(sanityClient).toContain('asset ->')
     expect(sanityClient).toContain('alt')
+    expect(sanityClient).not.toContain('features,')
+    expect(sanityClient).not.toContain('applications')
+    expect(sanityClient).not.toContain('quoteFlow[]')
+    expect(sanityClient).not.toContain('cards[]')
     expect(sanityClient).not.toContain('clientProfile')
     expect(sanityClient).not.toContain('formSubmission')
+  })
+
+  test('visual editing preview is wired through Studio and draft rendering', () => {
+    const studioConfig = read('sanity.config.ts')
+    const layoutServer = read('src/routes/+layout.server.ts')
+    const layout = read('src/routes/+layout.svelte')
+    const sanityClient = read('src/lib/sanity.ts')
+    const previewHelpers = read('src/lib/server/preview.ts')
+    const previewEnable = read('src/routes/preview/enable/+server.ts')
+    const previewDisable = read('src/routes/preview/disable/+server.ts')
+    const blogDetailServer = read('src/routes/blog/[slug]/+page.server.ts')
+    const envExample = read('.env.example')
+
+    expect(studioConfig).toContain('presentationTool')
+    expect(studioConfig).toContain("enable: '/preview/enable'")
+    expect(studioConfig).toContain('resolve: {')
+    expect(studioConfig).toContain('locations: {')
+    expect(studioConfig).toContain("productCategory: collectionLocation('/produtos', 'Produto')")
+    expect(studioConfig).toContain("storeProduct: collectionLocation('/loja', 'Produto da loja')")
+    expect(studioConfig).toContain("caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo')")
+    expect(studioConfig).toContain("blogPost: collectionLocation('/blog', 'Artigo do blog')")
+    expect(layoutServer).toContain('isPreview(cookies)')
+    expect(layoutServer).toContain('getSanityCollections(preview)')
+    expect(layout).toContain('@sanity/visual-editing/svelte')
+    expect(layout).toContain('<VisualEditing />')
+    expect(sanityClient).toContain('previewClient')
+    expect(sanityClient).toContain('previewSecretClient')
+    expect(sanityClient).toContain("perspective: 'drafts'")
+    expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
+    expect(sanityClient).toContain('getSanityCollections = async (preview = false)')
+    expect(sanityClient).toContain('getBlogPostDetail')
+    expect(previewHelpers).toContain("url.protocol === 'https:'")
+    expect(previewHelpers).toContain("sameSite: secure ? ('none' as const) : ('lax' as const)")
+    expect(previewEnable).toContain('validatePreviewUrl(previewSecretClient')
+    expect(previewEnable).toContain('setPreviewCookie(cookies, url)')
+    expect(previewDisable).toContain('clearPreviewCookie(cookies, url)')
+    expect(blogDetailServer).toContain('getBlogPostDetail(params.slug, preview)')
+    expect(envExample).toContain('SANITY_VIEWER_TOKEN')
+    expect(envExample).toContain('SANITY_STUDIO_PREVIEW_ORIGIN')
+    expect(envExample).toContain('SANITY_STUDIO_URL')
+  })
+
+  test('visual editing metadata does not break custom text reveal animations', () => {
+    const lineReveal = read('src/lib/actions/line-reveal.ts')
+
+    expect(lineReveal).toContain('sanityStegaMetadataPattern')
+    expect(lineReveal).toContain('return {}')
   })
 
   test('editable collection documents support uploaded images', () => {
@@ -124,6 +218,13 @@ test.describe('Sanity Studio content contract', () => {
     const storeSchema = read('schemaTypes/storeProduct.ts')
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const blogSchema = read('schemaTypes/blogPost.ts')
+
+    expect(productSchema).not.toContain("name: 'features'")
+    expect(productSchema).not.toContain("name: 'applications'")
+    expect(productSchema).toContain("name: 'videoUrl'")
+    expect(productSchema).toContain("'Vídeo do produto (YouTube)'")
+    expect(productSchema).toContain("name: 'toolUrl'")
+    expect(productSchema).toContain("'Link da ferramenta externa'")
 
     for (const schema of [productSchema, storeSchema, caseSchema, blogSchema]) {
       expect(schema).toContain("title: 'Conteúdo'")
@@ -133,6 +234,9 @@ test.describe('Sanity Studio content contract', () => {
       expect(schema).toContain("name: 'alt'")
       expect(schema).toContain("'Descrição da imagem'")
     }
+
+    expect(storeSchema).toContain("name: 'gallery'")
+    expect(storeSchema).toContain("'Galeria do produto'")
   })
 
   test('fallback content remains available when Studio is empty', () => {
@@ -144,7 +248,11 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('marketingConsent')
     expect(contentModel).toContain('complaintsNote')
     expect(contentModel).toContain('https://www.livroreclamacoes.pt/Pedido/Reclamacao')
+    expect(contentModel).toContain('https://www.iubenda.com/privacy-policy/56295339')
+    expect(contentModel).toContain('https://www.iubenda.com/privacy-policy/56295339/cookie-policy')
     expect(contentModel).toContain('https://www.youtube.com/watch?v=h1wVIZRj0Hc')
+    expect(contentModel).toContain('https://www.youtube.com/watch?v=VIUVlk51iN0')
+    expect(contentModel).toContain('https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m')
     expect(contentModel).toContain('/images/partners/abaae.png')
     expect(contentModel).toContain('partnersFromSanity')
     expect(contentModel).toContain('localizedArticle')
@@ -152,6 +260,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('products: productCategories.pt')
     expect(contentModel).toContain('storeProductsForLanguage')
     expect(contentModel).toContain('storeProducts: storeProductsForLanguage')
+    expect(contentModel).toContain('images?: ContentImage[]')
     expect(contentModel).toContain('caseStudies: caseStudies.pt')
     expect(contentModel).toContain('blogPosts: blogPosts.pt')
     expect(contentModel).toContain('contentFromSanity')
@@ -209,5 +318,32 @@ test.describe('Sanity Studio content contract', () => {
     expect(styles).toContain('html.lightbox-open')
     expect(styles).toContain('body.lightbox-open')
     expect(styles).toContain('object-fit: contain')
+  })
+
+  test('Loja transport pricing applies the confirmed Alto Alentejo formula', () => {
+    expect(storeDispatchZone).toBe('alto-alentejo')
+    expect(storeTransportFuelSurchargeRate).toBe(0.1)
+    expect(storeTransportMultiplier).toBe(2.5)
+    expect(storeVatRate).toBe(0.23)
+
+    const transport = transportEstimateFor('7000-000', 52)
+    expect(transport).toMatchObject({
+      destination: expect.objectContaining({label: 'Alto Alentejo'}),
+      transportZone: 2,
+      bracketMaxKg: 75,
+      tableNet: 14.47,
+      fuelSurchargeNet: 1.45,
+      transportNet: 39.79,
+    })
+
+    expect(calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 52}], '7000-000')).toMatchObject(
+      {
+        productNet: 185,
+        totalWeightKg: 52,
+        subtotalNet: 224.79,
+        vat: 51.7,
+        totalGross: 276.49,
+      },
+    )
   })
 })

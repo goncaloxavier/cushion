@@ -1,10 +1,15 @@
 <script lang="ts">
   import BrandIcon from '$lib/components/BrandIcon.svelte'
+  import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
+  import {VisualEditing} from '@sanity/visual-editing/svelte'
+  import {afterNavigate, onNavigate} from '$app/navigation'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
-  import {onMount} from 'svelte'
+  import {prefersReducedMotion} from '$lib/motion'
+  import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
+  import {onDestroy, onMount, untrack} from 'svelte'
   import '../app.css'
 
   let {data, children} = $props()
@@ -22,23 +27,21 @@
     | 'blog'
     | 'contact'
 
-  const allRouteItems = $derived([
+  const primaryRouteItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
   ])
 
-  const allDockItems = $derived([
-    {key: 'home' as NavKey, href: '/', label: content.nav.home},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+  const productNavItem = $derived({key: 'products' as NavKey, href: '/produtos', label: content.nav.products})
+
+  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
+
+  const productMenuItems = $derived([
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
-    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
-    {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
   ])
 
   const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
@@ -57,9 +60,64 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
-  const routeItems = $derived(allRouteItems)
-  const dockItems = $derived(allDockItems)
+  const productGroupActive = $derived(
+    currentNavKey === 'products' || currentNavKey === 'store' || currentNavKey === 'catalogue',
+  )
   let cartCount = $state(0)
+  let menuOpen = $state(false)
+  let menuVisible = $state(false)
+  let menuCloseTimer: ReturnType<typeof setTimeout> | undefined
+  const mobileMenuItems = $derived([
+    {key: 'home' as NavKey, href: '/', label: content.nav.home},
+    {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
+    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
+    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
+    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
+    {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
+    {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
+  ])
+  const menuStringsByLanguage: Record<string, {menu: string; open: string; close: string}> = {
+    pt: {menu: 'Menu', open: 'Abrir menu', close: 'Fechar menu'},
+    en: {menu: 'Menu', open: 'Open menu', close: 'Close menu'},
+    es: {menu: 'Menú', open: 'Abrir menú', close: 'Cerrar menú'},
+  }
+  const menuStrings = $derived(menuStringsByLanguage[data.language] ?? menuStringsByLanguage.pt)
+  const openMenu = () => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
+    menuVisible = true
+    requestAnimationFrame(() => {
+      menuOpen = true
+    })
+  }
+  const closeMenu = () => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
+    if (!menuVisible && !menuOpen) return
+    menuOpen = false
+    menuCloseTimer = setTimeout(() => {
+      menuVisible = false
+      menuCloseTimer = undefined
+    }, 320)
+  }
+  const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && menuOpen) closeMenu()
+  }
+
+  // Close the overlay whenever the route changes.
+  $effect(() => {
+    void data.currentPath
+    untrack(closeMenu)
+  })
+
+  // Lock background scroll while the overlay is open.
+  $effect(() => {
+    if (typeof document === 'undefined') return
+    document.body.style.overflow = menuVisible ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  })
+
   const showWhatsappFloat = $derived(Boolean(content.common.whatsappUrl) && currentNavKey !== 'contact')
   const socialLinks = $derived(
     [
@@ -84,8 +142,49 @@
     return 'default'
   })
 
+  let smooth: SmoothScroll | null = null
+
+  const detailRoute = /^\/(produtos|casos-de-estudo|blog)\/[^/]+$/
+  const transitionKind = (from: string, to: string) => {
+    if (to === '/') return 'home'
+    const toDetail = detailRoute.test(to)
+    const fromDetail = detailRoute.test(from)
+    if (toDetail && !fromDetail) return 'forward'
+    if (fromDetail && !toDetail) return 'back'
+    return 'lateral'
+  }
+
+  onNavigate((navigation) => {
+    if (prefersReducedMotion()) return
+    if (!document.startViewTransition) return
+
+    const from = navigation.from?.url.pathname ?? ''
+    const to = navigation.to?.url.pathname ?? ''
+    document.documentElement.dataset.transition = transitionKind(from, to)
+
+    return new Promise<void>((resolve) => {
+      const transition = document.startViewTransition(async () => {
+        resolve()
+        await navigation.complete
+      })
+      transition.finished.finally(() => {
+        delete document.documentElement.dataset.transition
+      })
+    })
+  })
+
+  afterNavigate(() => {
+    if (smooth) smooth.toTop(true)
+    else window.scrollTo(0, 0)
+  })
+
   onMount(() => {
-    const resetScroll = () => window.scrollTo(0, 0)
+    document.documentElement.dataset.appReady = 'true'
+
+    const resetScroll = () => {
+      if (smooth) smooth.toTop(true)
+      else window.scrollTo(0, 0)
+    }
     const refreshCartCount = () => {
       cartCount = cartTotalQuantity(readCart())
     }
@@ -97,6 +196,12 @@
     refreshCartCount()
     window.addEventListener(cartEventName, refreshCartCount)
 
+    let disposeSmooth = () => {}
+    createSmoothScroll().then((instance) => {
+      smooth = instance
+      if (instance) disposeSmooth = instance.destroy
+    })
+
     resetScroll()
     requestAnimationFrame(() => {
       resetScroll()
@@ -105,18 +210,23 @@
 
     return () => {
       window.removeEventListener(cartEventName, refreshCartCount)
+      disposeSmooth()
+      delete document.documentElement.dataset.appReady
     }
+  })
+
+  onDestroy(() => {
+    if (menuCloseTimer) clearTimeout(menuCloseTimer)
   })
 </script>
 
-<svelte:head>
-  <title>DaFábrica4You</title>
-</svelte:head>
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isPainel}
   {@render children()}
 {:else}
   <RouteProgress />
+  <Intro />
 
 <header class="site-header">
   <div class="brand">
@@ -124,7 +234,41 @@
   </div>
 
   <nav class="nav-links" aria-label="Main navigation">
-    {#each routeItems as item}
+    {#each primaryRouteItems.slice(0, 2) as item}
+      <a
+        class:active={isActive(item.href)}
+        aria-current={isActive(item.href) ? 'page' : undefined}
+        href={withLanguage(item.href, data.language)}
+      >
+        {item.label}
+      </a>
+    {/each}
+
+    <div class="nav-group" class:active={productGroupActive}>
+      <a
+        class="nav-group-trigger"
+        class:active={isActive(productNavItem.href)}
+        aria-current={isActive(productNavItem.href) ? 'page' : undefined}
+        href={withLanguage(productNavItem.href, data.language)}
+      >
+        <span>{productNavItem.label}</span>
+        <span class="nav-caret" aria-hidden="true"></span>
+      </a>
+
+      <div class="nav-group-menu" aria-label={content.nav.products}>
+        {#each productMenuItems as item}
+          <a
+            class:active={isActive(item.href)}
+            aria-current={isActive(item.href) ? 'page' : undefined}
+            href={withLanguage(item.href, data.language)}
+          >
+            {item.label}
+          </a>
+        {/each}
+      </div>
+    </div>
+
+    {#each primaryRouteItems.slice(2) as item}
       <a
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
@@ -167,20 +311,95 @@
         </a>
       {/each}
     </div>
+    <button
+      class="nav-toggle"
+      type="button"
+      aria-label={menuStrings.open}
+      aria-expanded={menuOpen}
+      aria-controls="mobile-menu"
+      onclick={openMenu}
+    >
+      <span class="nav-toggle-bars" aria-hidden="true"></span>
+    </button>
   </div>
 </header>
 
-<nav class="mobile-dock" aria-label="Mobile quick navigation">
-  {#each dockItems as item}
-    <a
-      class:active={isActive(item.href)}
-      aria-current={isActive(item.href) ? 'page' : undefined}
-      href={withLanguage(item.href, data.language)}
-    >
-      {item.label}
-    </a>
-  {/each}
-</nav>
+{#if menuVisible}
+  <div
+    class="mobile-menu"
+    class:open={menuOpen}
+    id="mobile-menu"
+    role="dialog"
+    aria-modal="true"
+    aria-label={menuStrings.menu}
+    aria-hidden={!menuOpen}
+  >
+    <div class="mobile-menu-bar">
+      <span class="mobile-menu-brand">
+        <img src="/logo/brand_mark_white.png" alt="DaFábrica4You" loading="lazy" decoding="async" />
+      </span>
+      <button
+        class="mobile-menu-close"
+        type="button"
+        aria-label={menuStrings.close}
+        onclick={closeMenu}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" /></svg>
+      </button>
+    </div>
+
+    <nav class="mobile-menu-nav" aria-label={menuStrings.menu}>
+      {#each mobileMenuItems as item, index}
+        <a
+          href={withLanguage(item.href, data.language)}
+          class:active={isActive(item.href)}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+          style={`--menu-index: ${index}`}
+          onclick={closeMenu}
+        >
+          <span class="mobile-menu-label">{item.label}</span>
+        </a>
+      {/each}
+    </nav>
+
+    <div class="mobile-menu-foot">
+      <a
+        class="cart-link mobile-menu-cart"
+        class:active={currentNavKey === 'cart'}
+        aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+        href={withLanguage('/carrinho', data.language)}
+        aria-label={`${content.nav.cart} (${cartCount})`}
+        onclick={closeMenu}
+      >
+        <span class="cart-label">{content.nav.cart}</span>
+        {#if cartCount > 0}
+          <span class="cart-count">{cartCount}</span>
+        {/if}
+      </a>
+      <div class="mobile-menu-lang" aria-label="Language">
+        {#each data.languages as language}
+          <a
+            class:active={data.language === language.code}
+            aria-current={data.language === language.code ? 'true' : undefined}
+            href={withLanguage(data.currentPath, language.code)}
+            onclick={closeMenu}
+          >
+            {language.label}
+          </a>
+        {/each}
+      </div>
+      {#if socialLinks.length}
+        <div class="mobile-menu-social">
+          {#each socialLinks as link}
+            <a href={link.href} target="_blank" rel="noreferrer" aria-label={link.label}>
+              <BrandIcon name={link.icon} />
+            </a>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 {#key `${data.currentPath}-${data.language}`}
   <RouteScene kind={routeKind}>
@@ -201,6 +420,14 @@
       {content.common.complaintsLabel}
     </a>
     <p>{content.common.complaintsNote}</p>
+    <div class="footer-policy-links">
+      <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer">
+        {content.common.privacyPolicyLabel}
+      </a>
+      <a href={content.common.cookiePolicyUrl} target="_blank" rel="noreferrer">
+        {content.common.cookiePolicyLabel}
+      </a>
+    </div>
   </div>
   <div class="footer-social" aria-label={content.common.socialLabel}>
     {#each socialLinks as link}
@@ -227,3 +454,7 @@
 {/if}
 
 <Toaster />
+
+{#if data.preview}
+  <VisualEditing />
+{/if}

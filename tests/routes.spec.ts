@@ -8,7 +8,7 @@ type PublicRoute = {
 }
 
 const publicRoutes: PublicRoute[] = [
-  {path: '/?lang=pt', heading: 'produtos sem manutenção', active: 'Início'},
+  {path: '/?lang=pt', heading: 'não requerem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
   {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {path: '/loja?lang=pt', heading: 'Produtos com preço', active: 'Loja'},
@@ -39,16 +39,31 @@ const publicRoutes: PublicRoute[] = [
 ]
 
 const desktopNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog'],
-  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Casos', 'Blog'],
+  en: ['Home', 'About', 'Products', 'Cases', 'Blog'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Casos', 'Blog'],
+}
+
+const desktopProductMenuLabels = {
+  pt: ['Produtos', 'Loja', 'Catálogo'],
+  en: ['Products', 'Store', 'Catalogue'],
+  es: ['Productos', 'Tienda', 'Catálogo'],
 }
 
 const mobileNavLabels = {
-  pt: ['Início', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Contacto'],
-  en: ['Home', 'Products', 'Store', 'Catalogue', 'Cases', 'Contact'],
-  es: ['Inicio', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Contacto'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
 }
+
+const phoneViewports = [
+  {name: 'iPhone SE 1', width: 320, height: 568},
+  {name: 'iPhone XS', width: 375, height: 812},
+  {name: 'iPhone 14', width: 390, height: 844},
+  {name: 'iPhone 15 Pro Max', width: 430, height: 932},
+  {name: 'Galaxy compact', width: 360, height: 800},
+  {name: 'Pixel 7', width: 412, height: 915},
+]
 
 const productSlugs = [
   'decking-pavimentos-passadicos',
@@ -78,7 +93,7 @@ const storeSlugs = [
   'mesa-vale-do-arco',
   'mesa-octogonal',
   'conjunto-atalia',
-  'cadeirao-atalia',
+  'cadeira-atalaia',
   'cadeira-de-bar',
   'mesa-ervideira',
   'papeleira-reta',
@@ -87,6 +102,9 @@ const storeSlugs = [
   'mesa-de-cultivo',
   'canteiro-com-trelica',
 ]
+
+const storeDeliveryStorageKey = 'df4y-store-delivery-postal-code-v1'
+const defaultStorePostalCode = '7000-000'
 
 async function goToNextPage(page: Page) {
   await page.locator('.page-transition.entered').waitFor({state: 'visible'})
@@ -165,6 +183,15 @@ async function collectPagedStoreCards(page: Page) {
   return slugs
 }
 
+async function preloadStoreDelivery(page: Page, postalCode = defaultStorePostalCode) {
+  await page.addInitScript(
+    ([storageKey, value]) => {
+      window.localStorage.setItem(storageKey, value)
+    },
+    [storeDeliveryStorageKey, postalCode],
+  )
+}
+
 async function waitForCollectionStart(page: Page, selector: string) {
   await page.waitForFunction(
     (collectionSelector) => {
@@ -185,10 +212,20 @@ async function waitForCollectionStart(page: Page, selector: string) {
 async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: TestInfo) {
   const isMobile = testInfo.project.name.includes('mobile')
 
+  if (route.path.includes('/loja')) {
+    await preloadStoreDelivery(page)
+  }
+
   await page.goto(route.path, {waitUntil: 'domcontentloaded'})
 
   await expect(page.locator('h1')).toContainText(route.heading)
   await expect(page).toHaveTitle(/DaFábrica4You/)
+  const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
+  await expect(page.locator('html')).toHaveAttribute('lang', routeLanguage)
+  await expect(page.locator('head meta[name="description"]')).toHaveCount(1)
+  await expect(page.locator('head meta[name="description"]')).toHaveAttribute('content', /.{30,}/)
+  await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
+  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\//)
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -202,21 +239,57 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
   )
   expect(linksWithoutLanguage).toEqual([])
 
-  const contextualNavigation = page.getByRole('navigation', {
-    name: isMobile ? 'Mobile quick navigation' : 'Main navigation',
-  })
-  const routeLanguage = new URLSearchParams(route.path.split('?')[1]).get('lang') ?? 'pt'
   const labels = isMobile
     ? mobileNavLabels[routeLanguage as keyof typeof mobileNavLabels]
     : desktopNavLabels[routeLanguage as keyof typeof desktopNavLabels]
 
+  if (isMobile) {
+    // The mobile nav lives behind the hamburger: open the full-screen menu first.
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+    await expect(page.locator('.header-actions > .cart-link')).toBeHidden()
+    await expect(page.locator('.header-actions > .language-switcher')).toBeHidden()
+    await page.locator('.nav-toggle').click()
+    const menuNav = page.locator('.mobile-menu-nav')
+    await expect(menuNav).toBeVisible()
+    await expect(page.locator('.mobile-menu .cart-link')).toBeVisible()
+    await expect(page.locator('.mobile-menu-lang')).toBeVisible()
+
+    for (const label of labels) {
+      await expect(menuNav.getByRole('link', {name: label, exact: true})).toBeVisible()
+    }
+
+    if (route.active && labels.includes(route.active)) {
+      await expect(menuNav.getByRole('link', {name: route.active, exact: true})).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    }
+    return
+  }
+
+  const contextualNavigation = page.getByRole('navigation', {name: 'Main navigation'})
   await expect(contextualNavigation).toBeVisible()
 
   for (const label of labels) {
     await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
+  const productLabels =
+    desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
+  await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
+  for (const label of productLabels.slice(1)) {
+    await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
+  }
+
   if (route.active && labels.includes(route.active)) {
+    const currentPageLink = contextualNavigation.getByRole('link', {
+      name: route.active,
+      exact: true,
+    })
+    await expect(currentPageLink).toBeVisible()
+    await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
+  } else if (route.active && productLabels.includes(route.active)) {
+    await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
     const currentPageLink = contextualNavigation.getByRole('link', {
       name: route.active,
       exact: true,
@@ -247,6 +320,60 @@ test.describe('public website routes', () => {
     }
   })
 
+  test('mobile layout holds across common phone viewports', async ({page}, testInfo) => {
+    test.skip(!testInfo.project.name.includes('mobile'), 'Phone viewport audit runs once')
+    await page.emulateMedia({reducedMotion: 'no-preference'})
+
+    for (const viewport of phoneViewports) {
+      await page.setViewportSize({width: viewport.width, height: viewport.height})
+
+      for (const path of ['/?lang=pt', '/produtos?lang=pt', '/loja?lang=pt', '/blog?lang=pt']) {
+        if (path.includes('/loja')) await preloadStoreDelivery(page)
+        await page.goto(path, {waitUntil: 'domcontentloaded'})
+        await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+        await expect(page.locator('h1')).toBeVisible()
+
+        const hasHorizontalOverflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth + 1,
+        )
+        expect(hasHorizontalOverflow, `${viewport.name} ${path} should not overflow`).toBe(false)
+
+        const headerFits = await page.evaluate(() => {
+          const header = document.querySelector('.site-header')
+          if (!header) return false
+          const rect = header.getBoundingClientRect()
+          return rect.left >= -1 && rect.right <= window.innerWidth + 1
+        })
+        expect(headerFits, `${viewport.name} ${path} header should fit`).toBe(true)
+      }
+
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-toggle').click()
+      await expect(page.locator('.mobile-menu-nav')).toBeVisible()
+
+      const menuFits = await page.evaluate(() => {
+        const menu = document.querySelector('.mobile-menu')
+        const firstLink = document.querySelector('.mobile-menu-nav a')
+        if (!menu || !firstLink) return false
+        const menuRect = menu.getBoundingClientRect()
+        const linkRect = firstLink.getBoundingClientRect()
+        return (
+          menuRect.left >= -1 &&
+          menuRect.right <= window.innerWidth + 1 &&
+          linkRect.left >= 0 &&
+          linkRect.right <= window.innerWidth
+        )
+      })
+      expect(menuFits, `${viewport.name} menu should fit`).toBe(true)
+
+      await page.locator('.mobile-menu-close').click()
+      await page.waitForTimeout(80)
+      await expect(page.locator('.mobile-menu')).toHaveCount(1)
+      await expect(page.locator('.mobile-menu')).toHaveCount(0)
+    }
+  })
+
   test.describe('desktop collection contracts', () => {
     test.skip(({isMobile}) => Boolean(isMobile), 'Collection walks are viewport independent')
 
@@ -262,6 +389,22 @@ test.describe('public website routes', () => {
         expect(links.has(`/produtos/${slug}?lang=pt`)).toBe(true)
         expect(imageLinks.has(`/produtos/${slug}?lang=pt`)).toBe(true)
       }
+    })
+
+    test('decking detail exposes the product video and deck builder tool', async ({page}) => {
+      await page.goto('/produtos/decking?lang=pt&fromPage=2', {waitUntil: 'domcontentloaded'})
+      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+
+      await expect(page.locator('h1')).toContainText(/Decking/)
+      await expect(page.locator('.product-support-frame iframe')).toHaveAttribute(
+        'src',
+        /youtube-nocookie\.com\/embed\/VIUVlk51iN0/,
+      )
+      await expect(page.locator('.product-support-tool')).toContainText('Planeie o seu deck')
+      await expect(page.getByRole('link', {name: 'Construir o meu deck'})).toHaveAttribute(
+        'href',
+        'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+      )
     })
 
     test('blog index links every fallback post to a detail page', async ({page}) => {
@@ -290,6 +433,7 @@ test.describe('public website routes', () => {
     test('store page exposes catalogue-priced products with filters and pagination', async ({
       page,
     }) => {
+      await preloadStoreDelivery(page)
       await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
 
       await expect(page.locator('.store-card')).toHaveCount(9)
@@ -304,8 +448,11 @@ test.describe('public website routes', () => {
         'href',
         '/loja/banco-gaviao?lang=pt',
       )
+      await expect(
+        page.locator('[data-store-product="banco-gaviao"] .store-card-visual img'),
+      ).toBeVisible()
       await expect(page.locator('[data-store-product="banco-fazenda"]')).toHaveCount(0)
-      await expect(page.locator('[data-store-product="banco-gaviao"]')).toContainText('185,00')
+      await expect(page.locator('[data-store-product="banco-gaviao"]')).toContainText('276,49')
       await expect(page.locator('[data-store-product="banco-gaviao"]')).not.toContainText('2000 mm')
       await expect(page.getByRole('link', {name: 'Pedir proposta'})).toHaveCount(0)
 
@@ -315,20 +462,36 @@ test.describe('public website routes', () => {
       await expect(page.locator('[data-store-product="mesa-de-cultivo"]')).toHaveCount(0)
     })
 
+    test('store postal gate does not flash when a valid postcode is saved', async ({page}) => {
+      await preloadStoreDelivery(page, '7000-000')
+      await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
+
+      await expect(page.locator('html')).toHaveAttribute('data-store-postal-ready', 'true')
+      await expect(page.locator('.store-gate-layer')).toBeHidden()
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await expect(page.locator('.store-gate-layer')).toHaveCount(0)
+      await expect(page.locator('.store-blurred-preview')).toHaveCount(0)
+
+      await page.getByRole('button', {name: 'Alterar'}).click()
+      await expect(page.locator('.store-gate-layer')).toBeVisible()
+      await expect(page.getByRole('button', {name: 'Atualizar código postal'})).toBeVisible()
+    })
+
     test('store detail lets visitors choose variant, finish and cart before requesting', async ({
       page,
     }) => {
+      await preloadStoreDelivery(page)
       await page.goto('/loja/mesa-vale-do-arco?lang=pt', {waitUntil: 'domcontentloaded'})
       await page.locator('.page-transition.entered').waitFor({state: 'visible'})
 
       await expect(page.getByRole('heading', {name: 'Mesa Vale do Arco'})).toBeVisible()
-      await expect(page.locator('.store-spec-price')).toContainText('322,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('322,00')
 
       await page.getByRole('button', {name: '2450 mm'}).click()
-      await expect(page.locator('.store-spec-price')).toContainText('445,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('445,00')
 
       await page.getByRole('button', {name: 'Castanho / Preto'}).click()
-      await expect(page.locator('.store-spec-price')).toContainText('565,00')
+      await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('565,00')
       await expect(page.locator('.store-spec-grid')).toContainText('Comprimento 2450 mm')
 
       await page.getByRole('button', {name: 'Adicionar ao carrinho'}).click()
@@ -344,7 +507,7 @@ test.describe('public website routes', () => {
       await expect(page.locator('.cart-item')).toContainText('565,00')
 
       await page.locator('.cart-item').getByLabel('Quantidade').fill('2')
-      await expect(page.locator('.cart-summary')).toContainText(/1.?130,00/)
+      await expect(page.locator('.cart-summary')).toContainText(/1.?588,21/)
 
       await page.getByRole('link', {name: 'Pedir orçamento'}).click()
       await expect(page).toHaveURL(/\/contacto\?lang=pt&source=loja/)
@@ -384,6 +547,7 @@ test.describe('public website routes', () => {
   })
 
   test('collection detail links preserve the current list page', async ({page}) => {
+    await preloadStoreDelivery(page)
     await page.goto('/loja?lang=pt', {waitUntil: 'domcontentloaded'})
     await page.locator('.page-transition.entered').waitFor({state: 'visible'})
 
@@ -418,6 +582,30 @@ test.describe('public website routes', () => {
     await expect(article).toContainText('Ler artigo')
     await expect(article.locator('p')).toBeVisible()
     await expect(article.locator('time')).toBeVisible()
+  })
+
+  test('blog detail exposes related articles and sharing controls', async ({page}) => {
+    await page.goto('/blog/mobiliario-urbano-madeira-metal?lang=pt', {
+      waitUntil: 'domcontentloaded',
+    })
+
+    const extras = page.locator('.blog-article-extras')
+    await expect(extras).toBeVisible()
+    await expect(extras.getByRole('heading', {name: 'Ler também'})).toBeVisible()
+    await expect(extras.locator('.blog-related-panel a')).toHaveCount(2)
+    await expect(extras.locator('.blog-related-panel a').first()).toHaveAttribute(
+      'href',
+      /\/blog\//,
+    )
+    await expect(extras.getByRole('link', {name: /Partilhar no WhatsApp/})).toHaveAttribute(
+      'href',
+      /wa\.me/,
+    )
+    await expect(extras.getByRole('link', {name: /Partilhar no LinkedIn/})).toHaveAttribute(
+      'href',
+      /linkedin\.com/,
+    )
+    await expect(extras.getByRole('button', {name: /Copiar link/})).toBeVisible()
   })
 
   test('refresh starts at the beginning of the page', async ({page}) => {
@@ -466,6 +654,7 @@ test.describe('public website routes', () => {
 
   test('localized contact form keeps the message field as a textarea', async ({page}) => {
     await page.goto('/contacto?lang=es', {waitUntil: 'domcontentloaded'})
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
 
     await expect(page.getByText('Teléfono')).toHaveCount(2)
     await expect(page.locator('textarea')).toHaveCount(1)
@@ -473,6 +662,14 @@ test.describe('public website routes', () => {
     await expect(page.locator('form input[type="checkbox"]')).toHaveCount(1)
     await expect(page.getByRole('link', {name: 'Instagram'})).toHaveCount(2)
     await expect(page.getByRole('link', {name: 'Libro de reclamaciones'})).toHaveCount(2)
+    await expect(page.getByRole('link', {name: 'Política de privacidad'})).toHaveAttribute(
+      'href',
+      'https://www.iubenda.com/privacy-policy/56295339',
+    )
+    await expect(page.getByRole('link', {name: 'Política de cookies'})).toHaveAttribute(
+      'href',
+      'https://www.iubenda.com/privacy-policy/56295339/cookie-policy',
+    )
     await expect(page.getByRole('link', {name: 'Libro de reclamaciones'}).first()).toHaveAttribute(
       'href',
       'https://www.livroreclamacoes.pt/Pedido/Reclamacao',
@@ -488,27 +685,39 @@ test.describe('public website routes', () => {
 
     await expect(submit).toBeDisabled()
 
-    await form.getByLabel('Nombre').fill('Maria Silva')
+    await form.getByLabel('Nombre').fill('Maria')
+    await form.getByLabel('Apellidos').fill('Silva')
     await form.getByLabel('Email').fill('maria@example.com')
     await form.getByLabel('Teléfono').fill('+351 900 000 000')
+    await form.getByLabel('Dirección').fill('Rua das Flores 10')
     await form.getByLabel('Código postal').fill('2400-000')
     await form.getByLabel('Localidad').fill('Leiria')
     await form.getByLabel('Mensaje').fill('Necesito presupuesto para una terraza.')
 
     await expect(submit).toBeDisabled()
 
-    await form.getByRole('checkbox').check()
+    await form.locator('input[name="marketingConsent"]').evaluate((element) => {
+      const checkbox = element as HTMLInputElement
+      checkbox.checked = true
+      checkbox.dispatchEvent(new Event('input', {bubbles: true}))
+      checkbox.dispatchEvent(new Event('change', {bubbles: true}))
+    })
+    await expect(form.getByRole('checkbox')).toBeChecked()
     await expect(submit).toBeEnabled()
   })
 })
 
 test.describe('catalogue + private backoffice', () => {
-  test('catalogue page hosts its own request form without a message field', async ({page}) => {
+  test('catalogue page hosts its own request form with name split and a message field', async ({
+    page,
+  }) => {
     await page.goto('/catalogo?lang=pt')
     const form = page.locator('form.catalogue-form')
     await expect(form).toBeVisible()
+    await expect(form.getByLabel('Nome', {exact: true})).toBeVisible()
+    await expect(form.getByLabel('Apelido')).toBeVisible()
     await expect(form.getByLabel('Morada')).toBeVisible()
-    await expect(form.locator('textarea')).toHaveCount(0)
+    await expect(form.locator('textarea')).toHaveCount(1)
   })
 
   test('unauthenticated backoffice redirects to the login page', async ({page}) => {
@@ -520,5 +729,39 @@ test.describe('catalogue + private backoffice', () => {
   test('backoffice subpages require login', async ({page}) => {
     await page.goto('/painel/contactos')
     await expect(page).toHaveURL(/\/painel\/login/)
+  })
+})
+
+test.describe('SEO endpoints', () => {
+  test('robots.txt allows crawling, blocks private areas and links the sitemap', async ({
+    request,
+  }) => {
+    const response = await request.get('/robots.txt')
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('text/plain')
+
+    const body = await response.text()
+    expect(body).toContain('User-agent: *')
+    expect(body).toContain('Disallow: /painel')
+    expect(body).toContain('Disallow: /carrinho')
+    expect(body).toMatch(/Sitemap: https?:\/\/\S+\/sitemap\.xml/)
+  })
+
+  test('sitemap.xml lists public URLs with hreflang and excludes private pages', async ({
+    request,
+  }) => {
+    const response = await request.get('/sitemap.xml')
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('xml')
+
+    const body = await response.text()
+    expect(body).toContain('<urlset')
+    expect(body).toContain('/sobre-nos')
+    expect(body).toContain('/contacto')
+    expect(body).toContain('hreflang="en"')
+    expect(body).toContain('hreflang="x-default"')
+    expect(body).not.toContain('/painel')
+    expect(body).not.toContain('/carrinho')
+    expect((body.match(/<loc>/g) ?? []).length).toBeGreaterThanOrEqual(8)
   })
 })

@@ -71,11 +71,15 @@ When Xavier explicitly asks to skip Playwright for a task, do not run `npm run e
 npm run seed:studio:write
 npm run seed:studio
 npm run deploy:content
+npm run import:store-products
+npm run import:store-images
 ```
 
 - `seed:studio:write` generates `.sanity/seed.ndjson` locally, including the `siteContent` singleton, page copy, contact/legal footer fields, homepage video URL, partner/media sections, starter product documents, and starter Loja product/price documents.
 - `seed:studio` imports those starter documents into Sanity dataset `production` with `--replace`.
 - `deploy:content` intentionally refreshes code-managed Sanity content by running the starter seed, historical case-study import, and historical blog import in sequence. Keep it out of Railway builds unless replacing Content Lake documents on every website deploy is intended.
+- `import:store-products` creates missing Loja product documents from fallback content without replacing existing manual store products.
+- `import:store-images` uploads approved Loja product photos from `static/images/store/` and patches only the configured `storeProduct` documents. Use this for incoming Loja image batches instead of rerunning the full starter seed.
 
 ## Sanity CRM Dataset
 

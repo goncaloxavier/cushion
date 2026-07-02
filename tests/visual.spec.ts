@@ -3,7 +3,7 @@ import {expect, test, type Page} from '@playwright/test'
 const primeRevealAnimations = async (page: Page) => {
   await page.addStyleTag({
     content: `
-      .mobile-dock,
+      .nav-toggle,
       .whatsapp-float {
         display: none !important;
       }

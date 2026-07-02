@@ -1,9 +1,12 @@
-import type {LanguageCode, StoreProduct, StoreProductVariant} from './site-content'
+import type {ContentImage, LanguageCode, StoreProduct, StoreProductVariant} from './site-content'
 
 type Localized = Record<LanguageCode, string>
+type LocalizedStoreImage = Omit<ContentImage, 'alt'> & {alt: Localized}
 
-type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants'> & {
+type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants' | 'image' | 'images'> & {
   summary: Localized
+  image?: LocalizedStoreImage
+  images?: LocalizedStoreImage[]
   variants: Array<
     Omit<StoreProductVariant, 'label' | 'dimensions' | 'note'> & {
       label: Localized
@@ -14,6 +17,15 @@ type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants'> & {
 }
 
 const same = (value: string): Localized => ({pt: value, en: value, es: value})
+const storeImage = (
+  file: string,
+  alt: Localized,
+  aspectRatio = 4 / 3,
+): LocalizedStoreImage => ({
+  url: `/images/store/${file}`,
+  alt,
+  aspectRatio,
+})
 
 const storeProductBase: StoreProductBase[] = [
   {
@@ -26,6 +38,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Simple, robust outdoor bench for gardens, parks and resting areas.',
       es: 'Banco exterior sencillo y robusto para jardines, parques y zonas de descanso.',
     },
+    image: storeImage('banco-gaviao-01.jpeg', {
+      pt: 'Banco Gavião em acabamento escuro sobre relva artificial.',
+      en: 'Banco Gavião bench in dark finish on artificial grass.',
+      es: 'Banco Gavião en acabado oscuro sobre césped artificial.',
+    }),
+    images: [
+      storeImage('banco-gaviao-01.jpeg', {
+        pt: 'Banco Gavião em acabamento escuro sobre relva artificial.',
+        en: 'Banco Gavião bench in dark finish on artificial grass.',
+        es: 'Banco Gavião en acabado oscuro sobre césped artificial.',
+      }),
+      storeImage('banco-gaviao-02.jpeg', {
+        pt: 'Vista frontal aproximada do Banco Gavião.',
+        en: 'Closer front view of the Banco Gavião bench.',
+        es: 'Vista frontal aproximada del Banco Gavião.',
+      }),
+      storeImage('banco-gaviao-03.jpeg', {
+        pt: 'Banco Gavião visto de frente com os apoios laterais visíveis.',
+        en: 'Front view of the Banco Gavião with side supports visible.',
+        es: 'Banco Gavião visto de frente con los soportes laterales visibles.',
+      }),
+    ],
     variants: [
       {
         label: same('2000 mm'),
@@ -57,6 +91,10 @@ const storeProductBase: StoreProductBase[] = [
           en: ['Length 1600 mm', 'Width 380 mm', 'Height 450 mm'],
           es: ['Longitud 1600 mm', 'Anchura 380 mm', 'Altura 450 mm'],
         },
+        // Catalogue lists no weight for this bench; estimated at 45 kg from the
+        // comparable Banco Gavião (2000 mm slat bench = 52 kg). Sits inside the
+        // carrier's 11–50 kg bracket, so the transport price is firm.
+        weightKg: 45,
         prices: {natural: 225, dark: 260},
       },
     ],
@@ -94,6 +132,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Bench with backrest for comfortable use in gardens, parks or shared facilities.',
       es: 'Banco con respaldo para uso cómodo en jardines, parques o equipamientos colectivos.',
     },
+    image: storeImage('banco-montargil-01.jpeg', {
+      pt: 'Banco Montargil com costas em plástico reciclado cinza sobre relva artificial.',
+      en: 'Banco Montargil bench with backrest in grey recycled plastic on artificial grass.',
+      es: 'Banco Montargil con respaldo en plástico reciclado gris sobre césped artificial.',
+    }),
+    images: [
+      storeImage('banco-montargil-01.jpeg', {
+        pt: 'Banco Montargil com costas em plástico reciclado cinza sobre relva artificial.',
+        en: 'Banco Montargil bench with backrest in grey recycled plastic on artificial grass.',
+        es: 'Banco Montargil con respaldo en plástico reciclado gris sobre césped artificial.',
+      }),
+      storeImage('banco-montargil-02.jpeg', {
+        pt: 'Vista frontal do Banco Montargil com o assento ripado e as costas.',
+        en: 'Front view of the Banco Montargil showing the slatted seat and backrest.',
+        es: 'Vista frontal del Banco Montargil con el asiento de listones y el respaldo.',
+      }),
+      storeImage('banco-montargil-03.jpeg', {
+        pt: 'Banco Montargil visto de frente com os apoios em cavalete visíveis.',
+        en: 'Front view of the Banco Montargil with the trestle supports visible.',
+        es: 'Banco Montargil visto de frente con los soportes de caballete visibles.',
+      }),
+    ],
     variants: [
       {
         label: same('1500 mm'),
@@ -137,6 +197,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Table with integrated benches for picnic areas, parks, schools and shared spaces.',
       es: 'Mesa con bancos integrados para merenderos, parques, escuelas y espacios colectivos.',
     },
+    image: storeImage('mesa-vale-do-arco-01.jpeg', {
+      pt: 'Mesa de piquenique Vale do Arco com bancos integrados, em plástico reciclado.',
+      en: 'Vale do Arco picnic table with integrated benches in recycled plastic.',
+      es: 'Mesa de picnic Vale do Arco con bancos integrados en plástico reciclado.',
+    }),
+    images: [
+      storeImage('mesa-vale-do-arco-01.jpeg', {
+        pt: 'Mesa de piquenique Vale do Arco com bancos integrados, em plástico reciclado.',
+        en: 'Vale do Arco picnic table with integrated benches in recycled plastic.',
+        es: 'Mesa de picnic Vale do Arco con bancos integrados en plástico reciclado.',
+      }),
+      storeImage('mesa-vale-do-arco-02.jpeg', {
+        pt: 'Vista de três quartos da mesa de piquenique Vale do Arco.',
+        en: 'Three-quarter view of the Vale do Arco picnic table.',
+        es: 'Vista de tres cuartos de la mesa de picnic Vale do Arco.',
+      }),
+      storeImage('mesa-vale-do-arco-03.jpeg', {
+        pt: 'Vista superior da mesa Vale do Arco com o tampo ripado.',
+        en: 'Top view of the Vale do Arco table showing the slatted top.',
+        es: 'Vista superior de la mesa Vale do Arco con el tablero de listones.',
+      }),
+    ],
     variants: [
       {
         label: same('1500 mm'),
@@ -238,18 +320,56 @@ const storeProductBase: StoreProductBase[] = [
     ],
   },
   {
-    title: 'Cadeirão Atalia',
-    slug: 'cadeirao-atalia',
+    title: 'Cadeira Atalaia',
+    slug: 'cadeira-atalaia',
     category: 'cadeiras',
     cataloguePage: 15,
     summary: {
-      pt: 'Cadeirão exterior para jardins, esplanadas e zonas de descanso.',
-      en: 'Outdoor lounge chair for gardens, terraces and resting areas.',
-      es: 'Sillón exterior para jardines, terrazas y zonas de descanso.',
+      pt: 'Cadeira exterior larga para jardins, esplanadas e zonas de descanso.',
+      en: 'Wide outdoor chair for gardens, terraces and resting areas.',
+      es: 'Silla exterior amplia para jardines, terrazas y zonas de descanso.',
     },
+    image: storeImage(
+      'cadeira-atalaia-01.jpeg',
+      {
+        pt: 'Duas cadeiras Atalaia com uma mesa pequena sobre relva artificial.',
+        en: 'Two Cadeira Atalaia chairs with a small table on artificial grass.',
+        es: 'Dos sillas Atalaia con una mesa pequeña sobre césped artificial.',
+      },
+      1,
+    ),
+    images: [
+      storeImage(
+        'cadeira-atalaia-01.jpeg',
+        {
+          pt: 'Duas cadeiras Atalaia com uma mesa pequena sobre relva artificial.',
+          en: 'Two Cadeira Atalaia chairs with a small table on artificial grass.',
+          es: 'Dos sillas Atalaia con una mesa pequeña sobre césped artificial.',
+        },
+        1,
+      ),
+      storeImage(
+        'cadeira-atalaia-02.jpeg',
+        {
+          pt: 'Vista lateral da Cadeira Atalaia em acabamento natural.',
+          en: 'Side view of the Cadeira Atalaia in natural finish.',
+          es: 'Vista lateral de la silla Atalaia en acabado natural.',
+        },
+        1,
+      ),
+      storeImage(
+        'cadeira-atalaia-03.jpeg',
+        {
+          pt: 'Duas pessoas em pé sobre a Cadeira Atalaia.',
+          en: 'Two people standing on the Cadeira Atalaia chair.',
+          es: 'Dos personas de pie sobre la silla Atalaia.',
+        },
+        3 / 4,
+      ),
+    ],
     variants: [
       {
-        label: {pt: 'Cadeirão', en: 'Lounge chair', es: 'Sillón'},
+        label: {pt: 'Cadeira', en: 'Chair', es: 'Silla'},
         dimensions: {
           pt: ['Profundidade 80 cm', 'Largura 70 cm', 'Altura 95 cm'],
           en: ['Depth 80 cm', 'Width 70 cm', 'Height 95 cm'],
@@ -270,6 +390,28 @@ const storeProductBase: StoreProductBase[] = [
       en: 'High chair for counters, bars, terraces and outdoor support areas.',
       es: 'Silla alta para mostradores, bares, terrazas y zonas exteriores de apoyo.',
     },
+    image: storeImage('cadeira-de-bar-01.jpeg', {
+      pt: 'Cadeira de bar em plástico reciclado com costas, vista de frente.',
+      en: 'Recycled-plastic bar chair with backrest, front view.',
+      es: 'Silla de bar en plástico reciclado con respaldo, vista frontal.',
+    }),
+    images: [
+      storeImage('cadeira-de-bar-01.jpeg', {
+        pt: 'Cadeira de bar em plástico reciclado com costas, vista de frente.',
+        en: 'Recycled-plastic bar chair with backrest, front view.',
+        es: 'Silla de bar en plástico reciclado con respaldo, vista frontal.',
+      }),
+      storeImage('cadeira-de-bar-02.jpeg', {
+        pt: 'Vista de perfil da cadeira de bar, com o repousa-pés.',
+        en: 'Side profile of the bar chair showing the footrest.',
+        es: 'Vista de perfil de la silla de bar con el reposapiés.',
+      }),
+      storeImage('cadeira-de-bar-03.jpeg', {
+        pt: 'Pessoa sentada na cadeira de bar, mostrando a altura do assento.',
+        en: 'A person seated on the bar chair, showing the seat height.',
+        es: 'Una persona sentada en la silla de bar, mostrando la altura del asiento.',
+      }),
+    ],
     variants: [
       {
         label: {pt: 'Altura 96,5 cm', en: 'Height 96.5 cm', es: 'Altura 96,5 cm'},
@@ -316,6 +458,23 @@ const storeProductBase: StoreProductBase[] = [
       en: 'Vertical bin for outdoor spaces, available with or without lid.',
       es: 'Papelera vertical para espacios exteriores, disponible con o sin tapa.',
     },
+    image: storeImage('papeleira-reta-01.jpeg', {
+      pt: 'Papeleira reta quadrada em plástico reciclado escuro, vista de frente.',
+      en: 'Square straight litter bin in dark recycled plastic, front view.',
+      es: 'Papelera recta cuadrada en plástico reciclado oscuro, vista frontal.',
+    }),
+    images: [
+      storeImage('papeleira-reta-01.jpeg', {
+        pt: 'Papeleira reta quadrada em plástico reciclado escuro, vista de frente.',
+        en: 'Square straight litter bin in dark recycled plastic, front view.',
+        es: 'Papelera recta cuadrada en plástico reciclado oscuro, vista frontal.',
+      }),
+      storeImage('papeleira-reta-02.jpeg', {
+        pt: 'Papeleira reta vista de três quartos, com os pés de apoio visíveis.',
+        en: 'Three-quarter view of the straight litter bin with its support feet visible.',
+        es: 'Vista de tres cuartos de la papelera recta con los pies de apoyo visibles.',
+      }),
+    ],
     variants: [
       {
         label: {pt: 'Sem tampa', en: 'Without lid', es: 'Sin tapa'},
@@ -481,6 +640,159 @@ const storeProductBase: StoreProductBase[] = [
       },
     ],
   },
+  {
+    title: 'Conjunto Domingão',
+    slug: 'conjunto-domingao',
+    category: 'mesas',
+    cataloguePage: 13,
+    summary: {
+      pt: 'Conjunto de mesa com bancos integrados para merendas, parques e espaços coletivos.',
+      en: 'Table set with integrated benches for picnics, parks and shared spaces.',
+      es: 'Conjunto de mesa con bancos integrados para meriendas, parques y espacios colectivos.',
+    },
+    image: storeImage('conjunto-domingao-01.jpeg', {
+      pt: 'Conjunto Domingão: mesa de piquenique com bancos integrados em plástico reciclado.',
+      en: 'Conjunto Domingão: picnic table with integrated benches in recycled plastic.',
+      es: 'Conjunto Domingão: mesa de picnic con bancos integrados en plástico reciclado.',
+    }),
+    images: [
+      storeImage('conjunto-domingao-01.jpeg', {
+        pt: 'Conjunto Domingão: mesa de piquenique com bancos integrados em plástico reciclado.',
+        en: 'Conjunto Domingão: picnic table with integrated benches in recycled plastic.',
+        es: 'Conjunto Domingão: mesa de picnic con bancos integrados en plástico reciclado.',
+      }),
+      storeImage('conjunto-domingao-02.jpeg', {
+        pt: 'Vista de três quartos do Conjunto Domingão.',
+        en: 'Three-quarter view of the Conjunto Domingão.',
+        es: 'Vista de tres cuartos del Conjunto Domingão.',
+      }),
+      storeImage('conjunto-domingao-03.jpeg', {
+        pt: 'Conjunto Domingão visto de outro ângulo.',
+        en: 'Conjunto Domingão seen from another angle.',
+        es: 'Conjunto Domingão visto desde otro ángulo.',
+      }),
+    ],
+    variants: [
+      {
+        label: same('1500 mm'),
+        dimensions: {
+          pt: [
+            'Comprimento 1500 mm',
+            'Largura da mesa 685 mm',
+            'Altura 800 mm',
+            'Largura do banco 310 mm',
+            'Largura total 1760 mm',
+          ],
+          en: [
+            'Length 1500 mm',
+            'Table width 685 mm',
+            'Height 800 mm',
+            'Bench width 310 mm',
+            'Total width 1760 mm',
+          ],
+          es: [
+            'Longitud 1500 mm',
+            'Anchura de la mesa 685 mm',
+            'Altura 800 mm',
+            'Anchura del banco 310 mm',
+            'Anchura total 1760 mm',
+          ],
+        },
+        weightKg: 189,
+        prices: {natural: 349.5, dark: 450},
+      },
+    ],
+  },
+  {
+    title: 'Cadeira Páteo',
+    slug: 'cadeira-pateo',
+    category: 'cadeiras',
+    cataloguePage: 16,
+    summary: {
+      pt: 'Cadeira de pátio em plástico reciclado, confortável para esplanadas, jardins e zonas de descanso.',
+      en: 'Patio chair in recycled plastic, comfortable for terraces, gardens and resting areas.',
+      es: 'Silla de patio en plástico reciclado, cómoda para terrazas, jardines y zonas de descanso.',
+    },
+    image: storeImage('cadeira-pateo-01.jpeg', {
+      pt: 'Cadeira Páteo em plástico reciclado sobre relva artificial.',
+      en: 'Cadeira Páteo patio chair in recycled plastic on artificial grass.',
+      es: 'Silla Páteo en plástico reciclado sobre césped artificial.',
+    }),
+    images: [
+      storeImage('cadeira-pateo-01.jpeg', {
+        pt: 'Cadeira Páteo em plástico reciclado sobre relva artificial.',
+        en: 'Cadeira Páteo patio chair in recycled plastic on artificial grass.',
+        es: 'Silla Páteo en plástico reciclado sobre césped artificial.',
+      }),
+      storeImage('cadeira-pateo-02.jpeg', {
+        pt: 'Vista lateral da Cadeira Páteo.',
+        en: 'Side view of the Cadeira Páteo.',
+        es: 'Vista lateral de la silla Páteo.',
+      }),
+      storeImage('cadeira-pateo-03.jpeg', {
+        pt: 'Cadeira Páteo vista de outro ângulo.',
+        en: 'Cadeira Páteo seen from another angle.',
+        es: 'Silla Páteo vista desde otro ángulo.',
+      }),
+    ],
+    variants: [
+      {
+        label: same('Cadeira Páteo'),
+        dimensions: {
+          pt: ['Profundidade 630 mm', 'Altura 950 mm', 'Altura do assento 400 mm'],
+          en: ['Depth 630 mm', 'Height 950 mm', 'Seat height 400 mm'],
+          es: ['Profundidad 630 mm', 'Altura 950 mm', 'Altura del asiento 400 mm'],
+        },
+        weightKg: 38,
+        prices: {natural: 140, dark: 170},
+      },
+    ],
+  },
+  {
+    title: 'Mesa de Apoio',
+    slug: 'mesa-de-apoio',
+    category: 'mesas',
+    cataloguePage: 16,
+    summary: {
+      pt: 'Mesa de apoio compacta em plástico reciclado, ideal para acompanhar cadeiras de pátio e esplanadas.',
+      en: 'Compact side table in recycled plastic, ideal alongside patio chairs and terraces.',
+      es: 'Mesa auxiliar compacta en plástico reciclado, ideal para acompañar sillas de patio y terrazas.',
+    },
+    image: storeImage('mesa-de-apoio-01.jpeg', {
+      pt: 'Mesa de apoio compacta em plástico reciclado.',
+      en: 'Compact side table in recycled plastic.',
+      es: 'Mesa auxiliar compacta en plástico reciclado.',
+    }),
+    images: [
+      storeImage('mesa-de-apoio-01.jpeg', {
+        pt: 'Mesa de apoio compacta em plástico reciclado.',
+        en: 'Compact side table in recycled plastic.',
+        es: 'Mesa auxiliar compacta en plástico reciclado.',
+      }),
+      storeImage('mesa-de-apoio-02.jpeg', {
+        pt: 'Mesa de apoio vista de outro ângulo.',
+        en: 'Side table seen from another angle.',
+        es: 'Mesa auxiliar vista desde otro ángulo.',
+      }),
+      storeImage('mesa-de-apoio-03.jpeg', {
+        pt: 'Pormenor da mesa de apoio.',
+        en: 'Detail of the side table.',
+        es: 'Detalle de la mesa auxiliar.',
+      }),
+    ],
+    variants: [
+      {
+        label: same('Mesa de Apoio'),
+        dimensions: {
+          pt: ['Comprimento 550 mm', 'Largura 550 mm', 'Altura 480 mm'],
+          en: ['Length 550 mm', 'Width 550 mm', 'Height 480 mm'],
+          es: ['Longitud 550 mm', 'Anchura 550 mm', 'Altura 480 mm'],
+        },
+        weightKg: 22,
+        prices: {natural: 75, dark: 87},
+      },
+    ],
+  },
 ]
 
 export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[] =>
@@ -490,7 +802,8 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     category: product.category,
     summary: product.summary[language],
     cataloguePage: product.cataloguePage,
-    image: product.image,
+    image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
+    images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
     variants: product.variants.map((variant) => ({
       label: variant.label[language],
       dimensions: variant.dimensions[language],

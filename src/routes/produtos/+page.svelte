@@ -1,8 +1,10 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
+  import {lineReveal} from '$lib/actions/line-reveal'
   import {imageFor, productImageFallback} from '$lib/site-content'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -19,7 +21,7 @@
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredProducts = $derived(
     content.products.filter((product) =>
-      [product.title, product.summary, product.description, ...product.features, ...product.applications]
+      [product.title, product.summary, product.description]
         .join(' ')
         .toLowerCase()
         .includes(normalizedQuery),
@@ -73,15 +75,17 @@
   }
 </script>
 
-<svelte:head>
-  <title>{content.nav.products} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.products}
+  description={content.productsPage.lead || content.productsPage.hero.title}
+  image={content.productsPage.heroImage}
+/>
 
 <main class="products-page">
   <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
       <p class="kicker">{content.productsPage.hero.kicker}</p>
-      <h1>{content.productsPage.hero.title}</h1>
+      <h1 use:lineReveal>{content.productsPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>
@@ -134,13 +138,11 @@
               style:background={image.lqip
                 ? `center / cover no-repeat url(${image.lqip})`
                 : undefined}
+              style:view-transition-name={`vt-${product.slug}`}
             />
           </div>
           <div class="product-panel-copy">
             <h2>{product.title}</h2>
-            {#if product.summary}
-              <p>{product.summary}</p>
-            {/if}
           </div>
         </a>
       {/each}

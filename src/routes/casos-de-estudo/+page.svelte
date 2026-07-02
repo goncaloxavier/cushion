@@ -1,9 +1,11 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
+  import {lineReveal} from '$lib/actions/line-reveal'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
@@ -81,15 +83,17 @@
   }
 </script>
 
-<svelte:head>
-  <title>{content.nav.cases} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={content.nav.cases}
+  description={content.casesPage.hero.title}
+  image={content.casesPage.heroImage}
+/>
 
 <main class="cases-page">
   <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
       <p class="kicker">{content.casesPage.hero.kicker}</p>
-      <h1>{content.casesPage.hero.title}</h1>
+      <h1 use:lineReveal>{content.casesPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="case-index-media" delay={120} variant="media" priority>
@@ -142,6 +146,7 @@
               style:background={image.lqip
                 ? `center / cover no-repeat url(${image.lqip})`
                 : undefined}
+              style:view-transition-name={`vt-${item.slug}`}
             />
             <span class="card-meta">{item.location}</span>
           </div>

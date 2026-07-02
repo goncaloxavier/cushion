@@ -13,6 +13,7 @@ Use this as the task completion contract.
 - Contact/social/legal field changes include matching Sanity schema, GROQ query, fallback normalization, public layout, contact route, and tests where relevant.
 - Contact-form backend changes preserve server-only CRM writes, CSRF/origin/honeypot validation, fixed backend field names, private dataset boundaries, and tests where relevant.
 - Page media/video and partner/logo changes include matching Sanity schema, GROQ query, fallback normalization, public renderer, local fallback assets, and tests where relevant.
+- Visual Editing/Presentation changes preserve server-only preview tokens, preview-secret validation, draft/stega clients, protocol-aware preview cookies, and contract tests where relevant.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.
 - Visual changes follow `ai/09-design-philosophy.md`: compact pages, accessible navigation, smooth restrained motion, and no unnecessary long scrolling.
 - Internal route links preserve the selected language when practical.
@@ -30,6 +31,7 @@ Use this as the task completion contract.
 - Docs-only changes: review changed markdown for accuracy and consistency.
 - SvelteKit changes: run `npm run check`, `npm run lint`, and `npm run build`.
 - Sanity config or schema changes: run `npm run check`, `npm run lint`, and `npm run build:studio` when practical.
+- Visual Editing/Presentation changes: run `npm run check`, `npm run lint`, `npm run build`, and `npm run build:studio` when practical; manually verify Studio preview in an environment with `SANITY_VIEWER_TOKEN`.
 - CRM/form backend changes: run `npm run check`, `npm run lint`, `npm run build`, and `npm run e2e` when practical; manually validate live delivery only in an environment with `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`.
 - Dependency changes: run relevant validation and inspect `package-lock.json` intentionally.
 - Test/performance config changes: run `npm run e2e` and confirm the suite does not crash on generated artifacts.
@@ -42,6 +44,7 @@ Use this as the task completion contract.
 
 - Add or update tests when behavior is added and a test tool exists.
 - Manual Studio review is expected for content model/editor experience changes, especially add/edit/image upload/unpublish/delete loops.
+- Manual Studio review is expected for Visual Editing changes, especially preview enable/disable, draft rendering, and click-to-edit overlays.
 - Manual Studio review is expected for CRM workflow changes, especially new request triage, status changes, internal notes, and client profile updates.
 - Automated tests should be updated when public routes, fallback CMS items, or visual surfaces change.
 - Do not make visual regression tests depend on mutable live Studio content.

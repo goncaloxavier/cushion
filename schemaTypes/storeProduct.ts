@@ -59,7 +59,7 @@ export const storeProduct = defineType({
       name: 'image',
       title: 'Imagem principal',
       description:
-        'Opcional. Usar uma fotografia limpa do produto. Se ficar vazio, a Loja usa uma apresentação sem fotografia.',
+        'Fotografia principal usada no cartão da Loja e como primeira imagem da página do produto.',
       type: 'image',
       group: 'imagens',
       options: {hotspot: true},
@@ -68,6 +68,29 @@ export const storeProduct = defineType({
           name: 'alt',
           title: 'Descrição da imagem',
           type: 'localizedString',
+        }),
+      ],
+    }),
+    defineField({
+      name: 'gallery',
+      title: 'Galeria do produto',
+      description:
+        'Fotografias adicionais para a página do produto. A imagem principal já aparece primeiro; aqui entram outros ângulos ou detalhes.',
+      type: 'array',
+      group: 'imagens',
+      of: [
+        defineField({
+          name: 'galleryImage',
+          title: 'Imagem da galeria',
+          type: 'image',
+          options: {hotspot: true},
+          fields: [
+            defineField({
+              name: 'alt',
+              title: 'Descrição da imagem',
+              type: 'localizedString',
+            }),
+          ],
         }),
       ],
     }),

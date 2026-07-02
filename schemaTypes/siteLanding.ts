@@ -174,17 +174,6 @@ export const siteLanding = defineType({
           ],
         }),
         defineField({
-          name: 'manifesto',
-          title: 'Nota de posicionamento',
-          description: 'Frase curta usada para dar personalidade à apresentação da marca.',
-          type: 'object',
-          options: {collapsible: true},
-          fields: [
-            localizedTextField('quote', 'Frase'),
-            localizedStringField('attribution', 'Assinatura pequena'),
-          ],
-        }),
-        defineField({
           name: 'partners',
           title: 'Parceiros e projetos',
           description: 'Logotipos e textos curtos para entidades parceiras e projetos relevantes.',
@@ -206,9 +195,8 @@ export const siteLanding = defineType({
       [
         copyBlockField('hero', 'Primeira secção'),
         contentCardsField('timeline', 'Momentos da empresa'),
-        contentCardsField('principles', 'Cartões de princípios'),
       ],
-      'Edite o título, introdução, momentos e princípios da página Sobre.',
+      'Edite o título, introdução e momentos da página Sobre.',
     ),
     pageSectionField(
       'productsPage',
@@ -289,9 +277,8 @@ export const siteLanding = defineType({
           'Imagem principal da primeira secção',
           'Imagem grande usada no topo da listagem do blog.',
         ),
-        copyBlockField('newsletter', 'Secção newsletter'),
       ],
-      'Edite a introdução do Blog e a newsletter. Cada artigo é editado na área Artigos do blog.',
+      'Edite a introdução do Blog. Cada artigo é editado na área Artigos do blog.',
     ),
     pageSectionField(
       'contactPage',
@@ -364,16 +351,22 @@ export const siteLanding = defineType({
           'Texto legal junto ao Livro de Reclamações',
           'Mostrado sempre que o link do Livro de Reclamações aparece.',
         ),
+        defineField({
+          name: 'privacyPolicyUrl',
+          title: 'Link Política de Privacidade',
+          description: 'Link público para a política de privacidade da empresa.',
+          type: 'url',
+        }),
+        localizedStringField('privacyPolicyLabel', 'Texto da Política de Privacidade'),
+        defineField({
+          name: 'cookiePolicyUrl',
+          title: 'Link Política de Cookies',
+          description: 'Link público para a política de cookies da empresa.',
+          type: 'url',
+        }),
+        localizedStringField('cookiePolicyLabel', 'Texto da Política de Cookies'),
         localizedTextField('marketingConsent', 'Consentimento de dados/marketing'),
       ],
-    }),
-    defineField({
-      name: 'footer',
-      title: 'Rodapé',
-      type: 'object',
-      group: 'contact',
-      options: {collapsible: true},
-      fields: [localizedStringField('line', 'Frase curta do rodapé')],
     }),
   ],
   preview: {

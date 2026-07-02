@@ -1,5 +1,9 @@
 <script lang="ts">
+  import {browser} from '$app/environment'
   import PageHero from '$lib/components/PageHero.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
+  import StorePostalGate from '$lib/components/StorePostalGate.svelte'
+  import {sizedImage} from '$lib/image'
   import {
     cartEventName,
     cartTotalQuantity,
@@ -10,6 +14,13 @@
     type StoreCartItem,
   } from '$lib/cart'
   import type {LanguageCode} from '$lib/site-content'
+  import {
+    calculateStoreEstimate,
+    postalZoneFor,
+    readInitialStorePostalCode,
+    readStorePostalCode,
+    storeDeliveryEventName,
+  } from '$lib/store-shipping'
   import {showToast} from '$lib/toast'
   import {onMount} from 'svelte'
 
@@ -27,6 +38,14 @@
     finish: string
     unitPrice: string
     total: string
+    productSubtotal: string
+    transport: string
+    iva: string
+    finalTotal: string
+    deliveryPostcode: string
+    changePostcode: string
+    totalWeight: string
+    transportPending: string
     summary: string
     product: string
   }
@@ -48,6 +67,14 @@
       finish: 'Acabamento',
       unitPrice: 'Preço unitário',
       total: 'Total estimado',
+      productSubtotal: 'Produtos s/ IVA',
+      transport: 'Transporte estimado',
+      iva: 'IVA 23%',
+      finalTotal: 'Total c/ IVA',
+      deliveryPostcode: 'Código postal',
+      changePostcode: 'Alterar',
+      totalWeight: 'Peso total',
+      transportPending: 'A confirmar',
       summary: 'Resumo',
       product: 'Produto',
     },
@@ -67,6 +94,14 @@
       finish: 'Finish',
       unitPrice: 'Unit price',
       total: 'Estimated total',
+      productSubtotal: 'Products excl. VAT',
+      transport: 'Estimated transport',
+      iva: 'VAT 23%',
+      finalTotal: 'Total incl. VAT',
+      deliveryPostcode: 'Postcode',
+      changePostcode: 'Change',
+      totalWeight: 'Total weight',
+      transportPending: 'To confirm',
       summary: 'Summary',
       product: 'Product',
     },
@@ -86,12 +121,22 @@
       finish: 'Acabado',
       unitPrice: 'Precio unitario',
       total: 'Total estimado',
+      productSubtotal: 'Productos sin IVA',
+      transport: 'Transporte estimado',
+      iva: 'IVA 23%',
+      finalTotal: 'Total con IVA',
+      deliveryPostcode: 'Código postal',
+      changePostcode: 'Cambiar',
+      totalWeight: 'Peso total',
+      transportPending: 'Por confirmar',
       summary: 'Resumen',
       product: 'Producto',
     },
   }
 
   let items = $state<StoreCartItem[]>([])
+  let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
+  let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site[data.language])
   const labels = $derived(labelsByLanguage[data.language])
@@ -108,6 +153,14 @@
   )
   const formatPrice = (price: number) => priceFormatter.format(price)
   const itemKey = (item: StoreCartItem) => `${item.slug}-${item.variantIndex}-${item.finish}`
+  const initialsFor = (title: string) =>
+    title
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join('')
+      .toLocaleUpperCase(data.language)
   const rows = $derived.by(() =>
     items
       .map((item) => {
@@ -126,33 +179,71 @@
       })
       .filter((row): row is NonNullable<typeof row> => row !== null),
   )
-  const cartTotal = $derived(rows.reduce((total, row) => total + row.total, 0))
+  const cartEstimate = $derived(
+    calculateStoreEstimate(
+      rows.map((row) => ({
+        unitPrice: row.unitPrice,
+        quantity: row.item.quantity,
+        weightKg: row.variant.weightKg,
+      })),
+      deliveryPostalCode,
+    ),
+  )
   const itemCount = $derived(cartTotalQuantity(items))
+  const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
 
   const refreshCart = () => {
     items = readCart()
   }
 
   onMount(() => {
+    const refreshDelivery = () => {
+      deliveryPostalCode = readStorePostalCode()
+    }
+
     refreshCart()
+    refreshDelivery()
     window.addEventListener(cartEventName, refreshCart)
+    window.addEventListener(storeDeliveryEventName, refreshDelivery)
 
     return () => {
       window.removeEventListener(cartEventName, refreshCart)
+      window.removeEventListener(storeDeliveryEventName, refreshDelivery)
     }
   })
 </script>
 
-<svelte:head>
-  <title>{content.nav.cart} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead title={content.nav.cart} description={labels.hero.title} noindex />
 
 <main class="cart-page">
   <PageHero {...labels.hero} />
 
   <section class="section cart-section">
     {#if rows.length}
-      <div class="cart-layout">
+      {#if deliveryPostalCode}
+        <div
+          class="store-delivery-strip cart-delivery-strip"
+          class:store-blurred-preview={deliveryModalOpen}
+          inert={deliveryModalOpen}
+        >
+          <div>
+            <span>{labels.deliveryPostcode}</span>
+            <strong>{deliveryPostalCode}</strong>
+            {#if deliveryZone}
+              <small>{deliveryZone.label}</small>
+            {/if}
+          </div>
+          <button type="button" onclick={() => (deliveryModalOpen = true)}>
+            {labels.changePostcode}
+          </button>
+        </div>
+      {/if}
+      <div
+        class="cart-layout"
+        class:store-blurred-preview={!deliveryPostalCode || deliveryModalOpen}
+        aria-hidden={!deliveryPostalCode || deliveryModalOpen}
+        inert={!deliveryPostalCode || deliveryModalOpen}
+      >
         <div class="cart-items">
           <div class="cart-items-head" aria-hidden="true">
             <span>{labels.product}</span>
@@ -163,16 +254,30 @@
           </div>
           {#each rows as row (itemKey(row.item))}
             <article class="cart-item">
-              <div class="cart-item-main">
-                <h2>{row.product.title}</h2>
-                <p class="cart-item-meta">
-                  <span>{row.variant.label}</span>
-                  <span class="cart-item-finish">
-                    <span class={`finish-dot finish-dot-${row.item.finish}`} aria-hidden="true"></span>
-                    {content.storePage.finishLabels[row.item.finish]}
-                  </span>
-                </p>
-              </div>
+              <a class="cart-item-main" href={`/loja/${row.product.slug}${langQuery}`}>
+                <span class="cart-item-thumb" aria-hidden="true">
+                  {#if row.product.image}
+                    <img
+                      src={sizedImage(row.product.image.url, 200)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  {:else}
+                    <span class="cart-item-thumb-fallback">{initialsFor(row.product.title)}</span>
+                  {/if}
+                </span>
+                <span class="cart-item-copy">
+                  <h2>{row.product.title}</h2>
+                  <p class="cart-item-meta">
+                    <span>{row.variant.label}</span>
+                    <span class="cart-item-finish">
+                      <span class={`finish-dot finish-dot-${row.item.finish}`} aria-hidden="true"></span>
+                      {content.storePage.finishLabels[row.item.finish]}
+                    </span>
+                  </p>
+                </span>
+              </a>
 
               <div class="cart-item-price">
                 <span class="cart-col-label">{labels.unitPrice}</span>
@@ -220,15 +325,64 @@
               <dd>{itemCount}</dd>
             </div>
             <div>
-              <dt>{labels.total}</dt>
-              <dd>{formatPrice(cartTotal)}</dd>
+              <dt>{labels.productSubtotal}</dt>
+              <dd>{formatPrice(cartEstimate.productNet)}</dd>
             </div>
+            <div>
+              <dt>{labels.totalWeight}</dt>
+              <dd>{cartEstimate.totalWeightKg.toLocaleString(data.language)} kg</dd>
+            </div>
+            {#if deliveryPostalCode}
+              <div>
+                <dt>{labels.transport}</dt>
+                <dd>
+                  {cartEstimate.transport
+                    ? formatPrice(cartEstimate.transport.transportNet)
+                    : labels.transportPending}
+                </dd>
+              </div>
+              <div>
+                <dt>{labels.iva}</dt>
+                <dd>{cartEstimate.vat !== null ? formatPrice(cartEstimate.vat) : labels.transportPending}</dd>
+              </div>
+              <div class="cart-summary-total">
+                <dt>{labels.finalTotal}</dt>
+                <dd>
+                  {cartEstimate.totalGross !== null
+                    ? formatPrice(cartEstimate.totalGross)
+                    : labels.transportPending}
+                </dd>
+              </div>
+            {:else}
+              <div>
+                <dt>{labels.transport}</dt>
+                <dd>{labels.transportPending}</dd>
+              </div>
+            {/if}
           </dl>
+
           <a class="button primary" href={`/contacto${langQuery}&source=loja`}>{labels.request}</a>
           <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
           <button class="cart-clear" type="button" onclick={clearCart}>{labels.clear}</button>
         </aside>
       </div>
+
+      {#if !deliveryPostalCode || deliveryModalOpen}
+        <div class="store-gate-layer" role="presentation">
+          <StorePostalGate
+            language={data.language}
+            initialPostalCode={deliveryPostalCode}
+            closable={Boolean(deliveryPostalCode)}
+            onclose={() => {
+              deliveryModalOpen = false
+            }}
+            onconfirm={(postalCode) => {
+              deliveryPostalCode = postalCode
+              deliveryModalOpen = false
+            }}
+          />
+        </div>
+      {/if}
     {:else}
       <div class="cart-empty">
         <p>{labels.empty}</p>

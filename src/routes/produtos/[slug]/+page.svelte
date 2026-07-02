@@ -1,6 +1,10 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
+  import {youtubeEmbedUrl} from '$lib/media'
+  import {absoluteUrl, productSchema} from '$lib/seo'
   import {
     cleanProductMaterialCopy,
     productImageFallback,
@@ -43,11 +47,24 @@
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
   const images = $derived(productImagesFor(data.product, productImageFallback))
   const copy = $derived(productDetailCopy(data.product.summary, data.product.description))
+  const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
+  const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
+  const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
+  const productJsonLd = $derived(
+    productSchema({
+      name: data.product.title,
+      description: copy.intro || data.product.summary,
+      imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
+    }),
+  )
 </script>
 
-<svelte:head>
-  <title>{data.product.title} | DaFábrica4You</title>
-</svelte:head>
+<SeoHead
+  title={data.product.title}
+  description={copy.intro || data.product.summary}
+  image={images[0]}
+  jsonLd={productJsonLd}
+/>
 
 <main class="product-detail-page">
   <article class="detail-page product-detail product-editorial">
@@ -77,30 +94,53 @@
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="product-stage-gallery"
+        transitionName={`vt-${data.product.slug}`}
       />
     </section>
 
-    {#if data.product.features.length || data.product.applications.length}
-      <section class="product-editorial-specs">
-        {#if data.product.features.length}
-          <div class="product-spec-block">
-            <h2>{content.common.featuresLabel}</h2>
-            <ul class="product-spec-tags">
-              {#each data.product.features as feature}
-                <li>{feature}</li>
-              {/each}
-            </ul>
-          </div>
+    {#if hasProductSupport}
+      <section
+        class="product-editorial-support"
+        class:is-single={!(videoEmbedUrl && data.product.toolUrl)}
+        aria-label={data.product.videoTitle || toolButtonLabel}
+      >
+        {#if videoEmbedUrl}
+          <figure class="product-support-video">
+            <div class="product-support-frame">
+              <iframe
+                src={videoEmbedUrl}
+                title={data.product.videoTitle || data.product.title}
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+              ></iframe>
+            </div>
+            {#if data.product.videoTitle}
+              <figcaption>{data.product.videoTitle}</figcaption>
+            {/if}
+          </figure>
         {/if}
-        {#if data.product.applications.length}
-          <div class="product-spec-block">
-            <h2>{content.common.applicationsLabel}</h2>
-            <ul class="product-spec-list">
-              {#each data.product.applications as application}
-                <li>{application}</li>
-              {/each}
-            </ul>
-          </div>
+
+        {#if data.product.toolUrl}
+          <aside class="product-support-tool">
+            <div class="product-support-tool-body">
+              {#if data.product.toolTitle}
+                <h2>{data.product.toolTitle}</h2>
+              {/if}
+              {#if data.product.toolText}
+                <p>{data.product.toolText}</p>
+              {/if}
+            </div>
+            <a
+              class="product-support-tool-link"
+              href={data.product.toolUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>{toolButtonLabel}</span>
+              <span class="product-support-tool-arrow" aria-hidden="true">→</span>
+            </a>
+          </aside>
         {/if}
       </section>
     {/if}
