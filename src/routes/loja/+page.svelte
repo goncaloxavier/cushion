@@ -220,7 +220,7 @@
   })
 </script>
 
-<SeoHead title={content.nav.store} description={content.storePage.hero.title || content.storePage.lead} />
+<SeoHead title={content.nav.store} description={content.storePage.hero.title} />
 
 <main class="store-page">
   <PageHero {...hero} />

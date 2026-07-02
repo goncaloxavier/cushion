@@ -16,18 +16,44 @@ const localizedTextField = (name: string, title: string, description?: string) =
     type: 'localizedText',
   })
 
+const hiddenLocalizedStringField = (name: string, title: string, description: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'localizedString',
+    hidden: true,
+  })
+
+const hiddenLocalizedTextField = (name: string, title: string, description: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'localizedText',
+    hidden: true,
+  })
+
 const copyBlockField = (
   name: string,
   title: string,
   description?: string,
-  options: {includeLead?: boolean} = {},
+  options: {includeLead?: boolean; hiddenLead?: boolean} = {},
 ) => {
   const fields = [
     localizedStringField('kicker', 'Etiqueta pequena', 'Texto curto acima do título, quando existir.'),
     localizedStringField('title', 'Título principal', 'O título visível nesta zona da página.'),
   ]
 
-  if (options.includeLead !== false) {
+  if (options.hiddenLead) {
+    fields.push(
+      hiddenLocalizedTextField(
+        'lead',
+        'Texto de apoio antigo',
+        'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
+      ),
+    )
+  } else if (options.includeLead !== false) {
     fields.push(localizedTextField('lead', 'Texto de apoio', 'Texto curto logo abaixo do título.'))
   }
 
@@ -93,12 +119,19 @@ const contactFormLabelsField = () =>
     type: 'object',
     options: {collapsible: true},
     fields: [
-      localizedStringField('name', 'Nome'),
+      localizedStringField('firstName', 'Primeiro nome'),
+      localizedStringField('lastName', 'Apelido'),
       localizedStringField('email', 'Email'),
       localizedStringField('phone', 'Telefone'),
+      localizedStringField('address', 'Morada'),
       localizedStringField('postalCode', 'Código postal'),
       localizedStringField('locality', 'Localidade'),
       localizedStringField('message', 'Mensagem'),
+      hiddenLocalizedStringField(
+        'name',
+        'Nome antigo',
+        'Compatibilidade com conteúdo antigo. O formulário público usa Primeiro nome e Apelido.',
+      ),
     ],
   })
 
@@ -208,7 +241,11 @@ export const siteLanding = defineType({
           'Imagem principal da primeira secção',
           'Imagem grande usada no topo da página de produtos.',
         ),
-        localizedTextField('lead', 'Texto junto à contagem de produtos'),
+        hiddenLocalizedTextField(
+          'lead',
+          'Texto antigo da listagem',
+          'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
+        ),
       ],
       'Edite apenas os textos da listagem de produtos. Cada produto é editado na área Produtos.',
     ),
@@ -216,11 +253,11 @@ export const siteLanding = defineType({
       'storePage',
       'Página Loja',
       [
-        copyBlockField('hero', 'Primeira secção'),
-        localizedTextField(
+        copyBlockField('hero', 'Primeira secção', undefined, {hiddenLead: true}),
+        hiddenLocalizedTextField(
           'lead',
-          'Texto junto aos filtros',
-          'Texto curto usado antes da grelha da Loja, junto aos filtros e preços.',
+          'Texto antigo junto aos filtros',
+          'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
         ),
       ],
       'Edite os textos públicos da Loja. Cada produto, variante e preço é editado na área Loja.',
@@ -229,7 +266,7 @@ export const siteLanding = defineType({
       'catalogue',
       'Página Catálogo',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Primeira secção', undefined, {hiddenLead: true}),
         localizedStringField('ctaLabel', 'Texto do botão'),
         defineField({
           name: 'estimate',

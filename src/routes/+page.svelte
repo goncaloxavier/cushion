@@ -182,9 +182,6 @@
     <Reveal class="home-section-head" variant="panel">
       <p class="kicker">{content.nav.products}</p>
       <h2>{content.productsPage.hero.title}</h2>
-      {#if content.productsPage.lead}
-        <p class="home-section-lead">{content.productsPage.lead}</p>
-      {/if}
     </Reveal>
 
     <div class="home-solutions-grid">

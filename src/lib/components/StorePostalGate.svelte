@@ -18,13 +18,13 @@
 
   const labelsByLanguage: Record<LanguageCode, Labels> = {
     pt: {
-      kicker: 'Entrega',
-      title: 'Para onde entregamos?',
+      kicker: 'Código postal',
+      title: 'Preços certos desde o início',
       lead:
-        'Os preços da loja já incluem o transporte até à sua zona e o IVA. Indique o código postal para ver os valores certos.',
+        'Calculamos transporte e IVA para a sua zona e mostramos logo os valores completos, sem surpresas mais à frente.',
       field: 'Código postal',
       placeholder: '7000',
-      submit: 'Ver loja',
+      submit: 'Entrar na loja',
       update: 'Atualizar código postal',
       close: 'Fechar',
       zone: 'Zona de entrega',
@@ -33,13 +33,13 @@
         'Neste momento a loja calcula transporte apenas para Portugal continental entre 1000 e 8999.',
     },
     en: {
-      kicker: 'Delivery',
-      title: 'Where are we delivering?',
+      kicker: 'Postcode',
+      title: 'The right prices from the start',
       lead:
-        'Store prices already include delivery to your area and VAT. Enter your postcode to see the right values.',
+        'We calculate delivery and VAT for your area so you see complete prices straight away, with no surprises later.',
       field: 'Postcode',
       placeholder: '7000',
-      submit: 'View store',
+      submit: 'Enter store',
       update: 'Update postcode',
       close: 'Close',
       zone: 'Delivery area',
@@ -48,13 +48,13 @@
         'The store currently estimates transport only for mainland Portugal between 1000 and 8999.',
     },
     es: {
-      kicker: 'Entrega',
-      title: '¿A dónde entregamos?',
+      kicker: 'Código postal',
+      title: 'Precios correctos desde el inicio',
       lead:
-        'Los precios ya incluyen el transporte hasta tu zona y el IVA. Indica el código postal para ver los valores correctos.',
+        'Calculamos transporte e IVA para tu zona y mostramos los valores completos desde el principio, sin sorpresas después.',
       field: 'Código postal',
       placeholder: '7000',
-      submit: 'Ver tienda',
+      submit: 'Entrar en la tienda',
       update: 'Actualizar código postal',
       close: 'Cerrar',
       zone: 'Zona de entrega',
