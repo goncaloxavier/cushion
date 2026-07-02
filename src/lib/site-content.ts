@@ -1089,7 +1089,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.product,
-      lead: 'Escolha a aplicação que mais se aproxima do seu projeto e avance para uma página com usos, vantagens e pedido de orçamento.',
+      lead: '',
     },
     storePage: {
       hero: {
@@ -1383,7 +1383,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.product,
-      lead: 'Choose the application closest to your project and move into a page with uses, advantages and quote context.',
+      lead: '',
     },
     storePage: {
       hero: {
@@ -1680,7 +1680,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.product,
-      lead: 'Elige la aplicación más cercana a tu proyecto y entra en una página con usos, ventajas y contexto de presupuesto.',
+      lead: '',
     },
     storePage: {
       hero: {
@@ -2335,13 +2335,13 @@ const applySiteContentFromSanity = (
       language,
       fallback.productsPage.heroImage,
     ),
-    lead: localized(source.productsPage?.lead, language, fallback.productsPage.lead),
+    lead: '',
   }
 
   target.storePage = {
     ...fallback.storePage,
-    hero: copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero),
-    lead: localized(source.storePage?.lead, language, fallback.storePage.lead),
+    hero: {...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero), lead: ''},
+    lead: '',
   }
 
   target.catalogue = {

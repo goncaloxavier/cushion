@@ -32,6 +32,22 @@ If Studio is empty and the website still looks complete, that is expected. The f
 
 If a Sanity entry has no uploaded image yet, the website uses a project-local fallback image. As soon as an editor uploads an image in Studio and publishes the entry, the public route uses the Sanity image instead.
 
+## Visual Editing / Presentation
+
+The Studio Presentation tool embeds the running website and enables click-to-edit through the preview route:
+
+```bash
+SANITY_VIEWER_TOKEN=...
+SANITY_STUDIO_PREVIEW_ORIGIN=http://localhost:5173
+SANITY_STUDIO_URL=http://localhost:3333/website
+SANITY_DATASET=production
+SANITY_STUDIO_DATASET=production
+```
+
+Use the same hostname for Studio preview and the browser tab. `localhost` and `127.0.0.1` do not share preview cookies, so the editing overlay can appear in one place and not the other.
+
+For local content experiments that must not touch the live `production` dataset, point both `SANITY_DATASET` and `SANITY_STUDIO_DATASET` to a separate development dataset, or set `SANITY_DISABLE_REMOTE=true` to render only fallback content. Presentation works best when the website dataset and Studio dataset match.
+
 This project also has a seed workflow. It writes the current site-wide content, starter products, and starter Loja products into Sanity so Studio becomes the editing surface immediately:
 
 ```bash

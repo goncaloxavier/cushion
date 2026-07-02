@@ -80,6 +80,11 @@ const copyBlock = (read: (content: SiteContent) => SiteContent['home']['hero']) 
   lead: localizedSiteValue((content) => read(content).lead),
 })
 
+const copyBlockWithoutLead = (read: (content: SiteContent) => SiteContent['home']['hero']) => ({
+  kicker: localizedSiteValue((content) => read(content).kicker),
+  title: localizedSiteValue((content) => read(content).title),
+})
+
 const staticImageAsset = (image: ContentImage, alt: Record<LanguageCode, string>) => {
   const source = image.url.startsWith('/')
     ? pathToFileURL(resolve('static', image.url.slice(1))).href
@@ -174,16 +179,14 @@ const siteContentDocument = {
     timeline: contentCards((content) => content.about.timeline, 'timeline'),
   },
   productsPage: {
-    hero: copyBlock((content) => content.productsPage.hero),
+    hero: copyBlockWithoutLead((content) => content.productsPage.hero),
     heroImage: imageFromSiteContent((content) => content.productsPage.heroImage),
-    lead: localizedSiteValue((content) => content.productsPage.lead),
   },
   storePage: {
-    hero: copyBlock((content) => content.storePage.hero),
-    lead: localizedSiteValue((content) => content.storePage.lead),
+    hero: copyBlockWithoutLead((content) => content.storePage.hero),
   },
   catalogue: {
-    hero: copyBlock((content) => content.catalogue.hero),
+    hero: copyBlockWithoutLead((content) => content.catalogue.hero),
     ctaLabel: localizedSiteValue((content) => content.catalogue.ctaLabel),
     estimate: {
       kicker: localizedSiteValue((content) => content.catalogue.estimate.kicker),
@@ -198,11 +201,11 @@ const siteContentDocument = {
     note: localizedSiteValue((content) => content.catalogue.note),
   },
   casesPage: {
-    hero: copyBlock((content) => content.casesPage.hero),
+    hero: copyBlockWithoutLead((content) => content.casesPage.hero),
     heroImage: imageFromSiteContent((content) => content.casesPage.heroImage),
   },
   blogPage: {
-    hero: copyBlock((content) => content.blogPage.hero),
+    hero: copyBlockWithoutLead((content) => content.blogPage.hero),
     heroImage: imageFromSiteContent((content) => content.blogPage.heroImage),
   },
   contactPage: {
