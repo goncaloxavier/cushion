@@ -23,12 +23,12 @@
       lead:
         'Os preços da loja já incluem o transporte até à sua zona e o IVA. Indique o código postal para ver os valores certos.',
       field: 'Código postal',
-      placeholder: '7000-000',
+      placeholder: '7000',
       submit: 'Ver loja',
       update: 'Atualizar código postal',
       close: 'Fechar',
       zone: 'Zona de entrega',
-      incomplete: 'Indique pelo menos os quatro primeiros dígitos do código postal.',
+      incomplete: 'Indique os quatro dígitos do código postal.',
       unsupported:
         'Neste momento a loja calcula transporte apenas para Portugal continental entre 1000 e 8999.',
     },
@@ -38,12 +38,12 @@
       lead:
         'Store prices already include delivery to your area and VAT. Enter your postcode to see the right values.',
       field: 'Postcode',
-      placeholder: '7000-000',
+      placeholder: '7000',
       submit: 'View store',
       update: 'Update postcode',
       close: 'Close',
       zone: 'Delivery area',
-      incomplete: 'Enter at least the first four postcode digits.',
+      incomplete: 'Enter the four postcode digits.',
       unsupported:
         'The store currently estimates transport only for mainland Portugal between 1000 and 8999.',
     },
@@ -53,12 +53,12 @@
       lead:
         'Los precios ya incluyen el transporte hasta tu zona y el IVA. Indica el código postal para ver los valores correctos.',
       field: 'Código postal',
-      placeholder: '7000-000',
+      placeholder: '7000',
       submit: 'Ver tienda',
       update: 'Actualizar código postal',
       close: 'Cerrar',
       zone: 'Zona de entrega',
-      incomplete: 'Indica al menos los cuatro primeros dígitos del código postal.',
+      incomplete: 'Indica los cuatro dígitos del código postal.',
       unsupported:
         'La tienda calcula transporte solo para Portugal continental entre 1000 y 8999.',
     },
@@ -139,6 +139,7 @@
         bind:value={postalCode}
         type="text"
         inputmode="numeric"
+        maxlength="4"
         autocomplete="postal-code"
         placeholder={labels.placeholder}
         aria-invalid={Boolean(error)}

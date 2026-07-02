@@ -2,6 +2,7 @@
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
+  import {sizedImage} from '$lib/image'
   import {
     cartEventName,
     cartTotalQuantity,
@@ -150,6 +151,14 @@
   )
   const formatPrice = (price: number) => priceFormatter.format(price)
   const itemKey = (item: StoreCartItem) => `${item.slug}-${item.variantIndex}-${item.finish}`
+  const initialsFor = (title: string) =>
+    title
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join('')
+      .toLocaleUpperCase(data.language)
   const rows = $derived.by(() =>
     items
       .map((item) => {
@@ -244,14 +253,28 @@
           {#each rows as row (itemKey(row.item))}
             <article class="cart-item">
               <a class="cart-item-main" href={`/loja/${row.product.slug}${langQuery}`}>
-                <h2>{row.product.title}</h2>
-                <p class="cart-item-meta">
-                  <span>{row.variant.label}</span>
-                  <span class="cart-item-finish">
-                    <span class={`finish-dot finish-dot-${row.item.finish}`} aria-hidden="true"></span>
-                    {content.storePage.finishLabels[row.item.finish]}
-                  </span>
-                </p>
+                <span class="cart-item-thumb" aria-hidden="true">
+                  {#if row.product.image}
+                    <img
+                      src={sizedImage(row.product.image.url, 200)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  {:else}
+                    <span class="cart-item-thumb-fallback">{initialsFor(row.product.title)}</span>
+                  {/if}
+                </span>
+                <span class="cart-item-copy">
+                  <h2>{row.product.title}</h2>
+                  <p class="cart-item-meta">
+                    <span>{row.variant.label}</span>
+                    <span class="cart-item-finish">
+                      <span class={`finish-dot finish-dot-${row.item.finish}`} aria-hidden="true"></span>
+                      {content.storePage.finishLabels[row.item.finish]}
+                    </span>
+                  </p>
+                </span>
               </a>
 
               <div class="cart-item-price">

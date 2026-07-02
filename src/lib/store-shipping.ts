@@ -124,14 +124,12 @@ const transportBrackets = [
 ] as const
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
-const compactPostalCode = (value: string) => value.replace(/\D/g, '').slice(0, 7)
+// Only the first four digits matter (transport zones key off the first two), so we
+// cap input at four digits — cleaner and more forgiving than the full XXXX-XXX code.
+const compactPostalCode = (value: string) => value.replace(/\D/g, '').slice(0, 4)
 const isBrowser = () => typeof window !== 'undefined'
 
-export const normalizePostalCode = (value: string) => {
-  const digits = compactPostalCode(value)
-  if (digits.length <= 4) return digits
-  return `${digits.slice(0, 4)}-${digits.slice(4)}`
-}
+export const normalizePostalCode = (value: string) => compactPostalCode(value)
 
 export const postalZoneFor = (value: string) => {
   const digits = compactPostalCode(value)
