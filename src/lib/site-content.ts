@@ -1,5 +1,6 @@
 import type {RichArticleBlock} from './article-structure'
 import {storeProductsForLanguage} from './store-fallback'
+import {storeTransportMultiplier} from './store-shipping'
 
 export type LanguageCode = 'pt' | 'en' | 'es'
 
@@ -222,6 +223,7 @@ export type SiteContent = {
   storePage: {
     hero: CopyBlock
     lead: string
+    transportMultiplier: number
     searchLabel: string
     categoryLabel: string
     finishLabel: string
@@ -408,6 +410,7 @@ type SanitySiteContent = {
   storePage?: {
     hero?: SanityCopyBlock
     lead?: LocalizedValue
+    transportMultiplier?: number
   }
   catalogue?: {
     hero?: SanityCopyBlock
@@ -1098,6 +1101,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       lead: '',
+      transportMultiplier: storeTransportMultiplier,
       searchLabel: 'Pesquisar na loja',
       categoryLabel: 'Categoria',
       finishLabel: 'Acabamento',
@@ -1392,6 +1396,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       lead: '',
+      transportMultiplier: storeTransportMultiplier,
       searchLabel: 'Search store',
       categoryLabel: 'Category',
       finishLabel: 'Finish',
@@ -1689,6 +1694,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       lead: '',
+      transportMultiplier: storeTransportMultiplier,
       searchLabel: 'Buscar en tienda',
       categoryLabel: 'Categoría',
       finishLabel: 'Acabado',
@@ -2342,6 +2348,11 @@ const applySiteContentFromSanity = (
     ...fallback.storePage,
     hero: {...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero), lead: ''},
     lead: '',
+    transportMultiplier:
+      Number.isFinite(source.storePage?.transportMultiplier) &&
+      (source.storePage?.transportMultiplier ?? 0) > 0
+        ? Number(source.storePage?.transportMultiplier)
+        : fallback.storePage.transportMultiplier,
   }
 
   target.catalogue = {

@@ -6,6 +6,7 @@
   const nav = [
     {href: '/painel', label: 'Resumo'},
     {href: '/painel/perfis', label: 'Perfis de clientes'},
+    {href: '/painel/encomendas', label: 'Encomendas'},
     {href: '/painel/catalogo', label: 'Pedidos de catálogo'},
     {href: '/painel/contactos', label: 'Mensagens de contacto'},
   ]

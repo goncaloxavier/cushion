@@ -135,7 +135,8 @@ const collectionsQuery = `{
       hero {
         kicker,
         title
-      }
+      },
+      transportMultiplier
     },
     catalogue {
       hero {

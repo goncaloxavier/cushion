@@ -28,6 +28,22 @@ CRM_HASH_SECRET=...
 SANITY_CRM_DATASET=crm
 ```
 
+Customer accounts, checkout orders, addresses, sessions, and payment attempts require Railway Postgres:
+
+```bash
+DATABASE_URL=...
+npm run db:migrate
+```
+
+Production transactional email for checkout uses Resend:
+
+```bash
+RESEND_API_KEY=...
+EMAIL_FROM=...
+ORDERS_TO_EMAIL=...
+APP_ORIGIN=https://example.com
+```
+
 ## Validation
 
 ```bash
@@ -35,6 +51,7 @@ npm run check
 npm run lint
 npm run build
 npm run build:studio
+npm run db:migrate
 npm run e2e
 npm run seed:studio:write
 ```
@@ -48,6 +65,7 @@ npm run build
 npm run preview
 npm run build:studio
 npm run start:studio
+npm run db:migrate
 npm run deploy:content
 npm run deploy:studio
 npm run deploy-graphql
@@ -90,6 +108,16 @@ npx sanity datasets visibility get crm
 - The `crm` dataset should remain private.
 - Do not import public seed/content data into `crm`.
 - Do not add `SANITY_CRM_WRITE_TOKEN` to public/client environment variables.
+
+## Ecommerce Database
+
+```bash
+npm run db:migrate
+```
+
+- Uses `DATABASE_URL`.
+- Creates/updates the private Postgres schema for customers, sessions, verification/reset tokens, addresses, orders, order items, status events, payment attempts, and outbound email attempts.
+- Run after provisioning Railway Postgres and before relying on `/finalizar-compra` or `/painel/encomendas`.
 
 ## Historical Blog Import
 

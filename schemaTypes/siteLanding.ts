@@ -259,6 +259,15 @@ export const siteLanding = defineType({
           'Texto antigo junto aos filtros',
           'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
         ),
+        defineField({
+          name: 'transportMultiplier',
+          title: 'Multiplicador de transporte',
+          description:
+            'Valor aplicado ao preço líquido de transporte antes de calcular o IVA. Use 2.5 quando não houver indicação em contrário.',
+          type: 'number',
+          initialValue: 2.5,
+          validation: (Rule) => Rule.min(0.1).max(20).precision(2),
+        }),
       ],
       'Edite os textos públicos da Loja. Cada produto, variante e preço é editado na área Loja.',
     ),

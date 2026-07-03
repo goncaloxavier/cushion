@@ -1,10 +1,13 @@
 import {redirect, type Handle} from '@sveltejs/kit'
 import {sessionCookieName, validateSession} from '$lib/server/auth'
+import {customerSessionCookieName, validateCustomerSession} from '$lib/server/customer-auth'
 
 export const handle: Handle = async ({event, resolve}) => {
   const {pathname} = event.url
   const rawLanguage = event.url.searchParams.get('lang')
   const htmlLanguage = rawLanguage === 'en' || rawLanguage === 'es' ? rawLanguage : 'pt'
+
+  event.locals.customer = await validateCustomerSession(event.cookies.get(customerSessionCookieName))
 
   // Guard the private CRM backend. Validate the session for every /painel
   // request and expose the staff member on locals; redirect otherwise.
@@ -36,7 +39,12 @@ export const handle: Handle = async ({event, resolve}) => {
   // Private backoffice: never store. Public pages: allow the browser's
   // back/forward cache (no-store would disable it) while still revalidating,
   // so navigation feels instant without serving stale content.
-  const isPrivate = pathname === '/painel' || pathname.startsWith('/painel/')
+  const isPrivate =
+    pathname === '/painel' ||
+    pathname.startsWith('/painel/') ||
+    pathname === '/conta' ||
+    pathname.startsWith('/conta/') ||
+    pathname === '/finalizar-compra'
   headers.set('cache-control', isPrivate ? 'no-store, max-age=0' : 'private, no-cache')
 
   return new Response(response.body, {

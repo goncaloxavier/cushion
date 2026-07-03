@@ -12,12 +12,13 @@ Use this as the task completion contract.
 - Sanity-backed page copy, product/category, case-study, blog, and image/gallery changes include the matching frontend load/query/schema updates.
 - Contact/social/legal field changes include matching Sanity schema, GROQ query, fallback normalization, public layout, contact route, and tests where relevant.
 - Contact-form backend changes preserve server-only CRM writes, CSRF/origin/honeypot validation, fixed backend field names, private dataset boundaries, and tests where relevant.
+- Ecommerce/backend changes preserve Postgres as the private source of truth, server-side price recomputation, order snapshots, account/staff auth separation, CSRF/origin checks, httpOnly session cookies, hashed tokens, and fail-closed payment behavior.
 - Page media/video and partner/logo changes include matching Sanity schema, GROQ query, fallback normalization, public renderer, local fallback assets, and tests where relevant.
 - Visual Editing/Presentation changes preserve server-only preview tokens, preview-secret validation, draft/stega clients, protocol-aware preview cookies, and contract tests where relevant.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.
 - Visual changes follow `ai/09-design-philosophy.md`: compact pages, accessible navigation, smooth restrained motion, and no unnecessary long scrolling.
 - Internal route links preserve the selected language when practical.
-- Primary navigation keeps a stable route set on each viewport. Desktop marks the current route from the full route set; mobile marks the current route when it is part of the high-value bottom dock.
+- Primary navigation keeps a stable route set on each viewport. Desktop marks the current route from the full route set; mobile uses the full-screen overlay menu and marks the current route there.
 - Pagination returns users to the top of the collection, and page refresh starts at the top of the page.
 - Fallback fixture content, Sanity seed output, and tests stay aligned when starter CMS content changes.
 - Performance-sensitive images keep appropriate loading/decoding/fetch-priority hints, and motion respects `prefers-reduced-motion`.
@@ -33,6 +34,7 @@ Use this as the task completion contract.
 - Sanity config or schema changes: run `npm run check`, `npm run lint`, and `npm run build:studio` when practical.
 - Visual Editing/Presentation changes: run `npm run check`, `npm run lint`, `npm run build`, and `npm run build:studio` when practical; manually verify Studio preview in an environment with `SANITY_VIEWER_TOKEN`.
 - CRM/form backend changes: run `npm run check`, `npm run lint`, `npm run build`, and `npm run e2e` when practical; manually validate live delivery only in an environment with `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`.
+- Ecommerce/order/account backend changes: run `npm run check`, `npm run lint`, `npm run build`, and `npm run e2e` when practical; run `npm run db:migrate` only against the intended Postgres database; manually validate checkout/order email/staff review in an environment with `DATABASE_URL` and email settings.
 - Dependency changes: run relevant validation and inspect `package-lock.json` intentionally.
 - Test/performance config changes: run `npm run e2e` and confirm the suite does not crash on generated artifacts.
 - Visual/interface changes: manually review relevant routes on desktop and mobile, preferably with screenshots.
@@ -46,6 +48,7 @@ Use this as the task completion contract.
 - Manual Studio review is expected for content model/editor experience changes, especially add/edit/image upload/unpublish/delete loops.
 - Manual Studio review is expected for Visual Editing changes, especially preview enable/disable, draft rendering, and click-to-edit overlays.
 - Manual Studio review is expected for CRM workflow changes, especially new request triage, status changes, internal notes, and client profile updates.
+- Manual staging review is expected for ecommerce workflow changes, especially guest checkout, logged-in checkout, saved details, order history, staff order review, and disabled/future payment behavior.
 - Automated tests should be updated when public routes, fallback CMS items, or visual surfaces change.
 - Do not make visual regression tests depend on mutable live Studio content.
 - Manual browser review is expected for future visual or interaction-heavy SvelteKit changes.

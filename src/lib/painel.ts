@@ -7,6 +7,17 @@ export type SubmissionStatus = (typeof submissionStatuses)[number]
 export const profileStatuses = ['new', 'contacted', 'qualified', 'customer', 'archived'] as const
 export type ProfileStatus = (typeof profileStatuses)[number]
 
+export const orderStatuses = [
+  'pending_payment_link',
+  'payment_link_sent',
+  'paid',
+  'in_preparation',
+  'shipped',
+  'completed',
+  'cancelled',
+] as const
+export type OrderStatus = (typeof orderStatuses)[number]
+
 export const submissionStatusLabels: Record<string, string> = {
   new: 'Novo',
   read: 'Lido',
@@ -14,6 +25,16 @@ export const submissionStatusLabels: Record<string, string> = {
   resolved: 'Resolvido',
   spam: 'Spam',
   archived: 'Arquivado',
+}
+
+export const orderStatusLabels: Record<string, string> = {
+  pending_payment_link: 'Pendente de link de pagamento',
+  payment_link_sent: 'Link de pagamento enviado',
+  paid: 'Pago',
+  in_preparation: 'Em preparação',
+  shipped: 'Enviado',
+  completed: 'Concluído',
+  cancelled: 'Cancelado',
 }
 
 export const profileStatusLabels: Record<string, string> = {

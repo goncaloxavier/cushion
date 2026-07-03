@@ -130,6 +130,7 @@
     calculateStoreEstimate(
       [{unitPrice: selectedPrice, quantity: normalizedQuantity, weightKg: selectedVariant.weightKg}],
       deliveryPostalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))

@@ -2,8 +2,8 @@ import {getSanityCollections} from '$lib/sanity'
 import {contentFromSanity, defaultLanguage, languages} from '$lib/site-content'
 import type {RequestHandler} from './$types'
 
-// Public, indexable pages only. /carrinho (noindex) and /painel (private) are
-// deliberately excluded.
+// Public, indexable pages only. /carrinho, /finalizar-compra, /conta and
+// /painel are deliberately excluded.
 const staticPaths = [
   '/',
   '/sobre-nos',

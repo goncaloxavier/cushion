@@ -184,6 +184,7 @@ const siteContentDocument = {
   },
   storePage: {
     hero: copyBlockWithoutLead((content) => content.storePage.hero),
+    transportMultiplier: fallbackContent.pt.storePage.transportMultiplier,
   },
   catalogue: {
     hero: copyBlockWithoutLead((content) => content.catalogue.hero),

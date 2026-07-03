@@ -1,11 +1,16 @@
 import {redirect} from '@sveltejs/kit'
 import {destroySession, sessionCookieName} from '$lib/server/auth'
 import {getStats, listSubmissions} from '$lib/server/crm-admin'
+import {getPainelOrderStats} from '$lib/server/orders'
 import type {Actions, PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async () => {
-  const [stats, recent] = await Promise.all([getStats(), listSubmissions('all', 8)])
-  return {stats, recent}
+  const [stats, orderStats, recent] = await Promise.all([
+    getStats(),
+    getPainelOrderStats(),
+    listSubmissions('all', 8),
+  ])
+  return {stats: {...stats, ...orderStats}, recent}
 }
 
 export const actions: Actions = {

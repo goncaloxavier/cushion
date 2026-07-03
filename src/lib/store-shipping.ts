@@ -55,6 +55,10 @@ export type StorePricingEstimate = {
   totalGross: number | null
 }
 
+export type StorePricingOptions = {
+  transportMultiplier?: number
+}
+
 const postalZones: PostalZone[] = [
   {id: 'lisboa', label: 'Lisboa', minPrefix: 10, maxPrefix: 19},
   {id: 'leiria', label: 'Leiria', minPrefix: 20, maxPrefix: 25},
@@ -124,6 +128,8 @@ const transportBrackets = [
 ] as const
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
+const normalizedTransportMultiplier = (value?: number) =>
+  Number.isFinite(value) && (value ?? 0) > 0 ? Number(value) : storeTransportMultiplier
 // Only the first four digits matter (transport zones key off the first two), so we
 // cap input at four digits — cleaner and more forgiving than the full XXXX-XXX code.
 const compactPostalCode = (value: string) => value.replace(/\D/g, '').slice(0, 4)
@@ -205,7 +211,11 @@ export const clearStorePostalCode = () => {
   window.dispatchEvent(new CustomEvent(deliveryChangeEvent, {detail: {postalCode: ''}}))
 }
 
-export const transportEstimateFor = (postalCode: string, weightKg: number) => {
+export const transportEstimateFor = (
+  postalCode: string,
+  weightKg: number,
+  options: StorePricingOptions = {},
+) => {
   const destination = postalZoneFor(postalCode)
   if (!destination || !Number.isFinite(weightKg) || weightKg <= 0) return null
 
@@ -215,7 +225,7 @@ export const transportEstimateFor = (postalCode: string, weightKg: number) => {
   const transportZone = altoAlentejoDispatchZones[destination.id]
   const tableNet = bracket.prices[transportZone - 1]
   const fuelSurchargeNet = tableNet * storeTransportFuelSurchargeRate
-  const transportNet = (tableNet + fuelSurchargeNet) * storeTransportMultiplier
+  const transportNet = (tableNet + fuelSurchargeNet) * normalizedTransportMultiplier(options.transportMultiplier)
 
   return {
     destination,
@@ -231,6 +241,7 @@ export const transportEstimateFor = (postalCode: string, weightKg: number) => {
 export const calculateStoreEstimate = (
   items: StorePricingItem[],
   postalCode: string,
+  options: StorePricingOptions = {},
 ): StorePricingEstimate => {
   const productNet = roundMoney(
     items.reduce((total, item) => total + item.unitPrice * Math.max(1, item.quantity || 1), 0),
@@ -255,7 +266,7 @@ export const calculateStoreEstimate = (
     }
   }
 
-  const transport = transportEstimateFor(postalCode, totalWeightKg)
+  const transport = transportEstimateFor(postalCode, totalWeightKg, options)
   if (!transport) {
     return {
       productNet,

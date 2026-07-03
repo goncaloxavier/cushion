@@ -9,6 +9,7 @@ npm run check
 npm run lint
 npm run build
 npm run build:studio
+npm run db:migrate
 npm run e2e
 npm run seed:studio:write
 ```
@@ -16,8 +17,8 @@ npm run seed:studio:write
 ## What Is Protected
 
 - Unit tests: none configured.
-- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, Loja Studio structure/gallery/editing/import contracts, the Alto Alentejo transport/IVA pricing formula, confirms the public Sanity client stays cached while Visual Editing preview uses uncached draft/stega clients and preview endpoints, plus public website workspace vs private CRM workspace separation, once in the desktop Playwright project because the file contract is viewport independent.
-- E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable mobile bottom dock, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/quote-prefill flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, and 404 handling across desktop/mobile where the viewport matters.
+- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, Loja Studio structure/gallery/editing/import contracts, the Alto Alentejo transport/IVA pricing formula including editable multiplier override, confirms the public Sanity client stays cached while Visual Editing preview uses uncached draft/stega clients and preview endpoints, checks public website workspace vs private CRM workspace separation, and contract-checks the Postgres ecommerce/auth/order/payment boundary once in the desktop Playwright project because the file contract is viewport independent.
+- E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable full-screen mobile overlay menu, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/checkout handoff flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, and 404 handling across desktop/mobile where the viewport matters.
 - Visual tests: `tests/visual.spec.ts` can generate/review full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages. Snapshot output is ignored and session-only.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 21 starter Sanity documents from fallback content: the site singleton, 5 product categories, and 15 Loja products.
 - Build/type checks: `npm run check` runs SvelteKit sync and TypeScript; `npm run build` builds SvelteKit; `npm run build:studio` builds Sanity Studio.
@@ -48,7 +49,8 @@ npm run seed:studio:write
 
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
-- Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` are configured before relying on live submissions. Carrinho is browser-local and has no server storage until the visitor submits the contact form.
+- Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` are configured before relying on live submissions.
+- Ecommerce checkout tests are contract-level plus route handoff only unless a test Postgres database is configured. Manual/staging validation must confirm `DATABASE_URL`, migrations, Resend settings, and `/painel/encomendas` before relying on live orders.
 - Visual snapshot output is platform-specific and generated under ignored `tests/*-snapshots/` folders for local/session review only.
 - Playwright E2E/visual runs can be expensive locally; if skipped by explicit instruction, record that in the handoff and use the strongest lighter checks available.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.

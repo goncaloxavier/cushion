@@ -61,7 +61,7 @@
       empty: 'O carrinho ainda está vazio.',
       continueShopping: 'Continuar na loja',
       clear: 'Limpar carrinho',
-      request: 'Pedir orçamento',
+      request: 'Finalizar pedido',
       quantity: 'Quantidade',
       remove: 'Remover',
       removed: 'Produto removido do carrinho',
@@ -88,7 +88,7 @@
       empty: 'Your cart is still empty.',
       continueShopping: 'Continue shopping',
       clear: 'Clear cart',
-      request: 'Request a quote',
+      request: 'Checkout',
       quantity: 'Quantity',
       remove: 'Remove',
       removed: 'Item removed from cart',
@@ -115,7 +115,7 @@
       empty: 'El carrito todavía está vacío.',
       continueShopping: 'Seguir en tienda',
       clear: 'Vaciar carrito',
-      request: 'Pedir presupuesto',
+      request: 'Finalizar pedido',
       quantity: 'Cantidad',
       remove: 'Eliminar',
       removed: 'Producto eliminado del carrito',
@@ -188,6 +188,7 @@
         weightKg: row.variant.weightKg,
       })),
       deliveryPostalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
   const itemCount = $derived(cartTotalQuantity(items))
@@ -369,7 +370,7 @@
             {/if}
           </dl>
 
-          <a class="button primary" href={`/contacto${langQuery}&source=loja`}>{labels.request}</a>
+          <a class="button primary" href={`/finalizar-compra${langQuery}`}>{labels.request}</a>
           <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
           <button class="cart-clear" type="button" onclick={clearCart}>{labels.clear}</button>
         </aside>

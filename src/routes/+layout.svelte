@@ -38,6 +38,19 @@
 
   const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
 
+  const accountLabels: Record<string, {signedOut: string; account: string; greeting: string}> = {
+    pt: {signedOut: 'Entrar', account: 'Conta', greeting: 'Olá'},
+    en: {signedOut: 'Sign in', account: 'Account', greeting: 'Hi'},
+    es: {signedOut: 'Entrar', account: 'Cuenta', greeting: 'Hola'},
+  }
+  const accountStrings = $derived(accountLabels[data.language] ?? accountLabels.pt)
+  const isSignedIn = $derived(Boolean(data.account))
+  const accountHref = $derived(isSignedIn ? '/conta' : '/conta/entrar')
+  const accountLabel = $derived(
+    isSignedIn ? data.account?.firstName || accountStrings.account : accountStrings.signedOut,
+  )
+  const accountActive = $derived(data.currentPath.startsWith('/conta'))
+
   const productMenuItems = $derived([
     {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
@@ -289,6 +302,19 @@
       {content.nav.contact}
     </a>
     <a
+      class="account-link"
+      class:active={accountActive}
+      class:signed-in={isSignedIn}
+      aria-current={accountActive ? 'page' : undefined}
+      href={withLanguage(accountHref, data.language)}
+    >
+      <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.4" />
+        <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+      </svg>
+      <span class="account-label">{accountLabel}</span>
+    </a>
+    <a
       class="cart-link"
       class:active={currentNavKey === 'cart'}
       aria-current={currentNavKey === 'cart' ? 'page' : undefined}
@@ -363,6 +389,22 @@
     </nav>
 
     <div class="mobile-menu-foot">
+      <a
+        class="account-link mobile-menu-account"
+        class:active={accountActive}
+        class:signed-in={isSignedIn}
+        aria-current={accountActive ? 'page' : undefined}
+        href={withLanguage(accountHref, data.language)}
+        onclick={closeMenu}
+      >
+        <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.4" />
+          <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+        </svg>
+        <span class="account-label">
+          {#if isSignedIn}{accountStrings.greeting}, {data.account?.firstName || accountStrings.account}{:else}{accountStrings.signedOut}{/if}
+        </span>
+      </a>
       <a
         class="cart-link mobile-menu-cart"
         class:active={currentNavKey === 'cart'}

@@ -117,6 +117,7 @@
     const estimate = calculateStoreEstimate(
       [{unitPrice: candidate.price, quantity: 1, weightKg: candidate.weightKg}],
       deliveryPostalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     )
 
     if (estimate.totalGross !== null) return {price: estimate.totalGross, includesDelivery: true}
