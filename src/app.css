@@ -3274,10 +3274,10 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   align-items: center;
   justify-content: space-between;
   gap: 0.9rem;
-  padding: 0.8rem 0.95rem;
+  padding: 0.62rem 0.7rem 0.62rem 0.85rem;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(17, 57, 60, 0.13);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 0.85rem 2rem rgba(17, 57, 60, 0.06);
 }
 
@@ -3285,30 +3285,47 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   margin-bottom: 1.6rem;
 }
 
-.store-delivery-strip div {
+/* Shared delivery info (pin + zone) used on the loja list, cart and detail. */
+.store-delivery-info {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.4rem 0.7rem;
+  align-items: center;
+  gap: 0.6rem;
   min-width: 0;
 }
 
-.store-delivery-strip span,
-.store-delivery-strip small {
-  color: #4c5a54;
-  font-size: 0.78rem;
-  font-weight: 820;
+.store-delivery-pin {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--brand-sea);
 }
 
-.store-delivery-strip strong {
+.store-delivery-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.05rem 0.4rem;
+  min-width: 0;
+}
+
+.store-delivery-text span,
+.store-delivery-text small {
+  color: #4c5a54;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.store-delivery-text strong {
   color: var(--green-dark);
-  font-size: 1.08rem;
+  font-size: 1.05rem;
+  font-weight: 850;
 }
 
 .store-delivery-strip button,
 .store-detail-delivery button {
+  flex: 0 0 auto;
   min-height: 2.35rem;
-  padding: 0 0.75rem;
+  padding: 0 0.9rem;
   color: var(--green-dark);
   font-size: 0.82rem;
   font-weight: 850;
@@ -3506,6 +3523,12 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
 .store-card {
   min-width: 0;
   min-height: 100%;
+}
+
+/* The reveal clip-path is a bottom "wipe"; on the store cards it can clip the
+   price row, so these reveal via opacity + transform only. */
+.store-card-reveal {
+  clip-path: none !important;
 }
 
 .store-card {
@@ -3761,24 +3784,10 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
 
 .store-detail-delivery {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem 0.65rem;
-  max-width: min(100%, 28rem);
-  color: #4c5a54;
-  text-align: right;
-}
-
-.store-detail-delivery span,
-.store-detail-delivery small {
-  font-size: 0.78rem;
-  font-weight: 820;
-}
-
-.store-detail-delivery strong {
-  color: var(--green-dark);
-  font-size: 1.08rem;
+  gap: 0.75rem;
+  max-width: min(100%, 30rem);
 }
 
 .store-detail-shell {
@@ -7281,13 +7290,8 @@ html.reduce-motion {
   }
 
   .store-delivery-strip {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0.85rem;
-  }
-
-  .store-delivery-strip button {
-    width: 100%;
+    gap: 0.55rem;
+    padding: 0.55rem 0.6rem 0.55rem 0.75rem;
   }
 
   .store-intro h2 {
@@ -7329,18 +7333,20 @@ html.reduce-motion {
   }
 
   .store-detail-head {
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
     padding: 1.1rem var(--mobile-gutter) 0;
   }
 
   .store-detail-delivery {
-    display: grid;
-    justify-items: end;
-    gap: 0.22rem;
-  }
-
-  .store-detail-delivery button {
-    margin-top: 0.3rem;
+    justify-content: space-between;
+    max-width: 100%;
+    padding: 0.55rem 0.6rem 0.55rem 0.75rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(17, 57, 60, 0.13);
+    border-radius: 10px;
+    box-shadow: 0 0.6rem 1.6rem rgba(17, 57, 60, 0.06);
   }
 
   .store-detail-head .kicker {
@@ -8462,13 +8468,12 @@ html.reduce-motion {
 /* ---- Toasts ---- */
 .toaster {
   position: fixed;
-  left: 50%;
+  right: max(1rem, calc((100% - var(--max)) / 2));
   top: 1.2rem;
   z-index: 300;
   display: grid;
   gap: 0.5rem;
-  justify-items: center;
-  transform: translateX(-50%);
+  justify-items: end;
   pointer-events: none;
 }
 

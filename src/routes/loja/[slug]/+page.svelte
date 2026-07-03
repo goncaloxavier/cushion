@@ -223,11 +223,19 @@
         {labels.back}
       </a>
       <div class="store-detail-delivery">
-        <span>{labels.deliveryPostcode}</span>
-        <strong>{deliveryZonePrefix}</strong>
-        {#if deliveryZone}
-          <small>{deliveryZone.label}</small>
-        {/if}
+        <div class="store-delivery-info">
+          <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="2.6" />
+          </svg>
+          <span class="store-delivery-text">
+            <span>{labels.deliveryPostcode}</span>
+            <strong>{deliveryZonePrefix}</strong>
+            {#if deliveryZone}
+              <small>{deliveryZone.label}</small>
+            {/if}
+          </span>
+        </div>
         <button
           type="button"
           onclick={() => {
