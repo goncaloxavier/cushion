@@ -60,6 +60,25 @@ export type ContentImage = {
   lqip?: string
 }
 
+export type ContentVideo = {
+  url: string
+  title: string
+  mimeType?: string
+  sourceName?: string
+  poster?: ContentImage
+}
+
+export type StoreProductMedia =
+  | (ContentImage & {
+      type: 'image'
+      // Sanity field path for click-to-edit (e.g. `image`, `gallery[_key=="..."]`).
+      editPath?: string
+    })
+  | (ContentVideo & {
+      type: 'video'
+      editPath?: string
+    })
+
 export type PartnerItem = {
   name: string
   url: string
@@ -96,7 +115,6 @@ export type CaseStudy = {
   challenge: string
   solution: string
   result: string
-  productArea: string
 }
 
 export type BlogPost = {
@@ -116,6 +134,7 @@ export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'residuos' | 'cult
 export type StoreFinish = 'natural' | 'dark'
 
 export type StoreProductVariant = {
+  sourceKey?: string
   label: string
   dimensions: string[]
   weightKg?: number
@@ -124,13 +143,14 @@ export type StoreProductVariant = {
 }
 
 export type StoreProduct = {
+  studioDocumentId?: string
   title: string
   slug: string
   category: StoreCategory
   summary: string
-  cataloguePage?: number
   image?: ContentImage
   images?: ContentImage[]
+  media?: StoreProductMedia[]
   variants: StoreProductVariant[]
 }
 
@@ -302,7 +322,6 @@ type SanityCaseStudy = {
   challenge?: LocalizedValue
   solution?: LocalizedValue
   result?: LocalizedValue
-  productArea?: LocalizedValue
 }
 
 type SanityBlogPost = {
@@ -318,6 +337,7 @@ type SanityBlogPost = {
 }
 
 type SanityStoreProductVariant = {
+  _key?: string
   label?: LocalizedValue
   dimensions?: LocalizedValue[]
   weightKg?: number
@@ -327,13 +347,13 @@ type SanityStoreProductVariant = {
 }
 
 type SanityStoreProduct = {
+  _id?: string
   title?: LocalizedValue
   slug?: {current?: string}
   category?: StoreCategory
   summary?: LocalizedValue
-  cataloguePage?: number
   image?: SanityImage
-  gallery?: SanityImage[]
+  gallery?: SanityStoreProductGalleryItem[]
   variants?: SanityStoreProductVariant[]
 }
 
@@ -443,6 +463,8 @@ type SanitySiteContent = {
 }
 
 type SanityImage = {
+  _key?: string
+  _type?: string
   asset?: {
     url?: string
     originalFilename?: string
@@ -455,6 +477,21 @@ type SanityImage = {
   }
   alt?: LocalizedValue
 }
+
+type SanityVideoFile = {
+  _key?: string
+  _type?: string
+  asset?: {
+    url?: string
+    originalFilename?: string
+    mimeType?: string
+    size?: number
+  }
+  title?: LocalizedValue
+  poster?: SanityImage
+}
+
+type SanityStoreProductGalleryItem = SanityImage | SanityVideoFile
 
 export type SanityCollections = {
   siteContent?: SanitySiteContent
@@ -726,7 +763,6 @@ const caseStudies = {
       solution: 'Construção de uma vedação em perfis reciclados para proteger a zona da piscina.',
       result:
         'Menos manutenção, mais segurança e uma solução exterior preparada para uso prolongado.',
-      productArea: 'Vedações',
     },
     {
       title: 'Decking e mobiliário junto ao rio',
@@ -738,7 +774,6 @@ const caseStudies = {
       solution: 'Aplicação de decking e mobiliário urbano em plástico reciclado.',
       result:
         'Espaço público mais utilizável, com material pensado para exterior e manutenção reduzida.',
-      productArea: 'Decking e mobiliário urbano',
     },
     {
       title: 'Floreiras no último piso',
@@ -750,7 +785,6 @@ const caseStudies = {
         'Executar uma solução à medida com muitos recortes e integração cuidada no edifício.',
       solution: 'Produção e instalação de floreiras em perfis de plástico reciclado.',
       result: 'Uma intervenção precisa, durável e com presença discreta no espaço exterior.',
-      productArea: 'Floreiras',
     },
   ],
   en: [
@@ -764,7 +798,6 @@ const caseStudies = {
         'The original fence required frequent care and no longer responded well to daily use.',
       solution: 'Construction of a recycled-profile fence to protect the pool area.',
       result: 'Less maintenance, more safety and an outdoor solution prepared for long-term use.',
-      productArea: 'Fencing',
     },
     {
       title: 'Decking and furniture by the river',
@@ -775,7 +808,6 @@ const caseStudies = {
       solution: 'Application of recycled-plastic decking and urban furniture.',
       result:
         'A more usable public space with material designed for outdoor use and reduced maintenance.',
-      productArea: 'Decking and urban furniture',
     },
     {
       title: 'Planters on a top floor',
@@ -787,7 +819,6 @@ const caseStudies = {
         'Execute a made-to-measure solution with many cuts and careful building integration.',
       solution: 'Production and installation of planters using recycled-plastic profiles.',
       result: 'A precise, durable intervention with a quiet outdoor presence.',
-      productArea: 'Planters',
     },
   ],
   es: [
@@ -803,7 +834,6 @@ const caseStudies = {
         'Construcción de una valla con perfiles reciclados para proteger la zona de piscina.',
       result:
         'Menos mantenimiento, más seguridad y una solución exterior preparada para uso prolongado.',
-      productArea: 'Vallas',
     },
     {
       title: 'Tarima y mobiliario junto al río',
@@ -815,7 +845,6 @@ const caseStudies = {
       solution: 'Aplicación de tarima y mobiliario urbano de plástico reciclado.',
       result:
         'Un espacio público más utilizable con material pensado para exterior y menor mantenimiento.',
-      productArea: 'Tarima y mobiliario urbano',
     },
     {
       title: 'Jardineras en una última planta',
@@ -825,7 +854,6 @@ const caseStudies = {
       challenge: 'Ejecutar una solución a medida con muchos recortes e integración cuidada.',
       solution: 'Producción e instalación de jardineras con perfiles de plástico reciclado.',
       result: 'Una intervención precisa, duradera y discreta en el espacio exterior.',
-      productArea: 'Jardineras',
     },
   ],
 } satisfies Record<LanguageCode, CaseStudy[]>
@@ -1996,6 +2024,12 @@ export const blogImagesFor = (item: BlogPost, fallback: ContentImage) => {
   return [fallback]
 }
 
+export const storeProductMediaFor = (item: StoreProduct) => {
+  if (item.media?.length) return item.media
+  const images = item.images?.length ? item.images : item.image ? [item.image] : []
+  return images.map((image) => storeProductMediaImage(image))
+}
+
 export const productImageFallback = fallbackImages.product
 export const caseStudyImageFallback = fallbackImages.caseStudy
 export const blogImageFallback = fallbackImages.blog
@@ -2023,8 +2057,64 @@ const optionalImageFromSanity = (
         aspectRatio: image.asset.metadata?.dimensions?.aspectRatio,
         sourceName: image.asset.originalFilename,
         lqip: image.asset.metadata?.lqip,
-      }
+    }
     : undefined
+
+const storeProductMediaImage = (image: ContentImage, editPath?: string): StoreProductMedia => ({
+  ...image,
+  type: 'image',
+  ...(editPath ? {editPath} : {}),
+})
+
+const isSanityVideoFile = (
+  item: SanityStoreProductGalleryItem | undefined,
+): item is SanityVideoFile =>
+  item?._type === 'galleryVideo'
+
+const videoFromSanity = (
+  item: SanityStoreProductGalleryItem | undefined,
+  language: LanguageCode,
+  editPath?: string,
+): StoreProductMedia | undefined => {
+  if (!isSanityVideoFile(item) || !item.asset?.url) return undefined
+
+  return {
+    type: 'video',
+    url: item.asset.url,
+    title: localized(item.title, language, item.asset.originalFilename ?? 'Vídeo do produto'),
+    mimeType: item.asset.mimeType,
+    sourceName: item.asset.originalFilename,
+    poster: optionalImageFromSanity(item.poster, language),
+    ...(editPath ? {editPath} : {}),
+  }
+}
+
+const storeProductMediaFromSanity = (
+  mainImage: SanityImage | undefined,
+  gallery: SanityStoreProductGalleryItem[] | undefined,
+  language: LanguageCode,
+) => {
+  const media: StoreProductMedia[] = []
+  const primaryImage = optionalImageFromSanity(mainImage, language)
+  if (primaryImage) media.push(storeProductMediaImage(primaryImage, 'image'))
+
+  for (const item of gallery ?? []) {
+    const editPath = item?._key
+      ? `gallery[_key=="${item._key.replace(/"/g, '\\"')}"]`
+      : 'gallery'
+
+    if (isSanityVideoFile(item)) {
+      const video = videoFromSanity(item, language, editPath)
+      if (video) media.push(video)
+      continue
+    }
+
+    const image = optionalImageFromSanity(item as SanityImage, language)
+    if (image) media.push(storeProductMediaImage(image, editPath))
+  }
+
+  return media
+}
 
 const partnersFromSanity = (
   items: SanityPartnerItem[] | undefined,
@@ -2171,7 +2261,8 @@ const storeProductsFromSanity = (
   const normalized = products
     .filter((product) => product.slug?.current)
     .map((product, index) => {
-      const fallbackProduct = fallback[index]
+      const slug = product.slug?.current ?? ''
+      const fallbackProduct = fallback.find((item) => item.slug === slug) ?? fallback[index]
       const variants = (product.variants ?? [])
         .map<StoreProductVariant | null>((variant, variantIndex) => {
           const fallbackVariant = fallbackProduct?.variants[variantIndex]
@@ -2181,6 +2272,7 @@ const storeProductsFromSanity = (
           if (typeof natural !== 'number' || typeof dark !== 'number') return null
 
           const nextVariant: StoreProductVariant = {
+            sourceKey: variant._key,
             label: localized(variant.label, language, fallbackVariant?.label ?? 'Variante'),
             dimensions: localizedList(
               variant.dimensions,
@@ -2190,7 +2282,7 @@ const storeProductsFromSanity = (
             prices: {natural, dark},
           }
           const weightKg = variant.weightKg ?? fallbackVariant?.weightKg
-          const note = localized(variant.note, language, fallbackVariant?.note ?? '')
+      const note = localized(variant.note, language, fallbackVariant?.note ?? '')
 
           if (typeof weightKg === 'number') nextVariant.weightKg = weightKg
           if (note) nextVariant.note = note
@@ -2198,21 +2290,27 @@ const storeProductsFromSanity = (
           return nextVariant
         })
         .filter((variant): variant is StoreProductVariant => variant !== null)
-      const sanityImages = [
-        optionalImageFromSanity(product.image, language),
-        ...(product.gallery ?? []).map((image) => optionalImageFromSanity(image, language)),
-      ].filter((image): image is ContentImage => Boolean(image))
-      const fallbackImages = fallbackProduct?.images ?? (fallbackProduct?.image ? [fallbackProduct.image] : [])
-      const images = sanityImages.length ? sanityImages : fallbackImages
+      const sanityMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
+      const fallbackStoreImages =
+        fallbackProduct?.images ?? (fallbackProduct?.image ? [fallbackProduct.image] : [])
+      const media = sanityMedia.length
+        ? sanityMedia
+        : fallbackStoreImages.map((image) => storeProductMediaImage(image))
+      const imagesFromMedia = media.flatMap((item) => {
+        if (item.type === 'image') return [item]
+        return item.poster ? [item.poster] : []
+      })
+      const images = imagesFromMedia
 
       return {
+        studioDocumentId: product._id?.replace(/^drafts\./, ''),
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
-        slug: product.slug?.current ?? fallbackProduct?.slug ?? `store-product-${index + 1}`,
+        slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
-        cataloguePage: product.cataloguePage ?? fallbackProduct?.cataloguePage,
         image: images[0],
         images,
+        media,
         variants,
       } satisfies StoreProduct
     })
@@ -2250,7 +2348,6 @@ const casesFromSanity = (
       challenge: localized(item.challenge, language, ''),
       solution: localized(item.solution, language, ''),
       result: localized(item.result, language, ''),
-      productArea: localized(item.productArea, language, ''),
     }))
 }
 

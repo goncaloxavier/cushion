@@ -73,13 +73,6 @@ export const caseStudy = defineType({
       group: 'conteudo',
     }),
     defineField({
-      name: 'productArea',
-      title: 'Área do produto',
-      description: 'Categoria ou tipo de solução usada no projeto.',
-      type: 'localizedString',
-      group: 'conteudo',
-    }),
-    defineField({
       name: 'summary',
       title: 'Resumo',
       description: 'Frase curta para a listagem de casos.',

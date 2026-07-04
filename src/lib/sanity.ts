@@ -24,6 +24,7 @@ export const sanityClient = createClient({
 // click-to-edit overlay can map each on-page value back to its Studio field.
 // Requires a read token with draft access (SANITY_VIEWER_TOKEN).
 const studioUrl = env.SANITY_STUDIO_URL || 'http://localhost:3333/website'
+export const sanityStudioUrl = studioUrl
 export const previewClient = sanityClient.withConfig({
   useCdn: false,
   token: env.SANITY_VIEWER_TOKEN,
@@ -230,11 +231,11 @@ const collectionsQuery = `{
     toolLabel
   },
   "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
+    _id,
     title,
     slug,
     category,
     summary,
-    cataloguePage,
     image {
       asset -> {
         url,
@@ -248,18 +249,56 @@ const collectionsQuery = `{
       alt
     },
     gallery[] {
-      asset -> {
-        url,
-        originalFilename,
-        metadata {
-          dimensions {
-            aspectRatio
+      _key,
+      _type,
+      _type == "galleryImage" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
           }
+        },
+        alt
+      },
+      _type == "galleryVideo" => {
+        asset -> {
+          url,
+          originalFilename,
+          mimeType,
+          size
+        },
+        title,
+        poster {
+          asset -> {
+            url,
+            originalFilename,
+            metadata {
+              dimensions {
+                aspectRatio
+              }
+            }
+          },
+          alt
         }
       },
-      alt
+      _type == "image" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
     },
     variants[] {
+      _key,
       label,
       dimensions[],
       weightKg,
@@ -298,8 +337,7 @@ const collectionsQuery = `{
     description,
     challenge,
     solution,
-    result,
-    productArea
+    result
   },
   "blogPosts": *[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
     title,
@@ -410,7 +448,11 @@ export const getSanityCollections = async (preview = false) => {
     // Local leverage mode: keep reading the real blog/cases/products/content from the
     // deployed dataset, but drop the store products so the loja renders from the in-code
     // fallback (unpublished store work shows locally, deployed store stays untouched).
-    if (collections && env.SANITY_STORE_FROM_FALLBACK === 'true') {
+    //
+    // Presentation/Visual Editing is the exception: it must receive Sanity
+    // storeProduct documents so click-to-edit can map Loja cards/details back
+    // to the Studio.
+    if (collections && !preview && env.SANITY_STORE_FROM_FALLBACK === 'true') {
       return {...collections, storeProducts: []}
     }
     return collections

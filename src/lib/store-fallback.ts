@@ -32,7 +32,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Banco Gavião',
     slug: 'banco-gaviao',
     category: 'bancos',
-    cataloguePage: 10,
     summary: {
       pt: 'Banco de exterior simples e robusto, indicado para jardins, parques e zonas de descanso.',
       en: 'Simple, robust outdoor bench for gardens, parks and resting areas.',
@@ -77,7 +76,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Banco Foros Domingão',
     slug: 'banco-foros-domingao',
     category: 'bancos',
-    cataloguePage: 10,
     summary: {
       pt: 'Banco comprido para zonas exteriores de permanência e espera.',
       en: 'Long bench for outdoor waiting and resting areas.',
@@ -103,7 +101,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Banco Fazenda',
     slug: 'banco-fazenda',
     category: 'bancos',
-    cataloguePage: 11,
     summary: {
       pt: 'Banco de grande formato para espaços públicos, quintas e zonas exteriores amplas.',
       en: 'Large-format bench for public spaces, farms and open outdoor areas.',
@@ -126,7 +123,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Banco Montargil',
     slug: 'banco-montargil',
     category: 'bancos',
-    cataloguePage: 11,
     summary: {
       pt: 'Banco com costas para estadia confortável em jardim, parque ou equipamento coletivo.',
       en: 'Bench with backrest for comfortable use in gardens, parks or shared facilities.',
@@ -191,7 +187,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Mesa Vale do Arco',
     slug: 'mesa-vale-do-arco',
     category: 'mesas',
-    cataloguePage: 13,
     summary: {
       pt: 'Mesa com bancos integrados para merendas, parques, escolas e espaços coletivos.',
       en: 'Table with integrated benches for picnic areas, parks, schools and shared spaces.',
@@ -267,7 +262,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Mesa Octogonal',
     slug: 'mesa-octogonal',
     category: 'mesas',
-    cataloguePage: 13,
     summary: {
       pt: 'Mesa octogonal com bancos para zonas de convívio e refeição ao ar livre.',
       en: 'Octagonal table with benches for outdoor social and dining areas.',
@@ -300,7 +294,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Conjunto Atalia',
     slug: 'conjunto-atalia',
     category: 'mesas',
-    cataloguePage: 15,
     summary: {
       pt: 'Conjunto de mesa e bancos para refeições e zonas exteriores de convívio.',
       en: 'Table and bench set for outdoor dining and social spaces.',
@@ -323,7 +316,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Cadeira Atalaia',
     slug: 'cadeira-atalaia',
     category: 'cadeiras',
-    cataloguePage: 15,
     summary: {
       pt: 'Cadeira exterior larga para jardins, esplanadas e zonas de descanso.',
       en: 'Wide outdoor chair for gardens, terraces and resting areas.',
@@ -384,7 +376,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Cadeira de Bar',
     slug: 'cadeira-de-bar',
     category: 'cadeiras',
-    cataloguePage: 16,
     summary: {
       pt: 'Cadeira alta para balcões, bares, esplanadas e zonas de apoio exterior.',
       en: 'High chair for counters, bars, terraces and outdoor support areas.',
@@ -429,7 +420,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Mesa Ervideira',
     slug: 'mesa-ervideira',
     category: 'mesas',
-    cataloguePage: 19,
     summary: {
       pt: 'Mesa retangular para exterior, adequada a zonas de refeição, trabalho ou apoio.',
       en: 'Rectangular outdoor table for dining, work or support areas.',
@@ -452,7 +442,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Papeleira Reta',
     slug: 'papeleira-reta',
     category: 'residuos',
-    cataloguePage: 22,
     summary: {
       pt: 'Papeleira vertical para espaços exteriores, disponível com ou sem tampa.',
       en: 'Vertical bin for outdoor spaces, available with or without lid.',
@@ -502,7 +491,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Ecoponto Triplo com Portas',
     slug: 'ecoponto-triplo-com-portas',
     category: 'residuos',
-    cataloguePage: 23,
     summary: {
       pt: 'Ecoponto triplo com portas para separação de resíduos em espaços coletivos.',
       en: 'Triple recycling station with doors for waste separation in shared spaces.',
@@ -530,7 +518,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Ecoponto 4 Resíduos',
     slug: 'ecoponto-4-residuos',
     category: 'residuos',
-    cataloguePage: 24,
     summary: {
       pt: 'Ecoponto para quatro resíduos, indicado para zonas públicas, escolas e empresas.',
       en: 'Four-stream recycling station for public areas, schools and companies.',
@@ -573,7 +560,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Mesa de Cultivo',
     slug: 'mesa-de-cultivo',
     category: 'cultivo',
-    cataloguePage: 29,
     summary: {
       pt: 'Mesa elevada para cultivo em jardins, escolas, hortas urbanas e espaços acessíveis.',
       en: 'Raised growing table for gardens, schools, urban gardens and accessible spaces.',
@@ -616,7 +602,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Canteiro com Treliça',
     slug: 'canteiro-com-trelica',
     category: 'cultivo',
-    cataloguePage: 30,
     summary: {
       pt: 'Canteiro com treliça para plantas trepadeiras, hortas decorativas e separação verde.',
       en: 'Planter with trellis for climbing plants, decorative gardens and green separation.',
@@ -644,7 +629,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Conjunto Domingão',
     slug: 'conjunto-domingao',
     category: 'mesas',
-    cataloguePage: 13,
     summary: {
       pt: 'Conjunto de mesa com bancos integrados para merendas, parques e espaços coletivos.',
       en: 'Table set with integrated benches for picnics, parks and shared spaces.',
@@ -707,7 +691,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Cadeira Páteo',
     slug: 'cadeira-pateo',
     category: 'cadeiras',
-    cataloguePage: 16,
     summary: {
       pt: 'Cadeira de pátio em plástico reciclado, confortável para esplanadas, jardins e zonas de descanso.',
       en: 'Patio chair in recycled plastic, comfortable for terraces, gardens and resting areas.',
@@ -752,7 +735,6 @@ const storeProductBase: StoreProductBase[] = [
     title: 'Mesa de Apoio',
     slug: 'mesa-de-apoio',
     category: 'mesas',
-    cataloguePage: 16,
     summary: {
       pt: 'Mesa de apoio compacta em plástico reciclado, ideal para acompanhar cadeiras de pátio e esplanadas.',
       en: 'Compact side table in recycled plastic, ideal alongside patio chairs and terraces.',
@@ -801,7 +783,6 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     slug: product.slug,
     category: product.category,
     summary: product.summary[language],
-    cataloguePage: product.cataloguePage,
     image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
     images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
     variants: product.variants.map((variant) => ({

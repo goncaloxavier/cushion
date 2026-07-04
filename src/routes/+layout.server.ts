@@ -1,5 +1,5 @@
 import {contentFromSanity, getLanguage, languages} from '$lib/site-content'
-import {getSanityCollections} from '$lib/sanity'
+import {getSanityCollections, sanityStudioUrl} from '$lib/sanity'
 import {isPreview} from '$lib/server/preview'
 import type {LayoutServerLoad} from './$types'
 
@@ -14,6 +14,7 @@ export const load: LayoutServerLoad = async ({url, cookies, locals}) => {
     languages,
     currentPath: url.pathname,
     preview,
+    studioUrl: preview ? sanityStudioUrl : '',
     // Minimal, non-sensitive account summary for header state. The customer's
     // own data; full details load per-page under /conta.
     account: locals.customer

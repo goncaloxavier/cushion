@@ -202,29 +202,42 @@ export const clearCustomerSessionCookie = (cookies: Cookies, secure: boolean) =>
 export const validateCustomerSession = async (token: string | undefined) => {
   if (!token || !databaseConfigured()) return null
 
-  const result = await query<
-    CustomerRow & {
-      session_id: string
-      expires_at: string
-    }
-  >(
-    `select
-       s.id as session_id,
-       s.expires_at,
-       c.id,
-       c.email,
-       c.name,
-       c.phone,
-       c.nif,
-       c.purchase_type,
-       c.email_verified_at
-     from customer_sessions s
-     join customers c on c.id = s.customer_id
-     where s.token_hash = $1
-     limit 1`,
-    [tokenHashOf(token)],
-  )
-  const row = result.rows[0]
+  let row:
+    | (CustomerRow & {
+        session_id: string
+        expires_at: string
+      })
+    | undefined
+
+  try {
+    const result = await query<
+      CustomerRow & {
+        session_id: string
+        expires_at: string
+      }
+    >(
+      `select
+         s.id as session_id,
+         s.expires_at,
+         c.id,
+         c.email,
+         c.name,
+         c.phone,
+         c.nif,
+         c.purchase_type,
+         c.email_verified_at
+       from customer_sessions s
+       join customers c on c.id = s.customer_id
+       where s.token_hash = $1
+       limit 1`,
+      [tokenHashOf(token)],
+    )
+    row = result.rows[0]
+  } catch (error) {
+    console.warn('Customer session validation failed; continuing as guest.', error)
+    return null
+  }
+
   if (!row) return null
 
   const remaining = new Date(row.expires_at).getTime() - Date.now()

@@ -1,14 +1,15 @@
 <script lang="ts">
   import {browser} from '$app/environment'
   import {page} from '$app/state'
-  import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {absoluteUrl, productSchema} from '$lib/seo'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {showToast} from '$lib/toast'
-  import type {LanguageCode, StoreFinish} from '$lib/site-content'
+  import {storeProductMediaFor, type LanguageCode, type StoreFinish} from '$lib/site-content'
   import {
     calculateStoreEstimate,
     postalZonePrefixFor,
@@ -125,6 +126,34 @@
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
   )
   const selectedPrice = $derived(selectedVariant.prices[selectedFinish])
+  const selectedPriceField = $derived(
+    selectedFinish === 'natural' ? 'priceNatural' : 'priceDark',
+  )
+  const storeProductDataAttribute = $derived(
+    data.preview && data.studioUrl && data.storeProduct.studioDocumentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: data.storeProduct.studioDocumentId,
+          type: 'storeProduct',
+        })
+      : null,
+  )
+  const selectedPricePath = $derived(
+    selectedVariant.sourceKey
+      ? `variants[_key=="${selectedVariant.sourceKey.replace(/"/g, '\\"')}"].${selectedPriceField}`
+      : `variants[${selectedVariantIndex}].${selectedPriceField}`,
+  )
+  const selectedWeightPath = $derived(
+    selectedVariant.sourceKey
+      ? `variants[_key=="${selectedVariant.sourceKey.replace(/"/g, '\\"')}"].weightKg`
+      : `variants[${selectedVariantIndex}].weightKg`,
+  )
+  const selectedPriceDataAttribute = $derived(
+    storeProductDataAttribute ? storeProductDataAttribute(selectedPricePath) : undefined,
+  )
+  const selectedWeightDataAttribute = $derived(
+    storeProductDataAttribute ? storeProductDataAttribute(selectedWeightPath) : undefined,
+  )
   const normalizedQuantity = $derived(Math.min(99, Math.max(1, Math.floor(quantity || 1))))
   const selectedEstimate = $derived(
     calculateStoreEstimate(
@@ -161,7 +190,16 @@
         ? [data.storeProduct.image]
         : [],
   )
-  const hasStoreImages = $derived(storeImages.length > 0)
+  const storeMedia = $derived(storeProductMediaFor(data.storeProduct))
+  const hasStoreMedia = $derived(storeMedia.length > 0)
+  const imageDataAttribute = $derived(
+    storeProductDataAttribute ? storeProductDataAttribute('image') : undefined,
+  )
+  const mediaDataAttribute = $derived(
+    storeProductDataAttribute
+      ? (path: string) => storeProductDataAttribute(path)
+      : undefined,
+  )
 
   const formatPrice = (price: number) => priceFormatter.format(price)
   const addSelectedToCart = () => {
@@ -258,14 +296,20 @@
         <p class="article-lead">{data.storeProduct.summary}</p>
       </div>
 
-      <div class="store-detail-visual" class:no-image={!hasStoreImages}>
-        {#if hasStoreImages}
-          <ImageGallery
-            images={storeImages}
+      <div
+        class="store-detail-visual"
+        class:no-image={!hasStoreMedia}
+        data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
+        data-sanity-edit-target={!hasStoreMedia && imageDataAttribute ? true : undefined}
+      >
+        {#if hasStoreMedia}
+          <StoreMediaGallery
+            media={storeMedia}
             label={content.common.zoomImage}
             closeLabel={content.common.close}
             className="store-detail-gallery"
             sizes="(max-width: 900px) 92vw, 520px"
+            dataAttribute={mediaDataAttribute}
           />
         {:else}
           <div aria-hidden="true">
@@ -344,13 +388,21 @@
         </section>
 
         {#if selectedVariant.weightKg}
-          <section class="store-spec-weight">
+          <section
+            class="store-spec-weight"
+            data-sanity={selectedWeightDataAttribute}
+            data-sanity-edit-target={selectedWeightDataAttribute ? true : undefined}
+          >
             <h2>{labels.weight}</h2>
             <p class="store-spec-weight-value">{selectedVariant.weightKg} kg</p>
           </section>
         {/if}
 
-        <section class="store-spec-price">
+        <section
+          class="store-spec-price"
+          data-sanity={selectedPriceDataAttribute}
+          data-sanity-edit-target={selectedPriceDataAttribute ? true : undefined}
+        >
           <h2>{labels.productNet}</h2>
           <p class="store-spec-price-value">{formatPrice(selectedEstimate.productNet)}</p>
         </section>
