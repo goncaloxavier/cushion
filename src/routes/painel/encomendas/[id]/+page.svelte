@@ -22,6 +22,7 @@
 
 <div class="painel-record">
   <form method="POST" action="?/setStatus" class="painel-record-section painel-record-status">
+    <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
     <label class="painel-field-label" for="order-status">Estado da encomenda</label>
     <div class="painel-record-status-row">
       <select id="order-status" name="status">
@@ -159,6 +160,7 @@
       <pre class="painel-notes-log">{order.internalNotes}</pre>
     {/if}
     <form method="POST" action="?/addNote" class="painel-note-add">
+      <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
       <textarea name="note" rows="3" placeholder="Escreva uma nota interna…" maxlength="2000"></textarea>
       <button type="submit" class="painel-btn-ghost">Adicionar nota</button>
     </form>

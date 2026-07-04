@@ -7,7 +7,7 @@ import {
   tokenHashOf,
 } from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
-import {appOrigin, deliverVerificationEmail} from '$lib/server/email'
+import {appOrigin, deliverVerificationEmail, logEmailFailure} from '$lib/server/email'
 import {listOrdersForCustomer} from '$lib/server/orders'
 import type {Actions, PageServerLoad} from './$types'
 
@@ -22,6 +22,7 @@ export const load: PageServerLoad = async ({cookies, locals, url}) => {
     customer: locals.customer,
     orders: await listOrdersForCustomer(locals.customer.id),
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/conta', url.protocol === 'https:'),
+    emailDelivery: url.searchParams.get('email') === 'failed' ? 'failed' : '',
   }
 }
 
@@ -59,8 +60,19 @@ export const actions: Actions = {
 
     const token = await createEmailVerificationToken(row.id)
     const origin = appOrigin() || url.origin
-    const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}`
-    await deliverVerificationEmail(row.email, verifyUrl).catch(() => undefined)
+    const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}&lang=${url.searchParams.get('lang') || 'pt'}`
+    const emailResult = await deliverVerificationEmail(row.email, verifyUrl).catch((error) => ({
+      ok: false as const,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+    }))
+    logEmailFailure('customer verification resend', emailResult)
+    if (!emailResult.ok) {
+      return fail(502, {
+        resend: 'error',
+        message: 'Não foi possível enviar o email agora. Confirme a configuração de email e tente novamente.',
+      })
+    }
 
     return {resend: 'sent'}
   },

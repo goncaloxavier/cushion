@@ -12,6 +12,7 @@
     <p class="painel-login-sub">Acesso reservado à equipa.</p>
 
     <input type="hidden" name="next" value={data.next} />
+    <input type="hidden" name="csrfToken" value={data.csrfToken} />
 
     {#if form?.message}
       <p class="painel-login-error" role="alert">{form.message}</p>

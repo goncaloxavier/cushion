@@ -1,8 +1,13 @@
 import {fail} from '@sveltejs/kit'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
-import {createPasswordResetToken, findCustomerByEmail} from '$lib/server/customer-auth'
+import {
+  createPasswordResetToken,
+  customerRateLimit,
+  findCustomerByEmail,
+  tokenHashOf,
+} from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
-import {appOrigin, sendTransactionalEmail} from '$lib/server/email'
+import {appOrigin, logEmailFailure, sendTransactionalEmail} from '$lib/server/email'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_customer_recover_csrf'
@@ -20,7 +25,7 @@ export const load: PageServerLoad = async ({cookies, url}) => ({
 })
 
 export const actions: Actions = {
-  default: async ({cookies, request, url}) => {
+  default: async ({cookies, getClientAddress, request, url}) => {
     const data = await request.formData()
     const email = clean(data.get('email')).toLowerCase()
     const csrfToken = clean(data.get('csrfToken'), 128)
@@ -35,16 +40,30 @@ export const actions: Actions = {
       return fail(503, {message: 'A área de cliente ainda não está configurada.', email})
     }
 
+    const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
+    const emailHash = tokenHashOf(`email:${email}`)
+    if (
+      customerRateLimit(`recover-ip:${ipHash}`, 8, 15 * 60 * 1000) ||
+      customerRateLimit(`recover-email:${emailHash}`, 3, 30 * 60 * 1000)
+    ) {
+      return fail(429, {message: 'Aguarde alguns minutos antes de pedir um novo link.', email})
+    }
+
     const customer = await findCustomerByEmail(email)
     if (customer) {
       const token = await createPasswordResetToken(customer.id)
       const origin = appOrigin() || url.origin
       const resetUrl = `${origin}/conta/redefinir-password?token=${encodeURIComponent(token)}`
-      await sendTransactionalEmail({
+      const emailResult = await sendTransactionalEmail({
         to: customer.email,
         subject: 'Redefinir password DaFábrica4You',
         text: `Para redefinir a password, abra este link:\n${resetUrl}`,
-      }).catch(() => undefined)
+      }).catch((error) => ({
+        ok: false as const,
+        status: 500,
+        error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+      }))
+      logEmailFailure('customer password reset email', emailResult)
     }
 
     return {

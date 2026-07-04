@@ -30,6 +30,7 @@
     resend: string
     resent: string
     already: string
+    emailFailed: string
   }
 
   const copyByLanguage: Record<string, Copy> = {
@@ -54,6 +55,7 @@
       resend: 'Reenviar email',
       resent: 'Email de confirmação reenviado. Verifique a sua caixa de entrada.',
       already: 'O seu email já está confirmado.',
+      emailFailed: 'Não foi possível enviar o email de confirmação. Confirme a configuração de email e tente reenviar.',
     },
     en: {
       kicker: 'Customer area',
@@ -76,6 +78,7 @@
       resend: 'Resend email',
       resent: 'Confirmation email sent again. Check your inbox.',
       already: 'Your email is already confirmed.',
+      emailFailed: 'The confirmation email could not be sent. Check the email configuration and try resending.',
     },
     es: {
       kicker: 'Área de cliente',
@@ -98,6 +101,7 @@
       resend: 'Reenviar email',
       resent: 'Email de confirmación reenviado. Revisa tu bandeja de entrada.',
       already: 'Tu email ya está confirmado.',
+      emailFailed: 'No fue posible enviar el email de confirmación. Comprueba la configuración de email e intenta reenviar.',
     },
   }
 
@@ -118,6 +122,7 @@
         <h1>{firstName ? `${t.greeting}, ${firstName}` : t.title}</h1>
       </div>
       <form method="POST" action="/conta/sair?/logout">
+        <input type="hidden" name="csrfToken" value={data.csrfToken} />
         <button class="button secondary" type="submit">{t.logout}</button>
       </form>
     </header>
@@ -136,6 +141,8 @@
             <p class="account-verify-note success" role="status">{t.already}</p>
           {:else if form?.message}
             <p class="account-verify-note" role="alert">{form.message}</p>
+          {:else if data.emailDelivery === 'failed'}
+            <p class="account-verify-note" role="alert">{t.emailFailed}</p>
           {/if}
         </div>
         <form method="POST" action="?/resendVerification">

@@ -14,7 +14,7 @@ import type {
   StoreProductVariant,
 } from '$lib/site-content'
 import {prepareIfthenpayPayByLink} from './payment'
-import {ordersRecipient, sendTransactionalEmail, type EmailSendResult} from './email'
+import {logEmailFailure, ordersRecipient, sendTransactionalEmail, type EmailSendResult} from './email'
 
 export type CheckoutCartItem = {
   slug: string
@@ -507,6 +507,7 @@ export const sendOrderEmails = async (order: OrderRow) => {
     subject: customerSubject,
     text: customerText,
   })
+  logEmailFailure('customer order email', customerResult)
   await recordOutboundEmail(
     {orderId: order.id, recipient: order.email, subject: customerSubject},
     customerResult,
@@ -518,6 +519,7 @@ export const sendOrderEmails = async (order: OrderRow) => {
       subject: staffSubject,
       text: staffText,
     })
+    logEmailFailure('staff order email', staffResult)
     await recordOutboundEmail({orderId: order.id, recipient: staffTo, subject: staffSubject}, staffResult)
   }
 }

@@ -125,7 +125,13 @@ export const actions: Actions = {
         },
         draft,
       )
-      await sendOrderEmails(order).catch(() => undefined)
+      await sendOrderEmails(order).catch((error) => {
+        console.warn(
+          `[checkout] order email dispatch failed for ${order.orderNumber}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        )
+      })
 
       return {
         success: true,

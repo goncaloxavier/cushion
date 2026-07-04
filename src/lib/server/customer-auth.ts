@@ -233,6 +233,11 @@ export const validateCustomerSession = async (token: string | undefined) => {
     return null
   }
 
+  if (!row.email_verified_at) {
+    await query('delete from customer_sessions where id = $1', [row.session_id]).catch(() => undefined)
+    return null
+  }
+
   if (remaining < SESSION_TTL_MS / 2) {
     await query('update customer_sessions set expires_at = $1 where id = $2', [
       new Date(Date.now() + SESSION_TTL_MS).toISOString(),
@@ -269,13 +274,13 @@ export const verifyCustomerEmailToken = async (token: string) => {
       [hash],
     )
     const row = found.rows[0]
-    if (!row) return false
+    if (!row) return {ok: false as const, customerId: ''}
 
     await client.query('update email_verification_tokens set used_at = now() where id = $1', [row.id])
     await client.query('update customers set email_verified_at = now(), updated_at = now() where id = $1', [
       row.customer_id,
     ])
-    return true
+    return {ok: true as const, customerId: row.customer_id}
   })
 }
 

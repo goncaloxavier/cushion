@@ -2,13 +2,18 @@ import {createHmac} from 'node:crypto'
 import {fail, redirect} from '@sveltejs/kit'
 import {authenticate, createSession, normalizeUsername, rateLimit, sessionCookieName} from '$lib/server/auth'
 import {crmHashSecret} from '$lib/server/crm-client'
-import {sameOriginOk} from '$lib/server/form-guard'
+import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
 import type {Actions, PageServerLoad} from './$types'
+
+const csrfCookieName = 'df4y_painel_login_csrf'
 
 const safeNext = (value: string) => (value.startsWith('/painel') ? value : '/painel')
 
-export const load: PageServerLoad = async ({url}) => {
-  return {next: safeNext(url.searchParams.get('next') ?? '/painel')}
+export const load: PageServerLoad = async ({cookies, url}) => {
+  return {
+    next: safeNext(url.searchParams.get('next') ?? '/painel'),
+    csrfToken: issueCsrfToken(cookies, csrfCookieName, '/painel/login', url.protocol === 'https:'),
+  }
 }
 
 export const actions: Actions = {
@@ -17,14 +22,21 @@ export const actions: Actions = {
     const username = normalizeUsername(String(data.get('username') ?? '').slice(0, 120))
     const password = String(data.get('password') ?? '').slice(0, 200)
     const next = safeNext(String(data.get('next') ?? '/painel'))
+    const csrfToken = String(data.get('csrfToken') ?? '')
 
     if (!sameOriginOk(request.headers.get('origin'), request.headers.get('referer'), url.origin)) {
       return fail(403, {message: 'Não foi possível validar a origem do pedido.'})
     }
+    if (!csrfOk(cookies.get(csrfCookieName), csrfToken)) {
+      return fail(403, {message: 'Atualize a página e tente novamente.', username})
+    }
 
-    const ipHash = createHmac('sha256', crmHashSecret() || 'df4y-login')
-      .update(getClientAddress())
-      .digest('hex')
+    const hashSecret = crmHashSecret()
+    if (!hashSecret) {
+      return fail(503, {message: 'O backoffice ainda não está configurado.', username})
+    }
+
+    const ipHash = createHmac('sha256', hashSecret).update(getClientAddress()).digest('hex')
 
     if (
       rateLimit(`login:ip:${ipHash}`, 10, 15 * 60 * 1000) ||

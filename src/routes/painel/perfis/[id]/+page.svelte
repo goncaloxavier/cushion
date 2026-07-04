@@ -31,6 +31,7 @@
 
   <div class="painel-profile-manage">
     <form method="POST" action="?/setProfileStatus" class="req-status-form">
+      <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
       <input type="hidden" name="id" value={p._id} />
       <select name="status" aria-label="Estado do perfil">
         {#each profileStatuses as status}
@@ -40,6 +41,7 @@
       <button type="submit">Atualizar estado</button>
     </form>
     <form method="POST" action="?/addProfileNote" class="req-note-form">
+      <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
       <input type="hidden" name="id" value={p._id} />
       <input name="note" placeholder="Nota sobre o cliente…" maxlength="2000" aria-label="Nota do perfil" />
       <button type="submit">Adicionar nota</button>

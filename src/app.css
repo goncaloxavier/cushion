@@ -8110,47 +8110,70 @@ html.reduce-motion {
   }
 }
 
-/* ---- Account auth (simple centered) ---- */
+/* ---- Account auth (page flow) ---- */
 .auth-simple {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 3.9rem);
-  padding: clamp(2.5rem, 6vw, 5rem) var(--mobile-gutter);
+  min-height: clamp(32rem, calc(100svh - 18rem), 48rem);
+  padding: clamp(3.25rem, 7vw, 5.4rem) var(--mobile-gutter, 1.25rem) clamp(3.5rem, 8vw, 6rem);
   background:
-    radial-gradient(circle at 50% 0%, rgba(45, 123, 87, 0.08), transparent 26rem),
+    radial-gradient(circle at 18% 10%, rgba(45, 123, 87, 0.11), transparent 24rem),
+    linear-gradient(180deg, rgba(237, 247, 243, 0.96), rgba(255, 255, 255, 0.86) 72%),
     var(--paper);
 }
 
-.auth-card {
-  width: min(100%, 30rem);
-  padding: clamp(1.6rem, 3.5vw, 2.5rem);
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: 0 1.6rem 3rem rgba(13, 52, 56, 0.08);
+.auth-shell {
+  display: grid;
+  gap: clamp(1.45rem, 3vw, 2.35rem);
+  width: min(100%, 56rem);
+  margin: 0 auto;
 }
 
-.auth-card-head {
-  margin-bottom: 1.6rem;
+.auth-intro {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  justify-self: center;
+  width: min(100%, 42rem);
+  padding-bottom: clamp(1rem, 2vw, 1.35rem);
+  text-align: center;
+  border-bottom: 1px solid rgba(17, 57, 60, 0.14);
 }
 
-.auth-card-head h1 {
-  margin: 0.5rem 0 0;
-  font-family: var(--display);
-  font-size: clamp(1.9rem, 4vw, 2.5rem);
-  line-height: 1.04;
+.auth-intro h1 {
+  max-width: 10em;
+  margin: 0;
   color: var(--ink);
+  font-family: var(--display);
+  font-size: clamp(2.45rem, 5.5vw, 4.4rem);
+  line-height: 1;
+}
+
+.auth-card {
+  justify-self: center;
+  width: 100%;
+  max-width: 38rem;
+  padding: clamp(1.15rem, 2.4vw, 1.65rem);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(17, 57, 60, 0.13);
+  border-radius: 8px;
+  box-shadow: 0 1rem 2.4rem rgba(13, 52, 56, 0.06);
+}
+
+.auth-card:has(.account-form-row) {
+  max-width: 50rem;
 }
 
 .auth-card-lead {
-  margin: 0.7rem 0 0;
+  max-width: 30rem;
+  margin: 0;
   color: var(--muted);
+  font-size: 1.02rem;
   line-height: 1.55;
 }
 
 .auth-card .account-form .button.primary {
-  width: 100%;
+  justify-self: start;
+  width: auto;
+  min-width: 12rem;
   margin-top: 0.4rem;
 }
 
@@ -8175,9 +8198,10 @@ html.reduce-motion {
 .auth-alt {
   display: grid;
   gap: 0.5rem;
-  margin-top: 1.4rem;
-  padding-top: 1.3rem;
-  border-top: 1px solid var(--line);
+  max-width: 38rem;
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(17, 57, 60, 0.13);
   color: var(--muted);
   font-size: 0.92rem;
 }
@@ -8207,19 +8231,82 @@ html.reduce-motion {
 }
 
 .phone-field {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(12.2rem, 0.44fr) minmax(0, 1fr);
   gap: 0.5rem;
 }
 
-.phone-field .phone-cc {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 5.6rem;
-  padding-right: 0.55rem;
+.phone-country-picker {
+  position: relative;
+  min-width: 0;
 }
 
-.phone-field .phone-num {
-  flex: 1 1 auto;
+.phone-field .phone-cc,
+.phone-country-input {
+  width: 100%;
+}
+
+.phone-country-input {
+  text-overflow: ellipsis;
+}
+
+.phone-country-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  left: 0;
+  z-index: 24;
+  max-height: 17rem;
+  overflow-y: auto;
+  padding: 0.35rem;
+  background: #ffffff;
+  border: 1px solid rgba(17, 57, 60, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 1rem 2rem rgba(13, 52, 56, 0.14);
+}
+
+.phone-country-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.6rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+
+.phone-country-option:hover,
+.phone-country-option:focus-visible,
+.phone-country-option[aria-selected='true'] {
+  outline: none;
+  background: rgba(45, 123, 87, 0.1);
+}
+
+.phone-country-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.phone-country-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-country-code {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
 }
 
 .pw-meter {
@@ -8371,6 +8458,20 @@ html.reduce-motion {
 }
 
 @media (max-width: 860px) {
+  .auth-simple {
+    min-height: auto;
+    padding-top: clamp(2.6rem, 8vw, 4rem);
+  }
+
+  .auth-shell {
+    gap: 1.45rem;
+  }
+
+  .auth-intro h1 {
+    max-width: 10em;
+    font-size: clamp(2.25rem, 10vw, 3.7rem);
+  }
+
   .account-verify {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -8387,6 +8488,14 @@ html.reduce-motion {
 @media (max-width: 520px) {
   .account-form-row {
     grid-template-columns: 1fr;
+  }
+
+  .phone-field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth-card .account-form .button.primary {
+    width: 100%;
   }
 }
 

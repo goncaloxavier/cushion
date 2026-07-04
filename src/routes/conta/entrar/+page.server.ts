@@ -3,11 +3,13 @@ import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
 import {
   authenticateCustomer,
   createCustomerSession,
+  createEmailVerificationToken,
   customerRateLimit,
   setCustomerSessionCookie,
   tokenHashOf,
 } from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
+import {appOrigin, deliverVerificationEmail, logEmailFailure} from '$lib/server/email'
 import {getLanguage} from '$lib/site-content'
 import type {Actions, PageServerLoad} from './$types'
 
@@ -26,7 +28,10 @@ export const load: PageServerLoad = async ({cookies, locals, url}) => {
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/conta/entrar', url.protocol === 'https:'),
     databaseReady: databaseConfigured(),
     justVerified: url.searchParams.get('email') === 'verified',
+    emailInvalid: url.searchParams.get('email') === 'invalid',
     justReset: url.searchParams.get('password') === 'reset',
+    registered: url.searchParams.get('registered') === 'sent',
+    registrationEmailFailed: url.searchParams.get('registered') === 'failed',
   }
 }
 
@@ -58,6 +63,23 @@ export const actions: Actions = {
     const customer = await authenticateCustomer(email, password)
     if (!customer) {
       return fail(400, {message: 'Email ou password inválidos.', email})
+    }
+    if (!customer.emailVerifiedAt) {
+      const token = await createEmailVerificationToken(customer.id)
+      const origin = appOrigin() || url.origin
+      const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}&lang=${language}`
+      const emailResult = await deliverVerificationEmail(customer.email, verifyUrl).catch((error) => ({
+        ok: false as const,
+        status: 500,
+        error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+      }))
+      logEmailFailure('customer login verification resend', emailResult)
+      return fail(403, {
+        message: emailResult.ok
+          ? 'Confirme o seu email antes de entrar. Enviámos um novo link de confirmação.'
+          : 'Confirme o seu email antes de entrar. Não foi possível reenviar o link agora.',
+        email,
+      })
     }
 
     const session = await createCustomerSession(customer.id, {

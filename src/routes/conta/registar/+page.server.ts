@@ -2,16 +2,14 @@ import {fail, redirect} from '@sveltejs/kit'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
 import {
   createCustomer,
-  createCustomerSession,
   createEmailVerificationToken,
   customerRateLimit,
   findCustomerByEmail,
   isValidEmail,
-  setCustomerSessionCookie,
   tokenHashOf,
 } from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
-import {appOrigin, deliverVerificationEmail} from '$lib/server/email'
+import {appOrigin, deliverVerificationEmail, logEmailFailure} from '$lib/server/email'
 import {getLanguage} from '$lib/site-content'
 import type {Actions, PageServerLoad} from './$types'
 
@@ -39,7 +37,7 @@ export const actions: Actions = {
     const firstName = clean(data.get('firstName'), 80)
     const lastName = clean(data.get('lastName'), 80)
     const email = clean(data.get('email')).toLowerCase()
-    const phoneCountry = clean(data.get('phoneCountry'), 6)
+    const phoneCountry = clean(data.get('phoneCountry'), 12)
     const phoneNumber = clean(data.get('phone'), 40)
     const nif = clean(data.get('nif'), 16)
     const password = clean(data.get('password'), 500)
@@ -83,14 +81,14 @@ export const actions: Actions = {
     const customer = await createCustomer({email, password, name, phone, nif})
     const token = await createEmailVerificationToken(customer.id)
     const origin = appOrigin() || url.origin
-    const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}`
-    await deliverVerificationEmail(customer.email, verifyUrl).catch(() => undefined)
+    const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}&lang=${language}`
+    const emailResult = await deliverVerificationEmail(customer.email, verifyUrl).catch((error) => ({
+      ok: false as const,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+    }))
+    logEmailFailure('customer verification email', emailResult)
 
-    const session = await createCustomerSession(customer.id, {
-      ipHash,
-      userAgent: request.headers.get('user-agent') ?? '',
-    })
-    setCustomerSessionCookie(cookies, session.token, session.expiresAt, url.protocol === 'https:')
-    redirect(303, `/conta?lang=${language}`)
+    redirect(303, `/conta/entrar?lang=${language}&registered=${emailResult.ok ? 'sent' : 'failed'}`)
   },
 }

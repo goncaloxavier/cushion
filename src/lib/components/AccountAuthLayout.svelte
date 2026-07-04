@@ -17,14 +17,17 @@
 </script>
 
 <main class="auth-simple">
-  <Reveal class="auth-card" variant="panel" priority>
-    <header class="auth-card-head">
+  <section class="auth-shell">
+    <Reveal class="auth-intro" variant="panel" priority>
       <p class="kicker">{kicker}</p>
       <h1>{title}</h1>
       {#if lead}
         <p class="auth-card-lead">{lead}</p>
       {/if}
-    </header>
-    {@render children()}
-  </Reveal>
+    </Reveal>
+
+    <Reveal class="auth-card" variant="panel" delay={80} priority>
+      {@render children()}
+    </Reveal>
+  </section>
 </main>

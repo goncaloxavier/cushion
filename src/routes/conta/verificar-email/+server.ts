@@ -1,15 +1,27 @@
 import {redirect} from '@sveltejs/kit'
-import {verifyCustomerEmailToken} from '$lib/server/customer-auth'
+import {
+  createCustomerSession,
+  setCustomerSessionCookie,
+  tokenHashOf,
+  verifyCustomerEmailToken,
+} from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
 import type {RequestHandler} from './$types'
 
-export const GET: RequestHandler = async ({locals, url}) => {
+export const GET: RequestHandler = async ({cookies, getClientAddress, request, url}) => {
   const token = url.searchParams.get('token') ?? ''
+  const language = url.searchParams.get('lang') || 'pt'
   if (databaseConfigured() && token) {
-    await verifyCustomerEmailToken(token).catch(() => undefined)
+    const verification = await verifyCustomerEmailToken(token).catch(() => ({ok: false as const, customerId: ''}))
+    if (verification.ok) {
+      const session = await createCustomerSession(verification.customerId, {
+        ipHash: tokenHashOf(`ip:${getClientAddress()}`),
+        userAgent: request.headers.get('user-agent') ?? '',
+      })
+      setCustomerSessionCookie(cookies, session.token, session.expiresAt, url.protocol === 'https:')
+      redirect(303, `/conta?lang=${language}&email=verified`)
+    }
   }
 
-  // Signed-in users (the common case with our "let them in" flow) go straight
-  // to the dashboard; otherwise send them to sign in.
-  redirect(303, locals.customer ? '/conta?email=verified' : '/conta/entrar?email=verified')
+  redirect(303, `/conta/entrar?lang=${language}&email=invalid`)
 }

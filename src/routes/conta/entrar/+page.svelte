@@ -15,7 +15,10 @@
     forgot: string
     notConfigured: string
     verified: string
+    invalidLink: string
     reset: string
+    registered: string
+    registrationEmailFailed: string
   }
 
   const copyByLanguage: Record<string, Copy> = {
@@ -31,7 +34,10 @@
       forgot: 'Esqueceu-se da password?',
       notConfigured: 'A área de cliente ainda não está configurada neste ambiente.',
       verified: 'Email confirmado. Já pode entrar.',
+      invalidLink: 'O link de confirmação expirou ou já foi usado.',
       reset: 'Password atualizada. Entre com a nova password.',
+      registered: 'Conta criada. Confirme o email para poder entrar.',
+      registrationEmailFailed: 'Conta criada, mas não foi possível enviar o email de confirmação. Confirme a configuração de email.',
     },
     en: {
       kicker: 'Account',
@@ -45,7 +51,10 @@
       forgot: 'Forgot your password?',
       notConfigured: 'The customer area is not configured in this environment yet.',
       verified: 'Email confirmed. You can sign in now.',
+      invalidLink: 'The confirmation link expired or has already been used.',
       reset: 'Password updated. Sign in with your new password.',
+      registered: 'Account created. Confirm your email before signing in.',
+      registrationEmailFailed: 'Account created, but the confirmation email could not be sent. Check the email configuration.',
     },
     es: {
       kicker: 'Cuenta',
@@ -59,7 +68,10 @@
       forgot: '¿Olvidaste tu contraseña?',
       notConfigured: 'El área de cliente aún no está configurada en este entorno.',
       verified: 'Email confirmado. Ya puedes entrar.',
+      invalidLink: 'El enlace de confirmación ha expirado o ya fue usado.',
       reset: 'Contraseña actualizada. Entra con la nueva contraseña.',
+      registered: 'Cuenta creada. Confirma tu email antes de entrar.',
+      registrationEmailFailed: 'Cuenta creada, pero no fue posible enviar el email de confirmación. Comprueba la configuración de email.',
     },
   }
 
@@ -75,8 +87,17 @@
   {#if data.justVerified}
     <p class="form-feedback success" role="status">{t.verified}</p>
   {/if}
+  {#if data.emailInvalid}
+    <p class="form-feedback" role="alert">{t.invalidLink}</p>
+  {/if}
   {#if data.justReset}
     <p class="form-feedback success" role="status">{t.reset}</p>
+  {/if}
+  {#if data.registered}
+    <p class="form-feedback success" role="status">{t.registered}</p>
+  {/if}
+  {#if data.registrationEmailFailed}
+    <p class="form-feedback" role="alert">{t.registrationEmailFailed}</p>
   {/if}
   {#if !data.databaseReady}
     <p class="form-feedback">{t.notConfigured}</p>

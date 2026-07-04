@@ -1,3 +1,4 @@
+import {dev} from '$app/environment'
 import {env} from '$env/dynamic/private'
 
 export type EmailSendResult =
@@ -6,9 +7,14 @@ export type EmailSendResult =
 
 export const emailConfigured = () => Boolean(env.RESEND_API_KEY && env.EMAIL_FROM)
 
-export const ordersRecipient = () => env.ORDERS_TO_EMAIL || env.EMAIL_FROM || ''
+export const ordersRecipient = () => env.ORDERS_TO_EMAIL || ''
 
 export const appOrigin = () => env.APP_ORIGIN || ''
+
+export const logEmailFailure = (context: string, result: EmailSendResult) => {
+  if (result.ok) return
+  console.warn(`[email] ${context} failed (${result.status}): ${result.error}`)
+}
 
 export const sendTransactionalEmail = async (input: {
   to: string
@@ -33,7 +39,13 @@ export const sendTransactionalEmail = async (input: {
       text: input.text,
       ...(input.html ? {html: input.html} : {}),
     }),
-  })
+  }).catch((error) => ({
+    ok: false,
+    status: 503,
+    json: async () => ({
+      message: error instanceof Error ? error.message : 'Email provider request failed.',
+    }),
+  }))
 
   const body = (await response.json().catch(() => null)) as {id?: string; message?: string} | null
 
@@ -56,7 +68,7 @@ export const deliverVerificationEmail = async (
   verifyUrl: string,
 ): Promise<EmailSendResult> => {
   if (!emailConfigured()) {
-    console.info(`[dev] Verificação de email para ${to}: ${verifyUrl}`)
+    if (dev) console.info(`[dev] Verificação de email para ${to}: ${verifyUrl}`)
     return {ok: false, status: 503, error: 'Transactional email is not configured.'}
   }
 

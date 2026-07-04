@@ -18,7 +18,7 @@
     pt: {
       kicker: 'Conta',
       title: 'Recuperar password',
-      lead: 'Enviamos-lhe um link para definir uma nova password.',
+      lead: '',
       email: 'Email',
       submit: 'Enviar link',
       back: 'Lembrou-se?',
@@ -28,7 +28,7 @@
     en: {
       kicker: 'Account',
       title: 'Reset password',
-      lead: "We'll email you a link to set a new password.",
+      lead: '',
       email: 'Email',
       submit: 'Send link',
       back: 'Remembered it?',
@@ -38,7 +38,7 @@
     es: {
       kicker: 'Cuenta',
       title: 'Recuperar contraseña',
-      lead: 'Te enviamos un enlace para definir una nueva contraseña.',
+      lead: '',
       email: 'Email',
       submit: 'Enviar enlace',
       back: '¿Ya la recuerdas?',
