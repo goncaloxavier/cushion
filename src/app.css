@@ -4971,7 +4971,8 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
 }
 
 .image-gallery-zoom,
-.image-gallery-count {
+.image-gallery-count,
+.media-gallery-badge {
   position: absolute;
   right: 0.8rem;
   bottom: 0.8rem;
@@ -5083,25 +5084,19 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   background: #071c1b;
 }
 
-.media-gallery-play {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  display: grid;
-  width: clamp(3rem, 8vw, 4.8rem);
-  height: clamp(3rem, 8vw, 4.8rem);
-  place-items: center;
-  color: #ffffff;
-  background: rgba(18, 59, 56, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+/* Small muted-audio chip on an inline-playing video (bottom-left, mirrors the
+   zoom chip). The frame click expands to the lightbox for full sound. */
+.media-gallery-badge {
+  right: auto;
+  left: 0.8rem;
+  width: 2.2rem;
+  height: 2.2rem;
   border-radius: 999px;
-  box-shadow: 0 1rem 2.2rem rgba(0, 0, 0, 0.24);
-  transform: translate3d(-50%, -50%, 0);
-  backdrop-filter: blur(14px);
 }
 
-.media-gallery-play svg {
-  width: 42%;
-  transform: translate3d(7%, 0, 0);
+.media-gallery-badge svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .media-gallery-video-thumb {

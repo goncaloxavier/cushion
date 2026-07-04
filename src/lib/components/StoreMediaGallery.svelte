@@ -1,6 +1,7 @@
 <script lang="ts">
   import type {ContentImage, StoreProductMedia} from '$lib/site-content'
   import {imageSrcset, sizedImage} from '$lib/image'
+  import {prefersReducedMotion} from '$lib/motion'
   import {tick} from 'svelte'
 
   type ImageMedia = StoreProductMedia & ContentImage & {type: 'image'}
@@ -18,6 +19,21 @@
     if (typeof Image === 'undefined' || !isImageMedia(item) || !item.url) return
     const preloader = new Image()
     preloader.src = sizedImage(item.url, lightboxWidth)
+  }
+
+  // Selected videos preview inline: muted + looping autoplay, quietly skipped
+  // for reduced-motion users (they get the poster frame and expand for sound).
+  const autoplayInline = (node: HTMLVideoElement) => {
+    node.muted = true
+    if (prefersReducedMotion()) return
+    const play = () => node.play().catch(() => {})
+    play()
+    node.addEventListener('canplay', play, {once: true})
+    return {
+      destroy() {
+        node.removeEventListener('canplay', play)
+      },
+    }
   }
 
   let {
@@ -141,15 +157,19 @@
           class="media-gallery-video"
           src={item.url}
           poster={item.poster?.url ? sizedImage(item.poster.url, 1200, 76) : undefined}
+          autoplay
           muted
+          loop
           playsinline
           preload="metadata"
           aria-label={item.title}
           style:background={lqipBackground(item.poster)}
+          use:autoplayInline
         ></video>
-        <span class="media-gallery-play" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M8 5v14l11-7z" />
+        <span class="media-gallery-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+            <path d="m16.5 9.5 4 5M20.5 9.5l-4 5" />
           </svg>
         </span>
       {/if}
