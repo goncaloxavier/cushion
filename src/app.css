@@ -8192,6 +8192,46 @@ html.reduce-motion {
   }
 }
 
+/* ---- Error page ---- */
+.error-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 3.9rem);
+  padding: clamp(3rem, 8vw, 6rem) var(--mobile-gutter);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(45, 123, 87, 0.08), transparent 26rem),
+    var(--paper);
+}
+
+.error-shell {
+  width: min(100%, 38rem);
+  text-align: center;
+}
+
+.error-shell h1 {
+  margin: 0.5rem 0 0;
+  font-family: var(--display);
+  font-size: clamp(2.1rem, 6vw, 3.6rem);
+  line-height: 1.02;
+  color: var(--ink);
+}
+
+.error-lead {
+  margin: 1rem auto 0;
+  max-width: 34rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
 /* ---- Account auth (page flow) ---- */
 .auth-simple {
   min-height: clamp(32rem, calc(100svh - 18rem), 48rem);

@@ -1838,8 +1838,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
   },
 }
 
+// Prefer the requested language, then fall back to Portuguese (the default
+// locale) before the in-code fallback — so content authored only in PT still
+// shows real text in EN/ES instead of a generic placeholder.
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
-  value?.[language]?.trim() || fallback
+  value?.[language]?.trim() || value?.pt?.trim() || fallback
 
 const localizedArticle = (
   value: LocalizedArticleValue | undefined,

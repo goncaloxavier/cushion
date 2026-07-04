@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
@@ -359,6 +360,7 @@
     aria-modal="true"
     aria-label={menuStrings.menu}
     aria-hidden={!menuOpen}
+    use:trapFocus
   >
     <div class="mobile-menu-bar">
       <span class="mobile-menu-brand">
