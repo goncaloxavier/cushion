@@ -5,28 +5,84 @@ import {
   customerRateLimit,
   findCustomerByEmail,
   tokenHashOf,
+  updateCustomerProfile,
 } from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
 import {appOrigin, deliverVerificationEmail, logEmailFailure} from '$lib/server/email'
-import {listOrdersForCustomer} from '$lib/server/orders'
+import {
+  listCustomerDefaultAddresses,
+  listOrdersForCustomer,
+  saveCustomerDeliveryAddress,
+} from '$lib/server/orders'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_customer_account_csrf'
+
+const clean = (value: FormDataEntryValue | null, max = 240) =>
+  String(value ?? '')
+    .normalize('NFC')
+    .replace(/\p{Cc}+/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
 
 export const load: PageServerLoad = async ({cookies, locals, url}) => {
   if (!locals.customer) {
     redirect(303, `/conta/entrar?lang=${url.searchParams.get('lang') || 'pt'}`)
   }
 
+  const addresses = await listCustomerDefaultAddresses(locals.customer.id)
+
   return {
     customer: locals.customer,
     orders: await listOrdersForCustomer(locals.customer.id),
+    deliveryAddress: addresses.find((address) => address.addressType === 'delivery') ?? null,
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/conta', url.protocol === 'https:'),
     emailDelivery: url.searchParams.get('email') === 'failed' ? 'failed' : '',
   }
 }
 
 export const actions: Actions = {
+  updateProfile: async ({cookies, locals, request, url}) => {
+    if (!locals.customer) redirect(303, '/conta/entrar')
+
+    const data = await request.formData()
+    const csrfToken = clean(data.get('csrfToken'), 128)
+    const firstName = clean(data.get('firstName'), 80)
+    const lastName = clean(data.get('lastName'), 80)
+    const phone = clean(data.get('phone'), 40)
+    const nif = clean(data.get('nif'), 16)
+    const purchaseType =
+      clean(data.get('purchaseType'), 20) === 'company' ? 'company' : 'individual'
+    const addressLine1 = clean(data.get('addressLine1'), 240)
+    const postalCode = clean(data.get('postalCode'), 32)
+    const locality = clean(data.get('locality'), 120)
+
+    const values = {firstName, lastName, phone, nif, purchaseType, addressLine1, postalCode, locality}
+
+    if (!sameOriginOk(request.headers.get('origin'), request.headers.get('referer'), url.origin)) {
+      return fail(403, {profile: 'error', message: 'Não foi possível validar a origem do pedido.', values})
+    }
+    if (!csrfOk(cookies.get(csrfCookieName), csrfToken)) {
+      return fail(403, {profile: 'error', message: 'Atualize a página e tente novamente.', values})
+    }
+    if (!databaseConfigured()) {
+      return fail(503, {profile: 'error', message: 'A área de cliente ainda não está configurada.', values})
+    }
+    if (!firstName || !lastName) {
+      return fail(400, {profile: 'error', message: 'Indique o primeiro nome e o apelido.', values})
+    }
+
+    const name = `${firstName} ${lastName}`.trim()
+
+    await updateCustomerProfile(locals.customer.id, {name, phone, nif, purchaseType})
+    if (addressLine1) {
+      await saveCustomerDeliveryAddress(locals.customer.id, {line1: addressLine1, postalCode, locality})
+    }
+
+    return {profile: 'saved'}
+  },
+
   resendVerification: async ({cookies, getClientAddress, locals, request, url}) => {
     if (!locals.customer) redirect(303, '/conta/entrar')
 

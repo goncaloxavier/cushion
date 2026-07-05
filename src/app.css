@@ -8579,6 +8579,95 @@ html.reduce-motion {
   color: var(--muted);
 }
 
+.account-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-card-head h2 {
+  margin: 0;
+}
+
+.account-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  color: var(--green-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+  background: #f6faf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 200ms ease,
+    border-color 160ms ease;
+}
+
+.account-edit-btn:hover {
+  color: #ffffff;
+  background: var(--green-dark);
+  border-color: rgba(17, 57, 60, 0.28);
+}
+
+.account-edit-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.account-form-group {
+  margin: 0.6rem 0 -0.15rem;
+  color: var(--green-dark);
+  font-family: var(--display);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.account-form-group:first-of-type {
+  margin-top: 0;
+}
+
+.account-form-group em {
+  color: var(--muted);
+  font-weight: 600;
+  font-style: normal;
+}
+
+.account-edit-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.account-subsection {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.account-subsection h3 {
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.account-address {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 @media (max-width: 860px) {
   .auth-simple {
     min-height: auto;

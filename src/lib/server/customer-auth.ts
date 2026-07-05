@@ -152,6 +152,26 @@ export const createCustomer = async (input: {
   return mapCustomer(result.rows[0])
 }
 
+export const updateCustomerProfile = async (
+  customerId: string,
+  input: {name: string; phone: string; nif: string; purchaseType: string},
+) => {
+  const result = await query<CustomerRow>(
+    `update customers
+     set name = $2, phone = $3, nif = $4, purchase_type = $5, updated_at = now()
+     where id = $1
+     returning id, email, name, phone, nif, purchase_type, email_verified_at`,
+    [
+      customerId,
+      input.name.trim().slice(0, 160),
+      normalizePhoneForCustomer(input.phone),
+      input.nif.replace(/\D/g, '').slice(0, 16),
+      input.purchaseType === 'company' ? 'company' : 'individual',
+    ],
+  )
+  return result.rows[0] ? mapCustomer(result.rows[0]) : null
+}
+
 export const authenticateCustomer = async (email: string, password: string) => {
   const row = await findCustomerByEmail(email)
   const ok = await verifyPassword(password, row?.password_hash || dummyHash)

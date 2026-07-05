@@ -548,6 +548,33 @@ export const listCustomerDefaultAddresses = async (
   return result.rows.map(mapAddress)
 }
 
+// Upserts the customer's default delivery address (used by the account page and
+// pre-fills checkout). Mirrors the append+flag pattern used when creating orders.
+export const saveCustomerDeliveryAddress = async (
+  customerId: string,
+  input: {line1: string; postalCode: string; locality: string},
+) => {
+  if (!databaseConfigured()) return
+  await withTransaction(async (client) => {
+    await client.query(
+      `update customer_addresses set is_default = false, updated_at = now()
+       where customer_id = $1 and address_type = 'delivery'`,
+      [customerId],
+    )
+    await client.query(
+      `insert into customer_addresses (
+        customer_id, address_type, address_line1, postal_code, locality, is_default
+      ) values ($1, 'delivery', $2, $3, $4, true)`,
+      [
+        customerId,
+        cleanLine(input.line1, 240),
+        normalizePostalCode(input.postalCode),
+        cleanLine(input.locality, 120),
+      ],
+    )
+  })
+}
+
 export const listOrdersForPainel = async (limit = 200): Promise<OrderRow[]> => {
   if (!databaseConfigured()) return []
   const result = await query(`${orderSelect} order by created_at desc limit $1`, [limit])
