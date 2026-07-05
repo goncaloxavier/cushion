@@ -77,6 +77,10 @@
   --eco-mint: #dceee4;
   --brand-fog: #e8f3ef;
   --max: 1180px;
+  /* Horizontal page gutter. Defined here so it resolves on desktop too — the
+     @media (max-width:700px) block below only tunes it for mobile. Without this
+     base value, `padding: … var(--mobile-gutter)` was invalid (→ 0) on desktop. */
+  --mobile-gutter: clamp(1.125rem, 5.1vw, 1.5rem);
   --display: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
@@ -7965,7 +7969,7 @@ html.reduce-motion {
 .account-shell,
 .checkout-section {
   margin: 0 auto;
-  padding: clamp(3.5rem, 7vw, 6rem) var(--mobile-gutter);
+  padding: clamp(4rem, 7vw, 7rem) var(--mobile-gutter);
 }
 
 .checkout-section {
