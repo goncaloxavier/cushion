@@ -72,7 +72,7 @@
     <p class="error-lead">{t.lead}</p>
     <div class="error-actions">
       <a class="button primary" href={withLang('/')}>{t.home}</a>
-      <a class="button secondary" href={withLang('/loja')}>{t.store}</a>
+      <a class="button subtle" href={withLang('/loja')}>{t.store}</a>
     </div>
   </section>
 </main>

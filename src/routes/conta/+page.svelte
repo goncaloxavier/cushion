@@ -218,7 +218,7 @@
       </div>
       <form method="POST" action="/conta/sair?/logout">
         <input type="hidden" name="csrfToken" value={data.csrfToken} />
-        <button class="button secondary" type="submit">{t.logout}</button>
+        <button class="button subtle" type="submit">{t.logout}</button>
       </form>
     </header>
 
@@ -242,7 +242,7 @@
         </div>
         <form method="POST" action="?/resendVerification">
           <input type="hidden" name="csrfToken" value={data.csrfToken} />
-          <button class="button secondary" type="submit">{t.resend}</button>
+          <button class="button subtle" type="submit">{t.resend}</button>
         </form>
       </Reveal>
     {/if}
@@ -330,7 +330,7 @@
 
             <div class="account-edit-actions">
               <button class="button primary" type="submit">{t.save}</button>
-              <button class="button secondary" type="button" onclick={() => (editing = false)}>
+              <button class="button subtle" type="button" onclick={() => (editing = false)}>
                 {t.cancel}
               </button>
             </div>

@@ -1396,6 +1396,21 @@ dt {
   backdrop-filter: saturate(1.1);
 }
 
+/* Secondary action on LIGHT surfaces (account, checkout, error). The white
+   ghost `.secondary` above is for dark backgrounds only; on light it vanishes.
+   This variant keeps a visible border + green-dark text (AA compliant). */
+.button.subtle {
+  color: var(--green-dark);
+  background: #f2f8f5;
+  border-color: rgba(13, 52, 56, 0.22);
+}
+
+.button.subtle:hover {
+  color: #ffffff;
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+}
+
 .home-hero .button.primary {
   color: #1f211e;
   background: #ffffff;
@@ -7949,9 +7964,17 @@ html.reduce-motion {
 
 .account-shell,
 .checkout-section {
-  max-width: var(--max);
   margin: 0 auto;
-  padding: clamp(3rem, 7vw, 5.5rem) var(--mobile-gutter);
+  padding: clamp(3.5rem, 7vw, 6rem) var(--mobile-gutter);
+}
+
+.checkout-section {
+  max-width: var(--max);
+}
+
+/* Account is a single, calm centered column — no asymmetric split. */
+.account-shell {
+  max-width: 47rem;
 }
 
 .account-head {
@@ -7959,7 +7982,7 @@ html.reduce-motion {
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.2rem;
 }
 
 .account-head h1,
@@ -7970,12 +7993,17 @@ html.reduce-motion {
   font-size: clamp(2.1rem, 5vw, 3.8rem);
 }
 
-.account-grid,
 .checkout-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: clamp(1rem, 3vw, 2rem);
   align-items: start;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
 }
 
 .account-card,
@@ -7984,10 +8012,10 @@ html.reduce-motion {
 .checkout-summary,
 .checkout-success {
   min-width: 0;
-  padding: clamp(1.25rem, 3vw, 2rem);
+  padding: clamp(1.6rem, 3.2vw, 2.5rem);
   background: #ffffff;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 1rem 2.4rem rgba(33, 34, 31, 0.06);
 }
 
@@ -8007,24 +8035,27 @@ html.reduce-motion {
 .account-details,
 .checkout-summary dl {
   display: grid;
-  gap: 0.85rem;
+  gap: 1.15rem;
   margin: 0;
 }
 
 .account-details div,
 .checkout-summary dl div {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 0.75rem;
+  padding-bottom: 1.05rem;
   border-bottom: 1px solid var(--line);
 }
 
 .account-details dt,
 .checkout-summary dt {
   color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 750;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .account-details dd,
@@ -8033,6 +8064,31 @@ html.reduce-motion {
   color: var(--ink);
   font-weight: 850;
   text-align: right;
+}
+
+/* On the wide single-column account card, show details as a calm 2-up grid of
+   stacked label/value pairs instead of stretched edge-to-edge rows. */
+.account-details {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.4rem 2.2rem;
+}
+
+.account-details div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.account-details dd {
+  text-align: left;
+}
+
+@media (max-width: 560px) {
+  .account-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .account-order-list {
