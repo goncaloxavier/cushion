@@ -28,16 +28,18 @@
     | 'blog'
     | 'contact'
 
-  const primaryRouteItems = $derived([
+  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
+
+  const navItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
   ])
 
-  const productNavItem = $derived({key: 'products' as NavKey, href: '/produtos', label: content.nav.products})
-
-  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
+  const catalogueLabel = $derived(content.nav.catalogue)
 
   const accountLabels: Record<string, {signedOut: string; account: string}> = {
     pt: {signedOut: 'Entrar', account: 'Conta'},
@@ -51,12 +53,6 @@
     isSignedIn ? accountStrings.account : accountStrings.signedOut,
   )
   const accountActive = $derived(data.currentPath.startsWith('/conta'))
-
-  const productMenuItems = $derived([
-    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
-  ])
 
   const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
   const isActive = (href: string) =>
@@ -74,9 +70,6 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
-  const productGroupActive = $derived(
-    currentNavKey === 'products' || currentNavKey === 'store' || currentNavKey === 'catalogue',
-  )
   let cartCount = $state(0)
   let menuOpen = $state(false)
   let menuVisible = $state(false)
@@ -84,7 +77,7 @@
   const mobileMenuItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
@@ -263,41 +256,7 @@
   </div>
 
   <nav class="nav-links" aria-label="Main navigation">
-    {#each primaryRouteItems.slice(0, 2) as item}
-      <a
-        class:active={isActive(item.href)}
-        aria-current={isActive(item.href) ? 'page' : undefined}
-        href={withLanguage(item.href, data.language)}
-      >
-        {item.label}
-      </a>
-    {/each}
-
-    <div class="nav-group" class:active={productGroupActive}>
-      <a
-        class="nav-group-trigger"
-        class:active={isActive(productNavItem.href)}
-        aria-current={isActive(productNavItem.href) ? 'page' : undefined}
-        href={withLanguage(productNavItem.href, data.language)}
-      >
-        <span>{productNavItem.label}</span>
-        <span class="nav-caret" aria-hidden="true"></span>
-      </a>
-
-      <div class="nav-group-menu" aria-label={content.nav.products}>
-        {#each productMenuItems as item}
-          <a
-            class:active={isActive(item.href)}
-            aria-current={isActive(item.href) ? 'page' : undefined}
-            href={withLanguage(item.href, data.language)}
-          >
-            {item.label}
-          </a>
-        {/each}
-      </div>
-    </div>
-
-    {#each primaryRouteItems.slice(2) as item}
+    {#each navItems as item}
       <a
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
@@ -309,6 +268,14 @@
   </nav>
 
   <div class="header-actions">
+    <a
+      class="catalogue-link"
+      class:active={currentNavKey === 'catalogue'}
+      aria-current={currentNavKey === 'catalogue' ? 'page' : undefined}
+      href={withLanguage('/catalogo', data.language)}
+    >
+      {catalogueLabel}
+    </a>
     <a
       class="contact-link"
       class:active={currentNavKey === 'contact'}

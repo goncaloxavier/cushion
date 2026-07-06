@@ -589,6 +589,35 @@ html[data-scrolled='true'] .site-header {
   gap: 0.85rem;
 }
 
+/* Catálogo sits next to Contacto as a secondary "submission" CTA (outlined). */
+.catalogue-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.3rem;
+  padding: 0 0.9rem;
+  color: var(--green-dark);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-decoration: none;
+  background: rgba(45, 123, 87, 0.09);
+  border: 1px solid rgba(45, 123, 87, 0.32);
+  border-radius: 8px;
+  transition:
+    color 180ms ease,
+    background 220ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+.catalogue-link:hover,
+.catalogue-link.active {
+  color: #ffffff;
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+  box-shadow: 0 0.55rem 1.25rem rgba(17, 57, 60, 0.14);
+}
+
 .contact-link {
   position: relative;
   display: inline-flex;
@@ -7090,7 +7119,8 @@ html.reduce-motion {
     margin-left: auto;
   }
 
-  .contact-link {
+  .contact-link,
+  .catalogue-link {
     display: none;
   }
 
