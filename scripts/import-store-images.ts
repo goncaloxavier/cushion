@@ -326,9 +326,9 @@ const client = createClient({
   token,
 })
 
-const imageField = (assetId: string, alt: LocalizedAlt, key?: string) => ({
+const imageField = (assetId: string, alt: LocalizedAlt, key?: string, type = 'image') => ({
   ...(key ? {_key: key} : {}),
-  _type: 'image',
+  _type: type,
   asset: {
     _type: 'reference',
     _ref: assetId,
@@ -363,7 +363,9 @@ for (const batch of selectedBatches) {
     .patch(documentId)
     .set({
       image: imageField(uploadedImages[0].asset._ref, batch.images[0].alt),
-      gallery: uploadedImages.slice(1),
+      gallery: uploadedImages
+        .slice(1)
+        .map((image) => imageField(image.asset._ref, image.alt, image._key, 'galleryImage')),
     })
     .commit({visibility: 'sync'})
 

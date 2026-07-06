@@ -1,5 +1,5 @@
-import {randomBytes, timingSafeEqual} from 'node:crypto'
 import {fail} from '@sveltejs/kit'
+import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
 import {
   cleanMessage,
   cleanSingleLine,
@@ -58,22 +58,6 @@ const sourceFromValue = (value: FormDataEntryValue | string | null): SubmissionS
   return sourceMap[normalized] || 'contact'
 }
 
-const createCsrfToken = () => randomBytes(32).toString('base64url')
-
-const safeEqual = (left: string | undefined, right: string) => {
-  if (!left || !right) return false
-
-  const leftBuffer = Buffer.from(left)
-  const rightBuffer = Buffer.from(right)
-  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
-}
-
-const isSameOrigin = (origin: string | null, referer: string | null, expectedOrigin: string) => {
-  if (origin) return origin === expectedOrigin
-  if (referer) return referer.startsWith(`${expectedOrigin}/`)
-  return true
-}
-
 const formValuesFromData = (data: FormData) => {
   const firstName = cleanSingleLine(data.get('firstName'), 80)
   const lastName = cleanSingleLine(data.get('lastName'), 80)
@@ -92,21 +76,8 @@ const formValuesFromData = (data: FormData) => {
 }
 
 export const load: PageServerLoad = async ({cookies, url}) => {
-  let csrfToken = cookies.get(csrfCookieName)
-
-  if (!csrfToken || csrfToken.length < 32) {
-    csrfToken = createCsrfToken()
-    cookies.set(csrfCookieName, csrfToken, {
-      path: '/contacto',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: url.protocol === 'https:',
-      maxAge: 60 * 60,
-    })
-  }
-
   return {
-    csrfToken,
+    csrfToken: issueCsrfToken(cookies, csrfCookieName, '/contacto', url.protocol === 'https:'),
     submissionSource: sourceFromValue(url.searchParams.get('source')),
   }
 }
@@ -122,11 +93,11 @@ export const actions: Actions = {
     const csrfToken = cleanSingleLine(data.get('csrfToken'), 128)
     const cookieToken = cookies.get(csrfCookieName)
 
-    if (!isSameOrigin(request.headers.get('origin'), request.headers.get('referer'), url.origin)) {
+    if (!sameOriginOk(request.headers.get('origin'), request.headers.get('referer'), url.origin)) {
       return fail(403, {message: messages[language].origin, values})
     }
 
-    if (!safeEqual(cookieToken, csrfToken)) {
+    if (!csrfOk(cookieToken, csrfToken)) {
       return fail(403, {message: messages[language].csrf, values})
     }
 

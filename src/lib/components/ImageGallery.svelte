@@ -1,5 +1,6 @@
 <script lang="ts">
   import type {ContentImage} from '$lib/site-content'
+  import {trapFocus} from '$lib/actions/trap-focus'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {tick} from 'svelte'
 
@@ -163,6 +164,7 @@
     aria-label={label}
     tabindex="-1"
     use:portal
+    use:trapFocus
     bind:this={lightbox}
     onclick={(event) => {
       if (event.currentTarget === event.target) closeLightbox()

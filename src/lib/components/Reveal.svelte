@@ -1,12 +1,13 @@
 <script lang="ts">
   import {onMount} from 'svelte'
 
-  let {children, delay = 0, variant = 'rise', priority = false, class: className = ''} = $props<{
+  let {children, delay = 0, variant = 'rise', priority = false, class: className = '', id} = $props<{
     children: import('svelte').Snippet
     delay?: number
     variant?: 'rise' | 'hero' | 'panel' | 'card' | 'list' | 'media' | 'scale'
     priority?: boolean
     class?: string
+    id?: string
   }>()
 
   let node: HTMLDivElement
@@ -79,6 +80,7 @@
 </script>
 
 <div
+  {id}
   bind:this={node}
   class={`reveal ${isVisible ? 'visible' : ''} ${className}`}
   data-reveal={variant}

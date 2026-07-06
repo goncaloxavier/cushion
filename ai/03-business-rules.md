@@ -19,9 +19,12 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Loja list cards should show category, title, short summary, and a starting price only. Do not show catalogue page badges, variant dimensions, finish/color selectors, or proposal links on the list; those decisions belong on `/loja/[slug]`.
 - Loja detail pages should let the visitor choose the variant/measure and finish/color, inspect the product gallery when photos exist, and see the displayed product/transport/IVA estimate update from the selected combination and stored postal code.
 - Sanity Studio must present Loja as an editor-ready section, not a flat document dump: page text, all products, visible products, category buckets, products missing primary images, products missing weights, and hidden products.
-- Carrinho is a quote-preparation flow, not ecommerce checkout. It should let visitors review selected Loja items, quantities, estimated transport, and IVA before requesting a quote, but it must not introduce payment, login, registration, stock, shipping booking, or final order confirmation.
+- Carrinho is browser-local cart review, not private storage. It should let visitors review selected Loja items, quantities, estimated transport, and IVA before moving to checkout.
 - Carrinho stores only selected product slug, variant index, finish, and quantity in browser localStorage. The Loja delivery gate stores only the postal code needed for transport estimates. Neither key must store visitor names, emails, phone numbers, addresses, or free-text messages.
-- When a visitor continues from Carrinho to Contacto, the contact message can be prefilled with the selected Loja items so the CRM submission is useful, but the submitted personal data still goes only through the existing server-validated form.
+- Checkout lives at `/finalizar-compra`. It supports both guests and customer accounts, collects billing/delivery/customer data, recalculates totals server-side from trusted store content, creates a Postgres order, and starts with status `pending_payment_link`.
+- Customer accounts are public-customer accounts only. They must not reuse staff `/painel` auth, and they store password hashes, sessions, email verification tokens, password reset tokens, saved addresses, and order history in Postgres.
+- New ecommerce orders must go to Postgres, not Sanity. Sanity remains the public CMS/catalogue editor for products, prices, images, visibility, copy, and editable public store settings such as the transport multiplier.
+- Each order must snapshot product title, slug, variant, dimensions, finish, unit price, weight, transport, VAT, total, and transport multiplier so history remains stable after Sanity edits.
 - Loja prices come from the supplied `Catalogo 244.pdf` starter data and should be treated as catalogue-derived working content until the client confirms final live commercial pricing.
 - Loja PDF crops/images should not be used as product photography. Use approved client photos as they arrive, with one primary image for the list/detail lead and optional gallery images on the detail page; keep no-image placeholders for products that still lack approved photos.
 - Product, case-study, and blog list/detail imagery should preserve the full image frame instead of cropping or stretching; detail galleries should use known image aspect ratios where available and lock background scrolling while the lightbox is open.
@@ -64,7 +67,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Public SvelteKit routed website.
 - Sanity Studio website workspace for editing multilingual page copy, contact/footer content, product categories, Loja products/prices, case studies, and blog posts.
 - Sanity Studio CRM workspace for reviewing form submissions, changing request status, adding internal notes, and maintaining client profiles.
-- Local Carrinho page that summarizes selected Loja products, estimated transport/IVA for the stored postal code, and passes the selection into the contact request flow.
+- Local Carrinho page that summarizes selected Loja products and estimated transport/IVA for the stored postal code.
+- Postgres-backed checkout orders with staff review in `/painel/encomendas`.
 
 ## Pricing Or Quantities
 
@@ -78,8 +82,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Current fallback social URLs: YouTube `https://www.youtube.com/@dafabrica4you245`, Facebook `https://www.facebook.com/dafabrica4you`, and Instagram `https://www.instagram.com/dafabrica4you`.
 - Current fallback WhatsApp URL: `https://wa.me/351914746637`.
 - Current Loja starter content includes 15 items from `Catalogo 244.pdf`: Banco Gavião, Banco Foros Domingão, Banco Fazenda, Banco Montargil, Mesa Vale do Arco, Mesa Octogonal, Conjunto Atalia, Cadeira Atalaia, Cadeira de Bar, Mesa Ervideira, Papeleira Reta, Ecoponto Triplo com Portas, Ecoponto 4 Resíduos, Mesa de Cultivo, and Canteiro com Treliça. `Cadeira Atalaia` replaces the earlier provisional `Cadeirão Atalia` naming for the item shown below Conjunto Atalia on page 15.
-- Current Loja transport estimate uses Alto Alentejo as dispatch origin, the supplied transport table, a 10% fuel surcharge, the current 2.5 transport multiplier, and 23% IVA applied to product plus transport. This is quote-preparation pricing, not payment checkout.
-- Ifthenpay Pay by Link is the preferred future payment direction because it keeps checkout/security surface minimal, but it is not implemented yet and should wait until after the client discussion planned for 2026-07-03.
+- Current Loja transport estimate uses Alto Alentejo as dispatch origin, the supplied transport table, a 10% fuel surcharge, an editable Sanity transport multiplier with `2.5` fallback, and 23% IVA applied to product plus transport.
+- Ifthenpay Pay by Link is the preferred payment direction because it keeps checkout/security surface minimal. The adapter exists but fails closed until credentials, contract details, callback URLs, and payment-status rules are confirmed.
 
 ## Access Or Permissions
 
@@ -89,6 +93,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - The public SvelteKit app uses a server-side write token for CRM writes only; no Sanity write token should ever be bundled into client-side code.
 - Required private runtime variables for live CRM writes: `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`; optional override: `SANITY_CRM_DATASET`.
 - Required private/runtime variables for Visual Editing preview: `SANITY_VIEWER_TOKEN`, `SANITY_STUDIO_PREVIEW_ORIGIN`, and `SANITY_STUDIO_URL`.
+- Required private/runtime variables for ecommerce orders/accounts: `DATABASE_URL`; run `npm run db:migrate` after provisioning.
+- Required private/runtime variables for production ecommerce email: `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.
 
 ## Edge Cases
 

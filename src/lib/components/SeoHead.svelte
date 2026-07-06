@@ -1,6 +1,13 @@
 <script lang="ts">
   import {page} from '$app/state'
-  import {cleanSeoText, seoDescription, siteName, titleWithSiteName, type JsonLd} from '$lib/seo'
+  import {
+    cleanSeoText,
+    defaultShareImagePath,
+    seoDescription,
+    siteName,
+    titleWithSiteName,
+    type JsonLd,
+  } from '$lib/seo'
   import {defaultLanguage, languages, type ContentImage, type LanguageCode} from '$lib/site-content'
 
   type SeoType = 'website' | 'article'
@@ -40,7 +47,7 @@
   const metaDescription = $derived(seoDescription(language, description))
   const canonicalUrl = $derived(`${page.url.origin}${page.url.pathname}${languageQuery(language)}`)
   const defaultUrl = $derived(`${page.url.origin}${page.url.pathname}`)
-  const imageUrl = $derived(absoluteUrl(image?.url))
+  const imageUrl = $derived(absoluteUrl(image?.url) ?? absoluteUrl(defaultShareImagePath))
   const imageAlt = $derived(cleanSeoText(image?.alt || siteName, 120))
 </script>
 

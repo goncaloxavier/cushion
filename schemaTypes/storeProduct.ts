@@ -45,14 +45,8 @@ export const storeProduct = defineType({
     defineField({
       name: 'summary',
       title: 'Resumo curto',
-      description: 'Frase simples para explicar o produto na Loja.',
+      description: 'Frase simples para explicar o produto no cartão e na página da Loja.',
       type: 'localizedText',
-      group: 'conteudo',
-    }),
-    defineField({
-      name: 'cataloguePage',
-      title: 'Página no catálogo PDF',
-      type: 'number',
       group: 'conteudo',
     }),
     defineField({
@@ -75,7 +69,7 @@ export const storeProduct = defineType({
       name: 'gallery',
       title: 'Galeria do produto',
       description:
-        'Fotografias adicionais para a página do produto. A imagem principal já aparece primeiro; aqui entram outros ângulos ou detalhes.',
+        'Fotografias e vídeos carregados para a página do produto. A imagem principal já aparece primeiro; aqui entram outros ângulos, detalhes ou vídeos curtos.',
       type: 'array',
       group: 'imagens',
       of: [
@@ -92,13 +86,44 @@ export const storeProduct = defineType({
             }),
           ],
         }),
+        defineField({
+          name: 'galleryVideo',
+          title: 'Vídeo carregado',
+          description: 'Ficheiro de vídeo para aparecer na galeria do produto da Loja.',
+          type: 'file',
+          options: {
+            accept: 'video/mp4,video/webm,video/quicktime',
+          },
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Título do vídeo',
+              description: 'Texto curto usado no player e na miniatura.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa',
+              description: 'Opcional. Usada como capa antes de abrir/reproduzir o vídeo.',
+              type: 'image',
+              options: {hotspot: true},
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  type: 'localizedString',
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     defineField({
       name: 'variants',
-      title: 'Medidas e preços',
+      title: 'Variantes, pesos e preços',
       description:
-        'Cada linha pode ser uma medida, versão com/sem tampa, ou outra variante comercial.',
+        'Cada linha é uma opção comprável. O website usa estes preços e pesos para calcular transporte, IVA e total final.',
       type: 'array',
       group: 'precos',
       of: [
@@ -110,35 +135,45 @@ export const storeProduct = defineType({
             defineField({
               name: 'label',
               title: 'Nome da variante',
+              description: 'Exemplo: 2000 mm, Com tampa, 750 x 750 mm.',
               type: 'localizedString',
               validation: (Rule) => Rule.required(),
             }),
             defineField({
               name: 'dimensions',
-              title: 'Dimensões / notas técnicas',
+              title: 'Dimensões visíveis',
+              description: 'Linhas curtas que aparecem na página do produto.',
               type: 'array',
               of: [{type: 'localizedString'}],
             }),
             defineField({
               name: 'weightKg',
               title: 'Peso (kg)',
+              description:
+                'Obrigatório para calcular transporte. Use o peso da unidade desta variante.',
               type: 'number',
+              validation: (Rule) => Rule.required().min(0.01).precision(2),
             }),
             defineField({
               name: 'priceNatural',
-              title: 'Preço Natural/Cinza',
+              title: 'Preço Natural/Cinza sem IVA',
+              description:
+                'Preço base da unidade, sem IVA e sem transporte. O website calcula transporte e IVA depois.',
               type: 'number',
-              validation: (Rule) => Rule.required().min(0),
+              validation: (Rule) => Rule.required().min(0).precision(2),
             }),
             defineField({
               name: 'priceDark',
-              title: 'Preço Castanho/Preto',
+              title: 'Preço Castanho/Preto sem IVA',
+              description:
+                'Preço base da unidade, sem IVA e sem transporte. O website calcula transporte e IVA depois.',
               type: 'number',
-              validation: (Rule) => Rule.required().min(0),
+              validation: (Rule) => Rule.required().min(0).precision(2),
             }),
             defineField({
               name: 'note',
-              title: 'Nota da variante',
+              title: 'Nota opcional da variante',
+              description: 'Use apenas quando esta variante precisar de uma explicação extra.',
               type: 'localizedText',
             }),
           ],

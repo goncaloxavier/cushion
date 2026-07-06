@@ -6,7 +6,7 @@
 - Frontend runtime: Svelte 5 with Vite 7 and `@sveltejs/adapter-node` for Node/Railway hosting.
 - CMS/content backend: Sanity Studio v6 with two workspaces.
 - Studio runtime: React 19, React DOM 19, styled-components, Sanity structure tool, Sanity Vision v6.
-- Database/storage: Sanity Content Lake, project `u4uyfix8`, public website dataset `production`, private CRM dataset `crm`.
+- Database/storage: Sanity Content Lake, project `u4uyfix8`, public website dataset `production`, private CRM dataset `crm`, plus Railway Postgres for customer accounts, sessions, addresses, orders, order items, payment attempts, and order history.
 - Build/deploy: Vite/SvelteKit scripts for the Railway public website and Sanity CLI scripts for the Studio.
 - Test tools: TypeScript, ESLint, Prettier, and Playwright are installed.
 
@@ -28,18 +28,24 @@ fallback multilingual content -> seed generator -> Sanity Content Lake starter d
 contact/catalogue form -> SvelteKit server action -> private Sanity `crm` dataset -> Studio "Pedidos" workspace
 ```
 
+```text
+Loja cart localStorage -> /finalizar-compra server action -> trusted public store content + Postgres order snapshot -> /painel/encomendas
+```
+
 ## Key Files And Folders
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
-- `src/routes/+layout.svelte` - shared header, desktop navigation, mobile bottom dock, language toggle, route progress, footer, social links, complaints/privacy/cookie links, and floating WhatsApp shortcut.
+- `src/routes/+layout.svelte` - shared header, desktop navigation, full-screen mobile overlay menu, account/cart/language controls, route progress, footer, social links, complaints/privacy/cookie links, and floating WhatsApp shortcut.
 - `src/routes/+page.svelte` - homepage; the hero uses the editable `home.heroVideoUrl` as a muted looping background YouTube embed and opens a full YouTube player from the video button; partner/project logos sit below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
 - `src/routes/produtos/[slug]/+page.server.ts` and `+page.svelte` - product/category detail route with a text-first editorial layout: one focused description sourced from product detail copy, an optional separated resistance/maintenance paragraph, full-frame shared `ImageGallery`, and quote/catalogue CTA.
 - `src/routes/loja/+page.svelte` - separate Loja route for catalogue-priced items; searchable/filterable/paginated cards show category, title, summary, and a starting price only.
 - `src/routes/loja/[slug]/+page.server.ts` and `+page.svelte` - Loja item detail route with variant/measure selection, finish/color selection, live product/transport/IVA price update, dimensions/weight, shared gallery/lightbox support, no-image placeholder, and an add-to-cart action.
-- `src/routes/carrinho/+page.svelte` - local quote-cart route; reads product selections and the stored delivery postal code from browser localStorage, resolves details/prices/transport estimates from current site content, and sends visitors to the contact form with `source=loja`.
+- `src/routes/carrinho/+page.svelte` - local cart/review route; reads product selections and the stored delivery postal code from browser localStorage, resolves details/prices/transport estimates from current site content, and sends visitors to `/finalizar-compra`.
+- `src/routes/finalizar-compra/+page.server.ts` and `+page.svelte` - guest/customer checkout route; uses CSRF and same-origin checks, rebuilds prices from trusted store content, creates a Postgres order with status `pending_payment_link`, snapshots item/price/transport/VAT data, and triggers transactional email attempts.
+- `src/routes/conta/**` - customer account routes for login, registration, logout, password recovery/reset, email verification, account overview, and order history. This is separate from staff `/painel` auth.
 - `src/routes/catalogo/+page.svelte` and `+page.server.ts` - catalogue route with its own request form (name, email, phone, morada, código postal, localidade; no message) and a dedicated server action that stores a `source: 'catalogue'` submission, separate from contact requests.
 - `src/routes/casos-de-estudo/+page.svelte` - case-study route.
 - `src/routes/casos-de-estudo/[slug]/+page.server.ts` and `+page.svelte` - case-study detail route with the description folded into the hero lead, shared `ImageGallery`, and optional challenge/solution/result cards.
@@ -47,7 +53,7 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `src/routes/blog/[slug]/+page.server.ts` and `+page.svelte` - blog article route.
 - `src/routes/contacto/+page.svelte` - contact route with required fields, consent checkbox, stable backend field names, and server action submission.
 - `src/routes/contacto/+page.server.ts` - contact form load/action: CSRF cookie, origin check, honeypot, server validation, and CRM submission.
-- `src/routes/painel/**` - private, server-rendered CRM backoffice (NOT Sanity Studio): username+password `login`, dashboard, and **minimal lists** (`catalogo`, `contactos`, `perfis`) whose rows open a **record/detail page** for viewing + editing — `pedidos/[id]` (request: status + internal notes, form-style) and `perfis/[id]` (client profile). `noindex`; guarded by the session check in `src/hooks.server.ts` (which sets `locals.staff`); reads/writes the private `crm` dataset only on the server. The root `+layout.svelte` hides the public chrome for `/painel`.
+- `src/routes/painel/**` - private, server-rendered backoffice (NOT Sanity Studio): username+password `login`, dashboard, CRM lists (`catalogo`, `contactos`, `perfis`) backed by private Sanity `crm`, and ecommerce order lists/details (`encomendas`) backed by Postgres. `noindex`; guarded by the session check in `src/hooks.server.ts` (which sets `locals.staff`). The root `+layout.svelte` hides the public chrome for `/painel`.
 - `playwright.config.ts` - desktop/mobile Playwright projects, bounded workers/timeouts, and local test server.
 - `scripts/write-sanity-seed.ts` - generates `.sanity/seed.ndjson` from fallback content.
 - `scripts/import-store-products.ts` - targeted, non-destructive Loja product starter importer; creates missing store products from fallback content and preserves existing manual documents.
@@ -60,8 +66,10 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.
 - `src/lib/store-fallback.ts` - fallback Loja product list, prices extracted from `Catalogo 244.pdf`, product weights, and approved starter Loja imagery as it arrives in batches.
-- `src/lib/store-shipping.ts` - delivery postal-code storage plus transport estimate logic for Loja/Carrinho, using Alto Alentejo as dispatch origin, the supplied transport table, 10% fuel surcharge, the current 2.5 transport multiplier, and 23% IVA on product plus transport.
+- `src/lib/store-shipping.ts` - delivery postal-code storage plus transport estimate logic for Loja/Carrinho/checkout, using Alto Alentejo as dispatch origin, the supplied transport table, 10% fuel surcharge, an editable/fallback transport multiplier, and 23% IVA on product plus transport.
 - `src/lib/cart.ts` - browser-only localStorage helpers for the Loja cart. Stores no personal data and exists only to carry selected products into the quote request flow.
+- `src/lib/server/db.ts`, `src/lib/server/customer-auth.ts`, `src/lib/server/orders.ts`, `src/lib/server/email.ts`, and `src/lib/server/payment.ts` - server-only ecommerce foundation: Postgres connection, customer scrypt auth/session/token handling, trusted order creation, Resend email attempts, and fail-closed Ifthenpay PayByLink adapter boundary.
+- `migrations/0001_commerce_foundation.sql` and `scripts/db-migrate.ts` - explicit Postgres schema and migration runner.
 - `src/lib/components/ImageGallery.svelte` - shared product/case/blog detail gallery and lightbox; locks background scroll while open and supports keyboard navigation.
 - `src/lib/components/Pagination.svelte` - shared numbered (windowed) pagination used by the product, Loja, case-study, and blog list routes; page state lives in each route, which passes `page`/`totalPages`/`onchange`.
 - `src/lib/article-structure.ts` and `src/lib/components/StructuredArticleBody.svelte` - shared plain-text article parser plus renderer for Studio-authored rich blog articles, with legacy body fallback for migrated posts.
@@ -97,9 +105,10 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - Public visitor Sanity document queries use `useCdn: true` for speed. Published Studio edits can take a few seconds to propagate outside preview; editors should use Presentation/Visual Editing when they need immediate draft/live review.
 - Visual Editing/Presentation preview uses a server-only token, `useCdn: false`, draft perspective, and stega metadata so Studio can show drafts and click-to-edit overlays without exposing the token to the browser.
 - Image asset URLs still use Sanity's CDN and the warm-up script uses uncached document queries only to pre-generate transformed image variants.
-- Private source of truth: Sanity project `u4uyfix8`, private dataset `crm`, document types `formSubmission` and `clientProfile`.
-- Confidential data: submitted names, email addresses, phone numbers, messages, consent text, internal notes, and CRM statuses belong only in the private `crm` dataset and must not be queried by public frontend loaders.
-- Local browser data: the Loja cart stores only product slugs, variant indexes, finish keys, and quantities under `df4y-store-cart-v1`; the Loja delivery gate stores only the postal code under `df4y-store-delivery-postal-code-v1`. Neither localStorage key may store names, emails, phone numbers, addresses, or free-text messages.
+- Private CRM source of truth: Sanity project `u4uyfix8`, private dataset `crm`, document types `formSubmission` and `clientProfile`.
+- Private ecommerce source of truth: Railway Postgres via `DATABASE_URL`, with tables for customers, sessions, email verification tokens, password reset tokens, addresses, orders, order items, order status events, payment attempts, and outbound email attempts.
+- Confidential data: submitted names, email addresses, phone numbers, messages, consent text, internal notes, CRM statuses, account records, addresses, sessions, payment status, and order history must not be queried by public Sanity loaders or stored in public Sanity datasets.
+- Local browser data: the Loja cart stores only product slugs, variant indexes, finish keys, and quantities under `df4y-store-cart-v1`; the Loja delivery gate stores only the postal code under `df4y-store-delivery-postal-code-v1`. Neither localStorage key may store names, emails, phone numbers, addresses, payment data, or free-text messages.
 - Derived data: SvelteKit build output from `npm run build` and Sanity Studio build output from `npm run build:studio`.
 - Runtime/generated data: `node_modules/`, `.svelte-kit/`, `build/`, `dist/`, `.sanity/`, `test-results/`, `playwright-report/`, and `tests/*-snapshots/`.
 - External services: Railway for the public website preview, Sanity Content Lake, and Sanity Studio hosting/deployment.
@@ -128,6 +137,12 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - `/loja`
 - `/loja/[slug]`
 - `/carrinho`
+- `/finalizar-compra`
+- `/conta`
+- `/conta/entrar`
+- `/conta/registar`
+- `/conta/recuperar-password`
+- `/conta/redefinir-password`
 - `/catalogo`
 - `/casos-de-estudo`
 - `/casos-de-estudo/[slug]`
@@ -153,12 +168,16 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 - When adding Sanity-backed content, update `src/lib/sanity.ts`, `src/lib/site-content.ts`, seed scripts, and matching routes together.
 - Loja is separate from Produtos: `productCategory` remains the broader product/category content model, while `storeProduct` is the priced item model with category, variants, dimensions, weight, finish prices, optional primary product image, optional product gallery, active flag, and order rank. The Loja list exposes only a starting price; the detail route handles variant/measure, finish/color selection, gallery inspection, and cart actions.
 - The Studio Loja section must stay structured for editors: page text, all products, visible products, category buckets, products missing primary images, products missing weights, and hidden products.
-- Carrinho is not ecommerce checkout: no payment, login, registration, stock, final shipping booking, or order creation exists. It is a local quote-preparation flow that estimates transport/IVA from the stored postal code, pre-fills the contact message from selected Loja items, and lets the server-side contact action create the private CRM submission.
+- Carrinho remains browser-local and stores no personal data. Checkout/order creation happens only in `/finalizar-compra`, where the server recalculates prices from trusted store content and writes a Postgres order snapshot.
+- Customer accounts are public-customer auth only and must stay separate from staff `/painel` auth. Customer password hashes, sessions, email verification tokens, and password reset tokens live in Postgres.
+- Store orders must snapshot product title, slug, variant, dimensions, finish, quantity, unit price, weight, transport, VAT, total, and transport multiplier so historical orders do not change when Sanity content changes.
+- Ifthenpay PayByLink must fail closed until real credentials/API details/callback URLs/status mapping exist. No fake payment flow should be exposed.
+- Resend transactional email is optional for local/dev but production checkout should configure `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.
 - Product categories, Loja products, case studies, and blog posts should keep editable Sanity image fields with hotspot support and localized alt text; product/case/blog detail galleries keep their gallery fields.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
 - Partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, public route rendering, and tests.
 - The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a muted looping hero background and as a full modal player from the video button. The old homepage media/gallery section has been removed; keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
-- Desktop navigation should expose the full primary route set, including Loja. Mobile navigation should use a stable high-value bottom dock and must not swap links based on the current route.
+- Desktop navigation should expose the full primary route set, including Loja. Mobile navigation should use the stable full-screen overlay menu and must not swap links based on the current route.
 - When adding public routes, fallback CMS items, or form/backend behavior, update Playwright route/CMS-contract coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.
 - When fallback starter content changes intentionally, update the seed workflow and rerun `npm run seed:studio` or `npm run deploy:content` only when the Content Lake should receive those changes.

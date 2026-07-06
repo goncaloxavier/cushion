@@ -1,6 +1,6 @@
 import {validatePreviewUrl} from '@sanity/preview-url-secret'
 import {previewSecretClient, previewEnabled} from '$lib/sanity'
-import {setPreviewCookie} from '$lib/server/preview'
+import {safeLocalRedirect, setPreviewCookie} from '$lib/server/preview'
 import {redirect} from '@sveltejs/kit'
 import type {RequestHandler} from './$types'
 
@@ -19,5 +19,5 @@ export const GET: RequestHandler = async ({url, cookies}) => {
 
   setPreviewCookie(cookies, url)
 
-  redirect(307, redirectTo)
+  redirect(307, safeLocalRedirect(redirectTo))
 }

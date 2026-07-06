@@ -509,11 +509,15 @@ test.describe('public website routes', () => {
       await page.locator('.cart-item').getByLabel('Quantidade').fill('2')
       await expect(page.locator('.cart-summary')).toContainText(/1.?588,21/)
 
-      await page.getByRole('link', {name: 'Pedir orçamento'}).click()
-      await expect(page).toHaveURL(/\/contacto\?lang=pt&source=loja/)
-      await expect(page.getByLabel('Mensagem')).toHaveValue(
-        /Mesa Vale do Arco[\s\S]*2450 mm[\s\S]*Castanho \/ Preto[\s\S]*2 x 565,00/,
-      )
+      await page.getByRole('link', {name: 'Finalizar pedido'}).click()
+      await expect(page).toHaveURL(/\/finalizar-compra\?lang=pt/)
+      await expect(page.getByRole('heading', {name: 'Finalizar pedido'})).toBeVisible()
+      await expect(page.locator('.checkout-summary')).toContainText('Mesa Vale do Arco')
+      await expect(page.locator('.checkout-summary')).toContainText('2450 mm')
+      await expect(page.locator('.checkout-summary')).toContainText('Castanho / Preto')
+      await expect(page.locator('.checkout-summary')).toContainText(/1.?588,21/)
+      await expect(page.getByLabel('Nome')).toBeVisible()
+      await expect(page.getByRole('button', {name: 'Submeter pedido'})).toBeVisible()
     })
 
     test('unknown CMS slugs return a not found page', async ({page}) => {

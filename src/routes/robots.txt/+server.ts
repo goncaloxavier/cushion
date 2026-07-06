@@ -6,6 +6,8 @@ Allow: /
 Disallow: /painel
 Disallow: /preview
 Disallow: /carrinho
+Disallow: /finalizar-compra
+Disallow: /conta
 
 Sitemap: ${url.origin}/sitemap.xml
 `

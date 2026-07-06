@@ -21,6 +21,14 @@ const previewCookieOptions = (url: URL) => {
 export const isPreview = (cookies: {get: (name: string) => string | undefined}): boolean =>
   cookies.get(PREVIEW_COOKIE) === '1'
 
+export const safeLocalRedirect = (value: string | null | undefined): string => {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+    return '/'
+  }
+
+  return value
+}
+
 export const setPreviewCookie = (cookies: Cookies, url: URL) => {
   cookies.set(PREVIEW_COOKIE, '1', {
     ...previewCookieOptions(url),

@@ -61,7 +61,7 @@
       empty: 'O carrinho ainda está vazio.',
       continueShopping: 'Continuar na loja',
       clear: 'Limpar carrinho',
-      request: 'Pedir orçamento',
+      request: 'Finalizar pedido',
       quantity: 'Quantidade',
       remove: 'Remover',
       removed: 'Produto removido do carrinho',
@@ -69,7 +69,7 @@
       unitPrice: 'Preço unitário',
       total: 'Total estimado',
       productSubtotal: 'Produtos s/ IVA',
-      transport: 'Transporte estimado',
+      transport: 'Transporte',
       iva: 'IVA 23%',
       finalTotal: 'Total c/ IVA',
       deliveryPostcode: 'Zona',
@@ -88,7 +88,7 @@
       empty: 'Your cart is still empty.',
       continueShopping: 'Continue shopping',
       clear: 'Clear cart',
-      request: 'Request a quote',
+      request: 'Checkout',
       quantity: 'Quantity',
       remove: 'Remove',
       removed: 'Item removed from cart',
@@ -96,7 +96,7 @@
       unitPrice: 'Unit price',
       total: 'Estimated total',
       productSubtotal: 'Products excl. VAT',
-      transport: 'Estimated transport',
+      transport: 'Transport',
       iva: 'VAT 23%',
       finalTotal: 'Total incl. VAT',
       deliveryPostcode: 'Zone',
@@ -115,7 +115,7 @@
       empty: 'El carrito todavía está vacío.',
       continueShopping: 'Seguir en tienda',
       clear: 'Vaciar carrito',
-      request: 'Pedir presupuesto',
+      request: 'Finalizar pedido',
       quantity: 'Cantidad',
       remove: 'Eliminar',
       removed: 'Producto eliminado del carrito',
@@ -123,7 +123,7 @@
       unitPrice: 'Precio unitario',
       total: 'Total estimado',
       productSubtotal: 'Productos sin IVA',
-      transport: 'Transporte estimado',
+      transport: 'Transporte',
       iva: 'IVA 23%',
       finalTotal: 'Total con IVA',
       deliveryPostcode: 'Zona',
@@ -188,6 +188,7 @@
         weightKg: row.variant.weightKg,
       })),
       deliveryPostalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
   const itemCount = $derived(cartTotalQuantity(items))
@@ -228,12 +229,18 @@
           class:store-blurred-preview={deliveryModalOpen}
           inert={deliveryModalOpen}
         >
-          <div>
-            <span>{labels.deliveryPostcode}</span>
-            <strong>{deliveryZonePrefix}</strong>
-            {#if deliveryZone}
-              <small>{deliveryZone.label}</small>
-            {/if}
+          <div class="store-delivery-info">
+            <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="2.6" />
+            </svg>
+            <span class="store-delivery-text">
+              <span>{labels.deliveryPostcode}</span>
+              <strong>{deliveryZonePrefix}</strong>
+              {#if deliveryZone}
+                <small>{deliveryZone.label}</small>
+              {/if}
+            </span>
           </div>
           <button type="button" onclick={() => (deliveryModalOpen = true)}>
             {labels.changePostcode}
@@ -363,7 +370,7 @@
             {/if}
           </dl>
 
-          <a class="button primary" href={`/contacto${langQuery}&source=loja`}>{labels.request}</a>
+          <a class="button primary" href={`/finalizar-compra${langQuery}`}>{labels.request}</a>
           <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
           <button class="cart-clear" type="button" onclick={clearCart}>{labels.clear}</button>
         </aside>

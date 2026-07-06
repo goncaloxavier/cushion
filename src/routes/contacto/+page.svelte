@@ -203,6 +203,7 @@
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),
       postalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     )
     const formatter = new Intl.NumberFormat(
       data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',

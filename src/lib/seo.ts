@@ -2,6 +2,10 @@ import type {LanguageCode} from '$lib/site-content'
 
 export const siteName = 'DaFábrica4You'
 
+// Fallback social/OG image for pages that don't supply their own, so shared
+// links never render a bare card.
+export const defaultShareImagePath = '/images/recycled-products-hero.png'
+
 export const defaultSeoDescriptions: Record<LanguageCode, string> = {
   pt: 'A DaFábrica4You transforma resíduos do amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
   en: 'DaFábrica4You transforms yellow waste into durable outdoor solutions designed for low maintenance.',

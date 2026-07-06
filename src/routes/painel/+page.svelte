@@ -25,8 +25,12 @@
     <strong>{data.stats.profiles}</strong>
     <span>Perfis de clientes</span>
   </a>
+  <a class="painel-stat" href="/painel/encomendas">
+    <strong>{data.stats.orders}</strong>
+    <span>Encomendas da loja</span>
+  </a>
   <div class="painel-stat" data-tone="accent">
-    <strong>{data.stats.newTotal}</strong>
+    <strong>{data.stats.newTotal + data.stats.pendingPaymentLink}</strong>
     <span>Pedidos por tratar</span>
   </div>
 </div>

@@ -8,13 +8,14 @@ Use this to help agents avoid accidental damage.
 - `src/routes/+layout.server.ts` - shared content load for all public routes.
 - `src/routes/+layout.svelte` - shared public navigation, language toggle, footer, social links, complaints link, and WhatsApp shortcut.
 - `src/routes/+page.svelte` and route folders under `src/routes/` - public presentation UI.
-- `src/routes/loja/+page.svelte`, `src/routes/loja/[slug]/+page.svelte`, `src/routes/carrinho/+page.svelte`, `src/lib/cart.ts`, `src/lib/store-shipping.ts`, and `src/lib/store-fallback.ts` - Loja list/detail/cart behavior, postal-code delivery estimates, catalogue-derived starter prices, and approved product imagery; avoid inventing prices, weights, names, product images, or checkout semantics.
+- `src/routes/loja/+page.svelte`, `src/routes/loja/[slug]/+page.svelte`, `src/routes/carrinho/+page.svelte`, `src/routes/finalizar-compra/**`, `src/routes/conta/**`, `src/routes/painel/encomendas/**`, `src/lib/cart.ts`, `src/lib/store-shipping.ts`, `src/lib/store-fallback.ts`, and `src/lib/server/orders.ts` - Loja list/detail/cart/checkout behavior, postal-code delivery estimates, catalogue-derived starter prices, approved product imagery, account sessions, and order snapshots; avoid inventing prices, weights, names, product images, or payment behavior.
 - `tests/visual.spec.ts` - optional visual screenshot coverage; generated `tests/*-snapshots/` folders are ignored session output.
 - `playwright.config.ts` - local browser-test server, worker/timeouts, and desktop/mobile projects.
 - `eslint.config.mjs` - ignores generated folders; if this regresses, lint can scan Playwright output and fail while tests run.
 - `scripts/write-sanity-seed.ts` - imports fallback content shape into Sanity seed documents.
 - `src/lib/sanity.ts` - Sanity query and project connection.
 - `src/lib/server/crm.ts` - private server-side CRM writer; mistakes can leak or fail customer submissions.
+- `src/lib/server/db.ts`, `src/lib/server/customer-auth.ts`, `src/lib/server/orders.ts`, `src/lib/server/email.ts`, and `src/lib/server/payment.ts` - private ecommerce foundation; mistakes can leak account/order data, weaken auth, or create false payment states.
 - `src/routes/contacto/+page.server.ts` - contact form validation, CSRF/origin checks, honeypot handling, and CRM submission.
 - `sanity.config.ts` - contains Studio workspaces, project id, datasets, plugins, and schema registration.
 - `sanity.structure.ts` - contains the client-facing Studio navigation.
@@ -31,15 +32,15 @@ Use this to help agents avoid accidental damage.
 - Sanity site-content fields, collection fields, GROQ projections, fallback handling, and public route rendering must stay aligned.
 - The public visitor Sanity client uses `useCdn: true` for speed, while the Visual Editing preview client must stay `useCdn: false` with draft perspective and stega metadata. Do not collapse those two clients into one.
 - Loja schema, fallback prices, fallback imagery/galleries, seed generation, GROQ projection, route filters/pagination, transport estimates, and tests must stay aligned.
-- Carrinho resolves local browser selections and the stored postal code against the current public Loja content. If product slugs, variant order, finish keys, weights, delivery-zone logic, or price tables change, update fallback/Sanity content and tests together.
-- The public `production` dataset and private `crm` dataset must remain separated. Do not query CRM documents from public layout/page loads.
+- Carrinho resolves local browser selections and the stored postal code against the current public Loja content. Checkout must then recalculate the order from trusted server-side public store content; if product slugs, variant order, finish keys, weights, delivery-zone logic, multipliers, or price tables change, update fallback/Sanity content, order snapshots, and tests together.
+- The public `production` dataset, private `crm` dataset, and private ecommerce Postgres database must remain separated. Do not query CRM/order/customer documents from public Sanity layout/page loads.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, privacy/cookie policy, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
 - Product-category video/tool fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, product imports, and the `/produtos/[slug]` detail route.
 - Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
-- Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable high-value bottom dock and marks the current route when that route is present in the dock.
+- Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable full-screen overlay menu with account/cart/language actions inside the menu.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
 
 ## User-Facing Workflows
@@ -49,7 +50,9 @@ Use this to help agents avoid accidental damage.
 - Editors uploading product, case-study, and blog images with localized alt text.
 - Editors maintaining Loja products, variants, finish prices, primary images, and galleries in Studio.
 - Visitors opening product, case-study, or blog gallery lightboxes; the page behind the modal should not scroll or change position until the lightbox closes.
-- Visitors entering a postal code to unlock Loja pricing, adding Loja products to Carrinho, adjusting quantities locally, reviewing estimated transport/IVA, and continuing to Contacto with a prefilled quote message.
+- Visitors entering a postal code to unlock Loja pricing, adding Loja products to Carrinho, adjusting quantities locally, reviewing estimated transport/IVA, and continuing to checkout.
+- Visitors checking out as guests or logged-in customers; the server must create a pending Postgres order and never trust client-sent prices.
+- Staff reviewing ecommerce orders in `/painel/encomendas`, including status changes and internal notes.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, privacy/cookie policy links, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
 - Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
@@ -62,15 +65,17 @@ Use this to help agents avoid accidental damage.
 - Hero image loading and mobile layout.
 - Sanity query behavior if collections grow large or need ordering/filtering beyond the current simple published list.
 - Above-the-fold logo/hero assets, lazy list images, page transitions, and scroll-reset scripts.
-- Floating WhatsApp placement, especially on mobile where it can compete with the bottom dock and forms.
+- Floating WhatsApp placement, especially on mobile where it can compete with menu affordances, toast/status UI, and forms.
 - Playwright performance: keep viewport-independent checks desktop-only, avoid duplicate paginated page walks, and prefer targeted browser screenshots when Xavier explicitly asks to skip E2E for a small UI fix.
 
 ## Security Or Access-Control Areas
 
 - Sanity project access and dataset permissions.
 - The private Sanity `crm` dataset, submitted personal data, internal notes, and client profile records.
+- The private Postgres ecommerce database, customer account records, sessions, saved addresses, order history, payment attempts, and outbound email logs.
 - The Carrinho localStorage key stores only non-personal product selections. The Loja delivery localStorage key stores only a postal code for transport estimates. Do not add names, emails, full addresses, phone numbers, or free-text messages to localStorage.
 - `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` must only exist in server/private runtime environments.
+- `DATABASE_URL`, `RESEND_API_KEY`, and future Ifthenpay credentials must only exist in server/private runtime environments.
 - `SANITY_VIEWER_TOKEN` is server-only too. It enables Presentation preview by reading drafts and `sanity.previewUrlSecret` documents; never expose it through public env vars, client code, logs, or generated files.
 - Future public/private content boundaries if non-public draft content is introduced.
 
@@ -87,7 +92,8 @@ Use this to help agents avoid accidental damage.
 - Rerunning `npm run seed:studio` or `npm run deploy:content` after manual Studio edits can replace deterministic/code-managed documents.
 - Treating PDF catalogue crops as product photography for the Loja before the client supplies approved images.
 - Showing Loja variants, dimensions, finish selectors, catalogue page badges, or proposal links on the list; those belong on the Loja detail route.
-- Turning Carrinho into checkout by accident. It is only a quote-preparation flow with transport estimates: no payments, login, registration, stock, shipping bookings, or final order records.
+- Trusting client-side cart totals during checkout. The server must rebuild every price/transport/VAT total from trusted store content and postal code before writing an order.
+- Exposing fake Ifthenpay payment behavior. PayByLink must stay fail-closed until real credentials, callbacks, and status rules are confirmed.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
 - Expecting visitor pages that use the cached public Sanity client to update instantly after publish. Immediate review belongs in Presentation/Visual Editing, which uses the uncached draft client.
 - Mixing `localhost` and `127.0.0.1` during Visual Editing review. Preview mode is cookie based, and those hosts do not share cookies; keep Studio and website preview on the same hostname.

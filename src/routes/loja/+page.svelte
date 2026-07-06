@@ -5,6 +5,7 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -117,6 +118,7 @@
     const estimate = calculateStoreEstimate(
       [{unitPrice: candidate.price, quantity: 1, weightKg: candidate.weightKg}],
       deliveryPostalCode,
+      {transportMultiplier: content.storePage.transportMultiplier},
     )
 
     if (estimate.totalGross !== null) return {price: estimate.totalGross, includesDelivery: true}
@@ -133,6 +135,15 @@
       .map((word) => word[0])
       .join('')
       .toLocaleUpperCase(data.language)
+
+  const storeProductFieldDataAttribute = (product: StoreProduct, path: string) =>
+    data.preview && data.studioUrl && product.studioDocumentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: product.studioDocumentId,
+          type: 'storeProduct',
+        })(path)
+      : undefined
 
   const searchableText = (product: StoreProduct) =>
     [
@@ -230,12 +241,18 @@
   <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}
       <Reveal class="store-delivery-strip" variant="panel">
-        <div>
-          <span>{localizedDeliveryLabels.postcode}</span>
-          <strong>{deliveryZonePrefix}</strong>
-          {#if deliveryZone}
-            <small>{deliveryZone.label}</small>
-          {/if}
+        <div class="store-delivery-info">
+          <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="2.6" />
+          </svg>
+          <span class="store-delivery-text">
+            <span>{localizedDeliveryLabels.postcode}</span>
+            <strong>{deliveryZonePrefix}</strong>
+            {#if deliveryZone}
+              <small>{deliveryZone.label}</small>
+            {/if}
+          </span>
         </div>
         <button
           type="button"
@@ -288,13 +305,18 @@
         <div class="store-grid" class:page-swap-out={swapping}>
           {#each visibleProducts as product, index}
             {@const entryPrice = entryPriceFor(product)}
+            {@const cardImageDataAttribute = storeProductFieldDataAttribute(product, 'image')}
             <Reveal class="store-card-reveal" delay={Math.min(index * 35, 180)} variant="card">
               <a
                 class="store-card"
                 href={collectionDetailHref(`/loja/${product.slug}`, data.language, page)}
                 data-store-product={product.slug}
               >
-                <div class={`store-card-visual ${product.image ? '' : 'no-image'}`}>
+                <div
+                  class={`store-card-visual ${product.image ? '' : 'no-image'}`}
+                  data-sanity={cardImageDataAttribute}
+                  data-sanity-edit-target={cardImageDataAttribute ? true : undefined}
+                >
                   {#if product.image}
                     <img
                       src={sizedImage(product.image.url, 640)}

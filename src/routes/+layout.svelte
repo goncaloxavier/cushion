@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
@@ -27,22 +28,31 @@
     | 'blog'
     | 'contact'
 
-  const primaryRouteItems = $derived([
+  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
+
+  const navItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
+    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
   ])
 
-  const productNavItem = $derived({key: 'products' as NavKey, href: '/produtos', label: content.nav.products})
+  const catalogueLabel = $derived(content.nav.catalogue)
 
-  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
-
-  const productMenuItems = $derived([
-    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
-  ])
+  const accountLabels: Record<string, {signedOut: string; account: string}> = {
+    pt: {signedOut: 'Entrar', account: 'Conta'},
+    en: {signedOut: 'Sign in', account: 'Account'},
+    es: {signedOut: 'Entrar', account: 'Cuenta'},
+  }
+  const accountStrings = $derived(accountLabels[data.language] ?? accountLabels.pt)
+  const isSignedIn = $derived(Boolean(data.account))
+  const accountHref = $derived(isSignedIn ? '/conta/dados' : '/conta/entrar')
+  const accountLabel = $derived(
+    isSignedIn ? accountStrings.account : accountStrings.signedOut,
+  )
+  const accountActive = $derived(data.currentPath.startsWith('/conta'))
 
   const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
   const isActive = (href: string) =>
@@ -60,9 +70,6 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
-  const productGroupActive = $derived(
-    currentNavKey === 'products' || currentNavKey === 'store' || currentNavKey === 'catalogue',
-  )
   let cartCount = $state(0)
   let menuOpen = $state(false)
   let menuVisible = $state(false)
@@ -70,7 +77,7 @@
   const mobileMenuItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
+    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
@@ -142,6 +149,15 @@
     return 'default'
   })
 
+  // The account tabs (dados/moradas/encomendas) share one scene key so the
+  // RouteScene + persistent shell aren't re-created on each tab switch — only
+  // the inner panel animates.
+  const sceneKey = $derived(
+    /^\/conta\/(dados|moradas|encomendas)/.test(data.currentPath)
+      ? `conta-area-${data.language}`
+      : `${data.currentPath}-${data.language}`,
+  )
+
   let smooth: SmoothScroll | null = null
 
   const detailRoute = /^\/(produtos|casos-de-estudo|blog)\/[^/]+$/
@@ -160,6 +176,12 @@
 
     const from = navigation.from?.url.pathname ?? ''
     const to = navigation.to?.url.pathname ?? ''
+
+    // Account tab switches animate their own panel; skip the full-page view
+    // transition so the shell (header + tabs) stays put instead of flashing.
+    const accountArea = /^\/conta\/(dados|moradas|encomendas)/
+    if (accountArea.test(from) && accountArea.test(to)) return
+
     document.documentElement.dataset.transition = transitionKind(from, to)
 
     return new Promise<void>((resolve) => {
@@ -234,41 +256,7 @@
   </div>
 
   <nav class="nav-links" aria-label="Main navigation">
-    {#each primaryRouteItems.slice(0, 2) as item}
-      <a
-        class:active={isActive(item.href)}
-        aria-current={isActive(item.href) ? 'page' : undefined}
-        href={withLanguage(item.href, data.language)}
-      >
-        {item.label}
-      </a>
-    {/each}
-
-    <div class="nav-group" class:active={productGroupActive}>
-      <a
-        class="nav-group-trigger"
-        class:active={isActive(productNavItem.href)}
-        aria-current={isActive(productNavItem.href) ? 'page' : undefined}
-        href={withLanguage(productNavItem.href, data.language)}
-      >
-        <span>{productNavItem.label}</span>
-        <span class="nav-caret" aria-hidden="true"></span>
-      </a>
-
-      <div class="nav-group-menu" aria-label={content.nav.products}>
-        {#each productMenuItems as item}
-          <a
-            class:active={isActive(item.href)}
-            aria-current={isActive(item.href) ? 'page' : undefined}
-            href={withLanguage(item.href, data.language)}
-          >
-            {item.label}
-          </a>
-        {/each}
-      </div>
-    </div>
-
-    {#each primaryRouteItems.slice(2) as item}
+    {#each navItems as item}
       <a
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
@@ -281,12 +269,33 @@
 
   <div class="header-actions">
     <a
+      class="catalogue-link"
+      class:active={currentNavKey === 'catalogue'}
+      aria-current={currentNavKey === 'catalogue' ? 'page' : undefined}
+      href={withLanguage('/catalogo', data.language)}
+    >
+      {catalogueLabel}
+    </a>
+    <a
       class="contact-link"
       class:active={currentNavKey === 'contact'}
       aria-current={currentNavKey === 'contact' ? 'page' : undefined}
       href={withLanguage('/contacto', data.language)}
     >
       {content.nav.contact}
+    </a>
+    <a
+      class="account-link"
+      class:active={accountActive}
+      class:signed-in={isSignedIn}
+      aria-current={accountActive ? 'page' : undefined}
+      href={withLanguage(accountHref, data.language)}
+    >
+      <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.4" />
+        <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+      </svg>
+      <span class="account-label">{accountLabel}</span>
     </a>
     <a
       class="cart-link"
@@ -333,6 +342,7 @@
     aria-modal="true"
     aria-label={menuStrings.menu}
     aria-hidden={!menuOpen}
+    use:trapFocus
   >
     <div class="mobile-menu-bar">
       <span class="mobile-menu-brand">
@@ -363,6 +373,22 @@
     </nav>
 
     <div class="mobile-menu-foot">
+      <a
+        class="account-link mobile-menu-account"
+        class:active={accountActive}
+        class:signed-in={isSignedIn}
+        aria-current={accountActive ? 'page' : undefined}
+        href={withLanguage(accountHref, data.language)}
+        onclick={closeMenu}
+      >
+        <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.4" />
+          <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+        </svg>
+        <span class="account-label">
+          {accountLabel}
+        </span>
+      </a>
       <a
         class="cart-link mobile-menu-cart"
         class:active={currentNavKey === 'cart'}
@@ -401,7 +427,7 @@
   </div>
 {/if}
 
-{#key `${data.currentPath}-${data.language}`}
+{#key sceneKey}
   <RouteScene kind={routeKind}>
     {@render children()}
   </RouteScene>

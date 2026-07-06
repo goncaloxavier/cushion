@@ -29,11 +29,11 @@ The website should feel premium, useful, calm, and alive.
 - Desktop uses a compact sticky header.
 - Desktop and mobile navigation should keep stable route sets instead of replacing links based on the current route.
 - The header logo is brand presence, not the only route home.
-- Mobile uses a persistent bottom dock for high-value routes and should keep its route set stable across pages. Keep this dock readable before trying to include every desktop route.
+- Mobile uses a full-screen overlay menu for navigation and should keep its route set stable across pages. Keep the trigger, close motion, account/cart/language actions, and active route state readable before adding extra decoration.
 - The top mobile header should stay light: brand, language, and orientation. It should not become a tall wrapped menu.
 - CTAs must take the visitor directly to the intended action. `Pedir orcamento` should go to contact/request, not force a catalogue detour and repeated clicks.
 - The first mobile hero actions should be centered as a group, with readable labels and stable tap targets.
-- Floating shortcuts such as WhatsApp can support low-friction contact, but they must not block form fields, important card text, or the mobile dock.
+- Floating shortcuts such as WhatsApp can support low-friction contact, but they must not block form fields, important card text, mobile menu controls, or toast/status UI.
 
 ## Page Density
 

@@ -104,8 +104,7 @@ export const authenticate = async (username: string, password: string): Promise<
 }
 
 // ---- sessions (only the token hash is stored) ----
-const tokenHashOf = (token: string) =>
-  createHmac('sha256', crmHashSecret() || 'df4y-session-pepper').update(token).digest('hex')
+const tokenHashOf = (token: string) => createHmac('sha256', crmHashSecret()).update(token).digest('hex')
 
 export const createSession = async (
   userId: string,
@@ -113,7 +112,7 @@ export const createSession = async (
   userAgent: string,
 ): Promise<{token: string; expiresAt: string} | null> => {
   const client = crmClient()
-  if (!client) return null
+  if (!client || !crmHashSecret()) return null
 
   const token = randomBytes(32).toString('base64url')
   const now = Date.now()
@@ -136,7 +135,7 @@ export const createSession = async (
 export const validateSession = async (token: string | undefined): Promise<StaffUser | null> => {
   if (!token) return null
   const client = crmClient()
-  if (!client) return null
+  if (!client || !crmHashSecret()) return null
 
   const session = await client.fetch<{
     _id: string
@@ -173,7 +172,7 @@ export const validateSession = async (token: string | undefined): Promise<StaffU
 export const destroySession = async (token: string | undefined) => {
   if (!token) return
   const client = crmClient()
-  if (!client) return
+  if (!client || !crmHashSecret()) return
 
   const ids = await client.fetch<string[]>(`*[_type=="staffSession" && tokenHash==$h]._id`, {
     h: tokenHashOf(token),

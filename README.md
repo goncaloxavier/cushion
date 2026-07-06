@@ -2,7 +2,7 @@
 
 Premium presentational website preparation for DaFábrica4You using SvelteKit and Sanity.
 
-The site is being shaped as a routed, multilingual sales/presentation website with editable CMS content for product categories, case studies, and blog posts.
+The site is being shaped as a routed, multilingual sales/presentation website with editable CMS content for product categories, store products, case studies, and blog posts. Private ecommerce data is kept out of Sanity and belongs in Railway Postgres.
 
 ## Local Development
 
@@ -21,6 +21,11 @@ npm run dev:studio
 - `/sobre-nos` - company story and principles.
 - `/produtos` - editable product-category index.
 - `/produtos/[slug]` - individual product/category detail route.
+- `/loja` - priced store-product index.
+- `/loja/[slug]` - individual priced store-product detail route.
+- `/carrinho` - local browser cart/review route.
+- `/finalizar-compra` - guest/customer checkout route that creates a pending Postgres order.
+- `/conta` - customer account/order-history area.
 - `/catalogo` - catalogue and quote-request flow.
 - `/casos-de-estudo` - editable project/case-study index.
 - `/casos-de-estudo/[slug]` - individual case-study detail route.
@@ -37,6 +42,7 @@ npm run check
 npm run lint
 npm run build
 npm run build:studio
+npm run db:migrate
 npm run deploy:content
 npm run e2e
 npm run seed:studio
@@ -58,6 +64,18 @@ Editors can create, publish, unpublish, update, and delete:
 The old `Landing page` schema is still registered as an experimental document, but the routed site currently reads the collection documents above.
 
 Published collection documents replace the matching fallback collection on the public site.
+
+Sanity is only the public CMS/catalogue editor for website copy, products, store prices/images, case studies, blog posts, and public store settings such as the transport multiplier. Customer accounts, addresses, sessions, orders, payment attempts, and order history are stored in Postgres.
+
+## Ecommerce Foundation
+
+Railway Postgres is the private source of truth for store checkout. Configure `DATABASE_URL` and run:
+
+```bash
+npm run db:migrate
+```
+
+Checkout supports guests and customer accounts. Orders are created as `pending_payment_link`; Ifthenpay PayByLink is intentionally fail-closed until credentials, callback URLs, and status rules are confirmed. Resend email is optional for local/dev, but production should set `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.
 
 ## Starter Content
 
