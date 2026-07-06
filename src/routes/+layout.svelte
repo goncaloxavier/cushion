@@ -174,6 +174,12 @@
 
     const from = navigation.from?.url.pathname ?? ''
     const to = navigation.to?.url.pathname ?? ''
+
+    // Account tab switches animate their own panel; skip the full-page view
+    // transition so the shell (header + tabs) stays put instead of flashing.
+    const accountArea = /^\/conta\/(dados|moradas|encomendas)/
+    if (accountArea.test(from) && accountArea.test(to)) return
+
     document.documentElement.dataset.transition = transitionKind(from, to)
 
     return new Promise<void>((resolve) => {
