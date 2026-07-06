@@ -47,7 +47,8 @@ const actionGuard = async (
 
 // Guard + CSRF live in the shared (area) layout; await parent() ensures the
 // guard runs before this touches locals.customer.
-export const load: PageServerLoad = async ({locals, parent}) => {
+export const load: PageServerLoad = async ({depends, locals, parent}) => {
+  depends('account:addresses')
   await parent()
   return {
     addresses: await listCustomerAddresses(locals.customer!.id),

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import {enhance} from '$app/forms'
+
   type AddressType = 'billing' | 'delivery'
   type Address = {
     id: string
@@ -28,12 +30,16 @@
     addressType,
     labels,
     onCancel,
+    onSuccess,
+    onError,
   } = $props<{
     csrfToken: string
     address?: Address | null
     addressType: AddressType
     labels: Labels
     onCancel: () => void
+    onSuccess?: () => void
+    onError?: (message: string) => void
   }>()
 
   const fields = $state({
@@ -47,7 +53,17 @@
   const autocompleteScope = $derived(addressType === 'delivery' ? 'shipping' : 'billing')
 </script>
 
-<form method="POST" action="?/saveAddress" class="account-form account-edit-form">
+<form
+  method="POST"
+  action="?/saveAddress"
+  class="account-form account-edit-form"
+  use:enhance={() =>
+    async ({result}) => {
+      if (result.type === 'success') onSuccess?.()
+      else if (result.type === 'failure')
+        onError?.((result.data as {message?: string} | undefined)?.message ?? '')
+    }}
+>
   <input type="hidden" name="csrfToken" value={csrfToken} />
   <input type="hidden" name="addressType" value={addressType} />
   {#if address}

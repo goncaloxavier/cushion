@@ -1,9 +1,12 @@
 <script lang="ts">
+  import {enhance} from '$app/forms'
+  import {invalidate} from '$app/navigation'
+  import type {SubmitFunction} from '@sveltejs/kit'
   import AccountAddressEditor from '$lib/components/AccountAddressEditor.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import {showToast} from '$lib/toast'
 
-  let {data, form} = $props()
+  let {data} = $props()
 
   type AddressType = 'billing' | 'delivery'
   type Copy = {
@@ -126,7 +129,6 @@
   const deliveryAddresses = $derived(data.addresses.filter((address) => address.addressType === 'delivery'))
   let creatingType = $state<AddressType | ''>('')
   let editingId = $state('')
-  let toastKey = $state('')
 
   const startCreate = (type: AddressType) => {
     editingId = ''
@@ -136,31 +138,29 @@
     creatingType = ''
     editingId = ''
   }
-  $effect(() => {
-    let key = ''
-    let message = ''
-    let tone: 'success' | 'error' = 'success'
 
-    if (form?.address === 'saved') {
-      key = 'address-saved'
-      message = t.saved
-    } else if (form?.address === 'deleted') {
-      key = 'address-deleted'
-      message = t.deleted
-    } else if (form?.address === 'default') {
-      key = 'address-default'
-      message = t.defaultSaved
-    } else if (form?.address === 'error' && form?.message) {
-      key = `address-error-${form.message}`
-      message = form.message
-      tone = 'error'
+  // Refresh only the address list (depends('account:addresses')) instead of
+  // invalidateAll() — keeps the shell mounted, no page remount.
+  const onAddressSaved = async () => {
+    closeEditor()
+    await invalidate('account:addresses')
+    showToast(t.saved)
+  }
+  const onAddressError = (message: string) => {
+    if (message) showToast(message, 'error')
+  }
+  const afterAddressAction =
+    (successMessage: string): SubmitFunction =>
+    () =>
+    async ({result}) => {
+      if (result.type === 'success') {
+        await invalidate('account:addresses')
+        showToast(successMessage)
+      } else if (result.type === 'failure') {
+        const message = (result.data as {message?: string} | undefined)?.message
+        if (message) showToast(message, 'error')
+      }
     }
-
-    if (key && key !== toastKey) {
-      toastKey = key
-      showToast(message, tone)
-    }
-  })
 </script>
 
 <svelte:head>
@@ -187,6 +187,8 @@
               addressType="billing"
               labels={editorLabels}
               onCancel={closeEditor}
+              onSuccess={onAddressSaved}
+              onError={onAddressError}
             />
           </div>
         {/if}
@@ -202,6 +204,8 @@
                     addressType="billing"
                     labels={editorLabels}
                     onCancel={closeEditor}
+              onSuccess={onAddressSaved}
+              onError={onAddressError}
                   />
                 </div>
               {:else}
@@ -223,13 +227,13 @@
                       {t.edit}
                     </button>
                     {#if !address.isDefault}
-                      <form method="POST" action="?/setDefault">
+                      <form method="POST" action="?/setDefault" use:enhance={afterAddressAction(t.defaultSaved)}>
                         <input type="hidden" name="csrfToken" value={data.csrfToken} />
                         <input type="hidden" name="addressId" value={address.id} />
                         <button class="account-edit-btn" type="submit">{t.makeDefault}</button>
                       </form>
                     {/if}
-                    <form method="POST" action="?/deleteAddress">
+                    <form method="POST" action="?/deleteAddress" use:enhance={afterAddressAction(t.deleted)}>
                       <input type="hidden" name="csrfToken" value={data.csrfToken} />
                       <input type="hidden" name="addressId" value={address.id} />
                       <button class="account-edit-btn danger" type="submit">{t.remove}</button>
@@ -257,6 +261,8 @@
               addressType="delivery"
               labels={editorLabels}
               onCancel={closeEditor}
+              onSuccess={onAddressSaved}
+              onError={onAddressError}
             />
           </div>
         {/if}
@@ -272,6 +278,8 @@
                     addressType="delivery"
                     labels={editorLabels}
                     onCancel={closeEditor}
+              onSuccess={onAddressSaved}
+              onError={onAddressError}
                   />
                 </div>
               {:else}
@@ -293,13 +301,13 @@
                       {t.edit}
                     </button>
                     {#if !address.isDefault}
-                      <form method="POST" action="?/setDefault">
+                      <form method="POST" action="?/setDefault" use:enhance={afterAddressAction(t.defaultSaved)}>
                         <input type="hidden" name="csrfToken" value={data.csrfToken} />
                         <input type="hidden" name="addressId" value={address.id} />
                         <button class="account-edit-btn" type="submit">{t.makeDefault}</button>
                       </form>
                     {/if}
-                    <form method="POST" action="?/deleteAddress">
+                    <form method="POST" action="?/deleteAddress" use:enhance={afterAddressAction(t.deleted)}>
                       <input type="hidden" name="csrfToken" value={data.csrfToken} />
                       <input type="hidden" name="addressId" value={address.id} />
                       <button class="account-edit-btn danger" type="submit">{t.remove}</button>
