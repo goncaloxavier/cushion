@@ -39,16 +39,16 @@
 
   const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
 
-  const accountLabels: Record<string, {signedOut: string; account: string; greeting: string}> = {
-    pt: {signedOut: 'Entrar', account: 'Conta', greeting: 'Olá'},
-    en: {signedOut: 'Sign in', account: 'Account', greeting: 'Hi'},
-    es: {signedOut: 'Entrar', account: 'Cuenta', greeting: 'Hola'},
+  const accountLabels: Record<string, {signedOut: string; account: string}> = {
+    pt: {signedOut: 'Entrar', account: 'Conta'},
+    en: {signedOut: 'Sign in', account: 'Account'},
+    es: {signedOut: 'Entrar', account: 'Cuenta'},
   }
   const accountStrings = $derived(accountLabels[data.language] ?? accountLabels.pt)
   const isSignedIn = $derived(Boolean(data.account))
-  const accountHref = $derived(isSignedIn ? '/conta' : '/conta/entrar')
+  const accountHref = $derived(isSignedIn ? '/conta/dados' : '/conta/entrar')
   const accountLabel = $derived(
-    isSignedIn ? data.account?.firstName || accountStrings.account : accountStrings.signedOut,
+    isSignedIn ? accountStrings.account : accountStrings.signedOut,
   )
   const accountActive = $derived(data.currentPath.startsWith('/conta'))
 
@@ -404,7 +404,7 @@
           <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
         </svg>
         <span class="account-label">
-          {#if isSignedIn}{accountStrings.greeting}, {data.account?.firstName || accountStrings.account}{:else}{accountStrings.signedOut}{/if}
+          {accountLabel}
         </span>
       </a>
       <a

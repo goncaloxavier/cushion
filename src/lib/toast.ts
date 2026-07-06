@@ -1,7 +1,7 @@
 import {writable} from 'svelte/store'
 
 // Tiny global toast queue for lightweight feedback (e.g. cart add/remove).
-export type ToastTone = 'success' | 'info'
+export type ToastTone = 'success' | 'info' | 'error'
 export type ToastItem = {id: number; message: string; tone: ToastTone}
 
 export const toasts = writable<ToastItem[]>([])

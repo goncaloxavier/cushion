@@ -7967,18 +7967,19 @@ html.reduce-motion {
 }
 
 .account-shell,
-.checkout-section {
+.checkout-shell {
   margin: 0 auto;
   padding: clamp(4rem, 7vw, 7rem) var(--mobile-gutter);
 }
 
-.checkout-section {
-  max-width: var(--max);
+.account-shell {
+  max-width: 68rem;
 }
 
-/* Account is a single, calm centered column — no asymmetric split. */
-.account-shell {
-  max-width: 47rem;
+.checkout-shell {
+  display: grid;
+  gap: clamp(1.35rem, 3vw, 2.25rem);
+  max-width: 66rem;
 }
 
 .account-head {
@@ -7991,23 +7992,30 @@ html.reduce-motion {
 
 .account-head h1,
 .account-form-card h1,
+.checkout-head h1,
 .checkout-success h1 {
   margin-bottom: 0;
   color: var(--ink);
   font-size: clamp(2.1rem, 5vw, 3.8rem);
 }
 
-.checkout-layout {
+.checkout-head {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: clamp(1rem, 3vw, 2rem);
-  align-items: start;
+  gap: 0.4rem;
+  justify-items: start;
+  width: min(100%, 62rem);
+  max-width: 62rem;
+  margin: 0 auto;
+  padding-bottom: clamp(0.95rem, 2vw, 1.25rem);
+  text-align: left;
+  border-bottom: 1px solid rgba(17, 57, 60, 0.14);
 }
 
-.account-grid {
+.checkout-flow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
+  gap: clamp(1.15rem, 2.4vw, 1.75rem);
+  width: min(100%, 62rem);
+  margin: 0 auto;
 }
 
 .account-card,
@@ -8023,14 +8031,42 @@ html.reduce-motion {
   box-shadow: 0 1rem 2.4rem rgba(33, 34, 31, 0.06);
 }
 
+.account-card {
+  scroll-margin-top: 6.5rem;
+}
+
 .account-form-card,
 .checkout-success {
   width: min(calc(100% - 2rem), 34rem);
   margin: clamp(3rem, 10vw, 6rem) auto;
 }
 
-.account-card h2,
-.checkout-summary h2 {
+.checkout-success {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.checkout-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checkout-card-head h2 {
+  margin: 0.18rem 0 0;
+  color: var(--ink);
+  font-size: clamp(1.55rem, 3.4vw, 2.35rem);
+  line-height: 1.05;
+}
+
+.checkout-card-head .kicker {
+  margin: 0;
+}
+
+.account-card h2 {
   margin: 0 0 1rem;
   color: var(--ink);
   font-size: 1.55rem;
@@ -8102,7 +8138,7 @@ html.reduce-motion {
 
 .account-order-list article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 0.8rem;
   align-items: center;
   padding: 0.85rem;
@@ -8112,30 +8148,70 @@ html.reduce-motion {
 }
 
 .account-order-list span {
+  display: block;
   color: var(--muted);
   font-size: 0.9rem;
 }
 
 .account-form,
-.checkout-form,
-.checkout-form fieldset {
+.checkout-form {
   display: grid;
   gap: 1rem;
 }
 
+.checkout-form,
+.checkout-summary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 253, 251, 0.98)),
+    radial-gradient(circle at 100% 0%, rgba(45, 123, 87, 0.08), transparent 18rem);
+  border-color: rgba(17, 57, 60, 0.14);
+}
+
+.checkout-form {
+  gap: clamp(1rem, 2vw, 1.35rem);
+}
+
+.checkout-summary {
+  position: relative;
+  overflow: hidden;
+  padding-top: clamp(1.9rem, 3.6vw, 2.75rem);
+}
+
+.checkout-summary::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  content: '';
+  background: linear-gradient(90deg, var(--green-dark), var(--green), var(--gold));
+}
+
+.checkout-card-head {
+  padding-bottom: clamp(0.85rem, 1.8vw, 1.1rem);
+  border-bottom: 1px solid rgba(17, 57, 60, 0.12);
+}
+
 .checkout-form fieldset {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
   margin: 0;
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: clamp(1.05rem, 2.5vw, 1.45rem);
+  background: linear-gradient(180deg, #fbfdfc, #f7fbf8);
+  border: 1px solid rgba(17, 57, 60, 0.12);
+  border-radius: 10px;
+}
+
+.checkout-form fieldset label:first-of-type {
+  grid-column: 1 / -1;
 }
 
 .checkout-form legend {
-  padding: 0 0.35rem;
+  padding: 0 0.45rem;
   color: var(--green-dark);
-  font-family: var(--display);
-  font-weight: 850;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .account-form label,
@@ -8152,6 +8228,7 @@ html.reduce-motion {
 .checkout-form select,
 .checkout-form textarea {
   width: 100%;
+  min-height: 3.15rem;
   padding: 0.78rem 0.9rem;
   color: var(--ink);
   font: inherit;
@@ -8172,17 +8249,46 @@ html.reduce-motion {
   grid-column: 1 / -1;
 }
 
+.checkout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.2rem;
+}
+
+.checkout-final-actions {
+  justify-content: flex-end;
+  margin-top: -0.35rem;
+}
+
 .checkout-lines {
   display: grid;
-  gap: 0.65rem;
-  margin: 1rem 0 1.2rem;
+  gap: 0.75rem;
+  margin: clamp(1rem, 2vw, 1.25rem) 0;
 }
 
 .checkout-lines article {
   display: grid;
-  gap: 0.22rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem 1rem;
+  align-items: start;
+  padding: 0.9rem;
+  background: #ffffff;
+  border: 1px solid rgba(17, 57, 60, 0.08);
+  border-radius: 8px;
+}
+
+.checkout-lines article strong,
+.checkout-lines article span {
+  display: block;
+}
+
+.checkout-lines article > span:last-child {
+  color: var(--ink);
+  font-weight: 850;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .checkout-lines span,
@@ -8218,20 +8324,34 @@ html.reduce-motion {
     align-items: start;
     flex-direction: column;
   }
-
-  .account-grid,
-  .checkout-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .checkout-summary {
-    order: -1;
-  }
 }
 
 @media (max-width: 640px) {
+  .checkout-card-head,
+  .checkout-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .checkout-card-head .button,
+  .checkout-actions .button {
+    width: 100%;
+  }
+
   .checkout-form fieldset {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .checkout-form fieldset label:first-of-type {
+    grid-column: auto;
+  }
+
+  .checkout-lines article {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .checkout-lines article > span:last-child {
+    text-align: left;
   }
 
   .account-order-list article,
@@ -8239,6 +8359,10 @@ html.reduce-motion {
   .checkout-summary dl div {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
+  }
+
+  .account-order-list article {
+    gap: 0.55rem;
   }
 
   .account-details div,
@@ -8555,6 +8679,98 @@ html.reduce-motion {
   font-family: var(--display);
 }
 
+.account-nav {
+  position: relative;
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 1.5rem;
+  padding: 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 57, 60, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 0.75rem 1.8rem rgba(13, 52, 56, 0.05);
+  scrollbar-width: none;
+}
+
+.account-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.account-nav a {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: 0.68rem 0.95rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: 8px;
+  transition: color 220ms ease;
+}
+
+/* Single sliding highlight that glides between tabs. */
+.account-nav-pill {
+  position: absolute;
+  top: 0.35rem;
+  left: 0;
+  z-index: 0;
+  height: calc(100% - 0.7rem);
+  background: var(--green-dark);
+  border-radius: 8px;
+  opacity: 0;
+  transition:
+    transform 340ms var(--ease-snap),
+    width 340ms var(--ease-snap),
+    opacity 200ms ease;
+}
+
+.account-nav-pill.ready {
+  opacity: 1;
+}
+
+.account-nav a:hover,
+.account-nav a:focus-visible {
+  color: var(--green-dark);
+  background: #f4faf6;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(45, 123, 87, 0.18);
+}
+
+.account-nav a.active {
+  color: #ffffff;
+  background: transparent;
+  box-shadow: none;
+}
+
+.account-nav a.active:hover,
+.account-nav a.active:focus-visible {
+  color: #ffffff;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-nav-pill {
+    transition: opacity 200ms ease;
+  }
+}
+
+.account-orders {
+  grid-column: 1 / -1;
+}
+
+.account-address-block > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
 .account-verify {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -8675,6 +8891,15 @@ html.reduce-motion {
   border-color: rgba(17, 57, 60, 0.28);
 }
 
+.account-edit-btn.danger {
+  color: #96362a;
+}
+
+.account-edit-btn.danger:hover {
+  color: #ffffff;
+  background: #96362a;
+}
+
 .account-edit-btn svg {
   width: 0.95rem;
   height: 0.95rem;
@@ -8709,23 +8934,81 @@ html.reduce-motion {
   margin-top: 0.6rem;
 }
 
-.account-subsection {
-  margin-top: 1.4rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid var(--line);
-}
-
-.account-subsection h3 {
-  margin: 0 0 0.5rem;
-  color: var(--ink);
-  font-size: 1.05rem;
-}
-
 .account-address {
   margin: 0;
   color: var(--ink);
   font-weight: 650;
   line-height: 1.5;
+}
+
+.account-address-block {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  background: #f8fbf9;
+  border: 1px solid rgba(17, 57, 60, 0.1);
+  border-radius: 10px;
+}
+
+.account-address-block.is-default {
+  border-color: rgba(45, 123, 87, 0.24);
+  box-shadow: inset 4px 0 0 rgba(45, 123, 87, 0.32);
+}
+
+.account-address-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.account-address-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.account-address-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 2.4vw, 1.4rem);
+  align-items: start;
+}
+
+.account-address-section {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.account-address-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.account-address-section-head h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.08rem;
+}
+
+.account-address-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.account-address-actions form {
+  margin: 0;
+}
+
+.account-inline-form {
+  padding: 1rem;
+  background: #f8fbf9;
+  border: 1px solid rgba(17, 57, 60, 0.11);
+  border-radius: 10px;
 }
 
 @media (max-width: 860px) {
@@ -8754,9 +9037,52 @@ html.reduce-motion {
   .account-verify .button.secondary {
     width: 100%;
   }
+
 }
 
 @media (max-width: 520px) {
+  .account-shell {
+    padding-top: clamp(2.5rem, 9vw, 4rem);
+  }
+
+  .account-head {
+    margin-bottom: 1.25rem;
+  }
+
+  .account-nav {
+    margin-right: calc(var(--mobile-gutter) * -1);
+    margin-left: calc(var(--mobile-gutter) * -1);
+    padding-right: var(--mobile-gutter);
+    padding-left: var(--mobile-gutter);
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .account-address-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-address-section-head,
+  .account-card-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-address-section-head .account-edit-btn,
+  .account-card-head .account-edit-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .account-edit-actions {
+    flex-direction: column;
+  }
+
+  .account-edit-actions .button {
+    width: 100%;
+  }
+
   .account-form-row {
     grid-template-columns: 1fr;
   }
@@ -9468,6 +9794,10 @@ html.reduce-motion {
   background: #33443d;
 }
 
+.toast[data-tone='error'] {
+  background: #96362a;
+}
+
 .toast-mark {
   display: grid;
   place-items: center;
@@ -9480,6 +9810,10 @@ html.reduce-motion {
 
 .toast[data-tone='info'] .toast-mark {
   color: #33443d;
+}
+
+.toast[data-tone='error'] .toast-mark {
+  color: #96362a;
 }
 
 .toast-mark svg {

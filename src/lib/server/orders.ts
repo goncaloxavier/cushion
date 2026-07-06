@@ -125,10 +125,14 @@ export type OrderStatusEventRow = {
 export type CustomerAddressRow = {
   id: string
   addressType: 'billing' | 'delivery'
+  name: string
   addressLine1: string
+  addressLine2: string
   postalCode: string
   locality: string
   country: string
+  isDefault: boolean
+  updatedAt: string
 }
 
 export type OrderDetail = OrderRow & {
@@ -228,10 +232,14 @@ const mapEvent = (row: Record<string, unknown>): OrderStatusEventRow => ({
 const mapAddress = (row: Record<string, unknown>): CustomerAddressRow => ({
   id: String(row.id),
   addressType: String(row.address_type) === 'billing' ? 'billing' : 'delivery',
+  name: String(row.name ?? ''),
   addressLine1: String(row.address_line1 ?? ''),
+  addressLine2: String(row.address_line2 ?? ''),
   postalCode: String(row.postal_code ?? ''),
   locality: String(row.locality ?? ''),
   country: String(row.country ?? 'PT'),
+  isDefault: Boolean(row.is_default),
+  updatedAt: String(row.updated_at ?? ''),
 })
 
 const transportMultiplierFor = (content: SiteContent) =>
@@ -548,30 +556,169 @@ export const listCustomerDefaultAddresses = async (
   return result.rows.map(mapAddress)
 }
 
-// Upserts the customer's default delivery address (used by the account page and
-// pre-fills checkout). Mirrors the append+flag pattern used when creating orders.
+export const listCustomerAddresses = async (customerId: string): Promise<CustomerAddressRow[]> => {
+  if (!databaseConfigured()) return []
+  const result = await query(
+    `select *
+     from customer_addresses
+     where customer_id = $1
+     order by address_type asc, is_default desc, updated_at desc`,
+    [customerId],
+  )
+  return result.rows.map(mapAddress)
+}
+
+export type CustomerAddressInput = {
+  name: string
+  line1: string
+  line2: string
+  postalCode: string
+  locality: string
+  country: string
+}
+
+const cleanCountry = (value: string) => cleanLine(value, 2).toUpperCase() || 'PT'
+
+export const createCustomerAddress = async (
+  customerId: string,
+  addressType: 'billing' | 'delivery',
+  input: CustomerAddressInput,
+  makeDefault = false,
+) => {
+  if (!databaseConfigured()) return null
+  return withTransaction(async (client) => {
+    const shouldDefault = makeDefault
+    if (shouldDefault) {
+      await client.query(
+        `update customer_addresses set is_default = false, updated_at = now()
+         where customer_id = $1 and address_type = $2`,
+        [customerId, addressType],
+      )
+    }
+    const result = await client.query(
+      `insert into customer_addresses (
+        customer_id, address_type, name, address_line1, address_line2, postal_code, locality, country, is_default
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      returning *`,
+      [
+        customerId,
+        addressType,
+        cleanLine(input.name, 120),
+        cleanLine(input.line1, 240),
+        cleanLine(input.line2, 240),
+        normalizePostalCode(input.postalCode),
+        cleanLine(input.locality, 120),
+        cleanCountry(input.country),
+        shouldDefault,
+      ],
+    )
+    return mapAddress(result.rows[0])
+  })
+}
+
+// Appends a new default address while keeping previous entries as address history.
+export const saveCustomerAddress = async (
+  customerId: string,
+  addressType: 'billing' | 'delivery',
+  input: {line1: string; postalCode: string; locality: string},
+) =>
+  createCustomerAddress(
+    customerId,
+    addressType,
+    {name: '', line1: input.line1, line2: '', postalCode: input.postalCode, locality: input.locality, country: 'PT'},
+    true,
+  )
+
 export const saveCustomerDeliveryAddress = async (
   customerId: string,
   input: {line1: string; postalCode: string; locality: string},
-) => {
-  if (!databaseConfigured()) return
-  await withTransaction(async (client) => {
+) => saveCustomerAddress(customerId, 'delivery', input)
+
+export const updateCustomerAddress = async (
+  customerId: string,
+  addressId: string,
+  input: CustomerAddressInput,
+): Promise<CustomerAddressRow | null> => {
+  if (!databaseConfigured()) return null
+  const result = await query(
+    `update customer_addresses
+     set name = $3, address_line1 = $4, address_line2 = $5, postal_code = $6,
+         locality = $7, country = $8, updated_at = now()
+     where customer_id = $1 and id = $2
+     returning *`,
+    [
+      customerId,
+      addressId,
+      cleanLine(input.name, 120),
+      cleanLine(input.line1, 240),
+      cleanLine(input.line2, 240),
+      normalizePostalCode(input.postalCode),
+      cleanLine(input.locality, 120),
+      cleanCountry(input.country),
+    ],
+  )
+  return result.rows[0] ? mapAddress(result.rows[0]) : null
+}
+
+export const setCustomerDefaultAddress = async (
+  customerId: string,
+  addressId: string,
+): Promise<boolean> => {
+  if (!databaseConfigured()) return false
+  return withTransaction(async (client) => {
+    const current = await client.query(
+      `select address_type from customer_addresses where customer_id = $1 and id = $2 limit 1`,
+      [customerId, addressId],
+    )
+    const addressType = current.rows[0]?.address_type
+    if (addressType !== 'billing' && addressType !== 'delivery') return false
     await client.query(
       `update customer_addresses set is_default = false, updated_at = now()
-       where customer_id = $1 and address_type = 'delivery'`,
-      [customerId],
+       where customer_id = $1 and address_type = $2`,
+      [customerId, addressType],
     )
     await client.query(
-      `insert into customer_addresses (
-        customer_id, address_type, address_line1, postal_code, locality, is_default
-      ) values ($1, 'delivery', $2, $3, $4, true)`,
-      [
-        customerId,
-        cleanLine(input.line1, 240),
-        normalizePostalCode(input.postalCode),
-        cleanLine(input.locality, 120),
-      ],
+      `update customer_addresses set is_default = true, updated_at = now()
+       where customer_id = $1 and id = $2`,
+      [customerId, addressId],
     )
+    return true
+  })
+}
+
+export const deleteCustomerAddress = async (
+  customerId: string,
+  addressId: string,
+): Promise<boolean> => {
+  if (!databaseConfigured()) return false
+  return withTransaction(async (client) => {
+    const current = await client.query(
+      `select address_type, is_default
+       from customer_addresses
+       where customer_id = $1 and id = $2
+       limit 1`,
+      [customerId, addressId],
+    )
+    const row = current.rows[0]
+    if (!row) return false
+    await client.query(`delete from customer_addresses where customer_id = $1 and id = $2`, [
+      customerId,
+      addressId,
+    ])
+    if (row.is_default) {
+      await client.query(
+        `update customer_addresses
+         set is_default = true, updated_at = now()
+         where id = (
+           select id from customer_addresses
+           where customer_id = $1 and address_type = $2
+           order by updated_at desc
+           limit 1
+         )`,
+        [customerId, row.address_type],
+      )
+    }
+    return true
   })
 }
 

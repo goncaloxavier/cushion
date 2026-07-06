@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({cookies, getClientAddress, request, u
         userAgent: request.headers.get('user-agent') ?? '',
       })
       setCustomerSessionCookie(cookies, session.token, session.expiresAt, url.protocol === 'https:')
-      redirect(303, `/conta?lang=${language}&email=verified`)
+      redirect(303, `/conta/dados?lang=${language}&email=verified`)
     }
   }
 

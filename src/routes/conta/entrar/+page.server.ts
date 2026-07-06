@@ -23,7 +23,7 @@ const clean = (value: FormDataEntryValue | null, max = 254) =>
     .slice(0, max)
 
 export const load: PageServerLoad = async ({cookies, locals, url}) => {
-  if (locals.customer) redirect(303, `/conta?lang=${url.searchParams.get('lang') || 'pt'}`)
+  if (locals.customer) redirect(303, `/conta/dados?lang=${url.searchParams.get('lang') || 'pt'}`)
   return {
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/conta/entrar', url.protocol === 'https:'),
     databaseReady: databaseConfigured(),
@@ -87,6 +87,6 @@ export const actions: Actions = {
       userAgent: request.headers.get('user-agent') ?? '',
     })
     setCustomerSessionCookie(cookies, session.token, session.expiresAt, url.protocol === 'https:')
-    redirect(303, `/conta?lang=${language}`)
+    redirect(303, `/conta/dados?lang=${language}`)
   },
 }
