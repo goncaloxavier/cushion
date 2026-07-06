@@ -10,7 +10,9 @@ let counter = 0
 
 export const showToast = (message: string, tone: ToastTone = 'success') => {
   const id = (counter += 1)
-  toasts.update((list) => [...list, {id, message, tone}])
+  // Toasts are short status confirmations — drop trailing sentence punctuation.
+  const text = message.trim().replace(/[.!]+$/, '')
+  toasts.update((list) => [...list, {id, message: text, tone}])
 
   if (typeof window !== 'undefined') {
     window.setTimeout(() => {
