@@ -42,11 +42,17 @@
     onError?: (message: string) => void
   }>()
 
+  // Portuguese postal code: 4 digits, a hyphen, then up to 3 more (1234-567).
+  const formatPostalCode = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 7)
+    return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits
+  }
+
   const fields = $state({
     name: address?.name ?? '',
     addressLine1: address?.addressLine1 ?? '',
     addressLine2: address?.addressLine2 ?? '',
-    postalCode: address?.postalCode ?? '',
+    postalCode: formatPostalCode(address?.postalCode ?? ''),
     locality: address?.locality ?? '',
     country: address?.country ?? 'PT',
   })
@@ -88,7 +94,16 @@
   <div class="account-form-row">
     <label>
       <span>{labels.postalCode}</span>
-      <input name="postalCode" autocomplete={`${autocompleteScope} postal-code`} required bind:value={fields.postalCode} />
+      <input
+        name="postalCode"
+        autocomplete={`${autocompleteScope} postal-code`}
+        inputmode="numeric"
+        maxlength="8"
+        placeholder="1234-567"
+        required
+        value={fields.postalCode}
+        oninput={(event) => (fields.postalCode = formatPostalCode(event.currentTarget.value))}
+      />
     </label>
     <label>
       <span>{labels.locality}</span>
