@@ -156,6 +156,15 @@
     return 'default'
   })
 
+  // The account tabs (dados/moradas/encomendas) share one scene key so the
+  // RouteScene + persistent shell aren't re-created on each tab switch — only
+  // the inner panel animates.
+  const sceneKey = $derived(
+    /^\/conta\/(dados|moradas|encomendas)/.test(data.currentPath)
+      ? `conta-area-${data.language}`
+      : `${data.currentPath}-${data.language}`,
+  )
+
   let smooth: SmoothScroll | null = null
 
   const detailRoute = /^\/(produtos|casos-de-estudo|blog)\/[^/]+$/
@@ -451,7 +460,7 @@
   </div>
 {/if}
 
-{#key `${data.currentPath}-${data.language}`}
+{#key sceneKey}
   <RouteScene kind={routeKind}>
     {@render children()}
   </RouteScene>
