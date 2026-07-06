@@ -37,6 +37,9 @@ export type CheckoutCustomerInput = {
   deliveryPostalCode: string
   deliveryLocality: string
   customerNotes: string
+  paymentMethod: string
+  persistBillingAddress?: boolean
+  persistDeliveryAddress?: boolean
   language: LanguageCode
 }
 
@@ -70,6 +73,7 @@ export type OrderRow = {
   status: string
   paymentStatus: string
   paymentProvider: string
+  paymentMethod: string
   paymentUrl: string | null
   paymentReference: string | null
   language: string
@@ -175,6 +179,7 @@ const mapOrder = (row: Record<string, unknown>): OrderRow => ({
   status: String(row.status),
   paymentStatus: String(row.payment_status),
   paymentProvider: String(row.payment_provider),
+  paymentMethod: String(row.payment_method ?? ''),
   paymentUrl: row.payment_url ? String(row.payment_url) : null,
   paymentReference: row.payment_reference ? String(row.payment_reference) : null,
   language: String(row.language),
@@ -328,13 +333,15 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         order_number, customer_id, language, customer_name, email, phone, nif, purchase_type,
         billing_address, billing_postal_code, billing_locality,
         delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
-        customer_notes, product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier
+        customer_notes, product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
+        payment_method
       )
       values (
         $1, $2, $3, $4, $5, $6, $7, $8,
         $9, $10, $11,
         $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22
+        $16, $17, $18, $19, $20, $21, $22,
+        $23
       )
       returning *`,
       [
@@ -360,6 +367,7 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         draft.totalGross,
         draft.totalWeightKg,
         draft.transportMultiplier,
+        cleanLine(input.paymentMethod, 20),
       ],
     )
     const order = mapOrder(orderResult.rows[0])
@@ -410,6 +418,12 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
       )
 
       for (const addressType of ['billing', 'delivery'] as const) {
+        const shouldPersist =
+          addressType === 'billing'
+            ? input.persistBillingAddress !== false
+            : input.persistDeliveryAddress !== false
+        if (!shouldPersist) continue
+
         const address =
           addressType === 'billing'
             ? {
@@ -562,7 +576,7 @@ export const listCustomerAddresses = async (customerId: string): Promise<Custome
     `select *
      from customer_addresses
      where customer_id = $1
-     order by address_type asc, created_at asc`,
+     order by address_type asc, is_default desc, updated_at desc`,
     [customerId],
   )
   return result.rows.map(mapAddress)

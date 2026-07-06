@@ -2,6 +2,8 @@ import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
 import {
   calculateStoreEstimate,
+  normalizePostalCode,
+  normalizeStorePostalCode,
   storeDispatchZone,
   storeTransportFuelSurchargeRate,
   storeTransportMultiplier,
@@ -399,6 +401,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(styles).toContain('html.lightbox-open')
     expect(styles).toContain('body.lightbox-open')
     expect(styles).toContain('object-fit: contain')
+  })
+
+  test('postal code formatting keeps full addresses while store zones use four digits', () => {
+    expect(normalizePostalCode('2460-209')).toBe('2460-209')
+    expect(normalizePostalCode('2460209')).toBe('2460-209')
+    expect(normalizeStorePostalCode('2460-209')).toBe('2460')
   })
 
   test('Loja transport pricing applies the confirmed Alto Alentejo formula', () => {

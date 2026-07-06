@@ -1,7 +1,7 @@
 <script lang="ts">
   import type {LanguageCode} from '$lib/site-content'
   import {
-    normalizePostalCode,
+    normalizeStorePostalCode,
     postalCodeIssue,
     postalZoneFor,
     writeStorePostalCode,
@@ -89,7 +89,7 @@
   const zone = $derived(postalZoneFor(postalCode))
 
   $effect(() => {
-    const normalized = normalizePostalCode(initialPostalCode)
+    const normalized = normalizeStorePostalCode(initialPostalCode)
     if (normalized === previousInitialPostalCode) return
 
     previousInitialPostalCode = normalized
@@ -155,7 +155,7 @@
         placeholder={labels.placeholder}
         aria-invalid={Boolean(error)}
         oninput={() => {
-          postalCode = normalizePostalCode(postalCode)
+          postalCode = normalizeStorePostalCode(postalCode)
           error = ''
         }}
       />

@@ -4,9 +4,10 @@ import {databaseConfigured} from '$lib/server/db'
 import {
   buildOrderDraft,
   createOrder,
-  listCustomerDefaultAddresses,
+  listCustomerAddresses,
   OrderInputError,
   sendOrderEmails,
+  type CustomerAddressRow,
   type CheckoutCartItem,
 } from '$lib/server/orders'
 import {contentFromSanity, getLanguage, type StoreFinish} from '$lib/site-content'
@@ -49,9 +50,18 @@ const parseCartItems = (value: FormDataEntryValue | null): CheckoutCartItem[] =>
 export const load: PageServerLoad = async ({cookies, locals, url}) => ({
   csrfToken: issueCsrfToken(cookies, csrfCookieName, '/finalizar-compra', url.protocol === 'https:'),
   customer: locals.customer,
-  addresses: locals.customer ? await listCustomerDefaultAddresses(locals.customer.id) : [],
+  addresses: locals.customer ? await listCustomerAddresses(locals.customer.id) : [],
   databaseReady: databaseConfigured(),
 })
+
+const selectedAddress = (
+  addresses: CustomerAddressRow[],
+  addressType: 'billing' | 'delivery',
+  addressId: string,
+) => {
+  if (!addressId || addressId === 'custom') return null
+  return addresses.find((address) => address.addressType === addressType && address.id === addressId) ?? null
+}
 
 export const actions: Actions = {
   default: async ({cookies, locals, request, url}) => {
@@ -69,10 +79,16 @@ export const actions: Actions = {
       billingAddress: cleanLine(form.get('billingAddress'), 240),
       billingPostalCode: cleanLine(form.get('billingPostalCode'), 32),
       billingLocality: cleanLine(form.get('billingLocality'), 120),
+      billingAddressId: cleanLine(form.get('billingAddressId'), 80),
       deliveryAddress: cleanLine(form.get('deliveryAddress'), 240),
       deliveryPostalCode: cleanLine(form.get('deliveryPostalCode'), 32),
       deliveryLocality: cleanLine(form.get('deliveryLocality'), 120),
+      deliveryAddressId: cleanLine(form.get('deliveryAddressId'), 80),
       customerNotes: cleanText(form.get('customerNotes'), 2000),
+      paymentMethod: ((): string => {
+        const method = cleanLine(form.get('paymentMethod'), 20)
+        return method === 'multibanco' || method === 'card' ? method : 'mbway'
+      })(),
     }
 
     if (!sameOriginOk(request.headers.get('origin'), request.headers.get('referer'), url.origin)) {
@@ -90,6 +106,34 @@ export const actions: Actions = {
       })
     }
 
+    let persistBillingAddress = true
+    let persistDeliveryAddress = true
+    if (locals.customer) {
+      const addresses = await listCustomerAddresses(locals.customer.id)
+      const billing = selectedAddress(addresses, 'billing', values.billingAddressId)
+      const delivery = selectedAddress(addresses, 'delivery', values.deliveryAddressId)
+
+      if (values.billingAddressId && values.billingAddressId !== 'custom') {
+        if (!billing) {
+          return fail(400, {message: 'Escolha uma morada de faturação válida.', values})
+        }
+        values.billingAddress = billing.addressLine1
+        values.billingPostalCode = billing.postalCode
+        values.billingLocality = billing.locality
+        persistBillingAddress = false
+      }
+
+      if (values.deliveryAddressId && values.deliveryAddressId !== 'custom') {
+        if (!delivery) {
+          return fail(400, {message: 'Escolha uma morada de entrega válida.', values})
+        }
+        values.deliveryAddress = delivery.addressLine1
+        values.deliveryPostalCode = delivery.postalCode
+        values.deliveryLocality = delivery.locality
+        persistDeliveryAddress = false
+      }
+    }
+
     const required = [
       values.name,
       values.email,
@@ -103,6 +147,20 @@ export const actions: Actions = {
     ]
     if (required.some((value) => value.length < 2) || !values.email.includes('@')) {
       return fail(400, {message: 'Preencha todos os dados obrigatórios para finalizar o pedido.', values})
+    }
+
+    if (values.paymentMethod === 'card') {
+      return fail(400, {
+        message: 'Pagamento por cartão fica disponível em breve. Escolha MB WAY ou Multibanco.',
+        values,
+      })
+    }
+
+    if (values.paymentMethod === 'mbway' && !/^9\d{8}$/.test(values.phone.replace(/\D/g, '').replace(/^351/, ''))) {
+      return fail(400, {
+        message: 'Indique um telemóvel português válido (9 dígitos) para pagar com MB WAY.',
+        values,
+      })
     }
 
     let cartItems: CheckoutCartItem[]
@@ -120,6 +178,8 @@ export const actions: Actions = {
       const order = await createOrder(
         {
           ...values,
+          persistBillingAddress,
+          persistDeliveryAddress,
           customerId: locals.customer?.id ?? null,
           language,
         },

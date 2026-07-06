@@ -53,6 +53,12 @@
       guestHint:
         'Pode finalizar como convidado. Criar conta permite consultar histórico de encomendas.',
       notReady: 'Checkout ainda não configurado neste ambiente.',
+      preferredAddress: 'Preferida',
+      differentAddress: 'Criar nova morada',
+      differentAddressHint: 'Será usada nesta encomenda e guardada na sua conta.',
+      chooseAddress: 'Selecionar',
+      selectedAddress: 'Selecionada',
+      createAddressAction: 'Criar',
     },
     en: {
       kicker: 'Checkout',
@@ -90,6 +96,12 @@
       toConfirm: 'To confirm',
       guestHint: 'You can check out as a guest. An account lets you see order history.',
       notReady: 'Checkout is not configured in this environment yet.',
+      preferredAddress: 'Preferred',
+      differentAddress: 'Create new address',
+      differentAddressHint: 'Used for this order and saved to your account.',
+      chooseAddress: 'Select',
+      selectedAddress: 'Selected',
+      createAddressAction: 'Create',
     },
     es: {
       kicker: 'Checkout',
@@ -128,14 +140,107 @@
       guestHint:
         'Puedes finalizar como invitado. Crear una cuenta permite consultar el historial.',
       notReady: 'Checkout aún no está configurado en este entorno.',
+      preferredAddress: 'Preferida',
+      differentAddress: 'Crear nueva dirección',
+      differentAddressHint: 'Se usará en este pedido y se guardará en tu cuenta.',
+      chooseAddress: 'Seleccionar',
+      selectedAddress: 'Seleccionada',
+      createAddressAction: 'Crear',
     },
   }
 
+  const paymentCopy: Record<
+    string,
+    {
+      title: string
+      mbwayHint: string
+      multibancoHint: string
+      card: string
+      cardHint: string
+      soon: string
+      mbwayNote: string
+      multibancoNote: string
+      cardSoon: string
+    }
+  > = {
+    pt: {
+      title: 'Método de pagamento',
+      mbwayHint: 'Confirme no telemóvel, sem introduzir cartão',
+      multibancoHint: 'Receba uma referência para pagar no Multibanco ou app',
+      card: 'Cartão',
+      cardHint: 'Visa, Mastercard',
+      soon: 'Em breve',
+      mbwayNote: 'Vamos enviar um pedido MB WAY para o telemóvel indicado acima',
+      multibancoNote: 'A referência Multibanco é enviada após confirmarmos a encomenda',
+      cardSoon: 'Pagamento por cartão a chegar em breve',
+    },
+    en: {
+      title: 'Payment method',
+      mbwayHint: 'Confirm on your phone, no card details needed',
+      multibancoHint: 'Get a reference to pay at Multibanco or your bank app',
+      card: 'Card',
+      cardHint: 'Visa, Mastercard',
+      soon: 'Soon',
+      mbwayNote: "We'll send an MB WAY request to the phone entered above",
+      multibancoNote: 'The Multibanco reference is sent once we confirm the order',
+      cardSoon: 'Card payment is coming soon',
+    },
+    es: {
+      title: 'Método de pago',
+      mbwayHint: 'Confirma en el móvil, sin introducir tarjeta',
+      multibancoHint: 'Recibe una referencia para pagar en Multibanco o la app',
+      card: 'Tarjeta',
+      cardHint: 'Visa, Mastercard',
+      soon: 'Pronto',
+      mbwayNote: 'Enviaremos una solicitud MB WAY al móvil indicado arriba',
+      multibancoNote: 'La referencia Multibanco se envía tras confirmar el pedido',
+      cardSoon: 'El pago con tarjeta llegará pronto',
+    },
+  }
+
+  type CheckoutAddress = {
+    id: string
+    addressType: 'billing' | 'delivery'
+    name: string
+    addressLine1: string
+    addressLine2: string
+    postalCode: string
+    locality: string
+    country: string
+    isDefault: boolean
+  }
+
+  const initialValues = (form?.values ?? {}) as Record<string, string>
+  const initialAddressChoice = (addressType: 'billing' | 'delivery') => {
+    const field = addressType === 'billing' ? 'billingAddressId' : 'deliveryAddressId'
+    if (initialValues[field]) return initialValues[field]
+    const addresses = (data.addresses as CheckoutAddress[]).filter((address) => address.addressType === addressType)
+    return addresses.find((address) => address.isDefault)?.id ?? addresses[0]?.id ?? 'custom'
+  }
+  const formatAddress = (address: CheckoutAddress) =>
+    [
+      address.addressLine1,
+      address.addressLine2,
+      `${address.postalCode} ${address.locality}`.trim(),
+      address.country,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
   const content = $derived(data.site[data.language])
   const labels = $derived(checkoutCopy[data.language])
+  const pay = $derived(paymentCopy[data.language] ?? paymentCopy.pt)
+  let paymentMethod = $state((form?.values as {paymentMethod?: string})?.paymentMethod ?? 'mbway')
   const customer = $derived(data.customer)
-  const billingAddress = $derived(data.addresses.find((address) => address.addressType === 'billing'))
-  const deliveryAddress = $derived(data.addresses.find((address) => address.addressType === 'delivery'))
+  const billingAddresses = $derived((data.addresses as CheckoutAddress[]).filter((address) => address.addressType === 'billing'))
+  const deliveryAddresses = $derived((data.addresses as CheckoutAddress[]).filter((address) => address.addressType === 'delivery'))
+  let selectedBillingAddressId = $state(initialAddressChoice('billing'))
+  let selectedDeliveryAddressId = $state(initialAddressChoice('delivery'))
+  let customDeliveryPostalCode = $state(initialValues.deliveryPostalCode ?? deliveryPostalCode)
+  const billingAddress = $derived(billingAddresses.find((address) => address.id === selectedBillingAddressId) ?? null)
+  const deliveryAddress = $derived(deliveryAddresses.find((address) => address.id === selectedDeliveryAddressId) ?? null)
+  const useCustomBillingAddress = $derived(!customer || !billingAddresses.length || selectedBillingAddressId === 'custom' || !billingAddress)
+  const useCustomDeliveryAddress = $derived(!customer || !deliveryAddresses.length || selectedDeliveryAddressId === 'custom' || !deliveryAddress)
   const langQuery = $derived(`?lang=${data.language}`)
   const values = $derived(form?.values ?? {})
   const money = $derived(
@@ -163,7 +268,7 @@
         quantity: row.item.quantity,
         weightKg: row.variant.weightKg,
       })),
-      deliveryPostalCode,
+      deliveryAddress?.postalCode ?? (customDeliveryPostalCode || deliveryPostalCode),
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
@@ -180,7 +285,9 @@
 
   onMount(() => {
     const refreshDelivery = () => {
-      deliveryPostalCode = readStorePostalCode()
+      const postalCode = readStorePostalCode()
+      deliveryPostalCode = postalCode
+      if (!customDeliveryPostalCode) customDeliveryPostalCode = postalCode
     }
     cart = readCart()
     refreshDelivery()
@@ -262,34 +369,154 @@
 
           <fieldset>
             <legend>{labels.billing}</legend>
-            <label>
-              <span>{labels.address}</span>
-              <input name="billingAddress" autocomplete="billing street-address" required value={values.billingAddress ?? billingAddress?.addressLine1 ?? ''} />
-            </label>
-            <label>
-              <span>{labels.postalCode}</span>
-              <input name="billingPostalCode" autocomplete="billing postal-code" required value={values.billingPostalCode ?? billingAddress?.postalCode ?? deliveryPostalCode} />
-            </label>
-            <label>
-              <span>{labels.locality}</span>
-              <input name="billingLocality" autocomplete="billing address-level2" required value={values.billingLocality ?? billingAddress?.locality ?? ''} />
-            </label>
+            {#if customer}
+              <div class="checkout-address-choices">
+                {#each billingAddresses as address (address.id)}
+                  <label class="checkout-address-choice" class:selected={selectedBillingAddressId === address.id}>
+                    <input type="radio" name="billingAddressId" value={address.id} bind:group={selectedBillingAddressId} />
+                    <span class="checkout-address-choice-body">
+                      <strong>
+                        {address.name || labels.billing}
+                        {#if address.isDefault}<em>{labels.preferredAddress}</em>{/if}
+                      </strong>
+                      <small>{formatAddress(address)}</small>
+                    </span>
+                    <span class="checkout-address-choice-action">
+                      {selectedBillingAddressId === address.id ? labels.selectedAddress : labels.chooseAddress}
+                    </span>
+                  </label>
+                {/each}
+                <label class="checkout-address-choice" class:selected={useCustomBillingAddress}>
+                  <input type="radio" name="billingAddressId" value="custom" bind:group={selectedBillingAddressId} />
+                  <span class="checkout-address-choice-body">
+                    <strong>{labels.differentAddress}</strong>
+                    <small>{labels.differentAddressHint}</small>
+                  </span>
+                  <span class="checkout-address-choice-action">{labels.createAddressAction}</span>
+                </label>
+              </div>
+            {/if}
+
+            {#if useCustomBillingAddress}
+              <label>
+                <span>{labels.address}</span>
+                <input name="billingAddress" autocomplete="billing street-address" required value={values.billingAddress ?? ''} />
+              </label>
+              <label>
+                <span>{labels.postalCode}</span>
+                <input name="billingPostalCode" autocomplete="billing postal-code" required value={values.billingPostalCode ?? deliveryPostalCode} />
+              </label>
+              <label>
+                <span>{labels.locality}</span>
+                <input name="billingLocality" autocomplete="billing address-level2" required value={values.billingLocality ?? ''} />
+              </label>
+            {:else if billingAddress}
+              <input type="hidden" name="billingAddress" value={billingAddress.addressLine1} />
+              <input type="hidden" name="billingPostalCode" value={billingAddress.postalCode} />
+              <input type="hidden" name="billingLocality" value={billingAddress.locality} />
+            {/if}
           </fieldset>
 
           <fieldset>
             <legend>{labels.delivery}</legend>
-            <label>
-              <span>{labels.address}</span>
-              <input name="deliveryAddress" autocomplete="shipping street-address" required value={values.deliveryAddress ?? deliveryAddress?.addressLine1 ?? ''} />
-            </label>
-            <label>
-              <span>{labels.postalCode}</span>
-              <input name="deliveryPostalCode" autocomplete="shipping postal-code" required value={values.deliveryPostalCode ?? deliveryAddress?.postalCode ?? deliveryPostalCode} />
-            </label>
-            <label>
-              <span>{labels.locality}</span>
-              <input name="deliveryLocality" autocomplete="shipping address-level2" required value={values.deliveryLocality ?? deliveryAddress?.locality ?? ''} />
-            </label>
+            {#if customer}
+              <div class="checkout-address-choices">
+                {#each deliveryAddresses as address (address.id)}
+                  <label class="checkout-address-choice" class:selected={selectedDeliveryAddressId === address.id}>
+                    <input type="radio" name="deliveryAddressId" value={address.id} bind:group={selectedDeliveryAddressId} />
+                    <span class="checkout-address-choice-body">
+                      <strong>
+                        {address.name || labels.delivery}
+                        {#if address.isDefault}<em>{labels.preferredAddress}</em>{/if}
+                      </strong>
+                      <small>{formatAddress(address)}</small>
+                    </span>
+                    <span class="checkout-address-choice-action">
+                      {selectedDeliveryAddressId === address.id ? labels.selectedAddress : labels.chooseAddress}
+                    </span>
+                  </label>
+                {/each}
+                <label class="checkout-address-choice" class:selected={useCustomDeliveryAddress}>
+                  <input type="radio" name="deliveryAddressId" value="custom" bind:group={selectedDeliveryAddressId} />
+                  <span class="checkout-address-choice-body">
+                    <strong>{labels.differentAddress}</strong>
+                    <small>{labels.differentAddressHint}</small>
+                  </span>
+                  <span class="checkout-address-choice-action">{labels.createAddressAction}</span>
+                </label>
+              </div>
+            {/if}
+
+            {#if useCustomDeliveryAddress}
+              <label>
+                <span>{labels.address}</span>
+                <input name="deliveryAddress" autocomplete="shipping street-address" required value={values.deliveryAddress ?? ''} />
+              </label>
+              <label>
+                <span>{labels.postalCode}</span>
+                <input name="deliveryPostalCode" autocomplete="shipping postal-code" required bind:value={customDeliveryPostalCode} />
+              </label>
+              <label>
+                <span>{labels.locality}</span>
+                <input name="deliveryLocality" autocomplete="shipping address-level2" required value={values.deliveryLocality ?? ''} />
+              </label>
+            {:else if deliveryAddress}
+              <input type="hidden" name="deliveryAddress" value={deliveryAddress.addressLine1} />
+              <input type="hidden" name="deliveryPostalCode" value={deliveryAddress.postalCode} />
+              <input type="hidden" name="deliveryLocality" value={deliveryAddress.locality} />
+            {/if}
+          </fieldset>
+
+          <fieldset class="checkout-payment">
+            <legend>{pay.title}</legend>
+            <div class="payment-methods">
+              <label class="payment-method" class:selected={paymentMethod === 'mbway'}>
+                <input type="radio" name="paymentMethod" value="mbway" bind:group={paymentMethod} />
+                <span class="payment-method-mark" aria-hidden="true"></span>
+                <span class="payment-logo payment-logo-mbway" aria-hidden="true">
+                  <img src="/payment/mb-way.svg" alt="" loading="lazy" decoding="async" />
+                </span>
+                <span class="payment-method-body">
+                  <strong>MB WAY</strong>
+                  <small>{pay.mbwayHint}</small>
+                </span>
+              </label>
+              <label class="payment-method" class:selected={paymentMethod === 'multibanco'}>
+                <input type="radio" name="paymentMethod" value="multibanco" bind:group={paymentMethod} />
+                <span class="payment-method-mark" aria-hidden="true"></span>
+                <span class="payment-logo payment-logo-multibanco" aria-hidden="true">
+                  <img src="/payment/multibanco.svg" alt="" loading="lazy" decoding="async" />
+                </span>
+                <span class="payment-method-body">
+                  <strong>Multibanco</strong>
+                  <small>{pay.multibancoHint}</small>
+                </span>
+              </label>
+              <label class="payment-method" class:selected={paymentMethod === 'card'}>
+                <input type="radio" name="paymentMethod" value="card" bind:group={paymentMethod} />
+                <span class="payment-method-mark" aria-hidden="true"></span>
+                <span class="payment-card-logos" aria-hidden="true">
+                  <img src="/payment/visa.svg" alt="" loading="lazy" decoding="async" />
+                  <img src="/payment/mastercard.svg" alt="" loading="lazy" decoding="async" />
+                </span>
+                <span class="payment-method-body">
+                  <strong>{pay.card} <span class="payment-soon">{pay.soon}</span></strong>
+                  <small>{pay.cardHint}</small>
+                </span>
+              </label>
+            </div>
+
+            {#if paymentMethod === 'mbway'}
+              <p class="payment-note">{pay.mbwayNote}</p>
+            {:else if paymentMethod === 'multibanco'}
+              <p class="payment-note">{pay.multibancoNote}</p>
+            {:else if paymentMethod === 'card'}
+              <div class="payment-card-slot" aria-hidden="true">
+                <span class="payment-card-line">•••• •••• •••• ••••</span>
+                <span class="payment-card-meta"><span>MM/AA</span><span>CVC</span></span>
+                <p class="payment-note">{pay.cardSoon}</p>
+              </div>
+            {/if}
           </fieldset>
 
           <label class="checkout-notes">
@@ -344,7 +571,7 @@
         </aside>
 
         <div class="checkout-actions checkout-final-actions">
-          <button class="button primary" type="submit" form="checkout-order-form" disabled={!data.databaseReady || estimate.totalGross === null}>
+          <button class="button primary" type="submit" form="checkout-order-form" disabled={!data.databaseReady || estimate.totalGross === null || paymentMethod === 'card'}>
             {labels.submit}
           </button>
         </div>

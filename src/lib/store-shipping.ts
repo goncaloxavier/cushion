@@ -130,12 +130,14 @@ const transportBrackets = [
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
 const normalizedTransportMultiplier = (value?: number) =>
   Number.isFinite(value) && (value ?? 0) > 0 ? Number(value) : storeTransportMultiplier
-// Only the first four digits matter (transport zones key off the first two), so we
-// cap input at four digits — cleaner and more forgiving than the full XXXX-XXX code.
 const compactPostalCode = (value: string) => value.replace(/\D/g, '').slice(0, 4)
 const isBrowser = () => typeof window !== 'undefined'
 
-export const normalizePostalCode = (value: string) => compactPostalCode(value)
+export const normalizePostalCode = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 7)
+  return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits
+}
+export const normalizeStorePostalCode = (value: string) => compactPostalCode(value)
 
 const syncStorePostalCodeHint = (postalCode: string) => {
   if (!isBrowser()) return
@@ -176,7 +178,7 @@ export const readStorePostalCode = () => {
   if (!isBrowser()) return ''
 
   const saved = window.localStorage.getItem(deliveryStorageKey) ?? ''
-  const normalized = normalizePostalCode(saved)
+  const normalized = normalizeStorePostalCode(saved)
   const postalCode = isSupportedStorePostalCode(normalized) ? normalized : ''
   syncStorePostalCodeHint(postalCode)
   return postalCode
@@ -185,7 +187,7 @@ export const readStorePostalCode = () => {
 export const readInitialStorePostalCode = () => {
   if (!isBrowser()) return ''
 
-  const hinted = normalizePostalCode(document.documentElement.dataset.storePostalCode ?? '')
+  const hinted = normalizeStorePostalCode(document.documentElement.dataset.storePostalCode ?? '')
   if (isSupportedStorePostalCode(hinted)) return hinted
 
   return readStorePostalCode()
@@ -194,7 +196,7 @@ export const readInitialStorePostalCode = () => {
 export const writeStorePostalCode = (value: string) => {
   if (!isBrowser()) return ''
 
-  const normalized = normalizePostalCode(value)
+  const normalized = normalizeStorePostalCode(value)
   if (!isSupportedStorePostalCode(normalized)) return ''
 
   window.localStorage.setItem(deliveryStorageKey, normalized)
