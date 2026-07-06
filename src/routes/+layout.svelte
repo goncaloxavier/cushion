@@ -31,7 +31,6 @@
   const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
 
   const navItems = $derived([
-    {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
     {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
@@ -251,9 +250,9 @@
   <Intro />
 
 <header class="site-header">
-  <div class="brand">
+  <a class="brand" href={withLanguage('/', data.language)} aria-label={content.nav.home}>
     <img src="/logo/brand_mark.png" alt="DaFábrica4You" decoding="async" fetchpriority="high" />
-  </div>
+  </a>
 
   <nav class="nav-links" aria-label="Main navigation">
     {#each navItems as item}
