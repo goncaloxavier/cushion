@@ -1,15 +1,17 @@
 <script lang="ts">
+  import {afterNavigate, goto, onNavigate} from '$app/navigation'
   import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
+  import SearchOverlay, {type SearchStrings} from '$lib/components/SearchOverlay.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
   import {VisualEditing} from '@sanity/visual-editing/svelte'
-  import {afterNavigate, onNavigate} from '$app/navigation'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
+  import {withLanguage} from '$lib/site-content'
   import {onDestroy, onMount, untrack} from 'svelte'
   import '../app.css'
 
@@ -53,7 +55,6 @@
   )
   const accountActive = $derived(data.currentPath.startsWith('/conta'))
 
-  const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
   const isActive = (href: string) =>
     href === '/' ? data.currentPath === '/' : data.currentPath.startsWith(href)
   const currentNavKey = $derived.by<NavKey>(() => {
@@ -89,6 +90,51 @@
     es: {menu: 'Menú', open: 'Abrir menú', close: 'Cerrar menú'},
   }
   const menuStrings = $derived(menuStringsByLanguage[data.language] ?? menuStringsByLanguage.pt)
+
+  const searchStringsByLanguage: Record<string, SearchStrings> = {
+    pt: {
+      openLabel: 'Pesquisar',
+      closeLabel: 'Fechar pesquisa',
+      placeholder: 'Pesquisar soluções, loja, casos e blog…',
+      noResults: 'Sem resultados.',
+      hint: {navigate: '↑↓ navegar', select: '↵ selecionar', close: 'Esc fechar'},
+      categories: {
+        products: 'Soluções',
+        storeProducts: 'Loja',
+        caseStudies: 'Casos de estudo',
+        blogPosts: 'Blog',
+      },
+    },
+    en: {
+      openLabel: 'Search',
+      closeLabel: 'Close search',
+      placeholder: 'Search solutions, store, cases and blog…',
+      noResults: 'No results.',
+      hint: {navigate: '↑↓ navigate', select: '↵ select', close: 'Esc close'},
+      categories: {
+        products: 'Solutions',
+        storeProducts: 'Store',
+        caseStudies: 'Case studies',
+        blogPosts: 'Blog',
+      },
+    },
+    es: {
+      openLabel: 'Buscar',
+      closeLabel: 'Cerrar búsqueda',
+      placeholder: 'Buscar soluciones, tienda, casos y blog…',
+      noResults: 'Sin resultados.',
+      hint: {navigate: '↑↓ navegar', select: '↵ seleccionar', close: 'Esc cerrar'},
+      categories: {
+        products: 'Soluciones',
+        storeProducts: 'Tienda',
+        caseStudies: 'Casos de estudio',
+        blogPosts: 'Blog',
+      },
+    },
+  }
+  const searchStrings = $derived(searchStringsByLanguage[data.language] ?? searchStringsByLanguage.pt)
+  let searchOpen = $state(false)
+
   const openMenu = () => {
     if (menuCloseTimer) clearTimeout(menuCloseTimer)
     menuVisible = true
@@ -107,12 +153,19 @@
   }
   const handleKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && menuOpen) closeMenu()
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault()
+      if (!searchOpen) searchOpen = true
+    }
   }
 
-  // Close the overlay whenever the route changes.
+  // Close the overlays whenever the route changes.
   $effect(() => {
     void data.currentPath
     untrack(closeMenu)
+    untrack(() => {
+      searchOpen = false
+    })
   })
 
   // Lock background scroll while the overlay is open.
@@ -264,9 +317,41 @@
         {item.label}
       </a>
     {/each}
+    <button
+      class="nav-search-trigger"
+      type="button"
+      aria-label={searchStrings.openLabel}
+      onclick={() => (searchOpen = true)}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+    </button>
   </nav>
 
   <div class="header-actions">
+    <a
+      class="account-link"
+      class:active={accountActive}
+      class:signed-in={isSignedIn}
+      aria-current={accountActive ? 'page' : undefined}
+      href={withLanguage(accountHref, data.language)}
+    >
+      <span class="account-label">{accountLabel}</span>
+    </a>
+    <a
+      class="cart-link"
+      class:active={currentNavKey === 'cart'}
+      aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+      aria-label={`${content.nav.cart} (${cartCount})`}
+      href={withLanguage('/carrinho', data.language)}
+    >
+      <span class="cart-label">{content.nav.cart}</span>
+      {#if cartCount > 0}
+        <span class="cart-count">{cartCount}</span>
+      {/if}
+    </a>
     <a
       class="catalogue-link"
       class:active={currentNavKey === 'catalogue'}
@@ -283,42 +368,27 @@
     >
       {content.nav.contact}
     </a>
-    <a
-      class="account-link"
-      class:active={accountActive}
-      class:signed-in={isSignedIn}
-      aria-current={accountActive ? 'page' : undefined}
-      href={withLanguage(accountHref, data.language)}
+    <select
+      class="language-switcher"
+      aria-label="Language"
+      value={data.language}
+      onchange={(event) => goto(withLanguage(data.currentPath, event.currentTarget.value))}
     >
-      <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="8" r="3.4" />
-        <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
-      </svg>
-      <span class="account-label">{accountLabel}</span>
-    </a>
-    <a
-      class="cart-link"
-      class:active={currentNavKey === 'cart'}
-      aria-current={currentNavKey === 'cart' ? 'page' : undefined}
-      aria-label={`${content.nav.cart} (${cartCount})`}
-      href={withLanguage('/carrinho', data.language)}
-    >
-      <span class="cart-label">{content.nav.cart}</span>
-      {#if cartCount > 0}
-        <span class="cart-count">{cartCount}</span>
-      {/if}
-    </a>
-    <div class="language-switcher" aria-label="Language">
       {#each data.languages as language}
-        <a
-          class:active={data.language === language.code}
-          aria-current={data.language === language.code ? 'true' : undefined}
-          href={withLanguage(data.currentPath, language.code)}
-        >
-          {language.label}
-        </a>
+        <option value={language.code}>{language.label}</option>
       {/each}
-    </div>
+    </select>
+    <button
+      class="header-search-trigger"
+      type="button"
+      aria-label={searchStrings.openLabel}
+      onclick={() => (searchOpen = true)}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+    </button>
     <button
       class="nav-toggle"
       type="button"
@@ -476,6 +546,8 @@
     <strong>{content.common.whatsappLabel}</strong>
   </a>
   {/if}
+
+  <SearchOverlay bind:open={searchOpen} language={data.language} {content} strings={searchStrings} />
 {/if}
 
 <Toaster />

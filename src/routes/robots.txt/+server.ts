@@ -8,6 +8,7 @@ Disallow: /preview
 Disallow: /carrinho
 Disallow: /finalizar-compra
 Disallow: /conta
+Disallow: /api
 
 Sitemap: ${url.origin}/sitemap.xml
 `

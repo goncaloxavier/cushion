@@ -695,6 +695,144 @@ test.describe('public website routes', () => {
   })
 })
 
+test.describe('global search', () => {
+  test.describe('desktop trigger', () => {
+    test.skip(({isMobile}) => Boolean(isMobile), 'Desktop nav trigger only')
+
+    test('opens via the nav trigger and focuses the input', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-search-trigger').click()
+      await expect(page.locator('.search-overlay')).toBeVisible()
+      await expect(page.locator('.search-input-row input')).toBeFocused()
+    })
+
+    test('opens via Ctrl+K from anywhere', async ({page}) => {
+      await page.goto('/sobre-nos?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.keyboard.press('Control+k')
+      await expect(page.locator('.search-overlay')).toBeVisible()
+    })
+
+    test('matches across categories in a single query', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-search-trigger').click()
+
+      const [response] = await Promise.all([
+        page.waitForResponse((res) => res.url().includes('/api/search') && res.status() === 200),
+        page.locator('.search-input-row input').fill('ved'),
+      ])
+      expect(response.ok()).toBe(true)
+
+      const groupLabels = await page.locator('.search-group-label').allTextContents()
+      expect(groupLabels).toContain('Soluções')
+      expect(groupLabels).toContain('Casos de estudo')
+    })
+
+    test('clicking a result navigates and closes the overlay', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-search-trigger').click()
+
+      await Promise.all([
+        page.waitForResponse((res) => res.url().includes('/api/search') && res.status() === 200),
+        page.locator('.search-input-row input').fill('gaviao'),
+      ])
+
+      const result = page.locator('.search-result').first()
+      await expect(result).toBeVisible()
+      await result.click()
+
+      await expect(page).toHaveURL(/\/loja\/banco-gaviao\?lang=pt/)
+      await expect(page.locator('.search-overlay')).toHaveCount(0)
+    })
+
+    test('Escape closes and restores focus to the trigger', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      const trigger = page.locator('.nav-search-trigger')
+      await trigger.click()
+      await expect(page.locator('.search-overlay')).toBeVisible()
+
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.search-overlay')).toHaveCount(0)
+      await expect(trigger).toBeFocused()
+    })
+
+    test('a single-character query does not fire a network request', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-search-trigger').click()
+
+      let requested = false
+      page.on('request', (request) => {
+        if (request.url().includes('/api/search')) requested = true
+      })
+
+      await page.locator('.search-input-row input').fill('m')
+      await page.waitForTimeout(400)
+      expect(requested).toBe(false)
+    })
+  })
+
+  test.describe('results scrolling', () => {
+    test.skip(({isMobile}) => Boolean(isMobile), 'Lenis is desktop-only')
+
+    test('the results list scrolls with the mouse wheel', async ({page}) => {
+      // Lenis keeps calling preventDefault() on wheel events even after
+      // lenis.stop() runs (the lightbox-open scroll lock) — data-lenis-prevent
+      // on the overlay is what actually restores native scroll. Force Lenis on
+      // (config default is reducedMotion: 'reduce', which skips Lenis entirely
+      // and would let this test pass for the wrong reason).
+      await page.emulateMedia({reducedMotion: 'no-preference'})
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-search-trigger').click()
+      await expect(page.locator('.search-result').first()).toBeVisible()
+
+      const results = page.locator('.search-results')
+      const before = await results.evaluate((el) => el.scrollTop)
+      const box = await results.boundingBox()
+      if (!box) throw new Error('search results panel has no bounding box')
+
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await page.mouse.wheel(0, 400)
+      await expect
+        .poll(() => results.evaluate((el) => el.scrollTop))
+        .toBeGreaterThan(before)
+    })
+  })
+
+  test.describe('mobile trigger', () => {
+    test.skip(({isMobile}) => !isMobile, 'Mobile header trigger only')
+
+    test('reaches search through the header trigger, not the collapsed nav', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await expect(page.locator('.nav-search-trigger')).toBeHidden()
+      await page.locator('.header-search-trigger').click()
+      await expect(page.locator('.search-overlay')).toBeVisible()
+    })
+  })
+})
+
+test.describe('language switcher', () => {
+  test.skip(({isMobile}) => Boolean(isMobile), 'Desktop select lives in .header-actions')
+
+  test('select changes the URL and page content', async ({page}) => {
+    await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+
+    await page.locator('.header-actions > .language-switcher').selectOption('en')
+    await expect(page).toHaveURL(/\?lang=en/)
+    await expect(
+      page.locator('.header-actions > .language-switcher'),
+    ).toHaveValue('en')
+    await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Solutions')
+  })
+})
+
 test.describe('catalogue + private backoffice', () => {
   test('catalogue page hosts its own request form with name split and a message field', async ({
     page,

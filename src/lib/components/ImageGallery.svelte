@@ -1,5 +1,6 @@
 <script lang="ts">
   import type {ContentImage} from '$lib/site-content'
+  import {portal} from '$lib/actions/portal'
   import {trapFocus} from '$lib/actions/trap-focus'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {tick} from 'svelte'
@@ -35,17 +36,6 @@
   let zoomOpen = $state(false)
   let lightbox = $state<HTMLDivElement | null>(null)
 
-  // Render the lightbox as a direct child of <body> so it escapes the routed
-  // page's clip-path stacking context (otherwise the sticky header paints over
-  // it on the product/case detail pages, breaking the blurred full-screen focus).
-  const portal = (node: HTMLElement) => {
-    document.body.appendChild(node)
-    return {
-      destroy() {
-        node.remove()
-      },
-    }
-  }
   const image = $derived(images[selectedImageIndex] ?? images[0])
   const hasMultiple = $derived(images.length > 1)
   const position = $derived(`${selectedImageIndex + 1} / ${images.length}`)

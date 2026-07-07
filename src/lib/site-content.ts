@@ -508,6 +508,8 @@ export const languages: LanguageOption[] = [
   {code: 'es', label: 'ES', name: 'Español'},
 ]
 
+export const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
+
 export const supportedLanguages = new Set<LanguageCode>(languages.map((language) => language.code))
 
 export const getLanguage = (value: string | null): LanguageCode => {

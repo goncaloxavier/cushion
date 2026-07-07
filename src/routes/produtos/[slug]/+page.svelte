@@ -88,6 +88,10 @@
       </div>
     </section>
 
+    {#snippet quoteButton()}
+      <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
+    {/snippet}
+
     <section class="product-editorial-stage">
       <ImageGallery
         {images}
@@ -96,6 +100,11 @@
         className="product-stage-gallery"
         transitionName={`vt-${data.product.slug}`}
       />
+      {#if !hasProductSupport}
+        <div class="product-stage-cta">
+          {@render quoteButton()}
+        </div>
+      {/if}
     </section>
 
     {#if hasProductSupport}
@@ -145,8 +154,10 @@
       </section>
     {/if}
 
-    <section class="product-editorial-cta">
-      <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
-    </section>
+    {#if hasProductSupport}
+      <section class="product-editorial-cta">
+        {@render quoteButton()}
+      </section>
+    {/if}
   </article>
 </main>
