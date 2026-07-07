@@ -268,7 +268,6 @@ export type SiteContent = {
       checklistTitle: string
       checklist: string[]
     }
-    note: string
   }
   casesPage: {
     hero: CopyBlock
@@ -1193,7 +1192,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Mensagem mencionando suas áreas de interesse',
         ],
       },
-      note: '',
     },
     casesPage: {
       hero: {
@@ -1491,7 +1489,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Message mentioning your areas of interest',
         ],
       },
-      note: '',
     },
     casesPage: {
       hero: {
@@ -1786,7 +1783,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Mensaje mencionando tus áreas de interés',
         ],
       },
-      note: '',
     },
     casesPage: {
       hero: {
@@ -2202,13 +2198,11 @@ const productFallbackForSlug = (
   slug: string,
   language: LanguageCode,
   fallback: ProductItem[],
-  index: number,
 ): Partial<ProductItem> | undefined =>
   fallback.find((item) => item.slug === slug) ??
   (slug === 'decking' || slug === 'decking-pavimentos-passadicos'
     ? deckingProductExtras[language]
-    : undefined) ??
-  fallback[index]
+    : undefined)
 
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
@@ -2221,7 +2215,7 @@ const productsFromSanity = (
     .filter((product) => product.slug?.current)
     .map((product, index) => {
       const slug = product.slug?.current ?? ''
-      const fallbackProduct = productFallbackForSlug(slug, language, fallback, index)
+      const fallbackProduct = productFallbackForSlug(slug, language, fallback)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
@@ -2483,7 +2477,6 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.checklist,
       ),
     },
-    note: localized(source.catalogue?.note, language, fallback.catalogue.note),
   }
 
   target.casesPage = {

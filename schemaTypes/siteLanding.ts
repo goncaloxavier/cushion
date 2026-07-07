@@ -292,11 +292,6 @@ export const siteLanding = defineType({
             localizedStringListField('checklist', 'Itens da checklist'),
           ],
         }),
-        localizedTextField(
-          'note',
-          'Nota junto ao botão',
-          'Texto curto de apoio junto ao botão que envia para o formulário.',
-        ),
       ],
       'Edite a página Catálogo: texto principal, lista de informação útil e botão para o formulário.',
     ),

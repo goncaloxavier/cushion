@@ -4651,12 +4651,6 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   border-radius: 999px;
 }
 
-.catalogue-note {
-  margin-top: 1.4rem;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.92rem;
-}
-
 .catalogue-request-panel .button {
   width: fit-content;
   margin-top: 0.8rem;
@@ -7979,11 +7973,6 @@ html.reduce-motion {
   gap: 0.35rem;
   margin: 0 0 1rem;
   padding-left: 1.1rem;
-}
-
-.catalogue-note {
-  color: #5a6b63;
-  font-size: 0.95rem;
 }
 
 @media (max-width: 760px) {

@@ -147,7 +147,6 @@
 
     <section class="product-editorial-cta">
       <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
-      <a class="text-link" href={`/catalogo${langQuery}`}>{content.catalogue.estimate.kicker}</a>
     </section>
   </article>
 </main>
