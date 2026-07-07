@@ -10,14 +10,14 @@ type PublicRoute = {
 const publicRoutes: PublicRoute[] = [
   {path: '/?lang=pt', heading: 'não requerem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
-  {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
+  {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Soluções'},
   {path: '/loja?lang=pt', heading: 'Produtos com preço', active: 'Loja'},
   {path: '/loja/banco-gaviao?lang=pt', heading: 'Banco Gavião', active: 'Loja'},
   {path: '/carrinho?lang=pt', heading: 'Reveja os produtos', active: null},
   {
     path: '/produtos/decking-pavimentos-passadicos?lang=pt',
     heading: 'Decking, pavimentos e passadiços',
-    active: 'Produtos',
+    active: 'Soluções',
     mobile: false,
   },
   {path: '/catalogo?lang=en', heading: 'Request the catalogue through the form', active: 'Catalogue'},
@@ -39,21 +39,15 @@ const publicRoutes: PublicRoute[] = [
 ]
 
 const desktopNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Casos', 'Blog'],
-  en: ['Home', 'About', 'Products', 'Cases', 'Blog'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Casos', 'Blog'],
-}
-
-const desktopProductMenuLabels = {
-  pt: ['Produtos', 'Loja', 'Catálogo'],
-  en: ['Products', 'Store', 'Catalogue'],
-  es: ['Productos', 'Tienda', 'Catálogo'],
+  pt: ['Sobre', 'Soluções', 'Loja', 'Casos', 'Blog'],
+  en: ['About', 'Solutions', 'Store', 'Cases', 'Blog'],
+  es: ['Sobre', 'Soluciones', 'Tienda', 'Casos', 'Blog'],
 }
 
 const mobileNavLabels = {
-  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
-  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
-  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  pt: ['Início', 'Sobre', 'Soluções', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  en: ['Home', 'About', 'Solutions', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
+  es: ['Inicio', 'Sobre', 'Soluciones', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
 }
 
 const phoneViewports = [
@@ -274,12 +268,7 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
   }
 
-  const productLabels =
-    desktopProductMenuLabels[routeLanguage as keyof typeof desktopProductMenuLabels]
-  await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
-  for (const label of productLabels.slice(1)) {
-    await expect(contextualNavigation.getByRole('link', {name: label, exact: true})).toBeVisible()
-  }
+  const catalogueLabel = {pt: 'Catálogo', en: 'Catalogue', es: 'Catálogo'}[routeLanguage]
 
   if (route.active && labels.includes(route.active)) {
     const currentPageLink = contextualNavigation.getByRole('link', {
@@ -288,14 +277,9 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
     })
     await expect(currentPageLink).toBeVisible()
     await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
-  } else if (route.active && productLabels.includes(route.active)) {
-    await contextualNavigation.getByRole('link', {name: productLabels[0], exact: true}).hover()
-    const currentPageLink = contextualNavigation.getByRole('link', {
-      name: route.active,
-      exact: true,
-    })
-    await expect(currentPageLink).toBeVisible()
-    await expect(currentPageLink).toHaveAttribute('aria-current', 'page')
+  } else if (route.active === catalogueLabel) {
+    // Catálogo lives outside "Main navigation" as its own header action.
+    await expect(page.locator('.catalogue-link')).toHaveAttribute('aria-current', 'page')
   }
 }
 
@@ -526,7 +510,7 @@ test.describe('public website routes', () => {
       })
 
       expect(response?.status()).toBe(404)
-      await expect(page.getByText('Product not found')).toBeVisible()
+      await expect(page.getByRole('heading', {name: 'Página não encontrada'})).toBeVisible()
     })
   })
 
