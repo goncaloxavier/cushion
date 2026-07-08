@@ -128,7 +128,10 @@ const transportBrackets = [
 ] as const
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
-const normalizedTransportMultiplier = (value?: number) =>
+// Exported so callers that only have a raw content value (not full pricing
+// options) — e.g. order-creation snapshotting the multiplier in effect at
+// checkout time — share this one validity check instead of re-implementing it.
+export const normalizedTransportMultiplier = (value?: number) =>
   Number.isFinite(value) && (value ?? 0) > 0 ? Number(value) : storeTransportMultiplier
 const compactPostalCode = (value: string) => value.replace(/\D/g, '').slice(0, 4)
 const isBrowser = () => typeof window !== 'undefined'

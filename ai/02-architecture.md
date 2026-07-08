@@ -32,11 +32,17 @@ contact/catalogue form -> SvelteKit server action -> private Sanity `crm` datase
 Loja cart localStorage -> /finalizar-compra server action -> trusted public store content + Postgres order snapshot -> /painel/encomendas
 ```
 
+```text
+visitor query -> /api/search -> src/lib/server/search.ts scoring across product/store/case/blog -> SearchOverlay
+```
+
 ## Key Files And Folders
 
 - `package.json` - SvelteKit, Sanity Studio dependencies, and scripts.
 - `src/routes/+layout.server.ts` - loads Sanity site content and collections, then falls back to local content.
-- `src/routes/+layout.svelte` - shared header, desktop navigation, full-screen mobile overlay menu, account/cart/language controls, route progress, footer, social links, complaints/privacy/cookie links, and floating WhatsApp shortcut.
+- `src/routes/+layout.svelte` - shared header, desktop navigation, full-screen mobile overlay menu, account/cart/language controls, route progress, footer, social links, complaints/privacy/cookie links, floating WhatsApp shortcut, and the global search trigger/keyboard shortcut (Cmd/Ctrl+K).
+- `src/lib/components/SearchOverlay.svelte` - global search dialog (portal-mounted lightbox pattern) covering Soluções/Loja/Casos de estudo/Blog; debounced fetch to `/api/search` with a monotonic request token so a late response after close/reopen can't overwrite fresh state.
+- `src/routes/api/search/+server.ts` and `src/lib/server/search.ts` - JSON search endpoint and the hand-rolled accent-folded, weighted, cross-category scoring module behind it; reuses the same cached `getSanityCollections()`/fallback content as every other route, no separate search index.
 - `src/routes/+page.svelte` - homepage; the hero uses the editable `home.heroVideoUrl` as a muted looping background YouTube embed and opens a full YouTube player from the video button; partner/project logos sit below the impact section.
 - `src/routes/sobre-nos/+page.svelte` - company story route.
 - `src/routes/produtos/+page.svelte` - product-category route.
@@ -61,7 +67,7 @@ Loja cart localStorage -> /finalizar-compra server action -> trusted public stor
 - `scripts/old-blog-posts.ts`, `scripts/update-old-blog-bodies.ts`, and `scripts/write-blog-import.ts` - reviewable trilingual migration data for the previous Webnode blog, a raw-body/translation refresh helper, and the generator for `.sanity/blog-import.ndjson`.
 - `scripts/old-case-studies.ts` and `scripts/write-case-study-import.ts` - reviewable trilingual migration data for the previous Webnode case-study page and the generator for `.sanity/case-study-import.ndjson`.
 - `scripts/scrape-product-images.ts`, `scripts/product-images.json`, `scripts/old-products.ts`, and `scripts/write-product-import.ts` - the product migration: a scraper that pulls every full-resolution gallery photo per old "PRODUTOS" category into a committed JSON, the reviewable trilingual product copy/media/tool fields (one entry per category = one `productCategory`), and the generator for `.sanity/product-import.ndjson` (`npm run scrape:products`, `import:products:write`, `import:products`).
-- `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, and 404 checks.
+- `tests/routes.spec.ts` - route, language, link, overflow, detail-link, navigation, form gating, 404, global search, and language switcher checks.
 - `tests/sanity-contract.spec.ts` - Studio schema/query/fallback contract checks.
 - `tests/visual.spec.ts` - optional full-page visual screenshot checks; generated `tests/*-snapshots/` output is ignored and used only for session review.
 - `src/lib/site-content.ts` - fallback multilingual selling copy, site page content, and Sanity content normalization.

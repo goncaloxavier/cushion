@@ -252,6 +252,13 @@
     else window.scrollTo(0, 0)
   })
 
+  // %lang% in app.html is only replaced on a server render, so a client-side
+  // language switch (select or mobile menu link, both soft `goto`/link nav)
+  // would otherwise leave <html lang> stale for screen readers.
+  $effect(() => {
+    document.documentElement.lang = data.language
+  })
+
   onMount(() => {
     document.documentElement.dataset.appReady = 'true'
 
@@ -450,10 +457,6 @@
         href={withLanguage(accountHref, data.language)}
         onclick={closeMenu}
       >
-        <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="8" r="3.4" />
-          <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
-        </svg>
         <span class="account-label">
           {accountLabel}
         </span>

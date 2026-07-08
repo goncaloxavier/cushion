@@ -391,6 +391,33 @@ test.describe('public website routes', () => {
       )
     })
 
+    test('product CTA placement follows whether the product has video/tool support', async ({
+      page,
+    }) => {
+      // Fallback content only has two real shapes today: a product with no
+      // video/tool ("vedacoes...") and one with both ("decking..."). Video-only
+      // and tool-only are additive to the same `hasProductSupport` boolean, so
+      // covering these two locks the actual placement branch that regressed.
+      await page.goto('/produtos/vedacoes-divisorias-resguardos?lang=pt', {
+        waitUntil: 'domcontentloaded',
+      })
+      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+      await expect(page.locator('.product-stage-cta .button')).toBeVisible()
+      await expect(page.locator('.product-editorial-support')).toHaveCount(0)
+      await expect(page.locator('.product-editorial-cta')).toHaveCount(0)
+
+      await page.goto('/produtos/decking-pavimentos-passadicos?lang=pt', {
+        waitUntil: 'domcontentloaded',
+      })
+      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+      await expect(page.locator('.product-stage-cta')).toHaveCount(0)
+      await expect(page.locator('.product-editorial-support')).toBeVisible()
+      await expect(page.locator('.product-editorial-support')).not.toHaveClass(/is-single/)
+      await expect(page.locator('.product-support-frame iframe')).toHaveCount(1)
+      await expect(page.locator('.product-support-tool-link')).toHaveCount(1)
+      await expect(page.locator('.product-editorial-cta .button')).toBeVisible()
+    })
+
     test('blog index links every fallback post to a detail page', async ({page}) => {
       await page.goto('/blog?lang=pt', {waitUntil: 'domcontentloaded'})
       const {links, imageLinks} = await collectPagedCards(
@@ -502,6 +529,78 @@ test.describe('public website routes', () => {
       await expect(page.locator('.checkout-summary')).toContainText(/1.?588,21/)
       await expect(page.getByLabel('Nome')).toBeVisible()
       await expect(page.getByRole('button', {name: 'Submeter pedido'})).toBeVisible()
+    })
+
+    test('checkout page mints a fresh submission token on every load and guards double-submit', async ({
+      page,
+    }) => {
+      await preloadStoreDelivery(page)
+      await page.goto('/loja/banco-gaviao?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
+      await page.getByRole('button', {name: 'Adicionar ao carrinho'}).click()
+      await page.getByRole('link', {name: 'Ver carrinho'}).click()
+      await page.getByRole('link', {name: 'Finalizar pedido'}).click()
+      await expect(page).toHaveURL(/\/finalizar-compra\?lang=pt/)
+
+      const tokenField = page.locator('input[name="submissionToken"]')
+      const firstToken = await tokenField.getAttribute('value')
+      expect(firstToken).toBeTruthy()
+
+      await page.reload({waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      const secondToken = await page.locator('input[name="submissionToken"]').getAttribute('value')
+      expect(secondToken).toBeTruthy()
+      // A fresh token per page render is what lets the server treat a
+      // same-token resubmit as the same checkout attempt (DB unique
+      // constraint) rather than minting a second order.
+      expect(secondToken).not.toBe(firstToken)
+
+      // A role+name locator would stop matching once the label swaps to "A
+      // enviar…" mid-submit, hiding exactly the state this test checks — use
+      // a stable selector instead.
+      const submit = page.locator('.checkout-final-actions button[type="submit"]')
+      test.skip(
+        await submit.isDisabled(),
+        'Checkout requires a configured database in this environment',
+      )
+
+      await page.getByLabel('Nome').fill('Maria Silva')
+      await page.getByLabel('Email').fill('maria@example.com')
+      await page.getByLabel('Telefone').fill('912345678')
+      // Billing and delivery fieldsets share the same field labels — fill both.
+      const addressFields = page.getByLabel('Morada', {exact: true})
+      const postalFields = page.getByLabel('Código postal', {exact: true})
+      const localityFields = page.getByLabel('Localidade', {exact: true})
+      for (const index of [0, 1]) {
+        await addressFields.nth(index).fill('Rua das Flores 10')
+        await postalFields.nth(index).fill('7000-000')
+        await localityFields.nth(index).fill('Évora')
+      }
+
+      let checkoutRequests = 0
+      await page.route('**/finalizar-compra**', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        checkoutRequests += 1
+        // Hold the response open long enough to prove the client-side guard
+        // (disabled + "A enviar…") blocks a second click while the first
+        // submit is still in flight, before letting it through.
+        await new Promise((resolve) => setTimeout(resolve, 400))
+        await route.continue()
+      })
+
+      await submit.click()
+      await expect(submit).toBeDisabled()
+      await expect(submit).toHaveText('A enviar…')
+
+      // Clicking a disabled button is a no-op in the browser — these prove
+      // that, not just that we chose not to retry.
+      await submit.click({force: true})
+      await submit.click({force: true})
+
+      // A configured DB means this actually creates the order: the form is
+      // replaced by the success panel rather than the button re-enabling.
+      await expect(page.locator('.checkout-success')).toBeVisible({timeout: 3000})
+      expect(checkoutRequests).toBe(1)
     })
 
     test('unknown CMS slugs return a not found page', async ({page}) => {
@@ -774,6 +873,42 @@ test.describe('global search', () => {
       await page.waitForTimeout(400)
       expect(requested).toBe(false)
     })
+
+    test('a response that lands after close-and-reopen does not overwrite fresh results', async ({
+      page,
+    }) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+
+      // Delay only the first query's response so it resolves after the
+      // overlay has been closed and reopened — the searchToken guard should
+      // discard it instead of clobbering the reopened overlay's fresh state.
+      let intercepted = false
+      await page.route('**/api/search*', async (route) => {
+        if (!intercepted && route.request().url().includes('q=gaviao')) {
+          intercepted = true
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+        await route.continue()
+      })
+
+      await page.locator('.nav-search-trigger').click()
+      await page.locator('.search-input-row input').fill('gaviao')
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.search-overlay')).toHaveCount(0)
+
+      await page.locator('.nav-search-trigger').click()
+      await expect(page.locator('.search-input-row input')).toHaveValue('')
+
+      // Give the delayed "gaviao" response time to land in the background.
+      await page.waitForTimeout(700)
+
+      // The reopened overlay must still show its own (empty-query) top-items
+      // state, not the stale "gaviao" results from the discarded request.
+      await expect(page.locator('.search-input-row input')).toHaveValue('')
+      const groupLabels = await page.locator('.search-group-label').allTextContents()
+      expect(groupLabels.length).toBeGreaterThan(1)
+    })
   })
 
   test.describe('results scrolling', () => {
@@ -818,18 +953,61 @@ test.describe('global search', () => {
 })
 
 test.describe('language switcher', () => {
-  test.skip(({isMobile}) => Boolean(isMobile), 'Desktop select lives in .header-actions')
+  test.describe('desktop select', () => {
+    test.skip(({isMobile}) => Boolean(isMobile), 'Desktop select lives in .header-actions')
 
-  test('select changes the URL and page content', async ({page}) => {
-    await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
-    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+    test('select changes the URL and page content', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
 
-    await page.locator('.header-actions > .language-switcher').selectOption('en')
-    await expect(page).toHaveURL(/\?lang=en/)
-    await expect(
-      page.locator('.header-actions > .language-switcher'),
-    ).toHaveValue('en')
-    await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Solutions')
+      await page.locator('.header-actions > .language-switcher').selectOption('en')
+      await expect(page).toHaveURL(/\?lang=en/)
+      await expect(
+        page.locator('.header-actions > .language-switcher'),
+      ).toHaveValue('en')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Solutions')
+    })
+
+    test('select round-trips through Spanish', async ({page}) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+
+      await page.locator('.header-actions > .language-switcher').selectOption('es')
+      await expect(page).toHaveURL(/\?lang=es/)
+      await expect(page.locator('html')).toHaveAttribute('lang', 'es')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Soluciones')
+
+      await page.locator('.header-actions > .language-switcher').selectOption('pt')
+      await expect(page).toHaveURL(/\?lang=pt/)
+      await expect(page.locator('html')).toHaveAttribute('lang', 'pt')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Soluções')
+    })
+  })
+
+  test.describe('mobile menu links', () => {
+    test.skip(({isMobile}) => !isMobile, 'Mobile menu language links only')
+
+    test('mobile-menu-lang links switch language and close-and-reopen keeps the active state', async ({
+      page,
+    }) => {
+      await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
+      await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
+      await page.locator('.nav-toggle').click()
+
+      const langMenu = page.locator('.mobile-menu-lang')
+      await expect(langMenu).toBeVisible()
+      await expect(langMenu.getByRole('link', {name: 'PT'})).toHaveAttribute('aria-current', 'true')
+
+      await langMenu.getByRole('link', {name: 'EN', exact: true}).click()
+      await expect(page).toHaveURL(/\?lang=en/)
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+
+      await page.locator('.nav-toggle').click()
+      await expect(page.locator('.mobile-menu-lang').getByRole('link', {name: 'EN'})).toHaveAttribute(
+        'aria-current',
+        'true',
+      )
+    })
   })
 })
 

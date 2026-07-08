@@ -1,3 +1,4 @@
+import {randomBytes} from 'node:crypto'
 import {fail} from '@sveltejs/kit'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
 import {databaseConfigured} from '$lib/server/db'
@@ -49,6 +50,10 @@ const parseCartItems = (value: FormDataEntryValue | null): CheckoutCartItem[] =>
 
 export const load: PageServerLoad = async ({cookies, locals, url}) => ({
   csrfToken: issueCsrfToken(cookies, csrfCookieName, '/finalizar-compra', url.protocol === 'https:'),
+  // Minted fresh on every page load (unlike the CSRF cookie, which is reused
+  // across a session) so it can double as a one-time idempotency key for the
+  // order this exact form render creates — see createOrder in $lib/server/orders.
+  submissionToken: randomBytes(16).toString('base64url'),
   customer: locals.customer,
   addresses: locals.customer ? await listCustomerAddresses(locals.customer.id) : [],
   databaseReady: databaseConfigured(),
@@ -68,6 +73,7 @@ export const actions: Actions = {
     const form = await request.formData()
     const language = getLanguage(cleanLine(form.get('language'), 8))
     const csrfToken = cleanLine(form.get('csrfToken'), 128)
+    const submissionToken = cleanLine(form.get('submissionToken'), 64)
     const values = {
       name: cleanLine(form.get('name'), 160),
       email: cleanLine(form.get('email'), 254).toLowerCase(),
@@ -175,23 +181,29 @@ export const actions: Actions = {
 
     try {
       const draft = buildOrderDraft(content, cartItems, values.deliveryPostalCode)
-      const order = await createOrder(
+      const {order, isNew} = await createOrder(
         {
           ...values,
           persistBillingAddress,
           persistDeliveryAddress,
           customerId: locals.customer?.id ?? null,
           language,
+          submissionToken,
         },
         draft,
       )
-      await sendOrderEmails(order).catch((error) => {
-        console.warn(
-          `[checkout] order email dispatch failed for ${order.orderNumber}: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`,
-        )
-      })
+      // isNew is false when this exact form render already produced an order
+      // (double-click, back-button resubmit) — skip re-sending confirmation
+      // email/payment link for a resubmit, the customer already got them.
+      if (isNew) {
+        await sendOrderEmails(order).catch((error) => {
+          console.warn(
+            `[checkout] order email dispatch failed for ${order.orderNumber}: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          )
+        })
+      }
 
       return {
         success: true,

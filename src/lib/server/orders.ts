@@ -4,7 +4,7 @@ import {
   calculateStoreEstimate,
   isSupportedStorePostalCode,
   normalizePostalCode,
-  storeTransportMultiplier,
+  normalizedTransportMultiplier,
 } from '$lib/store-shipping'
 import type {
   LanguageCode,
@@ -41,6 +41,10 @@ export type CheckoutCustomerInput = {
   persistBillingAddress?: boolean
   persistDeliveryAddress?: boolean
   language: LanguageCode
+  // Fresh, single-use token minted per checkout page load (not the session-sticky
+  // CSRF token, which persists across visits). Lets createOrder tell a genuine
+  // resubmit (double-click, back-button) from a new, legitimate order.
+  submissionToken?: string
 }
 
 export type OrderDraftItem = {
@@ -248,9 +252,7 @@ const mapAddress = (row: Record<string, unknown>): CustomerAddressRow => ({
 })
 
 const transportMultiplierFor = (content: SiteContent) =>
-  Number.isFinite(content.storePage.transportMultiplier) && content.storePage.transportMultiplier > 0
-    ? content.storePage.transportMultiplier
-    : storeTransportMultiplier
+  normalizedTransportMultiplier(content.storePage.transportMultiplier)
 
 export const buildOrderDraft = (
   content: SiteContent,
@@ -328,21 +330,23 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
 
   const created = await withTransaction(async (client) => {
     const number = orderNumber()
+    const submissionToken = input.submissionToken?.trim() || null
     const orderResult = await client.query(
       `insert into orders (
         order_number, customer_id, language, customer_name, email, phone, nif, purchase_type,
         billing_address, billing_postal_code, billing_locality,
         delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
         customer_notes, product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
-        payment_method
+        payment_method, submission_token
       )
       values (
         $1, $2, $3, $4, $5, $6, $7, $8,
         $9, $10, $11,
         $12, $13, $14, $15,
         $16, $17, $18, $19, $20, $21, $22,
-        $23
+        $23, $24
       )
+      on conflict (submission_token) do nothing
       returning *`,
       [
         number,
@@ -368,8 +372,19 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         draft.totalWeightKg,
         draft.transportMultiplier,
         cleanLine(input.paymentMethod, 20),
+        submissionToken,
       ],
     )
+
+    if (orderResult.rows.length === 0) {
+      // A row with this submission_token already exists (resubmit of the same
+      // checkout attempt) — return the original order untouched instead of
+      // creating a duplicate, and signal the caller to skip payment/email.
+      const existing = await client.query('select * from orders where submission_token = $1', [
+        submissionToken,
+      ])
+      return {order: mapOrder(existing.rows[0]), isNew: false}
+    }
     const order = mapOrder(orderResult.rows[0])
 
     for (const item of draft.items) {
@@ -459,29 +474,31 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
       }
     }
 
-    return order
+    return {order, isNew: true}
   })
 
-  const payment = await prepareIfthenpayPayByLink({
-    orderId: created.id,
-    orderNumber: created.orderNumber,
-    totalGross: created.totalGross,
-    customerEmail: created.email,
-  })
+  if (created.isNew) {
+    const payment = await prepareIfthenpayPayByLink({
+      orderId: created.order.id,
+      orderNumber: created.order.orderNumber,
+      totalGross: created.order.totalGross,
+      customerEmail: created.order.email,
+    })
 
-  await query(
-    `insert into payment_attempts (order_id, provider, status, request_json, response_json, payment_url, reference)
-     values ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      created.id,
-      payment.provider,
-      payment.status,
-      JSON.stringify({totalGross: created.totalGross, email: created.email}),
-      JSON.stringify(payment.response),
-      payment.ok ? payment.paymentUrl : null,
-      payment.ok ? payment.reference : null,
-    ],
-  ).catch(() => undefined)
+    await query(
+      `insert into payment_attempts (order_id, provider, status, request_json, response_json, payment_url, reference)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        created.order.id,
+        payment.provider,
+        payment.status,
+        JSON.stringify({totalGross: created.order.totalGross, email: created.order.email}),
+        JSON.stringify(payment.response),
+        payment.ok ? payment.paymentUrl : null,
+        payment.ok ? payment.reference : null,
+      ],
+    ).catch(() => undefined)
+  }
 
   return created
 }

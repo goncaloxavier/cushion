@@ -480,4 +480,22 @@ test.describe('Sanity Studio content contract', () => {
     expect(payment).toContain('intentionally disabled')
     expect(painelOrders).toContain('listOrdersForPainel')
   })
+
+  test('checkout never prices an order from client-supplied input', () => {
+    const checkout = read('src/routes/finalizar-compra/+page.server.ts')
+    const orders = read('src/lib/server/orders.ts')
+
+    // The cart payload from the browser may only carry a product/variant
+    // reference (slug, variantIndex, finish, quantity) — never a price. If a
+    // price/amount/total field is ever read out of the request here, a
+    // tampered payload could set an order's price directly.
+    expect(checkout).toMatch(/parseCartItems[\s\S]{0,400}slug:/)
+    expect(checkout).not.toMatch(
+      /form\.get\(\s*['"](price|unitPrice|totalGross|totalNet|amount|total)['"]/i,
+    )
+
+    // buildOrderDraft must derive unitPriceNet by looking the variant up in
+    // trusted server-side content, not by trusting a client-sent value.
+    expect(orders).toMatch(/unitPriceNet\s*=\s*Number\(variant\.prices\[item\.finish\]\)/)
+  })
 })
