@@ -31,6 +31,7 @@ The website should feel premium, useful, calm, and alive.
 - The header logo is brand presence, not the only route home.
 - Mobile uses a full-screen overlay menu for navigation and should keep its route set stable across pages. Keep the trigger, close motion, account/cart/language actions, and active route state readable before adding extra decoration.
 - The top mobile header should stay light: brand, language, and orientation. It should not become a tall wrapped menu.
+- The global search trigger lives at the end of the desktop nav links (a discovery action, not an account utility) and as its own icon in the collapsed mobile header once the nav links hide; Cmd/Ctrl+K opens it from anywhere.
 - CTAs must take the visitor directly to the intended action. `Pedir orcamento` should go to contact/request, not force a catalogue detour and repeated clicks.
 - The first mobile hero actions should be centered as a group, with readable labels and stable tap targets.
 - Floating shortcuts such as WhatsApp can support low-friction contact, but they must not block form fields, important card text, mobile menu controls, or toast/status UI.
@@ -90,7 +91,7 @@ The website should feel premium, useful, calm, and alive.
 - Products, blog posts, case studies, and their images should be manageable through Sanity when possible.
 - The frontend may use fallback fixture content, but CMS-backed routes should be designed as real content surfaces, not static mockups.
 - Cards should summarize and invite detail; they should not show the full content body.
-- Search and pagination should be local to products, blog, and case studies rather than global.
+- Pagination stays local to products, blog, the store, and case studies. Each of those routes also keeps its own local search/filter for fast in-page refinement (e.g. `/loja`'s postal/category/finish filters). A single global search — the header icon / Cmd+K palette — additionally lets a visitor jump straight to a Solução, Loja product, Caso de estudo, or Blog post from anywhere on the site; it complements the local filters, it does not replace them.
 - List-page hero titles/text, catalogue copy, contact copy, footer/contact details, and collection entries should be editable through Sanity without giving the client control over the design system.
 - Main page hero images that are part of content presentation should be editable through Sanity. Decorative accent lines, reveal strokes, gradients, and layout ornaments belong to the design system unless explicitly requested as editable content.
 - Institutional videos, page media blocks, and partner logos should be CMS-managed content. Support image-only, video-only, and mixed media without requiring a new hard-coded page component each time.

@@ -444,18 +444,7 @@ export const getSanityCollections = async (preview = false) => {
 
   const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    const collections = await client.fetch(collectionsQuery)
-    // Local leverage mode: keep reading the real blog/cases/products/content from the
-    // deployed dataset, but drop the store products so the loja renders from the in-code
-    // fallback (unpublished store work shows locally, deployed store stays untouched).
-    //
-    // Presentation/Visual Editing is the exception: it must receive Sanity
-    // storeProduct documents so click-to-edit can map Loja cards/details back
-    // to the Studio.
-    if (collections && !preview && env.SANITY_STORE_FROM_FALLBACK === 'true') {
-      return {...collections, storeProducts: []}
-    }
-    return collections
+    return await client.fetch(collectionsQuery)
   } catch {
     return null
   }

@@ -253,7 +253,6 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain("perspective: 'drafts'")
     expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
     expect(sanityClient).toContain('getSanityCollections = async (preview = false)')
-    expect(sanityClient).toContain("!preview && env.SANITY_STORE_FROM_FALLBACK === 'true'")
     expect(sanityClient).toContain('getBlogPostDetail')
     expect(previewHelpers).toContain("url.protocol === 'https:'")
     expect(previewHelpers).toContain("sameSite: secure ? ('none' as const) : ('lax' as const)")
@@ -267,7 +266,6 @@ test.describe('Sanity Studio content contract', () => {
     expect(envExample).toContain('SANITY_DATASET')
     expect(envExample).toContain('SANITY_STUDIO_DATASET')
     expect(envExample).toContain('SANITY_DISABLE_REMOTE')
-    expect(envExample).toContain('SANITY_STORE_FROM_FALLBACK')
   })
 
   test('visual editing metadata does not break custom text reveal animations', () => {

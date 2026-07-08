@@ -1,5 +1,6 @@
 <script lang="ts">
   import type {ContentImage, StoreProductMedia} from '$lib/site-content'
+  import {portal} from '$lib/actions/portal'
   import {trapFocus} from '$lib/actions/trap-focus'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {prefersReducedMotion} from '$lib/motion'
@@ -63,15 +64,6 @@
   let selectedIndex = $state(0)
   let zoomOpen = $state(false)
   let lightbox = $state<HTMLDivElement | null>(null)
-
-  const portal = (node: HTMLElement) => {
-    document.body.appendChild(node)
-    return {
-      destroy() {
-        node.remove()
-      },
-    }
-  }
 
   const item = $derived(media[selectedIndex] ?? media[0])
   const hasMultiple = $derived(media.length > 1)

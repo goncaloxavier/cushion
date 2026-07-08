@@ -112,7 +112,11 @@ body {
   background:
     radial-gradient(circle at 8% -8%, rgba(47, 122, 88, 0.16), transparent 26rem),
     radial-gradient(circle at 88% 4%, rgba(31, 107, 134, 0.13), transparent 28rem), var(--paper);
-  overflow-x: hidden;
+  /* No overflow-x here on purpose: <html> already clips horizontal overflow
+     and is the real scroll container. Repeating overflow-x on body makes the
+     browser treat body as its own scroll container too, which breaks
+     position:sticky on .site-header (it sticks to body's box instead of
+     html's, and body never scrolls internally). */
 }
 
 button,
@@ -589,118 +593,58 @@ html[data-scrolled='true'] .site-header {
   gap: 0.85rem;
 }
 
-/* Catálogo sits next to Contacto as a secondary "submission" CTA (outlined). */
-.catalogue-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.3rem;
-  padding: 0 0.9rem;
-  color: var(--green-dark);
-  font-size: 0.82rem;
-  font-weight: 850;
-  text-decoration: none;
-  background: rgba(45, 123, 87, 0.09);
-  border: 1px solid rgba(45, 123, 87, 0.32);
-  border-radius: 8px;
-  transition:
-    color 180ms ease,
-    background 220ms ease,
-    border-color 180ms ease,
-    box-shadow 220ms ease;
-}
-
-.catalogue-link:hover,
-.catalogue-link.active {
-  color: #ffffff;
-  background: var(--green-dark);
-  border-color: var(--green-dark);
-  box-shadow: 0 0.55rem 1.25rem rgba(17, 57, 60, 0.14);
-}
-
-.contact-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.3rem;
-  padding: 0 0.9rem;
-  overflow: hidden;
-  color: #ffffff;
-  font-size: 0.82rem;
-  font-weight: 850;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.11), transparent),
-    linear-gradient(135deg, var(--brand-leaf), var(--brand-sea));
-  border-radius: 8px;
-  border: 1px solid rgba(20, 85, 106, 0.24);
-  box-shadow: 0 0.55rem 1.25rem rgba(17, 57, 60, 0.14);
-  transition:
-    box-shadow 220ms ease,
-    background 260ms ease,
-    border-color 260ms ease;
-}
-
-.cart-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 2.3rem;
-  padding: 0 0.72rem;
-  color: var(--green-dark);
-  font-size: 0.82rem;
-  font-weight: 850;
-  text-decoration: none;
-  background: #f7fbf8;
-  border: 1px solid rgba(17, 57, 60, 0.14);
-  border-radius: 8px;
-  transition:
-    color 180ms ease,
-    background 220ms ease,
-    border-color 180ms ease,
-    box-shadow 220ms ease;
-}
-
-.cart-link:hover,
-.cart-link.active {
-  color: #ffffff;
-  background: var(--green-dark);
-  border-color: rgba(17, 57, 60, 0.28);
-  box-shadow: 0 0.55rem 1.25rem rgba(17, 57, 60, 0.13);
-}
-
-.cart-count {
-  color: var(--sea);
-  font-size: 0.82rem;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.cart-link:hover .cart-count,
-.cart-link.active .cart-count {
-  color: #ffffff;
-}
-
+/* Conta, Carrinho, Catálogo and Contacto are all quiet utility controls:
+   no visible box at rest, a soft pill only on hover/active. */
+.catalogue-link,
+.contact-link,
+.cart-link,
 .account-link {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.42rem;
+  gap: 0.35rem;
   min-height: 2.3rem;
-  padding: 0 0.72rem;
+  padding: 0 0.6rem;
   color: var(--green-dark);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: 750;
   text-decoration: none;
-  background: #f7fbf8;
-  border: 1px solid rgba(17, 57, 60, 0.14);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 8px;
   transition:
     color 180ms ease,
-    background 220ms ease,
-    border-color 180ms ease,
-    box-shadow 220ms ease;
+    background 200ms ease,
+    border-color 200ms ease;
+}
+
+.catalogue-link:hover,
+.catalogue-link.active,
+.contact-link:hover,
+.contact-link.active,
+.cart-link:hover,
+.cart-link.active,
+.account-link:hover,
+.account-link.active {
+  color: var(--green-dark);
+  background: #f2f8f5;
+  border-color: rgba(13, 52, 56, 0.14);
+}
+
+.cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  background: var(--green);
+  border-radius: 999px;
 }
 
 .account-icon {
@@ -713,52 +657,26 @@ html[data-scrolled='true'] .site-header {
   stroke-linejoin: round;
 }
 
-/* Signed-in reads at a glance with a soft accent, without competing with the
-   filled Contact CTA. */
+/* Signed-in reads at a glance via a slightly bolder weight, no permanent pill. */
 .account-link.signed-in {
-  color: var(--green-dark);
-  background: rgba(45, 123, 87, 0.1);
-  border-color: rgba(45, 123, 87, 0.3);
-}
-
-.account-link:hover,
-.account-link.active {
-  color: #ffffff;
-  background: var(--green-dark);
-  border-color: rgba(17, 57, 60, 0.28);
-  box-shadow: 0 0.55rem 1.25rem rgba(17, 57, 60, 0.13);
-}
-
-.contact-link::before {
-  display: none;
-  content: none;
-}
-
-.contact-link:hover {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent),
-    linear-gradient(135deg, var(--brand-sea), var(--brand-leaf));
-  border-color: rgba(20, 85, 106, 0.34);
-  box-shadow: 0 0.68rem 1.45rem rgba(17, 57, 60, 0.18);
-}
-
-.contact-link.active {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent),
-    linear-gradient(135deg, var(--green-dark), var(--brand-sea));
-  border-color: rgba(20, 85, 106, 0.42);
-}
-
-.contact-link:hover::before {
-  transform: translateX(130%) skewX(-16deg);
+  font-weight: 850;
 }
 
 .language-switcher {
   min-height: 2.3rem;
-  padding: 0.2rem;
-  background: #ffffff;
+  padding: 0 1.6rem 0 0.7rem;
+  color: var(--green-dark);
+  font-size: 0.75rem;
+  font-weight: 850;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d3438' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.85rem;
   border: 1px solid var(--line);
   border-radius: 8px;
+  appearance: none;
+  cursor: pointer;
   transition:
     border-color 220ms ease,
     box-shadow 220ms ease;
@@ -769,21 +687,41 @@ html[data-scrolled='true'] .site-header {
   box-shadow: 0 0.45rem 1.1rem rgba(24, 34, 30, 0.07);
 }
 
-.language-switcher a {
+.nav-search-trigger,
+.header-search-trigger {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  min-width: 2.35rem;
-  min-height: 1.86rem;
-  color: #2d3832;
-  font-size: 0.75rem;
-  font-weight: 850;
-  text-decoration: none;
-  border-radius: 6px;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
   transition:
     color 180ms ease,
-    background 220ms ease,
-    transform 220ms var(--ease-snap);
+    background 200ms ease,
+    border-color 200ms ease;
+}
+
+.nav-search-trigger svg,
+.header-search-trigger svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.nav-search-trigger:hover,
+.header-search-trigger:hover {
+  color: var(--green-dark);
+  background: #f2f8f5;
+  border-color: rgba(13, 52, 56, 0.14);
+}
+
+.header-search-trigger {
+  display: none;
 }
 
 .nav-toggle {
@@ -1004,13 +942,6 @@ html[data-scrolled='true'] .site-header {
   .mobile-menu-nav a {
     transition: none;
   }
-}
-
-.language-switcher a.active {
-  color: #ffffff;
-  background: var(--green-dark);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  transform: scale(1);
 }
 
 main {
@@ -1388,7 +1319,7 @@ dt {
 .detail-back-link:focus-visible,
 .nav-links a:focus-visible,
 .contact-link:focus-visible,
-.language-switcher a:focus-visible {
+.language-switcher:focus-visible {
   outline: 2px solid var(--sea);
   outline-offset: 4px;
 }
@@ -4646,12 +4577,6 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   border-radius: 999px;
 }
 
-.catalogue-note {
-  margin-top: 1.4rem;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.92rem;
-}
-
 .catalogue-request-panel .button {
   width: fit-content;
   margin-top: 0.8rem;
@@ -5206,6 +5131,198 @@ body.lightbox-open {
   overflow: hidden;
 }
 
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  justify-content: center;
+  padding: 8vh clamp(1rem, 3vw, 2rem) 2rem;
+  background: rgba(6, 13, 14, 0.55);
+  backdrop-filter: blur(6px);
+  overscroll-behavior: contain;
+}
+
+.search-panel {
+  width: 100%;
+  max-width: 34rem;
+  height: fit-content;
+  max-height: min(72svh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-deep);
+  overflow: hidden;
+}
+
+.search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.search-input-row .search-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.search-input-row input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.search-input-row input::placeholder {
+  color: rgba(51, 68, 61, 0.55);
+}
+
+.search-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.search-close:hover {
+  color: var(--green-dark);
+  background: #f2f8f5;
+}
+
+.search-close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.search-results {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.4rem 0;
+}
+
+.search-empty {
+  margin: 0;
+  padding: 2.4rem 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.search-group + .search-group {
+  border-top: 1px solid var(--line);
+}
+
+.search-group-label {
+  margin: 0;
+  padding: 0.6rem 1.1rem 0.3rem;
+  color: rgba(51, 68, 61, 0.65);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0.4rem;
+  padding: 0.5rem 0.7rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 140ms ease;
+}
+
+.search-result:hover,
+.search-result.active {
+  background: var(--brand-fog);
+}
+
+.search-result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  color: var(--green-dark);
+  background: var(--brand-fog);
+  border-radius: 7px;
+}
+
+.search-result-icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.search-result-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-result-title {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-snippet {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-footer {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 1.1rem;
+  color: rgba(51, 68, 61, 0.55);
+  font-size: 0.7rem;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .search-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .search-panel {
+    max-width: none;
+    max-height: 82svh;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
 .lightbox-frame {
   position: relative;
   z-index: 1;
@@ -5446,6 +5563,32 @@ body.lightbox-open {
   grid-auto-columns: minmax(5.4rem, 7rem);
   justify-content: start;
   max-width: 100%;
+}
+
+/* Only rendered when there's no video/tool support block: the quote CTA sits
+   inside the same dark stage element as the gallery (not a sibling section),
+   so there is no seam — two adjacent elements each painting their own copy
+   of the stage gradient would restart the gradient at the boundary and show
+   a visible line even with identical values. The button flips to a solid
+   white pill here (same move as .product-support-tool-link on the dark tool
+   card below) since the green/blue gradient primary button is tuned for
+   light surfaces and loses its pop as a same-family tone on dark teal. */
+.product-stage-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: clamp(1.8rem, 3.4vw, 2.6rem);
+}
+
+.product-stage-cta .button.primary {
+  min-width: min(100%, 16rem);
+  color: var(--brand-deep);
+  background: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0.6rem 1.6rem rgba(4, 12, 14, 0.35);
+}
+
+.product-stage-cta .button.primary:hover {
+  background: var(--brand-fog);
 }
 
 /* Product support: institutional video + external tool, in the editorial language. */
@@ -7098,6 +7241,10 @@ html.reduce-motion {
     display: inline-flex;
   }
 
+  .header-search-trigger {
+    display: inline-flex;
+  }
+
   .site-header {
     display: flex;
     flex-wrap: wrap;
@@ -7173,6 +7320,10 @@ html.reduce-motion {
   .product-stage-gallery .product-thumbnails {
     grid-auto-columns: minmax(4.35rem, 5.2rem);
     justify-content: start;
+  }
+
+  .product-stage-cta .button.primary {
+    width: 100%;
   }
 
   .product-editorial-support {
@@ -7974,11 +8125,6 @@ html.reduce-motion {
   gap: 0.35rem;
   margin: 0 0 1rem;
   padding-left: 1.1rem;
-}
-
-.catalogue-note {
-  color: #5a6b63;
-  font-size: 0.95rem;
 }
 
 @media (max-width: 760px) {

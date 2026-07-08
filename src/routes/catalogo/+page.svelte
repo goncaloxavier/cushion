@@ -82,9 +82,6 @@
           <li>{item}</li>
         {/each}
       </ul>
-      {#if content.catalogue.note}
-        <p class="catalogue-note">{content.catalogue.note}</p>
-      {/if}
     </Reveal>
 
     <Reveal class="catalogue-form-reveal" delay={120} variant="panel">
