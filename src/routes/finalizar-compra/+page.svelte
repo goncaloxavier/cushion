@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {enhance} from '$app/forms'
   import {browser} from '$app/environment'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {cartTotalQuantity, clearCart, readCart, type StoreCartItem} from '$lib/cart'
@@ -13,6 +14,10 @@
   let {data, form} = $props()
 
   let cart = $state<StoreCartItem[]>([])
+  // Belt-and-suspenders alongside the server-side idempotency check: disables
+  // the button the instant a submit fires so a flurry of clicks never even
+  // reaches the network, rather than relying only on the DB unique constraint.
+  let submitting = $state(false)
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let clearedAfterSuccess = false
   const checkoutCopy = {
@@ -42,6 +47,7 @@
       locality: 'Localidade',
       notes: 'Notas',
       submit: 'Submeter pedido',
+      submitting: 'A enviar…',
       reviewCart: 'Rever carrinho',
       summaryKicker: 'Resumo',
       productCount: (count: number) => `${count} produto${count === 1 ? '' : 's'}`,
@@ -86,6 +92,7 @@
       locality: 'Locality',
       notes: 'Notes',
       submit: 'Submit request',
+      submitting: 'Sending…',
       reviewCart: 'Review cart',
       summaryKicker: 'Summary',
       productCount: (count: number) => `${count} product${count === 1 ? '' : 's'}`,
@@ -129,6 +136,7 @@
       locality: 'Localidad',
       notes: 'Notas',
       submit: 'Enviar pedido',
+      submitting: 'Enviando…',
       reviewCart: 'Revisar carrito',
       summaryKicker: 'Resumen',
       productCount: (count: number) => `${count} producto${count === 1 ? '' : 's'}`,
@@ -321,8 +329,20 @@
       </div>
     {:else}
       <div class="checkout-flow">
-        <form method="POST" id="checkout-order-form" class="checkout-form">
+        <form
+          method="POST"
+          id="checkout-order-form"
+          class="checkout-form"
+          use:enhance={() => {
+            submitting = true
+            return async ({update}) => {
+              await update()
+              submitting = false
+            }
+          }}
+        >
           <input type="hidden" name="csrfToken" value={data.csrfToken} />
+          <input type="hidden" name="submissionToken" value={data.submissionToken} />
           <input type="hidden" name="language" value={data.language} />
           <input type="hidden" name="cartItems" value={cartPayload} />
 
@@ -571,8 +591,13 @@
         </aside>
 
         <div class="checkout-actions checkout-final-actions">
-          <button class="button primary" type="submit" form="checkout-order-form" disabled={!data.databaseReady || estimate.totalGross === null || paymentMethod === 'card'}>
-            {labels.submit}
+          <button
+            class="button primary"
+            type="submit"
+            form="checkout-order-form"
+            disabled={!data.databaseReady || estimate.totalGross === null || paymentMethod === 'card' || submitting}
+          >
+            {submitting ? labels.submitting : labels.submit}
           </button>
         </div>
       </div>

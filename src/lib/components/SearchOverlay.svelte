@@ -123,6 +123,9 @@
       document.documentElement.classList.remove('lightbox-open')
       document.body.classList.remove('lightbox-open')
       if (debounceTimer) clearTimeout(debounceTimer)
+      // Invalidate any in-flight fetch so a response that lands after this
+      // close can't overwrite fresh state if the overlay reopens quickly.
+      searchToken += 1
       previouslyFocused?.focus()
     }
   })

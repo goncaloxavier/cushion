@@ -151,8 +151,7 @@ const collectionsQuery = `{
         lead,
         checklistTitle,
         checklist[]
-      },
-      note
+      }
     },
     casesPage {
       hero {

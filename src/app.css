@@ -412,7 +412,6 @@ html[data-scrolled='true'] .site-header {
 .header-actions,
 .language-switcher,
 .footer-links,
-.hero-actions,
 .tag-row {
   display: flex;
   align-items: center;
@@ -645,16 +644,6 @@ html[data-scrolled='true'] .site-header {
   line-height: 1;
   background: var(--green);
   border-radius: 999px;
-}
-
-.account-icon {
-  width: 1.02rem;
-  height: 1.02rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 /* Signed-in reads at a glance via a slightly bolder weight, no permanent pill. */
@@ -1044,11 +1033,6 @@ main {
   width: min(38rem, 92%);
 }
 
-.home-hero-actions {
-  width: auto;
-  margin-top: 0;
-}
-
 .home-hero-copy::before {
   width: clamp(4.5rem, 12vw, 8rem);
   height: 2px;
@@ -1132,10 +1116,6 @@ main {
 .home-hero-copy .reveal.visible p:not(.kicker),
 .page-hero-copy.visible .hero-copy {
   animation: copy-body-in 620ms var(--ease-snap) 90ms both;
-}
-
-.home-hero-copy .reveal.visible .hero-actions {
-  animation: copy-actions-in 560ms var(--ease-snap) both;
 }
 
 @keyframes copy-kicker-in {
@@ -1264,18 +1244,6 @@ dt {
 .home-hero-copy p:not(.kicker) {
   max-width: min(34rem, 90%);
   color: rgba(255, 255, 255, 0.92);
-}
-
-.hero-actions {
-  flex-wrap: wrap;
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
-.home-hero .hero-actions {
-  margin-right: 0;
-  margin-left: 0;
-  justify-content: flex-start;
 }
 
 .button {
@@ -7038,18 +7006,6 @@ html.reduce-motion {
     font-size: 2.6rem;
   }
 
-  .home-hero-actions {
-    align-self: center;
-    width: min(100%, 20rem);
-  }
-
-  .home-hero .hero-actions {
-    justify-content: center;
-    width: 100%;
-    margin-right: auto;
-    margin-left: auto;
-  }
-
   .page-hero,
   .home-brief,
   .home-impact-ledger,
@@ -7379,11 +7335,6 @@ html.reduce-motion {
     width: 100%;
   }
 
-  .product-editorial-cta .text-link {
-    justify-content: center;
-    text-align: center;
-  }
-
   .detail-back-link {
     width: min(100%, 18rem);
     justify-content: flex-start;
@@ -7509,23 +7460,6 @@ html.reduce-motion {
 
   .blog-index-media {
     border-radius: 8px;
-  }
-
-  .hero-actions {
-    display: grid;
-    width: min(100%, 20rem);
-  }
-
-  .home-hero-actions {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .home-hero .hero-actions {
-    width: min(20rem, calc(100vw - var(--mobile-gutter) - var(--mobile-gutter)));
-    margin-right: auto;
-    margin-left: auto;
   }
 
   .button {

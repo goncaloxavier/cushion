@@ -96,6 +96,7 @@ Use this to help agents avoid accidental damage.
 - Exposing fake Ifthenpay payment behavior. PayByLink must stay fail-closed until real credentials, callbacks, and status rules are confirmed.
 - Updating schema field names without updating `src/lib/sanity.ts` and `src/lib/site-content.ts`.
 - Expecting visitor pages that use the cached public Sanity client to update instantly after publish. Immediate review belongs in Presentation/Visual Editing, which uses the uncached draft client.
+- A leftover empty/stale `drafts.*` document can shadow published content and break click-to-edit in Presentation (the tool renders the draft perspective by default). If preview shows old/wrong content or an editable field won't map to Studio, check for a stray draft before assuming it's a code or cache bug.
 - Mixing `localhost` and `127.0.0.1` during Visual Editing review. Preview mode is cookie based, and those hosts do not share cookies; keep Studio and website preview on the same hostname.
 - Setting the preview cookie as always `Secure; SameSite=None`; local HTTP Studio preview may silently fail because the browser refuses that cookie.
 - Validating the preview URL secret with the stega client; invisible stega metadata can corrupt the secret comparison.
