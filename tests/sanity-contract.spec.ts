@@ -236,6 +236,15 @@ test.describe('Sanity Studio content contract', () => {
     // still set from an earlier Presentation session.
     expect(previewHelpers).toContain("sec-fetch-dest")
     expect(previewHelpers).toContain("=== 'document'")
+    // Sec-Fetch-Dest only distinguishes real vs. embedded on the first
+    // request; SvelteKit's own client-side navigation re-runs load() via a
+    // background fetch that carries neither signal, so a normal tab would
+    // fall back into preview mode on the next page click. The client must
+    // self-heal by checking window.self === window.top (a browsing context
+    // always knows this) and clearing the cookie via /preview/disable when
+    // it's provably not embedded in Studio's iframe.
+    expect(layout).toContain('window.self === window.top')
+    expect(layout).toContain('/preview/disable?redirect=')
     expect(layout).toContain('@sanity/visual-editing/svelte')
     expect(layout).toContain('<VisualEditing />')
     expect(storeListRoute).toContain('@sanity/visual-editing/create-data-attribute')
