@@ -227,9 +227,15 @@ test.describe('Sanity Studio content contract', () => {
     expect(studioConfig).toContain("storeProduct: collectionLocation('/loja', 'Produto da loja')")
     expect(studioConfig).toContain("caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo')")
     expect(studioConfig).toContain("blogPost: collectionLocation('/blog', 'Artigo do blog')")
-    expect(layoutServer).toContain('isPreview(cookies)')
+    expect(layoutServer).toContain('isPreview(cookies, request.headers)')
     expect(layoutServer).toContain('getSanityCollections(preview)')
     expect(layoutServer).toContain('studioUrl: preview ? sanityStudioUrl :')
+    // The preview cookie persists for an hour across any request from that
+    // browser, so a plain top-level visit outside Studio must not inherit
+    // draft content/the click-to-edit overlay just because the cookie is
+    // still set from an earlier Presentation session.
+    expect(previewHelpers).toContain("sec-fetch-dest")
+    expect(previewHelpers).toContain("=== 'document'")
     expect(layout).toContain('@sanity/visual-editing/svelte')
     expect(layout).toContain('<VisualEditing />')
     expect(storeListRoute).toContain('@sanity/visual-editing/create-data-attribute')

@@ -216,6 +216,9 @@ export const actions: Actions = {
       if (error instanceof OrderInputError) {
         return fail(error.status, {message: error.message, values})
       }
+      console.error(
+        `[checkout] order creation failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}`,
+      )
       return fail(500, {
         message: 'Não foi possível criar a encomenda. Tente novamente dentro de instantes.',
         values,

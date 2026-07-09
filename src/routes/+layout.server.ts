@@ -3,8 +3,8 @@ import {getSanityCollections, sanityStudioUrl} from '$lib/sanity'
 import {isPreview} from '$lib/server/preview'
 import type {LayoutServerLoad} from './$types'
 
-export const load: LayoutServerLoad = async ({url, cookies, locals}) => {
-  const preview = isPreview(cookies)
+export const load: LayoutServerLoad = async ({url, cookies, locals, request}) => {
+  const preview = isPreview(cookies, request.headers)
   const collections = await getSanityCollections(preview)
   const language = getLanguage(url.searchParams.get('lang'))
 

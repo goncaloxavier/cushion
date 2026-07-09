@@ -1195,12 +1195,17 @@ h1 {
   color: inherit;
   font-size: clamp(3.4rem, 6.4vw, 5.4rem);
   line-height: 0.95;
+  /* max-width is in ch (character) units, so a single word longer than it
+     doesn't wrap by default — it overflows the box instead, and every h1
+     here sits inside an ancestor with overflow: hidden, so that overflow
+     was silently clipping long words (e.g. "espreguiçadeiras") mid-word
+     instead of wrapping them onto the next line. */
+  overflow-wrap: break-word;
 }
 
 .home-hero h1 {
   max-width: 16ch;
   font-size: clamp(2.9rem, 5.8vw, 5rem);
-  overflow-wrap: break-word;
 }
 
 h2 {
