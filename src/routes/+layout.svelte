@@ -259,6 +259,20 @@
     document.documentElement.lang = data.language
   })
 
+  // The server can only tell a real top-level visit apart from Studio's
+  // Presentation iframe on the very first request (via Sec-Fetch-Dest);
+  // SvelteKit's own client-side navigation re-runs load() through a plain
+  // background fetch, which carries neither signal, so a normal tab with a
+  // leftover preview cookie would fall back into preview mode again on the
+  // next page. Self-heal instead: a browsing context can always tell if
+  // it's embedded, so if this tab provably isn't inside an iframe, clear
+  // the cookie for good rather than re-fighting it on every navigation.
+  $effect(() => {
+    if (data.preview && window.self === window.top) {
+      window.location.href = `/preview/disable?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
+    }
+  })
+
   onMount(() => {
     document.documentElement.dataset.appReady = 'true'
 
