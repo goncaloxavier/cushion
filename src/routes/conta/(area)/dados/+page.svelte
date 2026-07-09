@@ -125,11 +125,12 @@
   // Local, optimistic view of the editable fields so saving reflects instantly
   // without invalidateAll() (which re-runs every load and remounts the page).
   const profile = $state({
-    name: data.customer.name,
-    phone: data.customer.phone,
-    nif: data.customer.nif,
-    purchaseType: data.customer.purchaseType,
+    name: '',
+    phone: '',
+    nif: '',
+    purchaseType: 'individual',
   })
+  let profileLoadedFor = $state('')
   const typeLabel = $derived(profile.purchaseType === 'company' ? t.company : t.individual)
   let editing = $state(false)
   let toastKey = $state('')
@@ -150,6 +151,17 @@
     fields.purchaseType = profile.purchaseType === 'company' ? 'company' : 'individual'
     editing = true
   }
+
+  $effect(() => {
+    const customer = data.customer
+    if (profileLoadedFor === customer.id) return
+
+    profile.name = customer.name
+    profile.phone = customer.phone
+    profile.nif = customer.nif
+    profile.purchaseType = customer.purchaseType
+    profileLoadedFor = customer.id
+  })
 
   // Profile + resend feedback is handled inline via enhance (no reload); this
   // only covers the load-time "email delivery failed" query flag.

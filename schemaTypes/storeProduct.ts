@@ -4,6 +4,7 @@ const categoryOptions = [
   {title: 'Bancos', value: 'bancos'},
   {title: 'Mesas e conjuntos', value: 'mesas'},
   {title: 'Cadeiras', value: 'cadeiras'},
+  {title: 'Decking', value: 'decking'},
   {title: 'Resíduos', value: 'residuos'},
   {title: 'Cultivo', value: 'cultivo'},
 ]
@@ -48,6 +49,15 @@ export const storeProduct = defineType({
       description: 'Frase simples para explicar o produto no cartão e na página da Loja.',
       type: 'localizedText',
       group: 'conteudo',
+    }),
+    defineField({
+      name: 'hasFinishChoice',
+      title: 'Tem escolha de acabamento/cor',
+      description:
+        'Desative quando o produto só tem um preço e não deve mostrar Natural/Cinza ou Castanho/Preto ao cliente.',
+      type: 'boolean',
+      group: 'organizacao',
+      initialValue: true,
     }),
     defineField({
       name: 'image',

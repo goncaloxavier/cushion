@@ -7,7 +7,6 @@
   import RouteScene from '$lib/components/RouteScene.svelte'
   import SearchOverlay, {type SearchStrings} from '$lib/components/SearchOverlay.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
-  import {VisualEditing} from '@sanity/visual-editing/svelte'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
@@ -70,6 +69,9 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
+  let VisualEditingComponent = $state<
+    (typeof import('@sanity/visual-editing/svelte'))['VisualEditing'] | null
+  >(null)
   let cartCount = $state(0)
   let menuOpen = $state(false)
   let menuVisible = $state(false)
@@ -267,6 +269,14 @@
   // next page. Self-heal instead: a browsing context can always tell if
   // it's embedded, so if this tab provably isn't inside an iframe, clear
   // the cookie for good rather than re-fighting it on every navigation.
+  $effect(() => {
+    if (!data.preview || VisualEditingComponent) return
+
+    import('@sanity/visual-editing/svelte').then((module) => {
+      VisualEditingComponent = module.VisualEditing
+    })
+  })
+
   $effect(() => {
     if (data.preview && window.self === window.top) {
       window.location.href = `/preview/disable?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
@@ -569,6 +579,6 @@
 
 <Toaster />
 
-{#if data.preview}
-  <VisualEditing />
+{#if data.preview && VisualEditingComponent}
+  <VisualEditingComponent />
 {/if}

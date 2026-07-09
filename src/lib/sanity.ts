@@ -194,6 +194,7 @@ const collectionsQuery = `{
     }
   },
   "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+    _id,
     title,
     slug,
     image {
@@ -209,6 +210,7 @@ const collectionsQuery = `{
       alt
     },
     gallery[] {
+      _key,
       asset -> {
         url,
         originalFilename,
@@ -235,6 +237,7 @@ const collectionsQuery = `{
     slug,
     category,
     summary,
+    hasFinishChoice,
     image {
       asset -> {
         url,
@@ -307,6 +310,7 @@ const collectionsQuery = `{
     }
   },
   "caseStudies": *[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+    _id,
     title,
     slug,
     image {
@@ -321,6 +325,7 @@ const collectionsQuery = `{
       alt
     },
     gallery[] {
+      _key,
       asset -> {
         url,
         metadata {
@@ -339,6 +344,7 @@ const collectionsQuery = `{
     result
   },
   "blogPosts": *[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
+    _id,
     title,
     slug,
     image {
@@ -353,6 +359,7 @@ const collectionsQuery = `{
       alt
     },
     gallery[] {
+      _key,
       asset -> {
         url,
         metadata {
@@ -438,12 +445,28 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
   }
 }`
 
+const collectionCacheTtlMs = Math.max(0, Number(env.SANITY_COLLECTION_CACHE_MS ?? 15_000))
+let collectionCache:
+  | {
+      expiresAt: number
+      value: unknown
+    }
+  | null = null
+
 export const getSanityCollections = async (preview = false) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
+  if (!preview && collectionCache && collectionCache.expiresAt > Date.now()) {
+    return collectionCache.value
+  }
+
   const client = preview && previewEnabled() ? previewClient : sanityClient
   try {
-    return await client.fetch(collectionsQuery)
+    const value = await client.fetch(collectionsQuery)
+    if (!preview && collectionCacheTtlMs > 0) {
+      collectionCache = {value, expiresAt: Date.now() + collectionCacheTtlMs}
+    }
+    return value
   } catch {
     return null
   }

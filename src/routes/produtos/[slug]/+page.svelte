@@ -1,5 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -46,6 +47,18 @@
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
   const images = $derived(productImagesFor(data.product, productImageFallback))
+  const productDataAttribute = $derived(
+    data.preview && data.studioUrl && data.product.studioDocumentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: data.product.studioDocumentId,
+          type: 'productCategory',
+        })
+      : null,
+  )
+  const imageDataAttribute = $derived(
+    productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
+  )
   const copy = $derived(productDetailCopy(data.product.summary, data.product.description))
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
@@ -99,6 +112,7 @@
         closeLabel={content.common.close}
         className="product-stage-gallery"
         transitionName={`vt-${data.product.slug}`}
+        dataAttribute={imageDataAttribute}
       />
       {#if !hasProductSupport}
         <div class="product-stage-cta">

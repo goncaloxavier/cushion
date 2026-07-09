@@ -125,9 +125,11 @@
   const selectedVariant = $derived(
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
   )
-  const selectedPrice = $derived(selectedVariant.prices[selectedFinish])
+  const hasFinishChoice = $derived(data.storeProduct.hasFinishChoice)
+  const effectiveFinish = $derived<StoreFinish>(hasFinishChoice ? selectedFinish : 'natural')
+  const selectedPrice = $derived(selectedVariant.prices[effectiveFinish])
   const selectedPriceField = $derived(
-    selectedFinish === 'natural' ? 'priceNatural' : 'priceDark',
+    effectiveFinish === 'natural' ? 'priceNatural' : 'priceDark',
   )
   const storeProductDataAttribute = $derived(
     data.preview && data.studioUrl && data.storeProduct.studioDocumentId
@@ -206,11 +208,15 @@
     addCartItem({
       slug: data.storeProduct.slug,
       variantIndex: selectedVariantIndex,
-      finish: selectedFinish,
+      finish: effectiveFinish,
       quantity: normalizedQuantity,
     })
     showToast(labels.added)
   }
+
+  $effect(() => {
+    if (!hasFinishChoice && selectedFinish !== 'natural') selectedFinish = 'natural'
+  })
 
   onMount(() => {
     const refreshDelivery = () => {
@@ -234,7 +240,7 @@
       price: Math.min(
         ...data.storeProduct.variants.flatMap((variant) => [
           variant.prices.natural,
-          variant.prices.dark,
+          ...(data.storeProduct.hasFinishChoice ? [variant.prices.dark] : []),
         ]),
       ),
     }),
@@ -340,24 +346,26 @@
           </div>
         </fieldset>
 
-        <fieldset class="store-detail-finishes">
-          <legend>{labels.finish}</legend>
-          <div>
-            {#each finishes as finish}
-              <button
-                type="button"
-                class:active={selectedFinish === finish}
-                aria-pressed={selectedFinish === finish}
-                onclick={() => {
-                  selectedFinish = finish
-                }}
-              >
-                <span class={`finish-dot finish-dot-${finish}`} aria-hidden="true"></span>
-                {content.storePage.finishLabels[finish]}
-              </button>
-            {/each}
-          </div>
-        </fieldset>
+        {#if hasFinishChoice}
+          <fieldset class="store-detail-finishes">
+            <legend>{labels.finish}</legend>
+            <div>
+              {#each finishes as finish}
+                <button
+                  type="button"
+                  class:active={selectedFinish === finish}
+                  aria-pressed={selectedFinish === finish}
+                  onclick={() => {
+                    selectedFinish = finish
+                  }}
+                >
+                  <span class={`finish-dot finish-dot-${finish}`} aria-hidden="true"></span>
+                  {content.storePage.finishLabels[finish]}
+                </button>
+              {/each}
+            </div>
+          </fieldset>
+        {/if}
 
         <label class="store-quantity-control">
           <span>{labels.quantity}</span>

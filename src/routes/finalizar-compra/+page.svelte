@@ -218,10 +218,10 @@
     isDefault: boolean
   }
 
-  const initialValues = (form?.values ?? {}) as Record<string, string>
+  const values = $derived((form?.values ?? {}) as Record<string, string>)
   const initialAddressChoice = (addressType: 'billing' | 'delivery') => {
     const field = addressType === 'billing' ? 'billingAddressId' : 'deliveryAddressId'
-    if (initialValues[field]) return initialValues[field]
+    if (values[field]) return values[field]
     const addresses = (data.addresses as CheckoutAddress[]).filter((address) => address.addressType === addressType)
     return addresses.find((address) => address.isDefault)?.id ?? addresses[0]?.id ?? 'custom'
   }
@@ -238,19 +238,20 @@
   const content = $derived(data.site[data.language])
   const labels = $derived(checkoutCopy[data.language])
   const pay = $derived(paymentCopy[data.language] ?? paymentCopy.pt)
-  let paymentMethod = $state((form?.values as {paymentMethod?: string})?.paymentMethod ?? 'mbway')
+  let paymentMethod = $state('mbway')
+  let paymentMethodLoadedFor = $state('')
   const customer = $derived(data.customer)
   const billingAddresses = $derived((data.addresses as CheckoutAddress[]).filter((address) => address.addressType === 'billing'))
   const deliveryAddresses = $derived((data.addresses as CheckoutAddress[]).filter((address) => address.addressType === 'delivery'))
-  let selectedBillingAddressId = $state(initialAddressChoice('billing'))
-  let selectedDeliveryAddressId = $state(initialAddressChoice('delivery'))
-  let customDeliveryPostalCode = $state(initialValues.deliveryPostalCode ?? deliveryPostalCode)
+  let selectedBillingAddressId = $state('custom')
+  let selectedDeliveryAddressId = $state('custom')
+  let addressChoicesLoadedFor = $state('')
+  let customDeliveryPostalCode = $state('')
   const billingAddress = $derived(billingAddresses.find((address) => address.id === selectedBillingAddressId) ?? null)
   const deliveryAddress = $derived(deliveryAddresses.find((address) => address.id === selectedDeliveryAddressId) ?? null)
   const useCustomBillingAddress = $derived(!customer || !billingAddresses.length || selectedBillingAddressId === 'custom' || !billingAddress)
   const useCustomDeliveryAddress = $derived(!customer || !deliveryAddresses.length || selectedDeliveryAddressId === 'custom' || !deliveryAddress)
   const langQuery = $derived(`?lang=${data.language}`)
-  const values = $derived(form?.values ?? {})
   const money = $derived(
     new Intl.NumberFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT', {
       style: 'currency',
@@ -264,8 +265,9 @@
         const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
         const variant = product?.variants[item.variantIndex]
         if (!product || !variant) return null
-        const unitPrice = variant.prices[item.finish]
-        return {item, product, variant, unitPrice}
+        const finish = product.hasFinishChoice ? item.finish : 'natural'
+        const unitPrice = variant.prices[finish]
+        return {item, product, variant, finish, unitPrice}
       })
       .filter((row): row is NonNullable<typeof row> => row !== null),
   )
@@ -282,6 +284,34 @@
   )
   const cartPayload = $derived(JSON.stringify(cart))
   const itemCount = $derived(cartTotalQuantity(cart))
+
+  $effect(() => {
+    const nextPaymentMethod = values.paymentMethod || 'mbway'
+    if (paymentMethodLoadedFor === nextPaymentMethod) return
+
+    paymentMethod = nextPaymentMethod
+    paymentMethodLoadedFor = nextPaymentMethod
+  })
+
+  $effect(() => {
+    const choiceKey = [
+      customer?.id ?? 'guest',
+      values.billingAddressId ?? '',
+      values.deliveryAddressId ?? '',
+      billingAddresses.map((address) => `${address.id}:${address.isDefault ? '1' : '0'}`).join('|'),
+      deliveryAddresses.map((address) => `${address.id}:${address.isDefault ? '1' : '0'}`).join('|'),
+    ].join('::')
+
+    if (addressChoicesLoadedFor === choiceKey) return
+    selectedBillingAddressId = initialAddressChoice('billing')
+    selectedDeliveryAddressId = initialAddressChoice('delivery')
+    addressChoicesLoadedFor = choiceKey
+  })
+
+  $effect(() => {
+    const nextPostalCode = values.deliveryPostalCode || deliveryPostalCode
+    if (!customDeliveryPostalCode && nextPostalCode) customDeliveryPostalCode = nextPostalCode
+  })
 
   $effect(() => {
     if (form?.success && !clearedAfterSuccess) {
@@ -560,7 +590,9 @@
               <article>
                 <div>
                   <strong>{row.product.title}</strong>
-                  <span>{row.variant.label} · {content.storePage.finishLabels[row.item.finish]}</span>
+                  <span>
+                    {row.variant.label}{#if row.product.hasFinishChoice} · {content.storePage.finishLabels[row.finish]}{/if}
+                  </span>
                 </div>
                 <span>{row.item.quantity} x {money.format(row.unitPrice)}</span>
               </article>

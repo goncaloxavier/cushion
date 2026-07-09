@@ -25,7 +25,7 @@
   type CategoryFilter = 'all' | StoreCategory
   type SortKey = 'featured' | 'priceAsc' | 'priceDesc' | 'name'
 
-  const categories: StoreCategory[] = ['bancos', 'mesas', 'cadeiras', 'residuos', 'cultivo']
+  const categories: StoreCategory[] = ['bancos', 'mesas', 'cadeiras', 'decking', 'residuos', 'cultivo']
   const sortOptions: SortKey[] = ['featured', 'priceAsc', 'priceDesc', 'name']
   const sortLabels: Record<LanguageCode, Record<SortKey, string>> = {
     pt: {
@@ -103,14 +103,21 @@
   )
 
   const basePriceFor = (product: StoreProduct) =>
-    Math.min(...product.variants.flatMap((variant) => [variant.prices.natural, variant.prices.dark]))
+    Math.min(
+      ...product.variants.flatMap((variant) => [
+        variant.prices.natural,
+        ...(product.hasFinishChoice ? [variant.prices.dark] : []),
+      ]),
+    )
 
   const entryPriceFor = (product: StoreProduct) => {
     const candidates = product.variants.flatMap((variant) =>
-      (['natural', 'dark'] as const).map((finish) => ({
-        price: variant.prices[finish],
-        weightKg: variant.weightKg,
-      })),
+      (product.hasFinishChoice ? (['natural', 'dark'] as const) : (['natural'] as const)).map(
+        (finish) => ({
+          price: variant.prices[finish],
+          weightKg: variant.weightKg,
+        }),
+      ),
     )
     const candidate = candidates.sort((left, right) => left.price - right.price)[0]
     if (!candidate) return {price: 0, includesDelivery: false}

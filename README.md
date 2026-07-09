@@ -43,9 +43,9 @@ npm run lint
 npm run build
 npm run build:studio
 npm run db:migrate
-npm run deploy:content
+SANITY_ALLOW_WRITE=true npm run deploy:content
 npm run e2e
-npm run seed:studio
+SANITY_ALLOW_WRITE=true npm run seed:studio
 ```
 
 Visual snapshots are session-only review artifacts. Use `npm run e2e:visual:update` only when you need local screenshots for inspection, then keep the generated `tests/*-snapshots/` output out of git.
@@ -57,13 +57,13 @@ The website has fallback multilingual content, so it works before any Studio con
 
 Editors can create, publish, unpublish, update, and delete:
 
+- `Conteúdo do site`
 - `Product category`
+- `Produto da loja`
 - `Case study`
 - `Blog post`
 
-The old `Landing page` schema is still registered as an experimental document, but the routed site currently reads the collection documents above.
-
-Published collection documents replace the matching fallback collection on the public site.
+Published CMS documents replace the matching fallback content on the public site. `Conteúdo do site` is the singleton for page copy, contact/legal fields, homepage media, partner logos, footer links, and public store settings such as the transport multiplier.
 
 Sanity is only the public CMS/catalogue editor for website copy, products, store prices/images, case studies, blog posts, and public store settings such as the transport multiplier. Customer accounts, addresses, sessions, orders, payment attempts, and order history are stored in Postgres.
 
@@ -82,18 +82,26 @@ Checkout supports guests and customer accounts. Orders are created as `pending_p
 The current site-wide content and starter products can be written into the Sanity Content Lake with:
 
 ```bash
-npm run seed:studio
+SANITY_ALLOW_WRITE=true npm run seed:studio
 ```
 
-This generates `.sanity/seed.ndjson` and imports 6 deterministic documents into dataset `production` using `--replace`: the `siteContent` singleton plus starter products. After that, Studio has editable page copy/contact/footer content and product entries.
+This generates `.sanity/seed.ndjson` and imports 21 deterministic documents into dataset `production` using `--replace`: the `siteContent` singleton, starter product categories, and starter Loja products. After that, Studio has editable page copy/contact/footer content, product entries, Loja products, prices, weights, and store images.
 
 To intentionally refresh all code-managed Studio content, including the migrated historical cases and blog posts, run:
 
 ```bash
-npm run deploy:content
+SANITY_ALLOW_WRITE=true npm run deploy:content
 ```
 
 Do not put `deploy:content` inside the Railway build command unless overwriting Sanity content on every website deploy is intended.
+
+The Sanity write/import commands refuse to run unless `SANITY_ALLOW_WRITE=true` is set, because they can replace published Content Lake documents.
+
+For local-only seed generation without publishing to Sanity:
+
+```bash
+npm run seed:studio:write
+```
 
 See `docs/sanity-starter.md` for the short editor/developer guide.
 

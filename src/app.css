@@ -8081,6 +8081,10 @@ html.reduce-motion {
     linear-gradient(180deg, #edf7f3, #ffffff 38%);
 }
 
+.account-page {
+  overflow-x: clip;
+}
+
 .account-shell,
 .checkout-shell {
   margin: 0 auto;
@@ -8088,7 +8092,9 @@ html.reduce-motion {
 }
 
 .account-shell {
-  max-width: 68rem;
+  max-width: 76rem;
+  padding-top: clamp(3rem, 5.5vw, 5.2rem);
+  padding-bottom: clamp(3.5rem, 6vw, 5.8rem);
 }
 
 .checkout-shell {
@@ -8099,10 +8105,10 @@ html.reduce-motion {
 
 .account-head {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 2.2rem;
+  margin-bottom: clamp(1.45rem, 3vw, 2rem);
 }
 
 .account-head h1,
@@ -8257,10 +8263,10 @@ html.reduce-motion {
 .account-order-table-head,
 .account-order-row {
   display: grid;
-  grid-template-columns: minmax(13rem, 1.45fr) minmax(10rem, 0.95fr) minmax(8rem, 0.75fr) minmax(8rem, 0.65fr);
-  gap: 1rem;
+  grid-template-columns: minmax(16rem, 1.45fr) minmax(14rem, 1fr) minmax(9rem, 0.75fr) minmax(7rem, 0.6fr);
+  gap: 1.15rem;
   align-items: center;
-  padding: 0.85rem 1rem;
+  padding: 0.95rem 1.15rem;
 }
 
 .account-order-table-head {
@@ -8271,6 +8277,11 @@ html.reduce-motion {
   text-transform: uppercase;
   background: rgba(45, 123, 87, 0.06);
   border-bottom: 1px solid var(--line);
+}
+
+.account-order-table-head span:last-child {
+  justify-self: end;
+  text-align: right;
 }
 
 .account-order-row {
@@ -8291,6 +8302,11 @@ html.reduce-motion {
 .account-order-total strong {
   display: block;
   color: var(--ink);
+}
+
+.account-order-main strong {
+  max-width: 32rem;
+  line-height: 1.35;
 }
 
 .account-order-date,
@@ -8786,6 +8802,29 @@ html.reduce-motion {
   }
 }
 
+@media (max-width: 940px) {
+  .account-order-table-head {
+    display: none;
+  }
+
+  .account-order-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .account-order-cell,
+  .account-order-total {
+    display: grid;
+    gap: 0.18rem;
+    text-align: left;
+  }
+
+  .account-order-mobile-label {
+    display: block;
+  }
+}
+
 @media (max-width: 640px) {
   .checkout-card-head,
   .checkout-actions {
@@ -8818,28 +8857,10 @@ html.reduce-motion {
     text-align: left;
   }
 
-  .account-order-row,
   .account-details div,
   .checkout-summary dl div {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
-  }
-
-  .account-order-table-head {
-    display: none;
-  }
-
-  .account-order-row {
-    gap: 0.65rem;
-    padding: 0.95rem;
-  }
-
-  .account-order-mobile-label {
-    display: block;
-  }
-
-  .account-order-total {
-    text-align: left;
   }
 
   .account-details div,

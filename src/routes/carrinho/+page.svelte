@@ -169,11 +169,13 @@
         const variant = product?.variants[item.variantIndex]
         if (!product || !variant) return null
 
-        const unitPrice = variant.prices[item.finish]
+        const finish = product.hasFinishChoice ? item.finish : 'natural'
+        const unitPrice = variant.prices[finish]
         return {
           item,
           product,
           variant,
+          finish,
           unitPrice,
           total: unitPrice * item.quantity,
         }
@@ -280,10 +282,12 @@
                   <h2>{row.product.title}</h2>
                   <p class="cart-item-meta">
                     <span>{row.variant.label}</span>
-                    <span class="cart-item-finish">
-                      <span class={`finish-dot finish-dot-${row.item.finish}`} aria-hidden="true"></span>
-                      {content.storePage.finishLabels[row.item.finish]}
-                    </span>
+                    {#if row.product.hasFinishChoice}
+                      <span class="cart-item-finish">
+                        <span class={`finish-dot finish-dot-${row.finish}`} aria-hidden="true"></span>
+                        {content.storePage.finishLabels[row.finish]}
+                      </span>
+                    {/if}
                   </p>
                 </span>
               </a>

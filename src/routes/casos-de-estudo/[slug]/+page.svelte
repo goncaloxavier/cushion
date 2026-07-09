@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -10,6 +11,18 @@
     collectionListHref('/casos-de-estudo', data.language, data.returnPage),
   )
   const images = $derived(caseStudyImagesFor(data.caseStudy, caseStudyImageFallback))
+  const caseDataAttribute = $derived(
+    data.preview && data.studioUrl && data.caseStudy.studioDocumentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: data.caseStudy.studioDocumentId,
+          type: 'caseStudy',
+        })
+      : null,
+  )
+  const imageDataAttribute = $derived(
+    caseDataAttribute ? (path: string) => caseDataAttribute(path) : undefined,
+  )
   const lead = $derived(data.caseStudy.description || data.caseStudy.summary)
   const hasProcess = $derived(
     Boolean(data.caseStudy.challenge || data.caseStudy.solution || data.caseStudy.result),
@@ -37,6 +50,7 @@
         className="case-gallery"
         sizes="(max-width: 900px) 92vw, (max-width: 1300px) 48vw, 650px"
         transitionName={`vt-${data.caseStudy.slug}`}
+        dataAttribute={imageDataAttribute}
       />
     </section>
 

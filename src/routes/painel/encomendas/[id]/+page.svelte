@@ -101,7 +101,7 @@
                 <br /><small>{item.variantDimensions.join(' · ')}</small>
               {/if}
             </td>
-            <td>{item.finishLabel}</td>
+            <td>{item.finishLabel || 'Sem opção'}</td>
             <td>{item.quantity}</td>
             <td>{money.format(item.unitPriceNet)}</td>
             <td>{money.format(item.lineTotalNet)}</td>

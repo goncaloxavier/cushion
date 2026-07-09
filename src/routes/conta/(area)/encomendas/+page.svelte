@@ -107,11 +107,20 @@
   const t = $derived(copyByLanguage[data.language] ?? copyByLanguage.pt)
   const orderLabels = $derived(orderStatusByLanguage[data.language] ?? orderStatusByLanguage.pt)
   const paymentLabels = $derived(paymentStatusByLanguage[data.language] ?? paymentStatusByLanguage.pt)
-  const money = new Intl.NumberFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT', {
-    style: 'currency',
-    currency: 'EUR',
-  })
-  const dateFormatter = new Intl.DateTimeFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT')
+  const money = $derived(
+    new Intl.NumberFormat(
+      data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
+      {
+        style: 'currency',
+        currency: 'EUR',
+      },
+    ),
+  )
+  const dateFormatter = $derived(
+    new Intl.DateTimeFormat(
+      data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT',
+    ),
+  )
   const orderStatusLabel = (status: string) => orderLabels[status] ?? status.replaceAll('_', ' ')
   const paymentStatusLabel = (status: string) => paymentLabels[status] ?? status.replaceAll('_', ' ')
 </script>
@@ -122,40 +131,40 @@
 </svelte:head>
 
 <Reveal class="account-card account-orders" variant="card">
-    <div class="account-card-head">
-      <h2>{t.title}</h2>
-    </div>
+  <div class="account-card-head">
+    <h2>{t.title}</h2>
+  </div>
 
-    {#if data.orders.length}
-      <div class="account-order-list" role="table" aria-label={t.title}>
-        <div class="account-order-table-head" role="row">
-          <span role="columnheader">{t.order}</span>
-          <span role="columnheader">{t.status}</span>
-          <span role="columnheader">{t.payment}</span>
-          <span role="columnheader">{t.total}</span>
-        </div>
-        {#each data.orders as order (order.id)}
-          <article class="account-order-row" role="row">
-            <div class="account-order-main" role="cell">
-              <strong>{t.order} {order.orderNumber}</strong>
-              <span class="account-order-date">{dateFormatter.format(new Date(order.createdAt))}</span>
-            </div>
-            <div class="account-order-cell" role="cell">
-              <span class="account-order-mobile-label">{t.status}</span>
-              <strong class="account-order-status">{orderStatusLabel(order.status)}</strong>
-            </div>
-            <div class="account-order-cell" role="cell">
-              <span class="account-order-mobile-label">{t.payment}</span>
-              <strong class="account-order-status muted">{paymentStatusLabel(order.paymentStatus)}</strong>
-            </div>
-            <div class="account-order-cell account-order-total" role="cell">
-              <span class="account-order-mobile-label">{t.total}</span>
-              <strong>{money.format(order.totalGross)}</strong>
-            </div>
-          </article>
-        {/each}
+  {#if data.orders.length}
+    <div class="account-order-list" role="table" aria-label={t.title}>
+      <div class="account-order-table-head" role="row">
+        <span role="columnheader">{t.order}</span>
+        <span role="columnheader">{t.status}</span>
+        <span role="columnheader">{t.payment}</span>
+        <span role="columnheader">{t.total}</span>
       </div>
-    {:else}
-      <p class="account-empty">{t.empty}</p>
-    {/if}
-  </Reveal>
+      {#each data.orders as order (order.id)}
+        <div class="account-order-row" role="row">
+          <div class="account-order-main" role="cell">
+            <strong>{t.order} {order.orderNumber}</strong>
+            <span class="account-order-date">{dateFormatter.format(new Date(order.createdAt))}</span>
+          </div>
+          <div class="account-order-cell" role="cell">
+            <span class="account-order-mobile-label">{t.status}</span>
+            <strong class="account-order-status">{orderStatusLabel(order.status)}</strong>
+          </div>
+          <div class="account-order-cell" role="cell">
+            <span class="account-order-mobile-label">{t.payment}</span>
+            <strong class="account-order-status muted">{paymentStatusLabel(order.paymentStatus)}</strong>
+          </div>
+          <div class="account-order-cell account-order-total" role="cell">
+            <span class="account-order-mobile-label">{t.total}</span>
+            <strong>{money.format(order.totalGross)}</strong>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {:else}
+    <p class="account-empty">{t.empty}</p>
+  {/if}
+</Reveal>
