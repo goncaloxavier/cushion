@@ -123,7 +123,14 @@
     if (!candidate) return {price: 0, includesDelivery: false}
 
     const estimate = calculateStoreEstimate(
-      [{unitPrice: candidate.price, quantity: 1, weightKg: candidate.weightKg}],
+      [
+        {
+          unitPrice: candidate.price,
+          quantity: 1,
+          weightKg: candidate.weightKg,
+          flatTransportPrice: product.flatTransportPrice,
+        },
+      ],
       deliveryPostalCode,
       {transportMultiplier: content.storePage.transportMultiplier},
     )

@@ -25,19 +25,6 @@ export const sessionCookieName = 'df4y_painel_session'
 export type StaffUser = {_id: string; name: string; username: string; role: string}
 
 // ---- rate limiting (per-instance, in-memory) ----
-const rateBuckets = new Map<string, {count: number; resetAt: number}>()
-
-export const rateLimit = (key: string, limit: number, windowMs: number) => {
-  const now = Date.now()
-  const current = rateBuckets.get(key)
-  if (!current || current.resetAt <= now) {
-    rateBuckets.set(key, {count: 1, resetAt: now + windowMs})
-    return false
-  }
-  current.count += 1
-  return current.count > limit
-}
-
 // ---- password hashing ----
 // scrypt + per-user random salt (no global pepper) so hashes stay portable:
 // an account created locally by the CLI verifies on the server regardless of

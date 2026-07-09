@@ -188,6 +188,7 @@
         unitPrice: row.unitPrice,
         quantity: row.item.quantity,
         weightKg: row.variant.weightKg,
+        flatTransportPrice: row.product.flatTransportPrice,
       })),
       deliveryPostalCode,
       {transportMultiplier: content.storePage.transportMultiplier},

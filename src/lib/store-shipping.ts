@@ -43,6 +43,10 @@ export type StorePricingItem = {
   unitPrice: number
   quantity: number
   weightKg?: number
+  // When set, this line is charged this fixed fee (once per line, regardless
+  // of quantity or destination zone) instead of contributing its weight to
+  // the normal carrier weight/zone calculation below.
+  flatTransportPrice?: number
 }
 
 export type StorePricingEstimate = {
@@ -243,6 +247,9 @@ export const transportEstimateFor = (
   } satisfies StoreTransportEstimate
 }
 
+const hasFlatTransport = (item: StorePricingItem) =>
+  Number.isFinite(item.flatTransportPrice) && (item.flatTransportPrice ?? 0) > 0
+
 export const calculateStoreEstimate = (
   items: StorePricingItem[],
   postalCode: string,
@@ -251,15 +258,26 @@ export const calculateStoreEstimate = (
   const productNet = roundMoney(
     items.reduce((total, item) => total + item.unitPrice * Math.max(1, item.quantity || 1), 0),
   )
-  const missingWeight = items.some(
+
+  // Flat-rate items (see StorePricingItem.flatTransportPrice) are billed a
+  // fixed fee per line regardless of zone/weight, so they're excluded from
+  // the weight-based carrier calculation entirely — only the remaining
+  // items' weight needs to clear the missing-weight/zone checks below.
+  const flatItems = items.filter(hasFlatTransport)
+  const weightItems = items.filter((item) => !hasFlatTransport(item))
+  const flatTransportNet = roundMoney(
+    flatItems.reduce((total, item) => total + (item.flatTransportPrice ?? 0), 0),
+  )
+
+  const missingWeight = weightItems.some(
     (item) => !Number.isFinite(item.weightKg) || (item.weightKg ?? 0) <= 0,
   )
-  const totalWeightKg = items.reduce(
+  const totalWeightKg = weightItems.reduce(
     (total, item) => total + (item.weightKg ?? 0) * Math.max(1, item.quantity || 1),
     0,
   )
 
-  if (!items.length || missingWeight || totalWeightKg <= 0) {
+  if (!items.length || (weightItems.length > 0 && (missingWeight || totalWeightKg <= 0))) {
     return {
       productNet,
       totalWeightKg,
@@ -271,7 +289,29 @@ export const calculateStoreEstimate = (
     }
   }
 
-  const transport = transportEstimateFor(postalCode, totalWeightKg, options)
+  let transport: StoreTransportEstimate | null
+  if (weightItems.length) {
+    const weightTransport = transportEstimateFor(postalCode, totalWeightKg, options)
+    transport = weightTransport
+      ? {...weightTransport, transportNet: roundMoney(weightTransport.transportNet + flatTransportNet)}
+      : null
+  } else {
+    // Cart is 100% flat-rate items: still needs a valid delivery zone (for
+    // the actual shipment), but the price never depends on it.
+    const destination = postalZoneFor(postalCode)
+    transport = destination
+      ? {
+          destination,
+          transportZone: altoAlentejoDispatchZones[destination.id],
+          weightKg: 0,
+          bracketMaxKg: 0,
+          tableNet: 0,
+          fuelSurchargeNet: 0,
+          transportNet: flatTransportNet,
+        }
+      : null
+  }
+
   if (!transport) {
     return {
       productNet,

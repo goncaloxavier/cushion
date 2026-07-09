@@ -277,6 +277,7 @@
         unitPrice: row.unitPrice,
         quantity: row.item.quantity,
         weightKg: row.variant.weightKg,
+        flatTransportPrice: row.product.flatTransportPrice,
       })),
       deliveryAddress?.postalCode ?? (customDeliveryPostalCode || deliveryPostalCode),
       {transportMultiplier: content.storePage.transportMultiplier},

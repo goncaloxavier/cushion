@@ -157,6 +157,10 @@ export type StoreProduct = {
   images?: ContentImage[]
   media?: StoreProductMedia[]
   variants: StoreProductVariant[]
+  // Optional flat-rate transport override: when set, this product is charged
+  // this fixed fee per cart line regardless of zone/weight instead of going
+  // through the normal weight/zone carrier calculation — see calculateStoreEstimate.
+  flatTransportPrice?: number
 }
 
 export type SiteContent = {
@@ -360,6 +364,7 @@ type SanityStoreProduct = {
   category?: StoreCategory
   summary?: LocalizedValue
   hasFinishChoice?: boolean
+  flatTransportPrice?: number
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   variants?: SanityStoreProductVariant[]
@@ -2335,6 +2340,7 @@ const storeProductsFromSanity = (
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
         hasFinishChoice: product.hasFinishChoice ?? fallbackProduct?.hasFinishChoice ?? true,
+        flatTransportPrice: product.flatTransportPrice ?? fallbackProduct?.flatTransportPrice,
         image: images[0],
         images,
         media,

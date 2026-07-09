@@ -7,6 +7,7 @@ import {
 } from 'node:crypto'
 import type {Cookies} from '@sveltejs/kit'
 import {databaseConfigured, query, withTransaction} from './db'
+import {rateLimit} from './rate-limit'
 
 const scrypt = (
   password: string,
@@ -62,18 +63,7 @@ const mapCustomer = (row: CustomerRow): CustomerUser => ({
   emailVerifiedAt: row.email_verified_at,
 })
 
-const rateBuckets = new Map<string, {count: number; resetAt: number}>()
-
-export const customerRateLimit = (key: string, limit: number, windowMs: number) => {
-  const now = Date.now()
-  const current = rateBuckets.get(key)
-  if (!current || current.resetAt <= now) {
-    rateBuckets.set(key, {count: 1, resetAt: now + windowMs})
-    return false
-  }
-  current.count += 1
-  return current.count > limit
-}
+export const customerRateLimit = rateLimit
 
 export const normalizeCustomerEmail = (value: string) => value.trim().toLowerCase()
 
@@ -288,11 +278,18 @@ export const destroyCustomerSession = async (token: string | undefined) => {
 
 export const createEmailVerificationToken = async (customerId: string) => {
   const token = randomToken()
-  await query(
-    `insert into email_verification_tokens (customer_id, token_hash, expires_at)
-     values ($1, $2, $3)`,
-    [customerId, tokenHashOf(token), new Date(Date.now() + EMAIL_TOKEN_TTL_MS).toISOString()],
-  )
+  await withTransaction(async (client) => {
+    await client.query(
+      `delete from email_verification_tokens
+       where customer_id = $1 and used_at is null`,
+      [customerId],
+    )
+    await client.query(
+      `insert into email_verification_tokens (customer_id, token_hash, expires_at)
+       values ($1, $2, $3)`,
+      [customerId, tokenHashOf(token), new Date(Date.now() + EMAIL_TOKEN_TTL_MS).toISOString()],
+    )
+  })
   return token
 }
 
@@ -319,11 +316,18 @@ export const verifyCustomerEmailToken = async (token: string) => {
 
 export const createPasswordResetToken = async (customerId: string) => {
   const token = randomToken()
-  await query(
-    `insert into password_reset_tokens (customer_id, token_hash, expires_at)
-     values ($1, $2, $3)`,
-    [customerId, tokenHashOf(token), new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString()],
-  )
+  await withTransaction(async (client) => {
+    await client.query(
+      `delete from password_reset_tokens
+       where customer_id = $1 and used_at is null`,
+      [customerId],
+    )
+    await client.query(
+      `insert into password_reset_tokens (customer_id, token_hash, expires_at)
+       values ($1, $2, $3)`,
+      [customerId, tokenHashOf(token), new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString()],
+    )
+  })
   return token
 }
 

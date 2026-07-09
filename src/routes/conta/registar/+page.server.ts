@@ -78,7 +78,23 @@ export const actions: Actions = {
       return fail(400, {message: 'Já existe uma conta com este email.', values})
     }
 
-    const customer = await createCustomer({email, password, name, phone, nif})
+    let customer
+    try {
+      customer = await createCustomer({email, password, name, phone, nif})
+    } catch (error) {
+      // The pre-flight lookup above keeps the normal message friendly, while
+      // this closes the small concurrent-registration race at the database.
+      if ((error as {code?: string}).code === '23505') {
+        return fail(400, {message: 'Já existe uma conta com este email.', values})
+      }
+      console.error(
+        `[customer registration] failed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      return fail(503, {
+        message: 'Não foi possível criar a conta neste momento. Tente novamente dentro de instantes.',
+        values,
+      })
+    }
     const token = await createEmailVerificationToken(customer.id)
     const origin = appOrigin() || url.origin
     const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}&lang=${language}`

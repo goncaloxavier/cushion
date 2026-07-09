@@ -199,6 +199,7 @@
             unitPrice: variant.prices[item.finish],
             quantity: item.quantity,
             weightKg: variant.weightKg,
+            flatTransportPrice: product.flatTransportPrice,
           }
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),

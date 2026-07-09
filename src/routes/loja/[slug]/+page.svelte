@@ -159,7 +159,14 @@
   const normalizedQuantity = $derived(Math.min(99, Math.max(1, Math.floor(quantity || 1))))
   const selectedEstimate = $derived(
     calculateStoreEstimate(
-      [{unitPrice: selectedPrice, quantity: normalizedQuantity, weightKg: selectedVariant.weightKg}],
+      [
+        {
+          unitPrice: selectedPrice,
+          quantity: normalizedQuantity,
+          weightKg: selectedVariant.weightKg,
+          flatTransportPrice: data.storeProduct.flatTransportPrice,
+        },
+      ],
       deliveryPostalCode,
       {transportMultiplier: content.storePage.transportMultiplier},
     ),

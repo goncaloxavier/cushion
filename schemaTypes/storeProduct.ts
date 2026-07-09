@@ -205,6 +205,15 @@ export const storeProduct = defineType({
       validation: (Rule) => Rule.required().min(1),
     }),
     defineField({
+      name: 'flatTransportPrice',
+      title: 'Transporte fixo (todas as zonas)',
+      description:
+        'Opcional. Quando definido, ignora o cálculo normal de transporte por peso/zona e cobra sempre este valor fixo para este produto, em qualquer zona do país. Use apenas para produtos leves onde o transporte calculado por peso não faz sentido.',
+      type: 'number',
+      group: 'precos',
+      validation: (Rule) => Rule.min(0).precision(2),
+    }),
+    defineField({
       name: 'active',
       title: 'Mostrar na Loja',
       type: 'boolean',

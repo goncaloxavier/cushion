@@ -10,6 +10,7 @@ import {
   storeVatRate,
   transportEstimateFor,
 } from '../src/lib/store-shipping'
+import {sameOriginOk} from '../src/lib/server/form-guard'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -161,6 +162,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('priceNatural')
     expect(sanityClient).toContain('priceDark')
     expect(sanityClient).toContain('hasFinishChoice')
+    expect(sanityClient).toContain('flatTransportPrice')
     expect(sanityClient).toContain('gallery[]')
     expect(storeProductsImport).toContain('createIfNotExists(document)')
     expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
@@ -352,6 +354,32 @@ test.describe('Sanity Studio content contract', () => {
     expect(storeSchema).toContain("'Preço Natural/Cinza sem IVA'")
     expect(storeSchema).toContain("'Preço Castanho/Preto sem IVA'")
     expect(storeSchema).toContain('Rule.required().min(0.01).precision(2)')
+    expect(storeSchema).toContain("name: 'flatTransportPrice'")
+  })
+
+  test('flat-rate transport products are wired end to end', () => {
+    const contentModel = read('src/lib/site-content.ts')
+    const storeFallback = read('src/lib/store-fallback.ts')
+    const storeShipping = read('src/lib/store-shipping.ts')
+    const storeList = read('src/routes/loja/+page.svelte')
+    const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
+    const cartRoute = read('src/routes/carrinho/+page.svelte')
+    const checkoutRoute = read('src/routes/finalizar-compra/+page.svelte')
+    const ordersServer = read('src/lib/server/orders.ts')
+
+    expect(contentModel).toContain('flatTransportPrice?: number')
+    expect(storeFallback).toContain('flatTransportPrice: 2')
+    expect(storeFallback).toContain('flatTransportPrice: product.flatTransportPrice')
+    expect(storeShipping).toContain('flatTransportPrice')
+    expect(storeShipping).toContain('hasFlatTransport')
+
+    // Every place that builds a StorePricingItem[] for calculateStoreEstimate
+    // must forward the product's flatTransportPrice, or a flat-rate product's
+    // price would silently fall back to the normal weight-based formula on
+    // that one page while working correctly everywhere else.
+    for (const route of [storeList, storeDetailRoute, cartRoute, checkoutRoute, ordersServer]) {
+      expect(route).toContain('flatTransportPrice')
+    }
   })
 
   test('fallback content remains available when Studio is empty', () => {
@@ -484,6 +512,40 @@ test.describe('Sanity Studio content contract', () => {
     })
   })
 
+  test('flat-rate transport products bypass the weight/zone formula but never disturb other cart lines', () => {
+    // A flat-rate line alone: always the flat fee, in every zone, regardless
+    // of quantity — this is what "Placas Click" (client-requested €2 flat,
+    // any zone) relies on.
+    const flatOnlyNear = calculateStoreEstimate(
+      [{unitPrice: 12.19, quantity: 1, weightKg: 2.8, flatTransportPrice: 2}],
+      '7000-000',
+    )
+    expect(flatOnlyNear.transport).toMatchObject({transportNet: 2})
+    expect(flatOnlyNear.totalGross).toBe(17.45)
+
+    const flatOnlyFar = calculateStoreEstimate(
+      [{unitPrice: 12.19, quantity: 20, weightKg: 2.8, flatTransportPrice: 2}],
+      '4000-000',
+    )
+    expect(flatOnlyFar.transport).toMatchObject({transportNet: 2})
+
+    // Mixed cart: the flat fee is additive on top of the normal weight-based
+    // transport for the OTHER line, and the flat item's own weight must not
+    // leak into that weight-based calculation.
+    const baseline = calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 25}], '1000-000')
+    expect(baseline.transport).toMatchObject({transportNet: 31.02})
+
+    const mixed = calculateStoreEstimate(
+      [
+        {unitPrice: 12.19, quantity: 5, weightKg: 2.8, flatTransportPrice: 2},
+        {unitPrice: 185, quantity: 1, weightKg: 25},
+      ],
+      '1000-000',
+    )
+    expect(mixed.totalWeightKg).toBe(25)
+    expect(mixed.transport).toMatchObject({transportNet: 33.02})
+  })
+
   test('private ecommerce data uses Postgres, not the public Sanity catalogue', () => {
     const packageJson = read('package.json')
     const envExample = read('.env.example')
@@ -543,5 +605,35 @@ test.describe('Sanity Studio content contract', () => {
     // buildOrderDraft must derive unitPriceNet by looking the variant up in
     // trusted server-side content, not by trusting a client-sent value.
     expect(orders).toMatch(/unitPriceNet\s*=\s*Number\(variant\.prices\[finish\]\)/)
+  })
+
+  test('account and checkout guardrails stay enforced in code and CI', () => {
+    const packageJson = read('package.json')
+    const auth = read('src/lib/server/customer-auth.ts')
+    const rateLimit = read('src/lib/server/rate-limit.ts')
+    const checkout = read('src/routes/finalizar-compra/+page.server.ts')
+    const crm = read('src/lib/server/crm.ts')
+    const orders = read('src/lib/server/orders.ts')
+    const formGuard = read('src/lib/server/form-guard.ts')
+    const hooks = read('src/hooks.server.ts')
+
+    expect(packageJson).toContain('tests/commerce.spec.ts')
+    expect(auth).toContain('delete from email_verification_tokens')
+    expect(auth).toContain('delete from password_reset_tokens')
+    expect(rateLimit).toContain('const maxBuckets = 5_000')
+    expect(rateLimit).toContain('export const rateLimitKey')
+    expect(checkout).toContain("rateLimitKey('checkout', getClientAddress())")
+    expect(crm).toContain("rateLimit(`crm:ip:${ipHash}`")
+    expect(crm).toContain("rateLimit(`crm:email:${emailHash}`")
+    expect(checkout).toContain('submissionToken.length < 20')
+    expect(checkout).toContain('isValidEmail(values.email)')
+    expect(orders).toContain("throw new OrderInputError('Atualize a página antes de finalizar o pedido.')")
+    expect(orders).toContain('never creates a second copy of the same saved address')
+    expect(formGuard).toContain('if (referer) return referer.startsWith(`${expectedOrigin}/`)')
+    expect(sameOriginOk(null, null, 'https://example.com')).toBe(false)
+    expect(sameOriginOk('https://example.com', null, 'https://example.com')).toBe(true)
+    expect(sameOriginOk(null, 'https://example.com/contacto', 'https://example.com')).toBe(true)
+    expect(hooks).toContain("headers.set('x-content-type-options', 'nosniff')")
+    expect(hooks).toContain("headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')")
   })
 })

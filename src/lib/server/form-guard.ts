@@ -22,5 +22,5 @@ export const csrfOk = (cookieToken: string | undefined, formToken: string) => {
 export const sameOriginOk = (origin: string | null, referer: string | null, expectedOrigin: string) => {
   if (origin) return origin === expectedOrigin
   if (referer) return referer.startsWith(`${expectedOrigin}/`)
-  return true
+  return false
 }
