@@ -7,6 +7,7 @@ const storeCategories = [
   {title: 'Bancos', value: 'bancos'},
   {title: 'Mesas e conjuntos', value: 'mesas'},
   {title: 'Cadeiras', value: 'cadeiras'},
+  {title: 'Decking', value: 'decking'},
   {title: 'Resíduos', value: 'residuos'},
   {title: 'Cultivo', value: 'cultivo'},
 ]

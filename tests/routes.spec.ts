@@ -1,4 +1,5 @@
 import {expect, test, type Page, type TestInfo} from '@playwright/test'
+import {storeProductsForLanguage} from '../src/lib/store-fallback'
 
 type PublicRoute = {
   path: string
@@ -79,23 +80,7 @@ const caseSlugs = [
   'floreiras-moscavide',
 ]
 
-const storeSlugs = [
-  'banco-gaviao',
-  'banco-foros-domingao',
-  'banco-fazenda',
-  'banco-montargil',
-  'mesa-vale-do-arco',
-  'mesa-octogonal',
-  'conjunto-atalia',
-  'cadeira-atalaia',
-  'cadeira-de-bar',
-  'mesa-ervideira',
-  'papeleira-reta',
-  'ecoponto-triplo-com-portas',
-  'ecoponto-4-residuos',
-  'mesa-de-cultivo',
-  'canteiro-com-trelica',
-]
+const storeSlugs = storeProductsForLanguage('pt').map((product) => product.slug)
 
 const storeDeliveryStorageKey = 'df4y-store-delivery-postal-code-v1'
 const defaultStorePostalCode = '7000-000'
@@ -105,15 +90,16 @@ async function goToNextPage(page: Page) {
 
   const nextButton = page.getByRole('button', {name: 'Seguinte'})
   if ((await nextButton.count()) === 0) return false
+  if (await nextButton.isDisabled()) return false
 
   const activePage = page.locator('.pagination-page.active')
   const currentLabel = (await activePage.count()) > 0 ? await activePage.textContent() : ''
 
   // The control is briefly disabled during the page-swap transition; click()
-  // auto-waits for it to be enabled. On the last page it stays disabled, so the
-  // click times out — treat that as "no more pages".
+  // auto-waits for it to become actionable.
   try {
-    await nextButton.click({timeout: 1500})
+    await nextButton.scrollIntoViewIfNeeded()
+    await nextButton.click({timeout: 5000})
   } catch {
     return false
   }

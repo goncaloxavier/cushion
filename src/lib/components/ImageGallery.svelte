@@ -23,6 +23,7 @@
     className = '',
     transitionName = undefined,
     sizes = '(max-width: 900px) 92vw, (max-width: 1400px) calc(100vw - 2.5rem), 1210px',
+    dataAttribute = undefined,
   } = $props<{
     images: ContentImage[]
     label: string
@@ -30,6 +31,7 @@
     className?: string
     transitionName?: string
     sizes?: string
+    dataAttribute?: (path: string) => string | undefined
   }>()
 
   let selectedImageIndex = $state(0)
@@ -39,6 +41,9 @@
   const image = $derived(images[selectedImageIndex] ?? images[0])
   const hasMultiple = $derived(images.length > 1)
   const position = $derived(`${selectedImageIndex + 1} / ${images.length}`)
+  const activeDataAttribute = $derived(
+    image?.editPath && dataAttribute ? dataAttribute(image.editPath) : undefined,
+  )
   const previousImageIndex = $derived(
     images.length ? (selectedImageIndex - 1 + images.length) % images.length : 0,
   )
@@ -102,6 +107,8 @@
       onmouseenter={() => preloadFull(image)}
       onfocus={() => preloadFull(image)}
       onclick={openLightbox}
+      data-sanity={activeDataAttribute}
+      data-sanity-edit-target={activeDataAttribute ? true : undefined}
     >
       <img
         src={sizedImage(image.url, 1600, 76)}
@@ -122,10 +129,13 @@
     {#if hasMultiple}
       <div class="product-thumbnails image-gallery-thumbnails" aria-label={label}>
         {#each images as galleryImage, index}
+          {@const thumbAttr = galleryImage.editPath && dataAttribute ? dataAttribute(galleryImage.editPath) : undefined}
           <button
             type="button"
             class:active={selectedImageIndex === index}
             aria-label={`${label} ${index + 1}`}
+            data-sanity={thumbAttr}
+            data-sanity-edit-target={thumbAttr ? true : undefined}
             onclick={() => {
               selectImage(index)
             }}

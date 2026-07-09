@@ -271,6 +271,43 @@ const batches: StoreImageBatch[] = [
       },
     ],
   },
+  {
+    slug: 'placas-click',
+    images: [
+      {
+        path: 'static/images/store/placas-click-01.jpeg',
+        alt: {
+          pt: 'Placas Click para deck modular em plástico reciclado.',
+          en: 'Placas Click modular deck tiles in recycled plastic.',
+          es: 'Placas Click para tarima modular en plástico reciclado.',
+        },
+      },
+      {
+        path: 'static/images/store/placas-click-02.jpeg',
+        alt: {
+          pt: 'Pormenor lateral das Placas Click.',
+          en: 'Side detail of the Placas Click tiles.',
+          es: 'Detalle lateral de las Placas Click.',
+        },
+      },
+      {
+        path: 'static/images/store/placas-click-03.jpeg',
+        alt: {
+          pt: 'Pormenor de encaixe das Placas Click.',
+          en: 'Click-fit detail of the Placas Click tiles.',
+          es: 'Detalle de encaje de las Placas Click.',
+        },
+      },
+      {
+        path: 'static/images/store/placas-click-04.jpeg',
+        alt: {
+          pt: 'Vista aproximada das Placas Click.',
+          en: 'Close view of the Placas Click tiles.',
+          es: 'Vista cercana de las Placas Click.',
+        },
+      },
+    ],
+  },
 ]
 
 const loadLocalEnv = () => {

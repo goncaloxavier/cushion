@@ -9,6 +9,7 @@ const languages: LanguageCode[] = ['pt', 'en', 'es']
 const legacyStoreSlugs: Record<string, string[]> = {
   'cadeira-atalaia': ['cadeirao-atalia'],
 }
+const requestedSlug = process.argv.find((arg) => arg.startsWith('--slug='))?.split('=')[1]
 
 const loadLocalEnv = () => {
   if (!existsSync('.env')) return
@@ -86,6 +87,7 @@ const storeProductDocument = (productIndex: number) => {
     slug: {_type: 'slug', current: product.slug},
     category: product.category,
     summary: localizedStoreValue(productIndex, (item) => item.summary),
+    hasFinishChoice: product.hasFinishChoice,
     cataloguePage: product.cataloguePage,
     variants: product.variants.map((variant, variantIndex) => ({
       _key: `variant-${variantIndex}`,
@@ -112,7 +114,15 @@ let created = 0
 let preserved = 0
 let renamed = 0
 
-for (const [index, product] of fallbackContent.pt.storeProducts.entries()) {
+const selectedProducts = fallbackContent.pt.storeProducts
+  .map((product, index) => ({product, index}))
+  .filter(({product}) => !requestedSlug || product.slug === requestedSlug)
+
+if (!selectedProducts.length) {
+  throw new Error(`No Loja product found for slug "${requestedSlug}".`)
+}
+
+for (const {index, product} of selectedProducts) {
   const slugs = [product.slug, ...(legacyStoreSlugs[product.slug] || [])]
   const existing = await client.fetch<{_id: string; slug?: {current?: string}} | null>(
     `*[_type == "storeProduct" && slug.current in $slugs && !(_id in path("drafts.**"))][0]{_id, slug}`,

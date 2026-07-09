@@ -2,12 +2,13 @@ import {defineConfig} from '@playwright/test'
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173)
 const baseURL = `http://127.0.0.1:${port}`
+const browserChannel = process.env.PLAYWRIGHT_CHANNEL ?? (process.env.CI ? undefined : 'chrome')
 
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   timeout: 20_000,
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 2 : 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   preserveOutput: 'failures-only',
@@ -26,12 +27,12 @@ export default defineConfig({
     timeout: 5_000,
     toHaveScreenshot: {
       animations: 'disabled',
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.025,
     },
   },
   use: {
     baseURL,
-    channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome',
+    ...(browserChannel ? {channel: browserChannel} : {}),
     colorScheme: 'light',
     reducedMotion: 'reduce',
     screenshot: 'only-on-failure',

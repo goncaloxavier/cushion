@@ -3,8 +3,12 @@ import type {ContentImage, LanguageCode, StoreProduct, StoreProductVariant} from
 type Localized = Record<LanguageCode, string>
 type LocalizedStoreImage = Omit<ContentImage, 'alt'> & {alt: Localized}
 
-type StoreProductBase = Omit<StoreProduct, 'summary' | 'variants' | 'image' | 'images'> & {
+type StoreProductBase = Omit<
+  StoreProduct,
+  'summary' | 'variants' | 'image' | 'images' | 'hasFinishChoice'
+> & {
   summary: Localized
+  hasFinishChoice?: boolean
   image?: LocalizedStoreImage
   images?: LocalizedStoreImage[]
   variants: Array<
@@ -775,6 +779,61 @@ const storeProductBase: StoreProductBase[] = [
       },
     ],
   },
+  {
+    title: 'Placas Click',
+    slug: 'placas-click',
+    category: 'decking',
+    hasFinishChoice: false,
+    summary: {
+      pt: 'Placas click para construir um deck modular sem intervenção de um profissional.',
+      en: 'Click-fit deck tiles for building a modular deck without professional installation.',
+      es: 'Placas click para construir una tarima modular sin intervención de un profesional.',
+    },
+    image: storeImage('placas-click-01.jpeg', {
+      pt: 'Placas Click para deck modular em plástico reciclado.',
+      en: 'Placas Click modular deck tiles in recycled plastic.',
+      es: 'Placas Click para tarima modular en plástico reciclado.',
+    }),
+    images: [
+      storeImage('placas-click-01.jpeg', {
+        pt: 'Placas Click para deck modular em plástico reciclado.',
+        en: 'Placas Click modular deck tiles in recycled plastic.',
+        es: 'Placas Click para tarima modular en plástico reciclado.',
+      }),
+      storeImage('placas-click-02.jpeg', {
+        pt: 'Pormenor lateral das Placas Click.',
+        en: 'Side detail of the Placas Click tiles.',
+        es: 'Detalle lateral de las Placas Click.',
+      }),
+      storeImage('placas-click-03.jpeg', {
+        pt: 'Pormenor de encaixe das Placas Click.',
+        en: 'Click-fit detail of the Placas Click tiles.',
+        es: 'Detalle de encaje de las Placas Click.',
+      }),
+      storeImage('placas-click-04.jpeg', {
+        pt: 'Vista aproximada das Placas Click.',
+        en: 'Close view of the Placas Click tiles.',
+        es: 'Vista cercana de las Placas Click.',
+      }),
+    ],
+    variants: [
+      {
+        label: same('33 x 33 cm'),
+        dimensions: {
+          pt: ['Comprimento 330 mm', 'Largura 330 mm', 'Altura 45 mm'],
+          en: ['Length 330 mm', 'Width 330 mm', 'Height 45 mm'],
+          es: ['Longitud 330 mm', 'Anchura 330 mm', 'Altura 45 mm'],
+        },
+        weightKg: 2.8,
+        prices: {natural: 12.19, dark: 12.19},
+        note: {
+          pt: 'Preço por placa.',
+          en: 'Price per tile.',
+          es: 'Precio por placa.',
+        },
+      },
+    ],
+  },
 ]
 
 export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[] =>
@@ -783,6 +842,7 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     slug: product.slug,
     category: product.category,
     summary: product.summary[language],
+    hasFinishChoice: product.hasFinishChoice ?? true,
     image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
     images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
     variants: product.variants.map((variant) => ({

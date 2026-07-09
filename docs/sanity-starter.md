@@ -51,10 +51,12 @@ For local content experiments that must not touch the live `production` dataset,
 This project also has a seed workflow. It writes the current site-wide content, starter products, and starter Loja products into Sanity so Studio becomes the editing surface immediately:
 
 ```bash
-npm run seed:studio
+SANITY_ALLOW_WRITE=true npm run seed:studio
 ```
 
 The seed currently imports 21 deterministic documents: the `siteContent` singleton, 5 product categories, and 15 Loja products. It uses `--replace`, so rerunning it updates only those seed document IDs.
+
+For local-only seed generation without publishing to Sanity, run `npm run seed:studio:write`.
 
 For missing Loja backend products or incoming approved Loja product photos, prefer the targeted imports instead of a full seed refresh:
 
@@ -68,10 +70,12 @@ SANITY_WRITE_TOKEN=... npm run import:store-images
 For a deliberate full content refresh, including the migrated historical cases and blog posts, run:
 
 ```bash
-npm run deploy:content
+SANITY_ALLOW_WRITE=true npm run deploy:content
 ```
 
 Do not run this as part of normal Railway website deploys unless replacing Sanity content every time is intended.
+
+The destructive Sanity write commands refuse to run unless `SANITY_ALLOW_WRITE=true` is set deliberately.
 
 ## Testing The CMS Flow
 
@@ -101,7 +105,7 @@ Detail pages are generated from slugs:
 - `Product category` feeds the `/produtos` route, including optional detail-page YouTube video and external tool/simulator CTA fields.
 - `Produto da loja` feeds `/loja` with category, short summary, primary image, gallery, variants, weights and finish prices. The public list shows only a starting price; `/loja/[slug]` lets visitors choose measure/variant and finish/color before adding the item to Carrinho.
 - The Studio `Loja` section is structured for editing: page text, all products, visible products, category buckets, products missing primary images, products missing weights, and hidden products.
-- Carrinho is frontend-only quote preparation. It uses the published `Produto da loja` content, stores only the selected item details and delivery postal code on the visitor's device, and sends the visitor to the contact form for the real CRM-backed request.
+- Carrinho is frontend-local until checkout. It uses the published `Produto da loja` content, stores only selected item details and delivery postal code on the visitor's device, and sends the visitor to `/finalizar-compra` to create a private Postgres order.
 - `Case study` feeds the `/casos-de-estudo` route.
 - `Blog post` feeds `/blog` and `/blog/[slug]`.
 - Each public collection type has an editable Sanity image field with hotspot support and localized alt text. Product categories, Loja products, cases, and blog posts also support galleries where the public detail page needs multiple images.

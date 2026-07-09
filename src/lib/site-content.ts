@@ -58,6 +58,7 @@ export type ContentImage = {
   aspectRatio?: number
   sourceName?: string
   lqip?: string
+  editPath?: string
 }
 
 export type ContentVideo = {
@@ -88,6 +89,7 @@ export type PartnerItem = {
 }
 
 export type ProductItem = {
+  studioDocumentId?: string
   title: string
   slug: string
   summary: string
@@ -105,6 +107,7 @@ export type ProductItem = {
 }
 
 export type CaseStudy = {
+  studioDocumentId?: string
   title: string
   slug: string
   location: string
@@ -118,6 +121,7 @@ export type CaseStudy = {
 }
 
 export type BlogPost = {
+  studioDocumentId?: string
   title: string
   slug: string
   excerpt: string
@@ -129,7 +133,7 @@ export type BlogPost = {
   article?: RichArticleBlock[]
 }
 
-export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'residuos' | 'cultivo'
+export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'decking' | 'residuos' | 'cultivo'
 
 export type StoreFinish = 'natural' | 'dark'
 
@@ -148,6 +152,7 @@ export type StoreProduct = {
   slug: string
   category: StoreCategory
   summary: string
+  hasFinishChoice: boolean
   image?: ContentImage
   images?: ContentImage[]
   media?: StoreProductMedia[]
@@ -294,6 +299,7 @@ export type SiteContent = {
 }
 
 type SanityProduct = {
+  _id?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -311,6 +317,7 @@ type SanityProduct = {
 }
 
 type SanityCaseStudy = {
+  _id?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -324,6 +331,7 @@ type SanityCaseStudy = {
 }
 
 type SanityBlogPost = {
+  _id?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -351,6 +359,7 @@ type SanityStoreProduct = {
   slug?: {current?: string}
   category?: StoreCategory
   summary?: LocalizedValue
+  hasFinishChoice?: boolean
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   variants?: SanityStoreProductVariant[]
@@ -1140,6 +1149,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         bancos: 'Bancos',
         mesas: 'Mesas e conjuntos',
         cadeiras: 'Cadeiras',
+        decking: 'Decking',
         residuos: 'Resíduos',
         cultivo: 'Cultivo',
       },
@@ -1434,6 +1444,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         bancos: 'Benches',
         mesas: 'Tables and sets',
         cadeiras: 'Chairs',
+        decking: 'Decking',
         residuos: 'Waste',
         cultivo: 'Growing',
       },
@@ -1731,6 +1742,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         bancos: 'Bancos',
         mesas: 'Mesas y conjuntos',
         cadeiras: 'Sillas',
+        decking: 'Decking',
         residuos: 'Residuos',
         cultivo: 'Cultivo',
       },
@@ -2039,12 +2051,14 @@ const imageFromSanity = (
   image: SanityImage | undefined,
   language: LanguageCode,
   fallback: ContentImage,
+  editPath?: string,
 ): ContentImage => ({
   url: image?.asset?.url || fallback.url,
   alt: localized(image?.alt, language, fallback.alt),
   aspectRatio: image?.asset?.metadata?.dimensions?.aspectRatio ?? fallback.aspectRatio,
   sourceName: image?.asset?.originalFilename,
   lqip: image?.asset?.metadata?.lqip ?? fallback.lqip,
+  ...(editPath ? {editPath} : {}),
 })
 
 const optionalImageFromSanity = (
@@ -2148,9 +2162,21 @@ const imagesFromSanity = (
   language: LanguageCode,
   fallback: ContentImage,
 ) => {
-  const images = [mainImage, ...(gallery ?? [])]
+  const galleryImages = (gallery ?? [])
     .filter((image): image is SanityImage => Boolean(image?.asset?.url))
-    .map((image) => imageFromSanity(image, language, fallback))
+    .map((image) =>
+      imageFromSanity(
+        image,
+        language,
+        fallback,
+        image._key ? `gallery[_key=="${image._key.replace(/"/g, '\\"')}"]` : 'gallery',
+      ),
+    )
+
+  const images = [
+    ...(mainImage?.asset?.url ? [imageFromSanity(mainImage, language, fallback, 'image')] : []),
+    ...galleryImages,
+  ]
 
   return images.length ? images : [fallback]
 }
@@ -2228,6 +2254,7 @@ const productsFromSanity = (
       )
 
       return {
+        studioDocumentId: product._id?.replace(/^drafts\./, ''),
         title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
@@ -2307,6 +2334,7 @@ const storeProductsFromSanity = (
         slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
+        hasFinishChoice: product.hasFinishChoice ?? fallbackProduct?.hasFinishChoice ?? true,
         image: images[0],
         images,
         media,
@@ -2327,27 +2355,28 @@ const casesFromSanity = (
 
   return cases
     .filter((item) => item.slug?.current)
-    .map((item, index) => ({
-      title: localized(item.title, language, fallback[index]?.title ?? 'Case study'),
-      slug: item.slug?.current ?? fallback[index]?.slug ?? `case-${index + 1}`,
-      image: imageFromSanity(
-        item.image,
-        language,
-        fallback[index]?.image ?? fallbackImages.caseStudy,
-      ),
-      images: imagesFromSanity(
+    .map((item, index) => {
+      const images = imagesFromSanity(
         item.image,
         item.gallery,
         language,
         fallback[index]?.image ?? fallbackImages.caseStudy,
-      ),
-      location: item.location?.trim() || fallback[index]?.location || '',
-      summary: localized(item.summary, language, ''),
-      description: localized(item.description, language, ''),
-      challenge: localized(item.challenge, language, ''),
-      solution: localized(item.solution, language, ''),
-      result: localized(item.result, language, ''),
-    }))
+      )
+
+      return {
+        studioDocumentId: item._id?.replace(/^drafts\./, ''),
+        title: localized(item.title, language, fallback[index]?.title ?? 'Case study'),
+        slug: item.slug?.current ?? fallback[index]?.slug ?? `case-${index + 1}`,
+        image: images[0],
+        images,
+        location: item.location?.trim() || fallback[index]?.location || '',
+        summary: localized(item.summary, language, ''),
+        description: localized(item.description, language, ''),
+        challenge: localized(item.challenge, language, ''),
+        solution: localized(item.solution, language, ''),
+        result: localized(item.result, language, ''),
+      }
+    })
 }
 
 const postsFromSanity = (
@@ -2359,22 +2388,27 @@ const postsFromSanity = (
 
   return posts
     .filter((post) => post.slug?.current)
-    .map((post, index) => ({
-      title: localized(post.title, language, fallback[index]?.title ?? 'Blog post'),
-      slug: post.slug?.current ?? fallback[index]?.slug ?? `post-${index + 1}`,
-      image: imageFromSanity(post.image, language, fallback[index]?.image ?? fallbackImages.blog),
-      images: imagesFromSanity(
+    .map((post, index) => {
+      const images = imagesFromSanity(
         post.image,
         post.gallery,
         language,
         fallback[index]?.image ?? fallbackImages.blog,
-      ),
-      excerpt: localized(post.excerpt, language, fallback[index]?.excerpt ?? ''),
-      publishedAt: post.publishedAt?.trim() || fallback[index]?.publishedAt || '',
-      category: localized(post.category, language, fallback[index]?.category ?? ''),
-      body: localized(post.body, language, fallback[index]?.body ?? ''),
-      article: localizedArticle(post.article, language, fallback[index]?.article),
-    }))
+      )
+
+      return {
+        studioDocumentId: post._id?.replace(/^drafts\./, ''),
+        title: localized(post.title, language, fallback[index]?.title ?? 'Blog post'),
+        slug: post.slug?.current ?? fallback[index]?.slug ?? `post-${index + 1}`,
+        image: images[0],
+        images,
+        excerpt: localized(post.excerpt, language, fallback[index]?.excerpt ?? ''),
+        publishedAt: post.publishedAt?.trim() || fallback[index]?.publishedAt || '',
+        category: localized(post.category, language, fallback[index]?.category ?? ''),
+        body: localized(post.body, language, fallback[index]?.body ?? ''),
+        article: localizedArticle(post.article, language, fallback[index]?.article),
+      }
+    })
 }
 
 // Localizes the per-slug blog detail (body + article) fetched separately so the

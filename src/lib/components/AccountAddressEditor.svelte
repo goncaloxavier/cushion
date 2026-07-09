@@ -49,14 +49,23 @@
   }
 
   const fields = $state({
-    name: address?.name ?? '',
-    addressLine1: address?.addressLine1 ?? '',
-    addressLine2: address?.addressLine2 ?? '',
-    postalCode: formatPostalCode(address?.postalCode ?? ''),
-    locality: address?.locality ?? '',
-    country: address?.country ?? 'PT',
+    name: '',
+    addressLine1: '',
+    addressLine2: '',
+    postalCode: '',
+    locality: '',
+    country: 'PT',
   })
   const autocompleteScope = $derived(addressType === 'delivery' ? 'shipping' : 'billing')
+
+  $effect(() => {
+    fields.name = address?.name ?? ''
+    fields.addressLine1 = address?.addressLine1 ?? ''
+    fields.addressLine2 = address?.addressLine2 ?? ''
+    fields.postalCode = formatPostalCode(address?.postalCode ?? '')
+    fields.locality = address?.locality ?? ''
+    fields.country = address?.country ?? 'PT'
+  })
 </script>
 
 <form

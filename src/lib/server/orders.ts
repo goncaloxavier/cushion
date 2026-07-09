@@ -276,7 +276,8 @@ export const buildOrderDraft = (
     }
 
     const quantity = Math.min(99, Math.max(1, Math.floor(item.quantity || 1)))
-    const unitPriceNet = Number(variant.prices[item.finish])
+    const finish = product.hasFinishChoice ? item.finish : 'natural'
+    const unitPriceNet = Number(variant.prices[finish])
     const unitWeightKg = Number(variant.weightKg ?? 0)
     if (!Number.isFinite(unitPriceNet) || unitPriceNet <= 0 || !Number.isFinite(unitWeightKg) || unitWeightKg <= 0) {
       throw new OrderInputError('Não foi possível calcular o preço ou transporte de um produto.')
@@ -286,8 +287,8 @@ export const buildOrderDraft = (
       product,
       variant,
       variantIndex: Math.max(0, Math.floor(item.variantIndex || 0)),
-      finish: item.finish,
-      finishLabel: content.storePage.finishLabels[item.finish],
+      finish,
+      finishLabel: product.hasFinishChoice ? content.storePage.finishLabels[finish] : '',
       quantity,
       unitPriceNet,
       lineTotalNet: roundMoney(unitPriceNet * quantity),

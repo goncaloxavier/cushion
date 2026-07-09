@@ -1,5 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import BlogArticleRail from '$lib/components/BlogArticleRail.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -53,6 +54,18 @@
   const content = $derived(data.site[data.language])
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
+  const postDataAttribute = $derived(
+    data.preview && data.studioUrl && data.post.studioDocumentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: data.post.studioDocumentId,
+          type: 'blogPost',
+        })
+      : null,
+  )
+  const imageDataAttribute = $derived(
+    postDataAttribute ? (path: string) => postDataAttribute(path) : undefined,
+  )
   const labels = $derived(railLabels[data.language])
   const languageQuery = $derived(`?lang=${data.language}`)
   const relatedBlogPosts = $derived.by(() => {
@@ -114,6 +127,7 @@
       closeLabel={content.common.close}
       className="blog-detail-gallery"
       transitionName={`vt-${data.post.slug}`}
+      dataAttribute={imageDataAttribute}
     />
     <section class="blog-detail-reading">
       <div class="article-body blog-body">
