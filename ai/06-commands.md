@@ -117,6 +117,7 @@ npm run db:migrate
 
 - Uses `DATABASE_URL`.
 - Creates/updates the private Postgres schema for customers, sessions, verification/reset tokens, addresses, orders, order items, status events, payment attempts, and outbound email attempts.
+- Migration `0004_customer_address_identity.sql` cleans historic exact address duplicates before creating the unique identity index. The command refuses to run when `DATABASE_URL` is unset; that is expected and safer than guessing a database.
 - Run after provisioning Railway Postgres and before relying on `/finalizar-compra` or `/painel/encomendas`.
 
 ## Historical Blog Import
@@ -162,5 +163,6 @@ npm ls @playwright/test
 - The repo is on Sanity Studio 6 with Vite 7 and Svelte 5.
 - Playwright tests start a local SvelteKit server on port `4173` by default and use the installed Chrome channel unless `PLAYWRIGHT_CHANNEL` is set.
 - Playwright route/CMS tests are optimized so viewport-independent checks run once, while mobile/desktop route behavior is still covered where it matters.
+- The CI run also uses its own disposable Postgres service. `tests/server-foundation.spec.ts` runs there and self-skips on a local machine without `DATABASE_URL`.
 - Playwright tests force fallback fixtures with `SANITY_DISABLE_REMOTE=true`.
 - Generated Playwright folders are ignored by git/ESLint where relevant: `test-results/`, `playwright-report/`, and visual snapshot folders.

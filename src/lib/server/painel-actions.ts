@@ -1,4 +1,5 @@
 import {fail, type Action, type RequestEvent} from '@sveltejs/kit'
+import {canManageStaff} from '$lib/server/auth'
 import type {ProfileStatus, SubmissionStatus} from '$lib/painel'
 import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-admin'
 import {csrfOk, sameOriginOk} from './form-guard'
@@ -11,6 +12,9 @@ const csrfCookieName = 'df4y_painel_csrf'
 const painelFormData = async (event: RequestEvent) => {
   if (!event.locals.staff) {
     return {error: fail(401, {message: 'Sessão expirada.'})}
+  }
+  if (!canManageStaff(event.locals.staff)) {
+    return {error: fail(403, {message: 'A sua conta só tem acesso de consulta.'})}
   }
 
   const data = await event.request.formData()

@@ -11,6 +11,7 @@
     readCart,
     removeCartItem,
     setCartItemQuantity,
+    storeVariantForCartItem,
     type StoreCartItem,
   } from '$lib/cart'
   import type {LanguageCode} from '$lib/site-content'
@@ -32,6 +33,7 @@
     empty: string
     continueShopping: string
     clear: string
+    clearConfirm: string
     request: string
     quantity: string
     remove: string
@@ -47,6 +49,7 @@
     changePostcode: string
     totalWeight: string
     transportPending: string
+    transportOverweight: string
     summary: string
     product: string
   }
@@ -61,6 +64,7 @@
       empty: 'O carrinho ainda está vazio.',
       continueShopping: 'Continuar na loja',
       clear: 'Limpar carrinho',
+      clearConfirm: 'Quer mesmo remover todos os produtos do carrinho?',
       request: 'Finalizar pedido',
       quantity: 'Quantidade',
       remove: 'Remover',
@@ -76,6 +80,7 @@
       changePostcode: 'Alterar',
       totalWeight: 'Peso total',
       transportPending: 'A confirmar',
+      transportOverweight: 'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
       summary: 'Resumo',
       product: 'Produto',
     },
@@ -88,6 +93,7 @@
       empty: 'Your cart is still empty.',
       continueShopping: 'Continue shopping',
       clear: 'Clear cart',
+      clearConfirm: 'Remove every item from the cart?',
       request: 'Checkout',
       quantity: 'Quantity',
       remove: 'Remove',
@@ -103,6 +109,7 @@
       changePostcode: 'Change',
       totalWeight: 'Total weight',
       transportPending: 'To confirm',
+      transportOverweight: 'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
       summary: 'Summary',
       product: 'Product',
     },
@@ -115,6 +122,7 @@
       empty: 'El carrito todavía está vacío.',
       continueShopping: 'Seguir en tienda',
       clear: 'Vaciar carrito',
+      clearConfirm: '¿Quieres eliminar todos los productos del carrito?',
       request: 'Finalizar pedido',
       quantity: 'Cantidad',
       remove: 'Eliminar',
@@ -130,6 +138,7 @@
       changePostcode: 'Cambiar',
       totalWeight: 'Peso total',
       transportPending: 'Por confirmar',
+      transportOverweight: 'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
       summary: 'Resumen',
       product: 'Producto',
     },
@@ -153,7 +162,8 @@
     ),
   )
   const formatPrice = (price: number) => priceFormatter.format(price)
-  const itemKey = (item: StoreCartItem) => `${item.slug}-${item.variantIndex}-${item.finish}`
+  const itemKey = (item: StoreCartItem) =>
+    `${item.slug}-${item.variantKey || `legacy-${item.variantIndex ?? 0}`}-${item.finish}`
   const initialsFor = (title: string) =>
     title
       .split(/\s+/)
@@ -166,7 +176,7 @@
     items
       .map((item) => {
         const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-        const variant = product?.variants[item.variantIndex]
+        const variant = product ? storeVariantForCartItem(product, item) : undefined
         if (!product || !variant) return null
 
         const finish = product.hasFinishChoice ? item.finish : 'natural'
@@ -197,6 +207,11 @@
   const itemCount = $derived(cartTotalQuantity(items))
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
+  const transportStatus = $derived(
+    cartEstimate.transportIssue === 'overweight'
+      ? labels.transportOverweight
+      : labels.transportPending,
+  )
 
   const refreshCart = () => {
     items = readCart()
@@ -352,19 +367,19 @@
                 <dd>
                   {cartEstimate.transport
                     ? formatPrice(cartEstimate.transport.transportNet)
-                    : labels.transportPending}
+                    : transportStatus}
                 </dd>
               </div>
               <div>
                 <dt>{labels.iva}</dt>
-                <dd>{cartEstimate.vat !== null ? formatPrice(cartEstimate.vat) : labels.transportPending}</dd>
+                <dd>{cartEstimate.vat !== null ? formatPrice(cartEstimate.vat) : transportStatus}</dd>
               </div>
               <div class="cart-summary-total">
                 <dt>{labels.finalTotal}</dt>
                 <dd>
                   {cartEstimate.totalGross !== null
                     ? formatPrice(cartEstimate.totalGross)
-                    : labels.transportPending}
+                    : transportStatus}
                 </dd>
               </div>
             {:else}
@@ -377,7 +392,15 @@
 
           <a class="button primary" href={`/finalizar-compra${langQuery}`}>{labels.request}</a>
           <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
-          <button class="cart-clear" type="button" onclick={clearCart}>{labels.clear}</button>
+          <button
+            class="cart-clear"
+            type="button"
+            onclick={() => {
+              if (window.confirm(labels.clearConfirm)) clearCart()
+            }}
+          >
+            {labels.clear}
+          </button>
         </aside>
       </div>
 

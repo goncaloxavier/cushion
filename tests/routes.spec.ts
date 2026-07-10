@@ -270,6 +270,21 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
 }
 
 test.describe('public website routes', () => {
+  test('public documents expose security headers and a keyboard skip link', async ({page, request}, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), 'Header contract runs once on desktop')
+
+    const response = await request.get('/?lang=pt')
+    expect(response.headers()['content-security-policy']).toContain("default-src 'self'")
+    expect(response.headers()['x-content-type-options']).toBe('nosniff')
+    expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin')
+
+    await page.goto('/?lang=pt')
+    const skipLink = page.getByRole('link', {name: 'Saltar para o conteúdo'})
+    await expect(skipLink).toHaveAttribute('href', '#main-content')
+    await skipLink.focus()
+    await expect(skipLink).toBeFocused()
+  })
+
   test.describe('desktop route smoke', () => {
     test.skip(({isMobile}) => Boolean(isMobile), 'Desktop route smoke runs once')
 
@@ -982,7 +997,7 @@ test.describe('language switcher', () => {
 
       const langMenu = page.locator('.mobile-menu-lang')
       await expect(langMenu).toBeVisible()
-      await expect(langMenu.getByRole('link', {name: 'PT'})).toHaveAttribute('aria-current', 'true')
+      await expect(langMenu.getByRole('link', {name: 'PT'})).toHaveAttribute('aria-current', 'page')
 
       await langMenu.getByRole('link', {name: 'EN', exact: true}).click()
       await expect(page).toHaveURL(/\?lang=en/)
@@ -991,7 +1006,7 @@ test.describe('language switcher', () => {
       await page.locator('.nav-toggle').click()
       await expect(page.locator('.mobile-menu-lang').getByRole('link', {name: 'EN'})).toHaveAttribute(
         'aria-current',
-        'true',
+        'page',
       )
     })
   })

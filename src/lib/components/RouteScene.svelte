@@ -41,6 +41,11 @@
   })
 </script>
 
-<div class={`page-transition route-${kind} ${entered ? 'entered' : ''}`} in:fly={motion}>
+<div
+  id="main-content"
+  tabindex="-1"
+  class={`page-transition route-${kind} ${entered ? 'entered' : ''}`}
+  in:fly={motion}
+>
   {@render children()}
 </div>

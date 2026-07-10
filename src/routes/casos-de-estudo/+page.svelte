@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {seoDescription} from '$lib/seo'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
@@ -85,7 +86,11 @@
 
 <SeoHead
   title={content.nav.cases}
-  description={content.casesPage.hero.title}
+  description={seoDescription(
+    data.language,
+    content.casesPage.hero.lead,
+    content.caseStudies.map((item) => item.summary || item.description).join(' '),
+  )}
   image={content.casesPage.heroImage}
 />
 
@@ -101,7 +106,7 @@
         src={sizedImage(content.casesPage.heroImage.url, 1100)}
         srcset={imageSrcset(content.casesPage.heroImage.url, [600, 900, 1200, 1600])}
         sizes="(max-width: 900px) 92vw, 600px"
-        alt={content.casesPage.heroImage.alt}
+        alt={content.casesPage.heroImage.alt || content.casesPage.hero.title}
         loading="eager"
         fetchpriority="high"
         decoding="async"
@@ -120,7 +125,6 @@
           <input
             bind:value={query}
             type="search"
-            aria-label={content.common.searchCases}
             placeholder={content.common.searchPlaceholder}
           />
         </label>
@@ -140,7 +144,7 @@
               src={sizedImage(image.url, 640)}
               srcset={imageSrcset(image.url, [360, 480, 640, 800])}
               sizes="(max-width: 700px) 92vw, 360px"
-              alt={image.alt}
+              alt={image.alt || item.title}
               loading="lazy"
               decoding="async"
               style:background={image.lqip

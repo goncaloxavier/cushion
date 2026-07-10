@@ -53,6 +53,7 @@ export type StorePricingEstimate = {
   productNet: number
   totalWeightKg: number
   missingWeight: boolean
+  transportIssue: 'empty_cart' | 'missing_weight' | 'unsupported_postal_code' | 'overweight' | null
   transport: StoreTransportEstimate | null
   subtotalNet: number | null
   vat: number | null
@@ -130,6 +131,8 @@ const transportBrackets = [
   {maxKg: 20000, prices: [286, 313.5, 352, 451, 764.5]},
   {maxKg: 25000, prices: [302.5, 328.9, 440, 605, 830.5]},
 ] as const
+
+export const maxStoreTransportWeightKg = transportBrackets[transportBrackets.length - 1].maxKg
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
 // Exported so callers that only have a raw content value (not full pricing
@@ -286,6 +289,20 @@ export const calculateStoreEstimate = (
       productNet,
       totalWeightKg,
       missingWeight,
+      transportIssue: !items.length ? 'empty_cart' : 'missing_weight',
+      transport: null,
+      subtotalNet: null,
+      vat: null,
+      totalGross: null,
+    }
+  }
+
+  if (weightItems.length > 0 && totalWeightKg > maxStoreTransportWeightKg) {
+    return {
+      productNet,
+      totalWeightKg,
+      missingWeight,
+      transportIssue: 'overweight',
       transport: null,
       subtotalNet: null,
       vat: null,
@@ -321,6 +338,7 @@ export const calculateStoreEstimate = (
       productNet,
       totalWeightKg,
       missingWeight,
+      transportIssue: 'unsupported_postal_code',
       transport: null,
       subtotalNet: null,
       vat: null,
@@ -335,6 +353,7 @@ export const calculateStoreEstimate = (
     productNet,
     totalWeightKg,
     missingWeight,
+    transportIssue: null,
     transport,
     subtotalNet,
     vat,

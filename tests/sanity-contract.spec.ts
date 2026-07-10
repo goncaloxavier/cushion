@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
 import {
   calculateStoreEstimate,
+  maxStoreTransportWeightKg,
   normalizePostalCode,
   normalizeStorePostalCode,
   storeDispatchZone,
@@ -11,6 +12,7 @@ import {
   transportEstimateFor,
 } from '../src/lib/store-shipping'
 import {sameOriginOk} from '../src/lib/server/form-guard'
+import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -20,6 +22,16 @@ test.describe('Sanity Studio content contract', () => {
       Boolean(browserName) && testInfo.project.name !== 'desktop-chrome',
       'File contract checks are viewport independent',
     )
+  })
+
+  test('in-process rate limiting enforces a boundary and resets by window', () => {
+    const key = rateLimitKey('audit-boundary', `visitor-${Date.now()}-${Math.random()}`)
+
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(false)
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(false)
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(true)
+    expect(rateLimit(key, 2, 1_000, 1_100)).toBe(false)
+    expect(rateLimitKey('checkout', 'visitor')).not.toBe(rateLimitKey('register', 'visitor'))
   })
 
   test('collection documents are registered in Studio', () => {
@@ -544,6 +556,30 @@ test.describe('Sanity Studio content contract', () => {
     )
     expect(mixed.totalWeightKg).toBe(25)
     expect(mixed.transport).toMatchObject({transportNet: 33.02})
+
+    const overweight = calculateStoreEstimate(
+      [{unitPrice: 185, quantity: 1, weightKg: maxStoreTransportWeightKg + 1}],
+      '7000-000',
+    )
+    expect(overweight.transport).toBeNull()
+    expect(overweight.transportIssue).toBe('overweight')
+  })
+
+  test('store carts use stable Sanity variant keys and retain a legacy fallback', () => {
+    const cart = read('src/lib/cart.ts')
+    const storeContent = read('src/lib/site-content.ts')
+    const storeDetail = read('src/routes/loja/[slug]/+page.svelte')
+    const checkout = read('src/routes/finalizar-compra/+page.server.ts')
+    const orders = read('src/lib/server/orders.ts')
+
+    expect(storeContent).toContain('key: string')
+    expect(storeContent).toContain('key: variant._key')
+    expect(cart).toContain('variantKey?: string')
+    expect(cart).toContain('storeVariantForCartItem')
+    expect(cart).toContain("item.variantKey || `legacy-")
+    expect(storeDetail).toContain('variantKey: selectedVariant.key')
+    expect(checkout).toContain('raw.variantKey')
+    expect(orders).toContain('candidate.key === item.variantKey')
   })
 
   test('private ecommerce data uses Postgres, not the public Sanity catalogue', () => {
@@ -616,6 +652,14 @@ test.describe('Sanity Studio content contract', () => {
     const orders = read('src/lib/server/orders.ts')
     const formGuard = read('src/lib/server/form-guard.ts')
     const hooks = read('src/hooks.server.ts')
+    const previewEnable = read('src/routes/preview/enable/+server.ts')
+    const painelActions = read('src/lib/server/painel-actions.ts')
+    const painelOrder = read('src/routes/painel/encomendas/[id]/+page.server.ts')
+    const staffAuth = read('src/lib/server/auth.ts')
+    const migration = read('migrations/0004_customer_address_identity.sql')
+    const addresses = read('src/routes/conta/(area)/moradas/+page.server.ts')
+    const config = read('svelte.config.js')
+    const appHtml = read('src/app.html')
 
     expect(packageJson).toContain('tests/commerce.spec.ts')
     expect(auth).toContain('delete from email_verification_tokens')
@@ -628,12 +672,43 @@ test.describe('Sanity Studio content contract', () => {
     expect(checkout).toContain('submissionToken.length < 20')
     expect(checkout).toContain('isValidEmail(values.email)')
     expect(orders).toContain("throw new OrderInputError('Atualize a página antes de finalizar o pedido.')")
-    expect(orders).toContain('never creates a second copy of the same saved address')
+    expect(orders).toContain('unique address identity added in migration 0004')
+    expect(migration).toContain('customer_addresses_identity_idx')
+    expect(migration).toContain('ranked_addresses')
+    expect(addresses).toContain('isSupportedStorePostalCode')
     expect(formGuard).toContain('if (referer) return referer.startsWith(`${expectedOrigin}/`)')
     expect(sameOriginOk(null, null, 'https://example.com')).toBe(false)
     expect(sameOriginOk('https://example.com', null, 'https://example.com')).toBe(true)
     expect(sameOriginOk(null, 'https://example.com/contacto', 'https://example.com')).toBe(true)
     expect(hooks).toContain("headers.set('x-content-type-options', 'nosniff')")
     expect(hooks).toContain("headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')")
+    expect(previewEnable).toContain("rateLimitKey('preview-enable', getClientAddress())")
+    expect(staffAuth).toContain("staff?.role === 'admin'")
+    expect(painelActions).toContain('canManageStaff(event.locals.staff)')
+    expect(painelOrder).toContain('if (!locals.staff) error(401')
+    expect(config).toContain("mode: 'auto'")
+    expect(config).toContain("'frame-ancestors'")
+    expect(appHtml).toContain('nonce="%sveltekit.nonce%"')
+  })
+
+  test('private route styles do not ship through the global stylesheet', () => {
+    const globalStyles = read('src/app.css')
+    const accountStyles = read('src/lib/styles/account-checkout.css')
+    const accountDashboardStyles = read('src/lib/styles/account.css')
+    const painelStyles = read('src/lib/styles/painel.css')
+    const accountLayout = read('src/lib/components/AccountLayout.svelte')
+    const authLayout = read('src/lib/components/AccountAuthLayout.svelte')
+    const checkout = read('src/routes/finalizar-compra/+page.svelte')
+    const painelLayout = read('src/routes/painel/+layout.svelte')
+
+    expect(globalStyles).not.toContain('/* ---- Customer account + checkout ---- */')
+    expect(globalStyles).not.toContain('/* ---- Backoffice (/painel) ---- */')
+    expect(accountStyles).toContain('.checkout-page')
+    expect(accountDashboardStyles).toContain('.auth-simple')
+    expect(painelStyles).toContain('.painel {')
+    expect(accountLayout).toContain("$lib/styles/account-checkout.css")
+    expect(authLayout).toContain("$lib/styles/account.css")
+    expect(checkout).toContain("$lib/styles/account-checkout.css")
+    expect(painelLayout).toContain("$lib/styles/painel.css")
   })
 })

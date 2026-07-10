@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {seoDescription} from '$lib/seo'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {lineReveal} from '$lib/actions/line-reveal'
@@ -77,7 +78,11 @@
 
 <SeoHead
   title={content.nav.products}
-  description={content.productsPage.hero.title}
+  description={seoDescription(
+    data.language,
+    content.productsPage.hero.lead,
+    content.products.map((product) => product.summary).join(' '),
+  )}
   image={content.productsPage.heroImage}
 />
 
@@ -93,7 +98,7 @@
         src={sizedImage(content.productsPage.heroImage.url, 1100)}
         srcset={imageSrcset(content.productsPage.heroImage.url, [600, 900, 1200, 1600])}
         sizes="(max-width: 900px) 92vw, 600px"
-        alt={content.productsPage.heroImage.alt}
+        alt={content.productsPage.heroImage.alt || content.productsPage.hero.title}
         loading="eager"
         fetchpriority="high"
         decoding="async"
@@ -112,7 +117,6 @@
           <input
             bind:value={query}
             type="search"
-            aria-label={content.common.searchProducts}
             placeholder={content.common.searchPlaceholder}
           />
         </label>
@@ -132,7 +136,7 @@
               src={sizedImage(image.url, 640)}
               srcset={imageSrcset(image.url, [360, 480, 640, 800])}
               sizes="(max-width: 700px) 92vw, 360px"
-              alt={image.alt}
+              alt={image.alt || product.title}
               loading="lazy"
               decoding="async"
               style:background={image.lqip

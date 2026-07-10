@@ -101,6 +101,7 @@
       description: data.post.excerpt || data.post.body,
       imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
       datePublished: data.post.publishedAt,
+      url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language)),
       logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
     }),
     breadcrumbListSchema([

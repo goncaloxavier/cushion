@@ -36,6 +36,7 @@ export const partnerItem = defineType({
           title: 'Descrição da imagem',
           description: 'Texto simples para acessibilidade. Exemplo: Logotipo Eco-Escolas.',
           type: 'localizedString',
+          validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
         }),
       ],
       validation: (Rule) => Rule.required(),

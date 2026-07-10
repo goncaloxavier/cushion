@@ -45,6 +45,7 @@
       deliveryPostcode: string
       changePostcode: string
       transportPending: string
+      transportOverweight: string
       addToCart: string
       added: string
       viewCart: string
@@ -67,6 +68,7 @@
       deliveryPostcode: 'Zona',
       changePostcode: 'Alterar',
       transportPending: 'Transporte a confirmar',
+      transportOverweight: 'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
       addToCart: 'Adicionar ao carrinho',
       added: 'Adicionado ao carrinho',
       viewCart: 'Ver carrinho',
@@ -88,6 +90,7 @@
       deliveryPostcode: 'Zone',
       changePostcode: 'Change',
       transportPending: 'Transport to confirm',
+      transportOverweight: 'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
       addToCart: 'Add to cart',
       added: 'Added to cart',
       viewCart: 'View cart',
@@ -109,6 +112,7 @@
       deliveryPostcode: 'Zona',
       changePostcode: 'Cambiar',
       transportPending: 'Transporte por confirmar',
+      transportOverweight: 'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
       addToCart: 'Añadir al carrito',
       added: 'Añadido al carrito',
       viewCart: 'Ver carrito',
@@ -176,6 +180,11 @@
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
+  const selectedTransportStatus = $derived(
+    selectedEstimate.transportIssue === 'overweight'
+      ? labels.transportOverweight
+      : labels.transportPending,
+  )
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
   const priceFormatter = $derived(
@@ -219,6 +228,7 @@
   const addSelectedToCart = () => {
     addCartItem({
       slug: data.storeProduct.slug,
+      variantKey: selectedVariant.key,
       variantIndex: selectedVariantIndex,
       finish: effectiveFinish,
       quantity: normalizedQuantity,
@@ -437,7 +447,7 @@
           {#if selectedEstimate.transport}
             <p class="store-spec-price-value">{formatPrice(selectedEstimate.transport.transportNet)}</p>
           {:else}
-            <p>{labels.transportPending}</p>
+            <p>{selectedTransportStatus}</p>
           {/if}
         </section>
 
@@ -446,7 +456,7 @@
           <p class="store-spec-price-value">
             {selectedEstimate.totalGross !== null
               ? formatPrice(selectedEstimate.totalGross)
-              : labels.transportPending}
+              : selectedTransportStatus}
           </p>
           {#if selectedEstimate.totalGross !== null}
             <small class="store-spec-iva">{labels.ivaIncluded}</small>

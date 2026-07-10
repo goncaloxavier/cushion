@@ -1,5 +1,11 @@
 <script lang="ts">
-  import {fmtDateTime, orderStatusLabels, orderStatuses} from '$lib/painel'
+  import {
+    fmtDateTime,
+    orderStatusLabels,
+    orderStatuses,
+    paymentMethodLabels,
+    paymentStatusLabels,
+  } from '$lib/painel'
 
   let {data} = $props()
   const order = $derived(data.order)
@@ -136,7 +142,11 @@
       </div>
       <div class="painel-field">
         <span class="painel-field-label">Pagamento</span>
-        <span class="painel-field-value">{order.paymentStatus} · {order.paymentProvider}</span>
+        <span class="painel-field-value">{paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus}</span>
+      </div>
+      <div class="painel-field">
+        <span class="painel-field-label">Método escolhido</span>
+        <span class="painel-field-value">{paymentMethodLabels[order.paymentMethod] ?? (order.paymentMethod || '-')}</span>
       </div>
       {#if order.paymentUrl}
         <div class="painel-field painel-field-block">

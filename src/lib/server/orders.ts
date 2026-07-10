@@ -19,7 +19,8 @@ import {logEmailFailure, ordersRecipient, sendTransactionalEmail, type EmailSend
 
 export type CheckoutCartItem = {
   slug: string
-  variantIndex: number
+  variantKey?: string
+  variantIndex?: number
   finish: StoreFinish
   quantity: number
 }
@@ -271,7 +272,9 @@ export const buildOrderDraft = (
 
   const items = cartItems.map((item) => {
     const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-    const variant = product?.variants[Math.max(0, Math.floor(item.variantIndex || 0))]
+    const variant = item.variantKey
+      ? product?.variants.find((candidate) => candidate.key === item.variantKey)
+      : product?.variants[Math.max(0, Math.floor(item.variantIndex || 0))]
     if (!product || !variant || (item.finish !== 'natural' && item.finish !== 'dark')) {
       throw new OrderInputError('O carrinho tem produtos inválidos. Atualize a página e tente novamente.')
     }
@@ -295,7 +298,7 @@ export const buildOrderDraft = (
     return {
       product,
       variant,
-      variantIndex: Math.max(0, Math.floor(item.variantIndex || 0)),
+      variantIndex: product.variants.indexOf(variant),
       finish,
       finishLabel: product.hasFinishChoice ? content.storePage.finishLabels[finish] : '',
       quantity,
@@ -319,6 +322,9 @@ export const buildOrderDraft = (
   )
 
   if (!estimate.transport || estimate.totalGross === null || estimate.vat === null || estimate.subtotalNet === null) {
+    if (estimate.transportIssue === 'overweight') {
+      throw new OrderInputError('O peso total excede o limite de transporte automático. Contacte-nos para organizar a entrega.')
+    }
     throw new OrderInputError('Não foi possível calcular transporte para este carrinho.')
   }
 
@@ -402,30 +408,40 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
     }
     const order = mapOrder(orderResult.rows[0])
 
-    for (const item of draft.items) {
-      await client.query(
-        `insert into order_items (
-          order_id, product_slug, product_title, variant_index, variant_label, variant_dimensions,
-          finish, finish_label, quantity, unit_price_net, line_total_net, unit_weight_kg, line_weight_kg
-        )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [
-          order.id,
-          item.product.slug,
-          item.product.title,
-          item.variantIndex,
-          item.variant.label,
-          item.variant.dimensions,
-          item.finish,
-          item.finishLabel,
-          item.quantity,
-          item.unitPriceNet,
-          item.lineTotalNet,
-          item.unitWeightKg,
-          item.lineWeightKg,
-        ],
+    // Insert every line item in one statement. The order still stays fully
+    // transactional, without making checkout latency grow by one round trip
+    // per cart line.
+    const itemColumnCount = 13
+    const itemValues = draft.items.flatMap((item) => [
+      order.id,
+      item.product.slug,
+      item.product.title,
+      item.variantIndex,
+      item.variant.label,
+      item.variant.dimensions,
+      item.finish,
+      item.finishLabel,
+      item.quantity,
+      item.unitPriceNet,
+      item.lineTotalNet,
+      item.unitWeightKg,
+      item.lineWeightKg,
+    ])
+    const itemPlaceholders = draft.items
+      .map((_, itemIndex) => {
+        const offset = itemIndex * itemColumnCount
+        return `(${Array.from({length: itemColumnCount}, (_, columnIndex) => `$${offset + columnIndex + 1}`).join(', ')})`
+      })
+      .join(', ')
+
+    await client.query(
+      `insert into order_items (
+        order_id, product_slug, product_title, variant_index, variant_label, variant_dimensions,
+        finish, finish_label, quantity, unit_price_net, line_total_net, unit_weight_kg, line_weight_kg
       )
-    }
+      values ${itemPlaceholders}`,
+      itemValues,
+    )
 
     await client.query(
       `insert into order_status_events (order_id, status, note, actor_type, actor_label)
@@ -477,37 +493,18 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
            where customer_id = $1 and address_type = $2`,
           [input.customerId, addressType],
         )
-        const existing = await client.query<{id: string}>(
-          `select id
-           from customer_addresses
-           where customer_id = $1
-             and address_type = $2
-             and address_line1 = $3
-             and postal_code = $4
-             and locality = $5
-           order by updated_at desc
-           limit 1`,
+        // The unique address identity added in migration 0004 makes this safe
+        // under concurrent checkout requests: the address is either reused or
+        // inserted exactly once, never duplicated by a select-then-insert race.
+        await client.query(
+          `insert into customer_addresses (
+            customer_id, address_type, address_line1, address_line2, postal_code, locality, country, is_default
+          )
+          values ($1, $2, $3, '', $4, $5, 'PT', true)
+          on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
+          do update set is_default = true, updated_at = now()`,
           [input.customerId, addressType, line1, postalCode, locality],
         )
-
-        if (existing.rows[0]) {
-          // Reusing an address at checkout makes it the preference again but
-          // never creates a second copy of the same saved address.
-          await client.query(
-            `update customer_addresses
-             set is_default = true, updated_at = now()
-             where id = $1`,
-            [existing.rows[0].id],
-          )
-        } else {
-          await client.query(
-            `insert into customer_addresses (
-              customer_id, address_type, address_line1, postal_code, locality, is_default
-            )
-            values ($1, $2, $3, $4, $5, true)`,
-            [input.customerId, addressType, line1, postalCode, locality],
-          )
-        }
       }
     }
 
@@ -560,11 +557,20 @@ export const recordOutboundEmail = async (
 }
 
 export const sendOrderEmails = async (order: OrderRow) => {
+  const paymentMethod =
+    order.paymentMethod === 'mbway'
+      ? 'MB WAY'
+      : order.paymentMethod === 'multibanco'
+        ? 'Multibanco'
+        : order.paymentMethod === 'card'
+          ? 'Cartão'
+          : 'A confirmar'
   const customerSubject = `Encomenda ${order.orderNumber} recebida`
   const customerText = [
     `Recebemos a sua encomenda ${order.orderNumber}.`,
     '',
     `Total estimado com transporte e IVA: ${order.totalGross.toFixed(2)} EUR.`,
+    `Método de pagamento escolhido: ${paymentMethod}.`,
     'O pagamento por link ainda está pendente. A equipa enviará os dados de pagamento assim que confirmar a encomenda.',
   ].join('\n')
   const staffTo = ordersRecipient()
@@ -575,6 +581,7 @@ export const sendOrderEmails = async (order: OrderRow) => {
     `Telefone: ${order.phone || '-'}`,
     `Zona: ${order.deliveryZone} (${order.deliveryPostalCode})`,
     `Total: ${order.totalGross.toFixed(2)} EUR`,
+    `Método de pagamento: ${paymentMethod}`,
     'Estado: pendente de link de pagamento',
   ].join('\n')
 
@@ -667,6 +674,11 @@ export const createCustomerAddress = async (
       `insert into customer_addresses (
         customer_id, address_type, name, address_line1, address_line2, postal_code, locality, country, is_default
       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
+      do update set
+        name = excluded.name,
+        is_default = customer_addresses.is_default or excluded.is_default,
+        updated_at = now()
       returning *`,
       [
         customerId,

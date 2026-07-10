@@ -13,6 +13,7 @@ import {
 } from '$lib/server/orders'
 import {isValidEmail} from '$lib/server/customer-auth'
 import {rateLimit, rateLimitKey} from '$lib/server/rate-limit'
+import {isSupportedStorePostalCode} from '$lib/store-shipping'
 import {contentFromSanity, getLanguage, type StoreFinish} from '$lib/site-content'
 import {getSanityCollections} from '$lib/sanity'
 import type {Actions, PageServerLoad} from './$types'
@@ -43,6 +44,10 @@ const parseCartItems = (value: FormDataEntryValue | null): CheckoutCartItem[] =>
     const raw = item as Record<string, unknown>
     return {
       slug: String(raw.slug ?? '').slice(0, 120),
+      variantKey:
+        typeof raw.variantKey === 'string' && raw.variantKey.trim()
+          ? raw.variantKey.trim().slice(0, 120)
+          : undefined,
       variantIndex: Math.max(0, Math.floor(Number(raw.variantIndex ?? 0))),
       finish: (raw.finish === 'dark' ? 'dark' : 'natural') as StoreFinish,
       quantity: Math.min(99, Math.max(1, Math.floor(Number(raw.quantity ?? 1)))),
@@ -143,6 +148,12 @@ export const actions: Actions = {
         values.deliveryPostalCode = delivery.postalCode
         values.deliveryLocality = delivery.locality
         persistDeliveryAddress = false
+        if (!isSupportedStorePostalCode(delivery.postalCode)) {
+          return fail(400, {
+            message: 'Esta morada de entrega está fora das zonas atualmente servidas. Escolha ou crie outra morada.',
+            values,
+          })
+        }
       }
     }
 
@@ -168,7 +179,8 @@ export const actions: Actions = {
       })
     }
 
-    if (values.paymentMethod === 'mbway' && !/^9\d{8}$/.test(values.phone.replace(/\D/g, '').replace(/^351/, ''))) {
+    const mbwayPhone = values.phone.replace(/\D/g, '').replace(/^(?:00351|351)/, '')
+    if (values.paymentMethod === 'mbway' && !/^9\d{8}$/.test(mbwayPhone)) {
       return fail(400, {
         message: 'Indique um telemóvel português válido (9 dígitos) para pagar com MB WAY.',
         values,

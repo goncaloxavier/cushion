@@ -24,6 +24,8 @@ export const sessionCookieName = 'df4y_painel_session'
 
 export type StaffUser = {_id: string; name: string; username: string; role: string}
 
+export const canManageStaff = (staff: StaffUser | null | undefined) => staff?.role === 'admin'
+
 // ---- rate limiting (per-instance, in-memory) ----
 // ---- password hashing ----
 // scrypt + per-user random salt (no global pepper) so hashes stay portable:
@@ -87,7 +89,12 @@ export const authenticate = async (username: string, password: string): Promise<
     .commit()
     .catch(() => undefined)
 
-  return {_id: user._id, name: user.name, username: user.username, role: user.role}
+  return {
+    _id: user._id,
+    name: user.name,
+    username: user.username,
+    role: user.role === 'admin' ? 'admin' : 'staff',
+  }
 }
 
 // ---- sessions (only the token hash is stored) ----
@@ -153,7 +160,12 @@ export const validateSession = async (token: string | undefined): Promise<StaffU
   }
 
   const {user} = session
-  return {_id: user._id, name: user.name, username: user.username, role: user.role}
+  return {
+    _id: user._id,
+    name: user.name,
+    username: user.username,
+    role: user.role === 'admin' ? 'admin' : 'staff',
+  }
 }
 
 export const destroySession = async (token: string | undefined) => {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import '$lib/styles/painel.css'
+
   let {data, children} = $props()
   const staff = $derived(data.staff)
   const path = $derived(data.currentPath ?? '/painel')

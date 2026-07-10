@@ -1,15 +1,15 @@
-import {dev} from '$app/environment'
-import {env} from '$env/dynamic/private'
-
 export type EmailSendResult =
   | {ok: true; id: string}
   | {ok: false; status: number; error: string}
 
-export const emailConfigured = () => Boolean(env.RESEND_API_KEY && env.EMAIL_FROM)
+const runtimeEnv = process.env
+const developmentRuntime = runtimeEnv.NODE_ENV !== 'production'
 
-export const ordersRecipient = () => env.ORDERS_TO_EMAIL || ''
+export const emailConfigured = () => Boolean(runtimeEnv.RESEND_API_KEY && runtimeEnv.EMAIL_FROM)
 
-export const appOrigin = () => env.APP_ORIGIN || ''
+export const ordersRecipient = () => runtimeEnv.ORDERS_TO_EMAIL || ''
+
+export const appOrigin = () => runtimeEnv.APP_ORIGIN || ''
 
 export const logEmailFailure = (context: string, result: EmailSendResult) => {
   if (result.ok) return
@@ -29,11 +29,11 @@ export const sendTransactionalEmail = async (input: {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      authorization: `Bearer ${runtimeEnv.RESEND_API_KEY}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      from: env.EMAIL_FROM,
+      from: runtimeEnv.EMAIL_FROM,
       to: input.to,
       subject: input.subject,
       text: input.text,
@@ -68,7 +68,7 @@ export const deliverVerificationEmail = async (
   verifyUrl: string,
 ): Promise<EmailSendResult> => {
   if (!emailConfigured()) {
-    if (dev) console.info(`[dev] Verificação de email para ${to}: ${verifyUrl}`)
+    if (developmentRuntime) console.info(`[dev] Verificação de email para ${to}: ${verifyUrl}`)
     return {ok: false, status: 503, error: 'Transactional email is not configured.'}
   }
 

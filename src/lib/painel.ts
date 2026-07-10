@@ -37,6 +37,20 @@ export const orderStatusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
+export const paymentStatusLabels: Record<string, string> = {
+  pending: 'Pendente',
+  payment_link_created: 'Link de pagamento criado',
+  paid: 'Pago',
+  failed: 'Falhado',
+  cancelled: 'Cancelado',
+}
+
+export const paymentMethodLabels: Record<string, string> = {
+  mbway: 'MB WAY',
+  multibanco: 'Multibanco',
+  card: 'Cartão',
+}
+
 export const profileStatusLabels: Record<string, string> = {
   new: 'Novo',
   contacted: 'Contactado',

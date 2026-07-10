@@ -114,7 +114,6 @@
           <input
             bind:value={query}
             type="search"
-            aria-label={content.common.searchPosts}
             placeholder={content.common.searchPlaceholder}
           />
         </label>

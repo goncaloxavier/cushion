@@ -1,5 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
+  import '$lib/styles/account.css'
+  import '$lib/styles/account-checkout.css'
   import {prefersReducedMotion} from '$lib/motion'
   import {cubicOut} from 'svelte/easing'
   import {fly} from 'svelte/transition'

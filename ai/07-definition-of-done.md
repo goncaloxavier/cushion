@@ -13,6 +13,8 @@ Use this as the task completion contract.
 - Contact/social/legal field changes include matching Sanity schema, GROQ query, fallback normalization, public layout, contact route, and tests where relevant.
 - Contact-form backend changes preserve server-only CRM writes, CSRF/origin/honeypot validation, fixed backend field names, private dataset boundaries, and tests where relevant.
 - Ecommerce/backend changes preserve Postgres as the private source of truth, server-side price recomputation, order snapshots, account/staff auth separation, CSRF/origin checks, httpOnly session cookies, hashed tokens, fresh checkout submission tokens, bounded abuse controls, and fail-closed payment behavior.
+- Ecommerce/backend changes preserve stable Sanity variant keys in new browser carts, delivery-zone validation for saved addresses, Postgres address identity/upsert behavior, and a friendly duplicate-address response instead of a database error.
+- Security-sensitive web changes preserve the nonce-backed CSP and do not add third-party browser origins without an explicit policy review.
 - Page media/video and partner/logo changes include matching Sanity schema, GROQ query, fallback normalization, public renderer, local fallback assets, and tests where relevant.
 - Visual Editing/Presentation changes preserve server-only preview tokens, preview-secret validation, draft/stega clients, protocol-aware preview cookies, and contract tests where relevant.
 - Studio fields and structure stay client-friendly in Portuguese unless a technical/internal field is intentionally hidden.

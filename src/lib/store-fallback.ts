@@ -12,7 +12,7 @@ type StoreProductBase = Omit<
   image?: LocalizedStoreImage
   images?: LocalizedStoreImage[]
   variants: Array<
-    Omit<StoreProductVariant, 'label' | 'dimensions' | 'note'> & {
+    Omit<StoreProductVariant, 'key' | 'label' | 'dimensions' | 'note'> & {
       label: Localized
       dimensions: Record<LanguageCode, string[]>
       note?: Localized
@@ -849,7 +849,8 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     flatTransportPrice: product.flatTransportPrice,
     image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
     images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
-    variants: product.variants.map((variant) => ({
+    variants: product.variants.map((variant, variantIndex) => ({
+      key: `variant-${variantIndex}`,
       label: variant.label[language],
       dimensions: variant.dimensions[language],
       weightKg: variant.weightKg,

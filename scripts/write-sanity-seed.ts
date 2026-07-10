@@ -199,7 +199,6 @@ const siteContentDocument = {
         'estimate-checklist',
       ),
     },
-    note: localizedSiteValue((content) => content.catalogue.note),
   },
   casesPage: {
     hero: copyBlockWithoutLead((content) => content.casesPage.hero),

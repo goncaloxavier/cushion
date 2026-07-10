@@ -102,8 +102,6 @@ export type ProductItem = {
   toolTitle?: string
   toolText?: string
   toolLabel?: string
-  features: string[]
-  applications: string[]
 }
 
 export type CaseStudy = {
@@ -138,6 +136,9 @@ export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'decking' | 'resid
 export type StoreFinish = 'natural' | 'dark'
 
 export type StoreProductVariant = {
+  // Stable Sanity array key. Store cart entries use this instead of an array
+  // position so reordering variants in Studio cannot change a saved cart.
+  key: string
   sourceKey?: string
   label: string
   dimensions: string[]
@@ -187,8 +188,6 @@ export type SiteContent = {
     result: string
     emailLabel: string
     phoneLabel: string
-    featuresLabel: string
-    applicationsLabel: string
     backToProducts: string
     backToCases: string
     backToBlog: string
@@ -267,7 +266,6 @@ export type SiteContent = {
       kicker: string
       title: string
       lead: string
-      cards: ContentCard[]
       checklistTitle: string
       checklist: string[]
     }
@@ -305,8 +303,6 @@ type SanityProduct = {
   toolTitle?: LocalizedValue
   toolText?: LocalizedValue
   toolLabel?: LocalizedValue
-  features?: LocalizedValue[]
-  applications?: LocalizedValue[]
 }
 
 type SanityCaseStudy = {
@@ -435,11 +431,9 @@ type SanitySiteContent = {
       kicker?: LocalizedValue
       title?: LocalizedValue
       lead?: LocalizedValue
-      cards?: SanityContentCard[]
       checklistTitle?: LocalizedValue
       checklist?: LocalizedValue[]
     }
-    note?: LocalizedValue
   }
   casesPage?: {
     hero?: SanityCopyBlock
@@ -584,8 +578,6 @@ const productCategories = {
       toolText:
         'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
       toolLabel: 'Construir o meu deck',
-      features: ['Resistente à humidade', 'Sem farpas', 'Baixa manutenção'],
-      applications: ['Jardins privados', 'Piscinas', 'Parques', 'Frentes ribeirinhas'],
     },
     {
       title: 'Vedações, divisórias e resguardos',
@@ -594,8 +586,6 @@ const productCategories = {
         'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável.',
       description:
         'Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
-      features: ['Não apodrece', 'Não exige pintura recorrente', 'Adequado a uso exterior'],
-      applications: ['Condomínios', 'Autarquias', 'Quintas', 'Zonas técnicas'],
     },
     {
       title: 'Mobiliário urbano e jardim',
@@ -604,8 +594,6 @@ const productCategories = {
         'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados.',
       description:
         'Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
-      features: ['Uso intensivo', 'Limpeza simples', 'Aspeto cuidado'],
-      applications: ['Escolas', 'Jardins', 'Municípios', 'Empresas'],
     },
     {
       title: 'Abrigos, telheiros e pérgolas',
@@ -614,8 +602,6 @@ const productCategories = {
         'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado.',
       description:
         'Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
-      features: ['Estrutura personalizável', 'Boa resposta ao clima', 'Aplicação à medida'],
-      applications: ['Pátios', 'Entradas', 'Parques', 'Equipamentos públicos'],
     },
     {
       title: 'Compostores, caixas de cultivo e bordaduras',
@@ -624,8 +610,6 @@ const productCategories = {
         'Soluções para agricultura, compostagem e organização de canteiros em material reciclado.',
       description:
         'Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
-      features: ['Contacto exterior prolongado', 'Fácil lavagem', 'Material reciclado'],
-      applications: ['Hortas urbanas', 'Escolas', 'Municípios', 'Jardins domésticos'],
     },
   ],
   en: [
@@ -642,8 +626,6 @@ const productCategories = {
       toolText:
         'Open the simulator to prepare measurements and options before moving to a quote request.',
       toolLabel: 'Build my deck',
-      features: ['Moisture resistant', 'No splinters', 'Low maintenance'],
-      applications: ['Private gardens', 'Pools', 'Parks', 'Riverfront areas'],
     },
     {
       title: 'Fencing, dividers and screens',
@@ -651,8 +633,6 @@ const productCategories = {
       summary: 'Profiles to define, protect and organize outdoor spaces with a durable material.',
       description:
         'Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
-      features: ['Does not rot', 'No recurring painting', 'Suitable for outdoor use'],
-      applications: ['Condominiums', 'Municipalities', 'Farms', 'Technical zones'],
     },
     {
       title: 'Urban and garden furniture',
@@ -661,8 +641,6 @@ const productCategories = {
         'Benches, tables, planters and pieces for intensive use in public or private spaces.',
       description:
         'Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
-      features: ['Intensive use', 'Simple cleaning', 'Considered appearance'],
-      applications: ['Schools', 'Gardens', 'Municipalities', 'Companies'],
     },
     {
       title: 'Shelters, canopies and pergolas',
@@ -671,8 +649,6 @@ const productCategories = {
         'Outdoor structures for shade, protection and organization using recycled-plastic profiles.',
       description:
         'Products that create support and stay areas without the maintenance routine of traditional timber.',
-      features: ['Customizable structure', 'Weather responsive', 'Made-to-measure application'],
-      applications: ['Patios', 'Entrances', 'Parks', 'Public facilities'],
     },
     {
       title: 'Composters, grow boxes and borders',
@@ -681,8 +657,6 @@ const productCategories = {
         'Solutions for agriculture, composting and garden organization in recycled material.',
       description:
         'Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
-      features: ['Long outdoor contact', 'Easy washing', 'Recycled material'],
-      applications: ['Urban gardens', 'Schools', 'Municipalities', 'Home gardens'],
     },
   ],
   es: [
@@ -700,8 +674,6 @@ const productCategories = {
       toolText:
         'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
       toolLabel: 'Construir mi deck',
-      features: ['Resistente a la humedad', 'Sin astillas', 'Bajo mantenimiento'],
-      applications: ['Jardines privados', 'Piscinas', 'Parques', 'Frentes fluviales'],
     },
     {
       title: 'Vallas, divisorias y resguardos',
@@ -710,8 +682,6 @@ const productCategories = {
         'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero.',
       description:
         'Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
-      features: ['No se pudre', 'Sin pintura recurrente', 'Adecuado para exterior'],
-      applications: ['Condominios', 'Municipios', 'Fincas', 'Zonas técnicas'],
     },
     {
       title: 'Mobiliario urbano y jardín',
@@ -720,8 +690,6 @@ const productCategories = {
         'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados.',
       description:
         'Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
-      features: ['Uso intensivo', 'Limpieza sencilla', 'Aspecto cuidado'],
-      applications: ['Escuelas', 'Jardines', 'Municipios', 'Empresas'],
     },
     {
       title: 'Refugios, cubiertas y pérgolas',
@@ -730,8 +698,6 @@ const productCategories = {
         'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado.',
       description:
         'Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
-      features: ['Estructura personalizable', 'Buena respuesta al clima', 'Aplicación a medida'],
-      applications: ['Patios', 'Entradas', 'Parques', 'Equipamientos públicos'],
     },
     {
       title: 'Compostadores, cajas de cultivo y borduras',
@@ -740,8 +706,6 @@ const productCategories = {
         'Soluciones para agricultura, compostaje y organización de canteros en material reciclado.',
       description:
         'Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
-      features: ['Contacto exterior prolongado', 'Lavado fácil', 'Material reciclado'],
-      applications: ['Huertos urbanos', 'Escuelas', 'Municipios', 'Jardines domésticos'],
     },
   ],
 } satisfies Record<LanguageCode, ProductItem[]>
@@ -969,8 +933,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Resultado',
       emailLabel: 'Email',
       phoneLabel: 'Telefone',
-      featuresLabel: 'Características',
-      applicationsLabel: 'Aplicações',
       backToProducts: 'Voltar aos produtos',
       backToCases: 'Voltar aos casos',
       backToBlog: 'Voltar ao blog',
@@ -1140,17 +1102,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Pedido de catálogo',
         title: 'Como receber o catálogo',
         lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário.\nO contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
-        cards: [
-          {
-            title: 'Contacto',
-            text: 'Nome, email e telefone para resposta.',
-          },
-          {title: 'Localização', text: 'Código postal e localidade para enquadrar o pedido.'},
-          {
-            title: 'Mensagem',
-            text: 'Explique se procura catálogo geral, produto específico ou apoio para projeto.',
-          },
-        ],
         checklistTitle: 'No formulário, indique',
         checklist: [
           'Nome e contacto',
@@ -1223,8 +1174,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Result',
       emailLabel: 'Email',
       phoneLabel: 'Phone',
-      featuresLabel: 'Features',
-      applicationsLabel: 'Applications',
       backToProducts: 'Back to products',
       backToCases: 'Back to cases',
       backToBlog: 'Back to blog',
@@ -1395,20 +1344,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Catalogue request',
         title: 'How to receive the catalogue',
         lead: 'If you want to consult the catalogue, send the request through the form.\nThe contact is saved so the team can send the information and follow up.',
-        cards: [
-          {
-            title: 'Contact',
-            text: 'Name, email and phone for the reply.',
-          },
-          {
-            title: 'Location',
-            text: 'Postcode and locality to frame the request.',
-          },
-          {
-            title: 'Message',
-            text: 'Explain whether you want the general catalogue, a specific product or project support.',
-          },
-        ],
         checklistTitle: 'In the form, include',
         checklist: [
           'Name and contact details',
@@ -1481,8 +1416,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Resultado',
       emailLabel: 'Email',
       phoneLabel: 'Teléfono',
-      featuresLabel: 'Características',
-      applicationsLabel: 'Aplicaciones',
       backToProducts: 'Volver a productos',
       backToCases: 'Volver a casos',
       backToBlog: 'Volver al blog',
@@ -1653,17 +1586,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         kicker: 'Solicitud de catálogo',
         title: 'Cómo recibir el catálogo',
         lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario.\nEl contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
-        cards: [
-          {
-            title: 'Contacto',
-            text: 'Nombre, email y teléfono para la respuesta.',
-          },
-          {title: 'Ubicación', text: 'Código postal y localidad para contextualizar la solicitud.'},
-          {
-            title: 'Mensaje',
-            text: 'Explica si buscas catálogo general, producto específico o apoyo para un proyecto.',
-          },
-        ],
         checklistTitle: 'En el formulario, indica',
         checklist: [
           'Nombre y datos de contacto',
@@ -2137,8 +2059,6 @@ const productsFromSanity = (
         toolTitle: localized(product.toolTitle, language, fallbackProduct?.toolTitle ?? ''),
         toolText: localized(product.toolText, language, fallbackProduct?.toolText ?? ''),
         toolLabel: localized(product.toolLabel, language, fallbackProduct?.toolLabel ?? ''),
-        features: [],
-        applications: [],
       }
     })
 }
@@ -2164,6 +2084,7 @@ const storeProductsFromSanity = (
           if (typeof natural !== 'number' || typeof dark !== 'number') return null
 
           const nextVariant: StoreProductVariant = {
+            key: variant._key ?? fallbackVariant?.key ?? `variant-${variantIndex}`,
             sourceKey: variant._key,
             label: localized(variant.label, language, fallbackVariant?.label ?? 'Variante'),
             dimensions: localizedList(
@@ -2365,7 +2286,6 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.title,
       ),
       lead: localized(source.catalogue?.estimate?.lead, language, fallback.catalogue.estimate.lead),
-      cards: fallback.catalogue.estimate.cards,
       checklistTitle: localized(
         source.catalogue?.estimate?.checklistTitle,
         language,

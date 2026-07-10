@@ -79,6 +79,7 @@
       : undefined,
   )
   const itemLabel = $derived(item?.type === 'video' ? item.title || label : label)
+  const altFor = (candidate: ContentImage) => candidate.alt?.trim() || label
 
   const selectItem = (index: number) => {
     selectedIndex = Math.min(media.length - 1, Math.max(0, index))
@@ -142,7 +143,7 @@
           src={sizedImage(item.url, 1600, 76)}
           srcset={imageSrcset(item.url, [640, 900, 1200, 1600, 2000], 76)}
           {sizes}
-          alt={item.alt}
+          alt={altFor(item)}
           decoding="async"
           fetchpriority="high"
           style:background={lqipBackground(item)}
@@ -196,7 +197,7 @@
                 src={sizedImage(thumb.url, 220)}
                 srcset={imageSrcset(thumb.url, [120, 180, 240, 320])}
                 sizes="6rem"
-                alt={thumb.alt}
+                alt={altFor(thumb)}
                 loading="lazy"
                 decoding="async"
                 style:background={lqipBackground(thumb)}
@@ -243,7 +244,7 @@
           src={sizedImage(item.url, lightboxWidth)}
           srcset={imageSrcset(item.url, [800, 1200, 1600])}
           sizes="94vw"
-          alt={item.alt}
+          alt={altFor(item)}
           decoding="async"
           style:background={lqipBackground(item)}
         />

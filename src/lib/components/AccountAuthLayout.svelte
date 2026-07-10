@@ -1,5 +1,7 @@
 <script lang="ts">
   import Reveal from '$lib/components/Reveal.svelte'
+  import '$lib/styles/account.css'
+  import '$lib/styles/account-checkout.css'
   import type {Snippet} from 'svelte'
 
   let {

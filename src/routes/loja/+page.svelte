@@ -3,6 +3,7 @@
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {seoDescription} from '$lib/seo'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
@@ -247,7 +248,14 @@
   })
 </script>
 
-<SeoHead title={content.nav.store} description={content.storePage.hero.title} />
+<SeoHead
+  title={content.nav.store}
+  description={seoDescription(
+    data.language,
+    content.storePage.hero.lead,
+    content.storeProducts.map((product) => product.summary).join(' '),
+  )}
+/>
 
 <main class="store-page">
   <PageHero {...hero} />
@@ -336,7 +344,7 @@
                       src={sizedImage(product.image.url, 640)}
                       srcset={imageSrcset(product.image.url, [360, 480, 640, 800])}
                       sizes="(max-width: 700px) 92vw, 360px"
-                      alt={product.image.alt}
+                      alt={product.image.alt || product.title}
                       loading="lazy"
                       decoding="async"
                       style:background={product.image.lqip

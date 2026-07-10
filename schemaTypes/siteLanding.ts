@@ -80,6 +80,7 @@ const pageImageField = (name: string, title: string, description?: string) =>
         title: 'Descrição da imagem',
         description: 'Texto simples para acessibilidade. Diga o que se vê na imagem.',
         type: 'localizedString',
+        validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
       }),
     ],
   })

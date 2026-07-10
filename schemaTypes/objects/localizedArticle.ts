@@ -50,6 +50,7 @@ const articleBlocks = [
         title: 'Descrição alternativa',
         description: 'Texto curto para acessibilidade. Diga o que aparece na imagem.',
         type: 'string',
+        validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
       }),
       defineField({
         name: 'caption',

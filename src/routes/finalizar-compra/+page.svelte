@@ -1,12 +1,14 @@
 <script lang="ts">
   import {enhance} from '$app/forms'
   import {browser} from '$app/environment'
+  import '$lib/styles/account-checkout.css'
   import SeoHead from '$lib/components/SeoHead.svelte'
-  import {cartTotalQuantity, clearCart, readCart, type StoreCartItem} from '$lib/cart'
+  import {cartTotalQuantity, clearCart, readCart, storeVariantForCartItem, type StoreCartItem} from '$lib/cart'
   import {
     calculateStoreEstimate,
     readInitialStorePostalCode,
     readStorePostalCode,
+    isSupportedStorePostalCode,
     storeDeliveryEventName,
   } from '$lib/store-shipping'
   import {onMount} from 'svelte'
@@ -56,6 +58,8 @@
       vat: 'IVA 23%',
       total: 'Total',
       toConfirm: 'A confirmar',
+      transportOverweight: 'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
+      deliveryAddressUnsupported: 'Esta morada de entrega está fora das zonas atualmente servidas. Escolha ou crie outra morada.',
       guestHint:
         'Pode finalizar como convidado. Criar conta permite consultar histórico de encomendas.',
       notReady: 'Checkout ainda não configurado neste ambiente.',
@@ -101,6 +105,8 @@
       vat: 'VAT 23%',
       total: 'Total',
       toConfirm: 'To confirm',
+      transportOverweight: 'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
+      deliveryAddressUnsupported: 'This delivery address is outside the currently served areas. Choose or create another address.',
       guestHint: 'You can check out as a guest. An account lets you see order history.',
       notReady: 'Checkout is not configured in this environment yet.',
       preferredAddress: 'Preferred',
@@ -145,6 +151,8 @@
       vat: 'IVA 23%',
       total: 'Total',
       toConfirm: 'Por confirmar',
+      transportOverweight: 'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
+      deliveryAddressUnsupported: 'Esta dirección de entrega está fuera de las zonas atendidas. Elija o cree otra dirección.',
       guestHint:
         'Puedes finalizar como invitado. Crear una cuenta permite consultar el historial.',
       notReady: 'Checkout aún no está configurado en este entorno.',
@@ -251,6 +259,9 @@
   const deliveryAddress = $derived(deliveryAddresses.find((address) => address.id === selectedDeliveryAddressId) ?? null)
   const useCustomBillingAddress = $derived(!customer || !billingAddresses.length || selectedBillingAddressId === 'custom' || !billingAddress)
   const useCustomDeliveryAddress = $derived(!customer || !deliveryAddresses.length || selectedDeliveryAddressId === 'custom' || !deliveryAddress)
+  const deliveryAddressUnsupported = $derived(
+    Boolean(deliveryAddress && !isSupportedStorePostalCode(deliveryAddress.postalCode)),
+  )
   const langQuery = $derived(`?lang=${data.language}`)
   const money = $derived(
     new Intl.NumberFormat(data.language === 'en' ? 'en-GB' : data.language === 'es' ? 'es-ES' : 'pt-PT', {
@@ -263,7 +274,7 @@
     cart
       .map((item) => {
         const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-        const variant = product?.variants[item.variantIndex]
+        const variant = product ? storeVariantForCartItem(product, item) : undefined
         if (!product || !variant) return null
         const finish = product.hasFinishChoice ? item.finish : 'natural'
         const unitPrice = variant.prices[finish]
@@ -282,6 +293,9 @@
       deliveryAddress?.postalCode ?? (customDeliveryPostalCode || deliveryPostalCode),
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
+  )
+  const estimateStatus = $derived(
+    estimate.transportIssue === 'overweight' ? labels.transportOverweight : labels.toConfirm,
   )
   const cartPayload = $derived(JSON.stringify(cart))
   const itemCount = $derived(cartTotalQuantity(cart))
@@ -516,6 +530,9 @@
               <input type="hidden" name="deliveryPostalCode" value={deliveryAddress.postalCode} />
               <input type="hidden" name="deliveryLocality" value={deliveryAddress.locality} />
             {/if}
+            {#if deliveryAddressUnsupported}
+              <p class="checkout-address-warning" role="alert">{labels.deliveryAddressUnsupported}</p>
+            {/if}
           </fieldset>
 
           <fieldset class="checkout-payment">
@@ -607,15 +624,15 @@
             </div>
             <div>
               <dt>{labels.transport}</dt>
-              <dd>{estimate.transport ? money.format(estimate.transport.transportNet) : labels.toConfirm}</dd>
+              <dd>{estimate.transport ? money.format(estimate.transport.transportNet) : estimateStatus}</dd>
             </div>
             <div>
               <dt>{labels.vat}</dt>
-              <dd>{estimate.vat !== null ? money.format(estimate.vat) : labels.toConfirm}</dd>
+              <dd>{estimate.vat !== null ? money.format(estimate.vat) : estimateStatus}</dd>
             </div>
             <div class="checkout-total">
               <dt>{labels.total}</dt>
-              <dd>{estimate.totalGross !== null ? money.format(estimate.totalGross) : labels.toConfirm}</dd>
+              <dd>{estimate.totalGross !== null ? money.format(estimate.totalGross) : estimateStatus}</dd>
             </div>
           </dl>
           {#if !customer}

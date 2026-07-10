@@ -71,8 +71,6 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
     {text: item.title, weight: 5},
     {text: item.summary, weight: 3},
     {text: item.description, weight: 1},
-    {text: item.features.join(' '), weight: 1},
-    {text: item.applications.join(' '), weight: 1},
   ]).map(({item}) => ({
     category: 'products' as const,
     title: item.title,

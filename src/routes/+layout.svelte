@@ -94,6 +94,12 @@
     es: {menu: 'Menú', open: 'Abrir menú', close: 'Cerrar menú'},
   }
   const menuStrings = $derived(menuStringsByLanguage[data.language] ?? menuStringsByLanguage.pt)
+  const skipLinkLabels: Record<string, string> = {
+    pt: 'Saltar para o conteúdo',
+    en: 'Skip to content',
+    es: 'Saltar al contenido',
+  }
+  const skipLinkLabel = $derived(skipLinkLabels[data.language] ?? skipLinkLabels.pt)
 
   const searchStringsByLanguage: Record<string, SearchStrings> = {
     pt: {
@@ -347,6 +353,7 @@
 {:else}
   <RouteProgress />
   <Intro />
+  <a class="skip-link" href="#main-content">{skipLinkLabel}</a>
 
 <header class="site-header">
   <a class="brand" href={withLanguage('/', data.language)} aria-label={content.nav.home}>
@@ -518,7 +525,7 @@
         {#each data.languages as language}
           <a
             class:active={data.language === language.code}
-            aria-current={data.language === language.code ? 'true' : undefined}
+            aria-current={data.language === language.code ? 'page' : undefined}
             href={withLanguage(data.currentPath, language.code)}
             onclick={closeMenu}
           >

@@ -22,8 +22,7 @@ const pruneExpiredBuckets = (now: number) => {
   }
 }
 
-export const rateLimit = (key: string, limit: number, windowMs: number) => {
-  const now = Date.now()
+export const rateLimit = (key: string, limit: number, windowMs: number, now = Date.now()) => {
   pruneExpiredBuckets(now)
   const current = buckets.get(key)
   if (!current || current.resetAt <= now) {
