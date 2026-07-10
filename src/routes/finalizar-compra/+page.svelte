@@ -235,7 +235,7 @@
       .filter(Boolean)
       .join(' · ')
 
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const labels = $derived(checkoutCopy[data.language])
   const pay = $derived(paymentCopy[data.language] ?? paymentCopy.pt)
   let paymentMethod = $state('mbway')

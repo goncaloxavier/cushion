@@ -80,6 +80,7 @@ Use this to help agents avoid accidental damage.
 - `DATABASE_URL`, `RESEND_API_KEY`, and future Ifthenpay credentials must only exist in server/private runtime environments.
 - `SANITY_VIEWER_TOKEN` is server-only too. It enables Presentation preview by reading drafts and `sanity.previewUrlSecret` documents; never expose it through public env vars, client code, logs, or generated files.
 - Future public/private content boundaries if non-public draft content is introduced.
+- The current Railway deployment (`cushion` service, `dafab4you-website.up.railway.app`) is a dev/test preview server, not the client's final production domain (see `01-project-overview.md`'s open questions). Two infra gaps found in a security audit are real but lower urgency while that holds: `ADDRESS_HEADER`/`XFF_DEPTH` are unset, so in-process rate limiting (`src/lib/server/rate-limit.ts`) buckets by Railway's proxy IP rather than real visitor IPs; and `ORIGIN` is unset (only `APP_ORIGIN` is), so adapter-node derives `url.origin` from the raw client `Host` header, which could theoretically let a forged Host header land in a password-reset/verification email link. Revisit both before this deployment (or whatever replaces it) is treated as production-facing.
 
 ## Common Regression Patterns
 

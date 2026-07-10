@@ -1,6 +1,6 @@
 import {fail, redirect} from '@sveltejs/kit'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
-import {resetCustomerPasswordWithToken} from '$lib/server/customer-auth'
+import {customerRateLimit, resetCustomerPasswordWithToken, tokenHashOf} from '$lib/server/customer-auth'
 import {databaseConfigured} from '$lib/server/db'
 import type {Actions, PageServerLoad} from './$types'
 
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({cookies, url}) => ({
 })
 
 export const actions: Actions = {
-  default: async ({cookies, request, url}) => {
+  default: async ({cookies, getClientAddress, request, url}) => {
     const data = await request.formData()
     const token = clean(data.get('token'), 160)
     const password = clean(data.get('password'))
@@ -37,6 +37,11 @@ export const actions: Actions = {
     }
     if (!token || password.length < 10) {
       return fail(400, {message: 'Use uma password com pelo menos 10 caracteres.', token})
+    }
+
+    const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
+    if (customerRateLimit(`reset-ip:${ipHash}`, 8, 15 * 60 * 1000)) {
+      return fail(429, {message: 'Demasiadas tentativas. Aguarde alguns minutos.', token})
     }
 
     const ok = await resetCustomerPasswordWithToken(token, password)

@@ -2,6 +2,7 @@ import {randomBytes} from 'node:crypto'
 import {databaseConfigured, query, withTransaction} from './db'
 import {
   calculateStoreEstimate,
+  hasFlatTransport,
   isSupportedStorePostalCode,
   normalizePostalCode,
   normalizedTransportMultiplier,
@@ -279,7 +280,15 @@ export const buildOrderDraft = (
     const finish = product.hasFinishChoice ? item.finish : 'natural'
     const unitPriceNet = Number(variant.prices[finish])
     const unitWeightKg = Number(variant.weightKg ?? 0)
-    if (!Number.isFinite(unitPriceNet) || unitPriceNet <= 0 || !Number.isFinite(unitWeightKg) || unitWeightKg <= 0) {
+    // A flat-rate product (see hasFlatTransport) is priced without needing a
+    // weight at all — calculateStoreEstimate already excludes it from the
+    // weight-based calculation, so this must not reject it for lacking one.
+    const weightRequired = !hasFlatTransport(product)
+    if (
+      !Number.isFinite(unitPriceNet) ||
+      unitPriceNet <= 0 ||
+      (weightRequired && (!Number.isFinite(unitWeightKg) || unitWeightKg <= 0))
+    ) {
       throw new OrderInputError('Não foi possível calcular o preço ou transporte de um produto.')
     }
 

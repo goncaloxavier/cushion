@@ -247,7 +247,11 @@ export const transportEstimateFor = (
   } satisfies StoreTransportEstimate
 }
 
-const hasFlatTransport = (item: StorePricingItem) =>
+// Shared with order creation (src/lib/server/orders.ts), which must skip its
+// own weight requirement for the same items this excludes from the
+// weight-based calculation below — otherwise a flat-rate product added
+// without a weight would pass pricing here but fail order creation entirely.
+export const hasFlatTransport = (item: {flatTransportPrice?: number}) =>
   Number.isFinite(item.flatTransportPrice) && (item.flatTransportPrice ?? 0) > 0
 
 export const calculateStoreEstimate = (

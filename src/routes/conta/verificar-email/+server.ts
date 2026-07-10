@@ -1,6 +1,7 @@
 import {redirect} from '@sveltejs/kit'
 import {
   createCustomerSession,
+  customerRateLimit,
   setCustomerSessionCookie,
   tokenHashOf,
   verifyCustomerEmailToken,
@@ -11,7 +12,10 @@ import type {RequestHandler} from './$types'
 export const GET: RequestHandler = async ({cookies, getClientAddress, request, url}) => {
   const token = url.searchParams.get('token') ?? ''
   const language = url.searchParams.get('lang') || 'pt'
-  if (databaseConfigured() && token) {
+  const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
+  const limited = customerRateLimit(`verify-ip:${ipHash}`, 10, 15 * 60 * 1000)
+
+  if (databaseConfigured() && token && !limited) {
     const verification = await verifyCustomerEmailToken(token).catch(() => ({ok: false as const, customerId: ''}))
     if (verification.ok) {
       const session = await createCustomerSession(verification.customerId, {

@@ -118,11 +118,6 @@ export const actions: Actions = {
       })
     }
 
-    const ipKey = rateLimitKey('checkout', getClientAddress())
-    if (rateLimit(ipKey, 8, 15 * 60 * 1000)) {
-      return fail(429, {message: 'Demasiados pedidos. Aguarde alguns minutos antes de tentar novamente.', values})
-    }
-
     let persistBillingAddress = true
     let persistDeliveryAddress = true
     if (locals.customer) {
@@ -185,6 +180,14 @@ export const actions: Actions = {
       cartItems = parseCartItems(form.get('cartItems'))
     } catch {
       return fail(400, {message: 'Não foi possível ler o carrinho. Atualize a página.', values})
+    }
+
+    // Rate-limit only once a submission has passed every shape/field check
+    // above — a customer who mistypes an email or misses a field a few times
+    // shouldn't burn the same budget as a scripted attempt to spam real orders.
+    const ipKey = rateLimitKey('checkout', getClientAddress())
+    if (rateLimit(ipKey, 8, 15 * 60 * 1000)) {
+      return fail(429, {message: 'Demasiados pedidos. Aguarde alguns minutos antes de tentar novamente.', values})
     }
 
     const site = contentFromSanity(await getSanityCollections(false))

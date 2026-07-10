@@ -64,6 +64,7 @@
   let selectedIndex = $state(0)
   let zoomOpen = $state(false)
   let lightbox = $state<HTMLDivElement | null>(null)
+  let previouslyFocused: HTMLElement | null = null
 
   const item = $derived(media[selectedIndex] ?? media[0])
   const hasMultiple = $derived(media.length > 1)
@@ -103,6 +104,7 @@
   $effect(() => {
     if (!zoomOpen) return
 
+    previouslyFocused = document.activeElement as HTMLElement | null
     document.documentElement.classList.add('lightbox-open')
     document.body.classList.add('lightbox-open')
     tick().then(() => lightbox?.focus())
@@ -110,6 +112,7 @@
     return () => {
       document.documentElement.classList.remove('lightbox-open')
       document.body.classList.remove('lightbox-open')
+      previouslyFocused?.focus()
     }
   })
 

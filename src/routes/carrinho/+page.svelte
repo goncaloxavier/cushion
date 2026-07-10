@@ -139,7 +139,7 @@
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const labels = $derived(labelsByLanguage[data.language])
   const langQuery = $derived(`?lang=${data.language}`)
   const priceFormatter = $derived(

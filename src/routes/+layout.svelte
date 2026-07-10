@@ -11,12 +11,12 @@
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
   import {withLanguage} from '$lib/site-content'
-  import {onDestroy, onMount, untrack} from 'svelte'
+  import {onDestroy, onMount, tick, untrack} from 'svelte'
   import '../app.css'
 
   let {data, children} = $props()
 
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
 
   type NavKey =
     | 'home'
@@ -76,6 +76,8 @@
   let menuOpen = $state(false)
   let menuVisible = $state(false)
   let menuCloseTimer: ReturnType<typeof setTimeout> | undefined
+  let menuCloseButton = $state<HTMLButtonElement | null>(null)
+  let previouslyFocusedBeforeMenu: HTMLElement | null = null
   const mobileMenuItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
@@ -176,6 +178,19 @@
     document.body.style.overflow = menuVisible ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
+    }
+  })
+
+  // Move focus into the menu on open and back to the toggle button on close,
+  // pairing with trapFocus (which only keeps Tab inside once focus is there).
+  $effect(() => {
+    if (!menuVisible) return
+
+    previouslyFocusedBeforeMenu = document.activeElement as HTMLElement | null
+    tick().then(() => menuCloseButton?.focus())
+
+    return () => {
+      previouslyFocusedBeforeMenu?.focus()
     }
   })
 
@@ -453,6 +468,7 @@
         type="button"
         aria-label={menuStrings.close}
         onclick={closeMenu}
+        bind:this={menuCloseButton}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" /></svg>
       </button>

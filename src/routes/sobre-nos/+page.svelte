@@ -4,7 +4,7 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
 </script>
 
 <SeoHead title={content.nav.about} description={content.about.hero.lead || content.about.hero.title} />

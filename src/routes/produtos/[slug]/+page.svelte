@@ -5,11 +5,12 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
-  import {absoluteUrl, productSchema} from '$lib/seo'
+  import {absoluteUrl, breadcrumbListSchema, productSchema} from '$lib/seo'
   import {
     cleanProductMaterialCopy,
     productImageFallback,
     productImagesFor,
+    withLanguage,
   } from '$lib/site-content'
 
   const productResistancePattern =
@@ -43,7 +44,7 @@
   }
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
   const images = $derived(productImagesFor(data.product, productImageFallback))
@@ -63,13 +64,18 @@
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
-  const productJsonLd = $derived(
+  const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
       description: copy.intro || data.product.summary,
       imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
     }),
-  )
+    breadcrumbListSchema([
+      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
+      {name: content.nav.products, url: absoluteUrl(page.url.origin, withLanguage('/produtos', data.language))!},
+      {name: data.product.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+    ]),
+  ])
 </script>
 
 <SeoHead

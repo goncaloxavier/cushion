@@ -41,16 +41,16 @@ npm run seed:studio:write
 
 ## CI
 
-- CI provider: none configured.
-- Workflow files: none present.
-- Required checks: none configured.
+- CI provider: GitHub Actions (`.github/workflows/ci.yml`), runs on every PR and on push to `dev`/`main`.
+- Required checks: `npm run check`, `npm run lint`, `npm run build`, `npm run build:studio`, `npm run e2e`.
+- CI now provisions a real `postgres:16-alpine` service container and runs `npm run db:migrate` against it before `npm run e2e`, so the checkout server action's real order-creation path (`buildOrderDraft` → `createOrder`) actually executes in CI instead of self-skipping via `test.skip(await submit.isDisabled(), ...)`. `RESEND_API_KEY`/`EMAIL_FROM` are intentionally left unset in CI — `sendTransactionalEmail` degrades gracefully (`emailConfigured()` false → logged failure, no throw), so the order still completes and the test still passes; only the email-delivery side stays unexercised there.
 
 ## Known Gaps
 
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
 - Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` are configured before relying on live submissions.
-- Ecommerce checkout tests are contract-level plus route handoff only unless a test Postgres database is configured. Contract coverage checks server-side price rebuilding, checkout idempotency/rate limits, email-token invalidation, same-origin/CSRF handling, and public-response security headers. Public contact and catalogue forms also use the bounded in-process abuse limit. Manual/staging validation must confirm `DATABASE_URL`, migrations, Resend settings, and `/painel/encomendas` before relying on live orders.
+- Ecommerce checkout tests now run their real order-creation path in CI (see above). Contract coverage additionally checks server-side price rebuilding, checkout idempotency/rate limits, email-token invalidation, same-origin/CSRF handling, and public-response security headers. Public contact and catalogue forms also use the bounded in-process abuse limit. Manual/staging validation must still confirm production `DATABASE_URL`, Resend settings, and `/painel/encomendas` before relying on live orders — CI proves the code path works, not that production secrets are configured.
 - Visual snapshot output is platform-specific and generated under ignored `tests/*-snapshots/` folders for local/session review only.
 - Playwright E2E/visual runs can be expensive locally; if skipped by explicit instruction, record that in the handoff and use the strongest lighter checks available.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
