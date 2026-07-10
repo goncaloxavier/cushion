@@ -11,7 +11,7 @@
   type ContactFormValues = Partial<Record<ContactFieldKey, string>>
 
   let {data, form} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const fallbackFieldLabels: Record<string, Record<ContactFieldKey, string>> = {
     pt: {
       firstName: 'Nome',
@@ -199,6 +199,7 @@
             unitPrice: variant.prices[item.finish],
             quantity: item.quantity,
             weightKg: variant.weightKg,
+            flatTransportPrice: product.flatTransportPrice,
           }
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),

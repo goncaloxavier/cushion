@@ -5,6 +5,7 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
+  import {prefersReducedMotion} from '$lib/motion'
   import {absoluteUrl, organizationSchema} from '$lib/seo'
   import {
     caseStudyImageFallback,
@@ -12,9 +13,10 @@
     productImageFallback,
     type LanguageCode,
   } from '$lib/site-content'
+  import {onMount} from 'svelte'
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
 
   const organizationJsonLd = $derived(
@@ -63,10 +65,26 @@
   )
   let heroVideoOpen = $state(false)
   let heroDialog = $state<HTMLDivElement | null>(null)
+  // The background embed isn't needed for first paint, so keep it out of the
+  // critical path: mount it once the browser is idle rather than eagerly on
+  // every load, and skip it entirely for reduced-motion users (an autoplaying
+  // background video is exactly the kind of motion they've opted out of).
+  let heroBackgroundReady = $state(false)
 
   const closeHeroVideo = () => {
     heroVideoOpen = false
   }
+
+  onMount(() => {
+    if (prefersReducedMotion()) return
+
+    const ric = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 200))
+    const cic = window.cancelIdleCallback ?? window.clearTimeout
+    const handle = ric(() => {
+      heroBackgroundReady = true
+    })
+    return () => cic(handle)
+  })
 
   // Reset the player when language changes so a stale embed never lingers.
   $effect(() => {
@@ -106,7 +124,7 @@
 <main class="home-page">
   <section class="home-hero">
     <div class="home-hero-bg" aria-hidden="true">
-      {#if heroBackgroundVideoEmbed}
+      {#if heroBackgroundVideoEmbed && heroBackgroundReady}
         <iframe
           class="home-hero-video home-hero-video-bg"
           title=""

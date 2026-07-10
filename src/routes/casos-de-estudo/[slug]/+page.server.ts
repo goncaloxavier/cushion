@@ -4,7 +4,7 @@ import type {PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async ({params, parent, url}) => {
   const {site, language} = await parent()
-  const content = site[language]
+  const content = site
   const caseStudy = content.caseStudies.find((item) => item.slug === params.slug)
 
   if (!caseStudy) {

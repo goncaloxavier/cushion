@@ -5,11 +5,16 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
-  import {absoluteUrl, productSchema} from '$lib/seo'
+  import {absoluteUrl, breadcrumbListSchema, productSchema} from '$lib/seo'
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {showToast} from '$lib/toast'
-  import {storeProductMediaFor, type LanguageCode, type StoreFinish} from '$lib/site-content'
+  import {
+    storeProductMediaFor,
+    withLanguage,
+    type LanguageCode,
+    type StoreFinish,
+  } from '$lib/site-content'
   import {
     calculateStoreEstimate,
     postalZonePrefixFor,
@@ -118,7 +123,7 @@
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/loja', data.language, data.returnPage))
   const labels = $derived(pageCopy[data.language])
@@ -159,7 +164,14 @@
   const normalizedQuantity = $derived(Math.min(99, Math.max(1, Math.floor(quantity || 1))))
   const selectedEstimate = $derived(
     calculateStoreEstimate(
-      [{unitPrice: selectedPrice, quantity: normalizedQuantity, weightKg: selectedVariant.weightKg}],
+      [
+        {
+          unitPrice: selectedPrice,
+          quantity: normalizedQuantity,
+          weightKg: selectedVariant.weightKg,
+          flatTransportPrice: data.storeProduct.flatTransportPrice,
+        },
+      ],
       deliveryPostalCode,
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
@@ -232,7 +244,7 @@
     }
   })
 
-  const storeJsonLd = $derived(
+  const storeJsonLd = $derived([
     productSchema({
       name: data.storeProduct.title,
       description: data.storeProduct.summary,
@@ -244,7 +256,12 @@
         ]),
       ),
     }),
-  )
+    breadcrumbListSchema([
+      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
+      {name: content.nav.store, url: absoluteUrl(page.url.origin, withLanguage('/loja', data.language))!},
+      {name: data.storeProduct.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+    ]),
+  ])
 </script>
 
 <SeoHead

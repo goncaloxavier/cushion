@@ -33,6 +33,7 @@ Use this to help agents avoid accidental damage.
 - The public visitor Sanity client uses `useCdn: true` for speed, while the Visual Editing preview client must stay `useCdn: false` with draft perspective and stega metadata. Do not collapse those two clients into one.
 - Loja schema, fallback prices, fallback imagery/galleries, seed generation, GROQ projection, route filters/pagination, transport estimates, and tests must stay aligned.
 - Carrinho resolves local browser selections and the stored postal code against the current public Loja content. Checkout must then recalculate the order from trusted server-side public store content; if product slugs, variant order, finish keys, weights, delivery-zone logic, multipliers, or price tables change, update fallback/Sanity content, order snapshots, and tests together.
+- A `storeProduct` can set `flatTransportPrice` (Sanity, "Preços" group) to bypass the weight/zone transport formula entirely and charge a fixed fee for every zone instead (client-requested for Placas Click, `€2`). `calculateStoreEstimate` in `src/lib/store-shipping.ts` excludes that product's weight from the shared weight-based calculation and adds its flat fee on top — every caller that builds a `StorePricingItem[]` (loja list/detail, carrinho, finalizar-compra, contacto's quote-message builder, `src/lib/server/orders.ts`) must forward `flatTransportPrice` from the product or that one surface will silently price it via the normal formula instead.
 - The public `production` dataset, private `crm` dataset, and private ecommerce Postgres database must remain separated. Do not query CRM/order/customer documents from public Sanity layout/page loads.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, privacy/cookie policy, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
@@ -52,6 +53,7 @@ Use this to help agents avoid accidental damage.
 - Visitors opening product, case-study, or blog gallery lightboxes; the page behind the modal should not scroll or change position until the lightbox closes.
 - Visitors entering a postal code to unlock Loja pricing, adding Loja products to Carrinho, adjusting quantities locally, reviewing estimated transport/IVA, and continuing to checkout.
 - Visitors checking out as guests or logged-in customers; the server must create a pending Postgres order and never trust client-sent prices.
+- Checkout requires a fresh single-use submission token and has a bounded per-instance rate limit. Keep the database unique token constraint, server-side validation, and client double-submit guard aligned; the in-memory rate limit is a lightweight defence, not a substitute for production edge rate limiting.
 - Staff reviewing ecommerce orders in `/painel/encomendas`, including status changes and internal notes.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, privacy/cookie policy links, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
@@ -78,6 +80,7 @@ Use this to help agents avoid accidental damage.
 - `DATABASE_URL`, `RESEND_API_KEY`, and future Ifthenpay credentials must only exist in server/private runtime environments.
 - `SANITY_VIEWER_TOKEN` is server-only too. It enables Presentation preview by reading drafts and `sanity.previewUrlSecret` documents; never expose it through public env vars, client code, logs, or generated files.
 - Future public/private content boundaries if non-public draft content is introduced.
+- The current Railway deployment (`cushion` service, `dafab4you-website.up.railway.app`) is a dev/test preview server, not the client's final production domain (see `01-project-overview.md`'s open questions). Two infra gaps found in a security audit are real but lower urgency while that holds: `ADDRESS_HEADER`/`XFF_DEPTH` are unset, so in-process rate limiting (`src/lib/server/rate-limit.ts`) buckets by Railway's proxy IP rather than real visitor IPs; and `ORIGIN` is unset (only `APP_ORIGIN` is), so adapter-node derives `url.origin` from the raw client `Host` header, which could theoretically let a forged Host header land in a password-reset/verification email link. Revisit both before this deployment (or whatever replaces it) is treated as production-facing.
 
 ## Common Regression Patterns
 

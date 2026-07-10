@@ -17,7 +17,7 @@
     es: 'Leer artículo',
   }
   const readArticleLabel = $derived(readArticleLabels[data.language])
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   let query = $state('')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
@@ -79,7 +79,7 @@
 
 <SeoHead
   title={content.nav.blog}
-  description={content.blogPage.newsletter.lead || content.blogPage.hero.title}
+  description={content.blogPage.hero.lead || content.blogPage.hero.title}
   image={content.blogPage.heroImage}
 />
 

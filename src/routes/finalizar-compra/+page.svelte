@@ -235,7 +235,7 @@
       .filter(Boolean)
       .join(' · ')
 
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const labels = $derived(checkoutCopy[data.language])
   const pay = $derived(paymentCopy[data.language] ?? paymentCopy.pt)
   let paymentMethod = $state('mbway')
@@ -277,6 +277,7 @@
         unitPrice: row.unitPrice,
         quantity: row.item.quantity,
         weightKg: row.variant.weightKg,
+        flatTransportPrice: row.product.flatTransportPrice,
       })),
       deliveryAddress?.postalCode ?? (customDeliveryPostalCode || deliveryPostalCode),
       {transportMultiplier: content.storePage.transportMultiplier},

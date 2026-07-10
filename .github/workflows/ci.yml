@@ -12,6 +12,26 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SANITY_DISABLE_REMOTE: 'true'
+      # Points at the postgres service below. Without this, checkout's real
+      # order-creation path (buildOrderDraft -> createOrder) stays disabled
+      # in every e2e run and self-skips its own test — it only ever ran on a
+      # developer's machine with local Postgres, which is exactly the gap
+      # that let a production email-config bug ship unnoticed.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/cushion_ci
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cushion_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +59,9 @@ jobs:
 
       - name: Build Studio
         run: npm run build:studio
+
+      - name: Run database migrations
+        run: npm run db:migrate
 
       - name: Route and contract tests
         run: npm run e2e

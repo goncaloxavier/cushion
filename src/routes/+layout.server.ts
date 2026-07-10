@@ -9,7 +9,14 @@ export const load: LayoutServerLoad = async ({url, cookies, locals, request}) =>
   const language = getLanguage(url.searchParams.get('lang'))
 
   return {
-    site: contentFromSanity(collections),
+    // contentFromSanity builds all 3 languages (cheap in-memory work off a
+    // single Sanity fetch), but every consumer only ever reads the current
+    // language's slice (grep confirms it — nothing needs a second language
+    // without its own page reload). Slicing here instead of shipping the
+    // full Record<LanguageCode, SiteContent> to the client cuts the layout
+    // payload roughly 3x; a login page no longer ships the entire product
+    // catalogue in two languages it will never render.
+    site: contentFromSanity(collections)[language],
     language,
     languages,
     currentPath: url.pathname,

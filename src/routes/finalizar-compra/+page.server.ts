@@ -11,6 +11,8 @@ import {
   type CustomerAddressRow,
   type CheckoutCartItem,
 } from '$lib/server/orders'
+import {isValidEmail} from '$lib/server/customer-auth'
+import {rateLimit, rateLimitKey} from '$lib/server/rate-limit'
 import {contentFromSanity, getLanguage, type StoreFinish} from '$lib/site-content'
 import {getSanityCollections} from '$lib/sanity'
 import type {Actions, PageServerLoad} from './$types'
@@ -69,7 +71,7 @@ const selectedAddress = (
 }
 
 export const actions: Actions = {
-  default: async ({cookies, locals, request, url}) => {
+  default: async ({cookies, getClientAddress, locals, request, url}) => {
     const form = await request.formData()
     const language = getLanguage(cleanLine(form.get('language'), 8))
     const csrfToken = cleanLine(form.get('csrfToken'), 128)
@@ -103,6 +105,10 @@ export const actions: Actions = {
 
     if (!csrfOk(cookies.get(csrfCookieName), csrfToken)) {
       return fail(403, {message: 'Atualize a página e tente novamente.', values})
+    }
+
+    if (!submissionToken || submissionToken.length < 20) {
+      return fail(400, {message: 'Atualize a página antes de finalizar o pedido.', values})
     }
 
     if (!databaseConfigured()) {
@@ -151,7 +157,7 @@ export const actions: Actions = {
       values.deliveryPostalCode,
       values.deliveryLocality,
     ]
-    if (required.some((value) => value.length < 2) || !values.email.includes('@')) {
+    if (required.some((value) => value.length < 2) || !isValidEmail(values.email)) {
       return fail(400, {message: 'Preencha todos os dados obrigatórios para finalizar o pedido.', values})
     }
 
@@ -174,6 +180,14 @@ export const actions: Actions = {
       cartItems = parseCartItems(form.get('cartItems'))
     } catch {
       return fail(400, {message: 'Não foi possível ler o carrinho. Atualize a página.', values})
+    }
+
+    // Rate-limit only once a submission has passed every shape/field check
+    // above — a customer who mistypes an email or misses a field a few times
+    // shouldn't burn the same budget as a scripted attempt to spam real orders.
+    const ipKey = rateLimitKey('checkout', getClientAddress())
+    if (rateLimit(ipKey, 8, 15 * 60 * 1000)) {
+      return fail(429, {message: 'Demasiados pedidos. Aguarde alguns minutos antes de tentar novamente.', values})
     }
 
     const site = contentFromSanity(await getSanityCollections(false))

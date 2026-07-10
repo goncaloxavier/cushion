@@ -1,12 +1,14 @@
 <script lang="ts">
+  import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import ImageGallery from '$lib/components/ImageGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
-  import {caseStudyImageFallback, caseStudyImagesFor} from '$lib/site-content'
+  import {absoluteUrl, breadcrumbListSchema} from '$lib/seo'
+  import {caseStudyImageFallback, caseStudyImagesFor, withLanguage} from '$lib/site-content'
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const backHref = $derived(
     collectionListHref('/casos-de-estudo', data.language, data.returnPage),
   )
@@ -27,9 +29,16 @@
   const hasProcess = $derived(
     Boolean(data.caseStudy.challenge || data.caseStudy.solution || data.caseStudy.result),
   )
+  const caseJsonLd = $derived(
+    breadcrumbListSchema([
+      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
+      {name: content.nav.cases, url: absoluteUrl(page.url.origin, withLanguage('/casos-de-estudo', data.language))!},
+      {name: data.caseStudy.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+    ]),
+  )
 </script>
 
-<SeoHead title={data.caseStudy.title} description={lead} image={images[0]} />
+<SeoHead title={data.caseStudy.title} description={lead} image={images[0]} jsonLd={caseJsonLd} />
 
 <main>
   <article class="detail-page case-detail">

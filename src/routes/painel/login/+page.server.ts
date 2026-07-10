@@ -1,8 +1,9 @@
 import {createHmac} from 'node:crypto'
 import {fail, redirect} from '@sveltejs/kit'
-import {authenticate, createSession, normalizeUsername, rateLimit, sessionCookieName} from '$lib/server/auth'
+import {authenticate, createSession, normalizeUsername, sessionCookieName} from '$lib/server/auth'
 import {crmHashSecret} from '$lib/server/crm-client'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
+import {rateLimit} from '$lib/server/rate-limit'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_login_csrf'

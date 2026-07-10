@@ -11,7 +11,7 @@
   import {tick} from 'svelte'
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   let query = $state('')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)

@@ -2,12 +2,11 @@ import {createHmac, randomUUID} from 'node:crypto'
 import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
 import type {LanguageCode} from '$lib/site-content'
+import {rateLimit} from './rate-limit'
 
 const projectId = 'u4uyfix8'
 const dataset = env.SANITY_CRM_DATASET || 'crm'
 const apiVersion = '2026-06-10'
-
-const rateBuckets = new Map<string, {count: number; resetAt: number}>()
 
 export type SubmissionSource =
   | 'contact'
@@ -65,19 +64,6 @@ export const normalizePhone = (value: string) => value.replace(/[^\d+]/g, '').sl
 const hmac = (secret: string, value: string) =>
   createHmac('sha256', secret).update(value).digest('hex')
 
-const hitRateLimit = (key: string, limit: number, windowMs: number) => {
-  const now = Date.now()
-  const current = rateBuckets.get(key)
-
-  if (!current || current.resetAt <= now) {
-    rateBuckets.set(key, {count: 1, resetAt: now + windowMs})
-    return false
-  }
-
-  current.count += 1
-  return current.count > limit
-}
-
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254
 
 export const validateSubmission = (input: ContactSubmission): string[] => {
@@ -114,7 +100,7 @@ export const storeContactSubmission = async (
   const phoneHash = input.phone ? hmac(hashSecret, normalizePhone(input.phone)) : undefined
   const ipHash = input.ipAddress ? hmac(hashSecret, input.ipAddress) : undefined
 
-  if (ipHash && hitRateLimit(`ip:${ipHash}`, 5, 10 * 60 * 1000)) {
+  if (ipHash && rateLimit(`crm:ip:${ipHash}`, 5, 10 * 60 * 1000)) {
     return {
       ok: false,
       status: 429,
@@ -122,7 +108,7 @@ export const storeContactSubmission = async (
     }
   }
 
-  if (hitRateLimit(`email:${emailHash}`, 3, 30 * 60 * 1000)) {
+  if (rateLimit(`crm:email:${emailHash}`, 3, 30 * 60 * 1000)) {
     return {
       ok: false,
       status: 429,

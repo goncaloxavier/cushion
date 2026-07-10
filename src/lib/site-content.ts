@@ -157,6 +157,10 @@ export type StoreProduct = {
   images?: ContentImage[]
   media?: StoreProductMedia[]
   variants: StoreProductVariant[]
+  // Optional flat-rate transport override: when set, this product is charged
+  // this fixed fee per cart line regardless of zone/weight instead of going
+  // through the normal weight/zone carrier calculation — see calculateStoreEstimate.
+  flatTransportPrice?: number
 }
 
 export type SiteContent = {
@@ -227,10 +231,6 @@ export type SiteContent = {
       lead: string
       stats: ContentCard[]
     }
-    manifesto: {
-      quote: string
-      attribution: string
-    }
     partners: CopyBlock & {
       items: PartnerItem[]
     }
@@ -238,7 +238,6 @@ export type SiteContent = {
   about: {
     hero: CopyBlock
     timeline: ContentCard[]
-    principles: ContentCard[]
   }
   productsPage: {
     hero: CopyBlock
@@ -264,7 +263,6 @@ export type SiteContent = {
   catalogue: {
     hero: CopyBlock
     ctaLabel: string
-    quoteFlow: ContentCard[]
     estimate: {
       kicker: string
       title: string
@@ -281,16 +279,11 @@ export type SiteContent = {
   blogPage: {
     hero: CopyBlock
     heroImage: ContentImage
-    newsletter: CopyBlock
   }
   contactPage: {
     hero: CopyBlock
     fields: string[]
     formLabels: ContactFormLabels
-  }
-  footer: {
-    line: string
-    note: string
   }
   products: ProductItem[]
   storeProducts: StoreProduct[]
@@ -360,6 +353,7 @@ type SanityStoreProduct = {
   category?: StoreCategory
   summary?: LocalizedValue
   hasFinishChoice?: boolean
+  flatTransportPrice?: number
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   variants?: SanityStoreProductVariant[]
@@ -403,7 +397,6 @@ type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], Com
 type SanitySiteContent = {
   nav?: SanityLocalizedRecord<SiteContent['nav']>
   common?: SanityCommonContent
-  footer?: SanityLocalizedRecord<SiteContent['footer']>
   home?: {
     hero?: SanityCopyBlock
     heroImage?: SanityImage
@@ -413,10 +406,6 @@ type SanitySiteContent = {
       title?: LocalizedValue
       lead?: LocalizedValue
       stats?: SanityContentCard[]
-    }
-    manifesto?: {
-      quote?: LocalizedValue
-      attribution?: LocalizedValue
     }
     partners?: {
       kicker?: LocalizedValue
@@ -428,7 +417,6 @@ type SanitySiteContent = {
   about?: {
     hero?: SanityCopyBlock
     timeline?: SanityContentCard[]
-    principles?: SanityContentCard[]
   }
   productsPage?: {
     hero?: SanityCopyBlock
@@ -443,7 +431,6 @@ type SanitySiteContent = {
   catalogue?: {
     hero?: SanityCopyBlock
     ctaLabel?: LocalizedValue
-    quoteFlow?: SanityContentCard[]
     estimate?: {
       kicker?: LocalizedValue
       title?: LocalizedValue
@@ -461,7 +448,6 @@ type SanitySiteContent = {
   blogPage?: {
     hero?: SanityCopyBlock
     heroImage?: SanityImage
-    newsletter?: SanityCopyBlock
   }
   contactPage?: {
     hero?: SanityCopyBlock
@@ -1040,11 +1026,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           {title: '2,5', text: 'árvores preservadas por comparação com alternativas tradicionais'},
         ],
       },
-      manifesto: {
-        quote:
-          'Um primeiro contacto deve explicar depressa, inspirar com calma e deixar claro qual é o próximo passo.',
-        attribution: 'Direção de experiência para este projeto',
-      },
       partners: {
         kicker: 'Parcerias',
         title: 'Projetos e entidades que reforçam a missão',
@@ -1108,20 +1089,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'A empresa produz soluções para espaços privados, municípios e agricultura.',
         },
       ],
-      principles: [
-        {
-          title: 'Sem excesso',
-          text: 'Informação direta, útil e organizada para quem precisa decidir.',
-        },
-        {
-          title: 'Com presença',
-          text: 'Design premium sem transformar a navegação numa demonstração de efeitos.',
-        },
-        {
-          title: 'Com prova',
-          text: 'Produtos, casos e blog funcionam como evidência viva da capacidade da empresa.',
-        },
-      ],
     },
     productsPage: {
       hero: {
@@ -1169,18 +1136,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Para receber o catálogo DaFábrica4You, faça o pedido através do formulário. Assim a equipa consegue responder com a informação certa para o seu caso.',
       },
       ctaLabel: 'Pedir catálogo',
-      quoteFlow: [
-        {title: 'Pedido', text: 'O visitante pede o catálogo através do formulário.'},
-        {
-          title: 'Contexto',
-          text: 'A equipa recebe contactos e informação básica sobre o interesse do cliente.',
-        },
-        {title: 'Resposta', text: 'A resposta segue com o catálogo e próximos passos úteis.'},
-        {
-          title: 'Acompanhamento',
-          text: 'O pedido fica registado para acompanhamento comercial.',
-        },
-      ],
       estimate: {
         kicker: 'Pedido de catálogo',
         title: 'Como receber o catálogo',
@@ -1217,14 +1172,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Blog ambiental',
         title: 'Conteúdo que vende ensinando',
-        lead: '',
+        lead: 'Artigos sobre ambiente, projetos em plástico reciclado e manutenção de espaços exteriores, escritos pela equipa da DaFábrica4You.',
       },
       heroImage: fallbackImages.blog,
-      newsletter: {
-        kicker: 'Newsletter',
-        title: 'Temas de ambiente, projetos e manutenção',
-        lead: 'Um convite simples para continuar a relação depois da primeira visita.',
-      },
     },
     contactPage: {
       hero: {
@@ -1243,10 +1193,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Localidade',
         message: 'Mensagem',
       },
-    },
-    footer: {
-      line: '',
-      note: '',
     },
     products: productCategories.pt,
     storeProducts: storeProductsForLanguage('pt'),
@@ -1335,11 +1281,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           {title: '2.5', text: 'trees preserved compared with traditional alternatives'},
         ],
       },
-      manifesto: {
-        quote:
-          'A first contact should explain quickly, inspire calmly and make the next step obvious.',
-        attribution: 'Experience direction for this project',
-      },
       partners: {
         kicker: 'Partnerships',
         title: 'Projects and organizations that strengthen the mission',
@@ -1403,20 +1344,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'The company produces solutions for private spaces, municipalities and agriculture.',
         },
       ],
-      principles: [
-        {
-          title: 'No excess',
-          text: 'Direct, useful and organized information for people who need to decide.',
-        },
-        {
-          title: 'With presence',
-          text: 'Premium design without turning navigation into an effects demo.',
-        },
-        {
-          title: 'With proof',
-          text: 'Products, cases and blog posts become living evidence of capability.',
-        },
-      ],
     },
     productsPage: {
       hero: {
@@ -1464,18 +1391,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'To receive the DaFábrica4You catalogue, send the request through the form. This helps the team answer with the right information for your case.',
       },
       ctaLabel: 'Request catalogue',
-      quoteFlow: [
-        {title: 'Request', text: 'The visitor requests the catalogue through the form.'},
-        {
-          title: 'Context',
-          text: 'The team receives contact details and basic information about the interest.',
-        },
-        {title: 'Reply', text: 'The reply includes the catalogue and useful next steps.'},
-        {
-          title: 'Follow-up',
-          text: 'The request is saved for commercial follow-up.',
-        },
-      ],
       estimate: {
         kicker: 'Catalogue request',
         title: 'How to receive the catalogue',
@@ -1515,14 +1430,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Environmental blog',
         title: 'Content that sells by teaching',
-        lead: '',
+        lead: 'Articles about the environment, recycled-plastic projects and low-maintenance outdoor spaces, written by the DaFábrica4You team.',
       },
       heroImage: fallbackImages.blog,
-      newsletter: {
-        kicker: 'Newsletter',
-        title: 'Environment, projects and maintenance',
-        lead: 'A simple invitation to continue the relationship after the first visit.',
-      },
     },
     contactPage: {
       hero: {
@@ -1541,10 +1451,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Location',
         message: 'Message',
       },
-    },
-    footer: {
-      line: '',
-      note: '',
     },
     products: productCategories.en,
     storeProducts: storeProductsForLanguage('en'),
@@ -1633,11 +1539,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           {title: '2,5', text: 'árboles preservados frente a alternativas tradicionales'},
         ],
       },
-      manifesto: {
-        quote:
-          'Un primer contacto debe explicar rápido, inspirar con calma y dejar claro el siguiente paso.',
-        attribution: 'Dirección de experiencia para este proyecto',
-      },
       partners: {
         kicker: 'Alianzas',
         title: 'Proyectos y entidades que refuerzan la misión',
@@ -1701,20 +1602,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'La empresa produce soluciones para espacios privados, municipios y agricultura.',
         },
       ],
-      principles: [
-        {
-          title: 'Sin exceso',
-          text: 'Información directa, útil y organizada para quien necesita decidir.',
-        },
-        {
-          title: 'Con presencia',
-          text: 'Diseño premium sin convertir la navegación en una demo de efectos.',
-        },
-        {
-          title: 'Con prueba',
-          text: 'Productos, casos y blog actúan como evidencia viva de capacidad.',
-        },
-      ],
     },
     productsPage: {
       hero: {
@@ -1762,18 +1649,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Para recibir el catálogo de DaFábrica4You, realiza el pedido a través del formulario. Así el equipo puede responder con la información adecuada para tu caso.',
       },
       ctaLabel: 'Solicitar catálogo',
-      quoteFlow: [
-        {title: 'Solicitud', text: 'El visitante solicita el catálogo a través del formulario.'},
-        {
-          title: 'Contexto',
-          text: 'El equipo recibe contactos e información básica sobre el interés.',
-        },
-        {title: 'Respuesta', text: 'La respuesta incluye el catálogo y próximos pasos útiles.'},
-        {
-          title: 'Seguimiento',
-          text: 'La solicitud queda registrada para seguimiento comercial.',
-        },
-      ],
       estimate: {
         kicker: 'Solicitud de catálogo',
         title: 'Cómo recibir el catálogo',
@@ -1810,14 +1685,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       hero: {
         kicker: 'Blog ambiental',
         title: 'Contenido que vende enseñando',
-        lead: '',
+        lead: 'Artículos sobre medio ambiente, proyectos en plástico reciclado y mantenimiento de espacios exteriores, escritos por el equipo de DaFábrica4You.',
       },
       heroImage: fallbackImages.blog,
-      newsletter: {
-        kicker: 'Newsletter',
-        title: 'Ambiente, proyectos y mantenimiento',
-        lead: 'Una invitación sencilla para continuar la relación después de la primera visita.',
-      },
     },
     contactPage: {
       hero: {
@@ -1836,10 +1706,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Localidad',
         message: 'Mensaje',
       },
-    },
-    footer: {
-      line: '',
-      note: '',
     },
     products: productCategories.es,
     storeProducts: storeProductsForLanguage('es'),
@@ -2335,6 +2201,7 @@ const storeProductsFromSanity = (
         category: product.category ?? fallbackProduct?.category ?? 'bancos',
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
         hasFinishChoice: product.hasFinishChoice ?? fallbackProduct?.hasFinishChoice ?? true,
+        flatTransportPrice: product.flatTransportPrice ?? fallbackProduct?.flatTransportPrice,
         image: images[0],
         images,
         media,
@@ -2447,7 +2314,6 @@ const applySiteContentFromSanity = (
         fallback.home.impact.stats,
       ),
     },
-    manifesto: fallback.home.manifesto,
     partners: {
       ...copyBlockFromSanity(source.home?.partners, language, fallback.home.partners),
       items: partnersFromSanity(
@@ -2461,7 +2327,6 @@ const applySiteContentFromSanity = (
   target.about = {
     hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
     timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
-    principles: fallback.about.principles,
   }
 
   target.productsPage = {
@@ -2488,7 +2353,6 @@ const applySiteContentFromSanity = (
   target.catalogue = {
     hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
     ctaLabel: localized(source.catalogue?.ctaLabel, language, fallback.catalogue.ctaLabel),
-    quoteFlow: fallback.catalogue.quoteFlow,
     estimate: {
       kicker: localized(
         source.catalogue?.estimate?.kicker,
@@ -2521,9 +2385,8 @@ const applySiteContentFromSanity = (
   }
 
   target.blogPage = {
-    hero: {...copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero), lead: ''},
+    hero: copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero),
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
-    newsletter: fallback.blogPage.newsletter,
   }
 
   const legacyContactFields = localizedListFromSanity(

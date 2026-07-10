@@ -5,7 +5,7 @@
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
 
   let {data, form} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
 
   const fieldKeys = contactFieldKeys
 

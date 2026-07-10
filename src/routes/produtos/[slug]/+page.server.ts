@@ -8,7 +8,7 @@ const productSlugAliases: Record<string, string> = {
 
 export const load: PageServerLoad = async ({params, parent, url}) => {
   const {site, language} = await parent()
-  const content = site[language]
+  const content = site
   const product =
     content.products.find((item) => item.slug === params.slug) ??
     content.products.find((item) => item.slug === productSlugAliases[params.slug])

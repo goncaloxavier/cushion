@@ -238,6 +238,7 @@ const collectionsQuery = `{
     category,
     summary,
     hasFinishChoice,
+    flatTransportPrice,
     image {
       asset -> {
         url,

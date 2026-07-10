@@ -784,6 +784,9 @@ const storeProductBase: StoreProductBase[] = [
     slug: 'placas-click',
     category: 'decking',
     hasFinishChoice: false,
+    // Flat transport fee for every zone, requested directly by the client
+    // instead of the normal weight/zone carrier calculation.
+    flatTransportPrice: 2,
     summary: {
       pt: 'Placas click para construir um deck modular sem intervenção de um profissional.',
       en: 'Click-fit deck tiles for building a modular deck without professional installation.',
@@ -843,6 +846,7 @@ export const storeProductsForLanguage = (language: LanguageCode): StoreProduct[]
     category: product.category,
     summary: product.summary[language],
     hasFinishChoice: product.hasFinishChoice ?? true,
+    flatTransportPrice: product.flatTransportPrice,
     image: product.image ? {...product.image, alt: product.image.alt[language]} : undefined,
     images: product.images?.map((image) => ({...image, alt: image.alt[language]})),
     variants: product.variants.map((variant) => ({

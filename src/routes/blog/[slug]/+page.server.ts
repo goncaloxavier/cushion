@@ -6,7 +6,7 @@ import type {PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async ({params, parent, url}) => {
   const {site, language, preview} = await parent()
-  const content = site[language]
+  const content = site
   const post = content.blogPosts.find((item) => item.slug === params.slug)
   const returnPage = pageFromSearchParams(url.searchParams, 'fromPage')
 

@@ -31,11 +31,23 @@ export const handle: Handle = async ({event, resolve}) => {
   })
   const contentType = response.headers.get('content-type') ?? ''
 
-  if (!contentType.includes('text/html')) {
-    return response
+  const headers = new Headers(response.headers)
+  headers.set('x-content-type-options', 'nosniff')
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+  headers.set('permissions-policy', 'camera=(), geolocation=(), microphone=()')
+
+  if (event.url.protocol === 'https:') {
+    headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')
   }
 
-  const headers = new Headers(response.headers)
+  if (!contentType.includes('text/html')) {
+    return new Response(response.body, {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    })
+  }
+
   // Private backoffice: never store. Public pages: allow the browser's
   // back/forward cache (no-store would disable it) while still revalidating,
   // so navigation feels instant without serving stale content.

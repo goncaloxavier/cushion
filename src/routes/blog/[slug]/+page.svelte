@@ -6,8 +6,14 @@
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import {collectionListHref} from '$lib/collection-page'
-  import {absoluteUrl, blogPostingSchema} from '$lib/seo'
-  import {blogImageFallback, blogImagesFor, defaultLanguage, type LanguageCode} from '$lib/site-content'
+  import {absoluteUrl, blogPostingSchema, breadcrumbListSchema} from '$lib/seo'
+  import {
+    blogImageFallback,
+    blogImagesFor,
+    defaultLanguage,
+    withLanguage,
+    type LanguageCode,
+  } from '$lib/site-content'
 
   const railLabels: Record<
     LanguageCode,
@@ -51,7 +57,7 @@
   }
 
   let {data} = $props()
-  const content = $derived(data.site[data.language])
+  const content = $derived(data.site)
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
   const postDataAttribute = $derived(
@@ -89,7 +95,7 @@
   const shareUrl = $derived(
     `${page.url.origin}${page.url.pathname}${data.language === defaultLanguage ? '' : `?lang=${data.language}`}`,
   )
-  const blogJsonLd = $derived(
+  const blogJsonLd = $derived([
     blogPostingSchema({
       title: data.post.title,
       description: data.post.excerpt || data.post.body,
@@ -97,7 +103,12 @@
       datePublished: data.post.publishedAt,
       logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
     }),
-  )
+    breadcrumbListSchema([
+      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
+      {name: content.nav.blog, url: absoluteUrl(page.url.origin, withLanguage('/blog', data.language))!},
+      {name: data.post.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+    ]),
+  ])
 </script>
 
 <SeoHead

@@ -2,6 +2,7 @@ import {randomBytes} from 'node:crypto'
 import {databaseConfigured, query, withTransaction} from './db'
 import {
   calculateStoreEstimate,
+  hasFlatTransport,
   isSupportedStorePostalCode,
   normalizePostalCode,
   normalizedTransportMultiplier,
@@ -279,7 +280,15 @@ export const buildOrderDraft = (
     const finish = product.hasFinishChoice ? item.finish : 'natural'
     const unitPriceNet = Number(variant.prices[finish])
     const unitWeightKg = Number(variant.weightKg ?? 0)
-    if (!Number.isFinite(unitPriceNet) || unitPriceNet <= 0 || !Number.isFinite(unitWeightKg) || unitWeightKg <= 0) {
+    // A flat-rate product (see hasFlatTransport) is priced without needing a
+    // weight at all — calculateStoreEstimate already excludes it from the
+    // weight-based calculation, so this must not reject it for lacking one.
+    const weightRequired = !hasFlatTransport(product)
+    if (
+      !Number.isFinite(unitPriceNet) ||
+      unitPriceNet <= 0 ||
+      (weightRequired && (!Number.isFinite(unitWeightKg) || unitWeightKg <= 0))
+    ) {
       throw new OrderInputError('Não foi possível calcular o preço ou transporte de um produto.')
     }
 
@@ -303,6 +312,7 @@ export const buildOrderDraft = (
       unitPrice: item.unitPriceNet,
       quantity: item.quantity,
       weightKg: item.unitWeightKg,
+      flatTransportPrice: item.product.flatTransportPrice,
     })),
     postalCode,
     {transportMultiplier},
@@ -329,9 +339,13 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
     throw new Error('DATABASE_URL is not configured')
   }
 
+  const submissionToken = input.submissionToken?.trim() || ''
+  if (submissionToken.length < 20) {
+    throw new OrderInputError('Atualize a página antes de finalizar o pedido.')
+  }
+
   const created = await withTransaction(async (client) => {
     const number = orderNumber()
-    const submissionToken = input.submissionToken?.trim() || null
     const orderResult = await client.query(
       `insert into orders (
         order_number, customer_id, language, customer_name, email, phone, nif, purchase_type,
@@ -453,25 +467,47 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
                 locality: input.deliveryLocality,
               }
 
+        const line1 = cleanLine(address.line1, 240)
+        const postalCode = normalizePostalCode(address.postalCode)
+        const locality = cleanLine(address.locality, 120)
+
         await client.query(
           `update customer_addresses
            set is_default = false, updated_at = now()
            where customer_id = $1 and address_type = $2`,
           [input.customerId, addressType],
         )
-        await client.query(
-          `insert into customer_addresses (
-            customer_id, address_type, address_line1, postal_code, locality, is_default
-          )
-          values ($1, $2, $3, $4, $5, true)`,
-          [
-            input.customerId,
-            addressType,
-            cleanLine(address.line1, 240),
-            normalizePostalCode(address.postalCode),
-            cleanLine(address.locality, 120),
-          ],
+        const existing = await client.query<{id: string}>(
+          `select id
+           from customer_addresses
+           where customer_id = $1
+             and address_type = $2
+             and address_line1 = $3
+             and postal_code = $4
+             and locality = $5
+           order by updated_at desc
+           limit 1`,
+          [input.customerId, addressType, line1, postalCode, locality],
         )
+
+        if (existing.rows[0]) {
+          // Reusing an address at checkout makes it the preference again but
+          // never creates a second copy of the same saved address.
+          await client.query(
+            `update customer_addresses
+             set is_default = true, updated_at = now()
+             where id = $1`,
+            [existing.rows[0].id],
+          )
+        } else {
+          await client.query(
+            `insert into customer_addresses (
+              customer_id, address_type, address_line1, postal_code, locality, is_default
+            )
+            values ($1, $2, $3, $4, $5, true)`,
+            [input.customerId, addressType, line1, postalCode, locality],
+          )
+        }
       }
     }
 
