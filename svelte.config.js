@@ -15,6 +15,10 @@ const config = {
         'style-src': ['self', 'unsafe-inline'],
         // Sanity-hosted images, plus data: for inline lqip background blurs.
         'img-src': ['self', 'https://cdn.sanity.io', 'data:'],
+        // Sanity-hosted gallery videos (Loja + Produtos). Without this,
+        // media-src falls back to default-src 'self' and browsers block the
+        // cross-origin <video src> with a CSP "URL safety check" error.
+        'media-src': ['self', 'https://cdn.sanity.io'],
         'font-src': ['self'],
         // Presentation/Visual Editing only uses these in the embedded Studio
         // workflow, but keeping the allowlist explicit means CSP does not
