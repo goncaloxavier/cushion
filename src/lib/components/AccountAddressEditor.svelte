@@ -92,8 +92,8 @@
 
   {#if addressType === 'billing'}
     <label>
-      <span>{labels.nif} <em>({labels.optional})</em></span>
-      <input name="nif" inputmode="numeric" maxlength="16" bind:value={fields.nif} />
+      <span>{labels.nif}</span>
+      <input name="nif" inputmode="numeric" maxlength="16" required bind:value={fields.nif} />
     </label>
   {/if}
 

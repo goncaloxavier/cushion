@@ -38,11 +38,11 @@
       customer: 'Dados do cliente',
       billing: 'Morada de faturação',
       delivery: 'Morada de entrega',
+      deliveryStreetLevelNote: 'Entrega é efetuada ao nível da rua.',
       name: 'Nome',
       email: 'Email',
       phone: 'Telefone',
       nif: 'NIF',
-      optionalField: 'opcional',
       purchaseType: 'Tipo de compra',
       individual: 'Particular',
       company: 'Empresa',
@@ -86,11 +86,11 @@
       customer: 'Customer details',
       billing: 'Billing address',
       delivery: 'Delivery address',
+      deliveryStreetLevelNote: 'Delivery is made at street level.',
       name: 'Name',
       email: 'Email',
       phone: 'Phone',
       nif: 'Tax number',
-      optionalField: 'optional',
       purchaseType: 'Purchase type',
       individual: 'Individual',
       company: 'Company',
@@ -133,11 +133,11 @@
       customer: 'Datos del cliente',
       billing: 'Dirección de facturación',
       delivery: 'Dirección de entrega',
+      deliveryStreetLevelNote: 'La entrega se realiza a nivel de calle.',
       name: 'Nombre',
       email: 'Email',
       phone: 'Teléfono',
       nif: 'NIF',
-      optionalField: 'opcional',
       purchaseType: 'Tipo de compra',
       individual: 'Particular',
       company: 'Empresa',
@@ -469,8 +469,8 @@
                 <input name="billingName" autocomplete="billing name" required value={values.billingName ?? customer?.name ?? ''} />
               </label>
               <label>
-                <span>{labels.nif} <em>({labels.optionalField})</em></span>
-                <input name="nif" inputmode="numeric" value={values.nif ?? customer?.nif ?? ''} />
+                <span>{labels.nif}</span>
+                <input name="nif" inputmode="numeric" required value={values.nif ?? customer?.nif ?? ''} />
               </label>
               <label>
                 <span>{labels.address}</span>
@@ -495,6 +495,7 @@
 
           <fieldset>
             <legend>{labels.delivery}</legend>
+            <p class="checkout-delivery-note">{labels.deliveryStreetLevelNote}</p>
             {#if customer}
               <div class="checkout-address-choices">
                 {#each deliveryAddresses as address (address.id)}

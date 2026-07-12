@@ -351,6 +351,14 @@
   grid-column: 1 / -1;
 }
 
+.checkout-delivery-note {
+  grid-column: 1 / -1;
+  margin: 0 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .checkout-address-choices {
   grid-column: 1 / -1;
   display: grid;

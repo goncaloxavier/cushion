@@ -168,6 +168,7 @@ export const actions: Actions = {
       values.email,
       values.phone,
       values.billingName,
+      values.nif,
       values.billingAddress,
       values.billingPostalCode,
       values.billingLocality,

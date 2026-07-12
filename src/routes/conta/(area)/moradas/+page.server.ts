@@ -79,6 +79,9 @@ export const actions: Actions = {
     if (!input.name || !input.line1 || !input.postalCode || !input.locality) {
       return fail(400, {address: 'error', message: 'Preencha o nome, morada, código postal e localidade.', values})
     }
+    if (addressType === 'billing' && !input.nif) {
+      return fail(400, {address: 'error', message: 'Preencha o NIF para a morada de faturação.', values})
+    }
     if (addressType === 'delivery' && !isSupportedStorePostalCode(input.postalCode)) {
       return fail(400, {
         address: 'error',
