@@ -57,7 +57,9 @@
   const accountLabel = $derived(
     isSignedIn ? accountStrings.account : accountStrings.signedOut,
   )
-  const accountActive = $derived(data.currentPath.startsWith('/conta'))
+  const accountActive = $derived(
+    data.currentPath === '/conta' || data.currentPath.startsWith('/conta/'),
+  )
 
   const isActive = (href: string) =>
     href === '/' ? data.currentPath === '/' : data.currentPath.startsWith(href)
