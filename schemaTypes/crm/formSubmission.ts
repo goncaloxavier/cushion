@@ -159,6 +159,13 @@ export const formSubmission = defineType({
       readOnly: true,
     }),
     defineField({
+      name: 'privacyConsent',
+      title: 'Aceitou a política de privacidade',
+      type: 'boolean',
+      group: 'client',
+      readOnly: true,
+    }),
+    defineField({
       name: 'status',
       title: 'Estado',
       type: 'string',

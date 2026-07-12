@@ -60,7 +60,8 @@ const collectionsQuery = `{
       privacyPolicyUrl,
       cookiePolicyLabel,
       cookiePolicyUrl,
-      marketingConsent
+      marketingConsent,
+      privacyConsentPrefix
     },
     home {
       hero,
@@ -211,16 +212,52 @@ const collectionsQuery = `{
     },
     gallery[] {
       _key,
-      asset -> {
-        url,
-        originalFilename,
-        metadata {
-          dimensions {
-            aspectRatio
+      _type,
+      _type == "galleryImage" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
           }
+        },
+        alt
+      },
+      _type == "galleryVideo" => {
+        asset -> {
+          url,
+          originalFilename,
+          mimeType,
+          size
+        },
+        title,
+        poster {
+          asset -> {
+            url,
+            originalFilename,
+            metadata {
+              dimensions {
+                aspectRatio
+              }
+            }
+          },
+          alt
         }
       },
-      alt
+      _type == "image" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
     },
     summary,
     description,

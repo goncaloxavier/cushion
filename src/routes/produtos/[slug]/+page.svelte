@@ -1,7 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
-  import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
@@ -10,6 +10,7 @@
     cleanProductMaterialCopy,
     productImageFallback,
     productImagesFor,
+    productMediaFor,
     withLanguage,
   } from '$lib/site-content'
 
@@ -48,6 +49,7 @@
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
   const images = $derived(productImagesFor(data.product, productImageFallback))
+  const media = $derived(productMediaFor(data.product, productImageFallback))
   const productDataAttribute = $derived(
     data.preview && data.studioUrl && data.product.studioDocumentId
       ? createDataAttribute({
@@ -112,8 +114,8 @@
     {/snippet}
 
     <section class="product-editorial-stage">
-      <ImageGallery
-        {images}
+      <StoreMediaGallery
+        {media}
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="product-stage-gallery"

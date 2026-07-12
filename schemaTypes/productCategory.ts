@@ -47,11 +47,13 @@ export const productCategory = defineType({
     defineField({
       name: 'gallery',
       title: 'Galeria do produto',
-      description: 'Imagens extra para a página do produto e a vista ampliada.',
+      description: 'Fotografias e vídeos extra para a página do produto e a vista ampliada.',
       type: 'array',
       group: 'imagens',
       of: [
-        {
+        defineField({
+          name: 'galleryImage',
+          title: 'Imagem da galeria',
           type: 'image',
           options: {hotspot: true},
           fields: [
@@ -63,7 +65,39 @@ export const productCategory = defineType({
               validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
             }),
           ],
-        },
+        }),
+        defineField({
+          name: 'galleryVideo',
+          title: 'Vídeo carregado',
+          description: 'Ficheiro de vídeo para aparecer na galeria da página do produto.',
+          type: 'file',
+          options: {
+            accept: 'video/mp4,video/webm,video/quicktime',
+          },
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Título do vídeo',
+              description: 'Texto curto usado no player e na miniatura.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa',
+              description: 'Opcional. Usada como capa antes de abrir/reproduzir o vídeo.',
+              type: 'image',
+              options: {hotspot: true},
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  type: 'localizedString',
+                  validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     defineField({

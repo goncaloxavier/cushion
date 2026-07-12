@@ -29,6 +29,7 @@ export type ContactSubmission = {
   message: string
   marketingConsent: boolean
   consentText: string
+  privacyConsent: boolean
   language: LanguageCode
   source: SubmissionSource
   sourcePath: string
@@ -78,6 +79,7 @@ export const validateSubmission = (input: ContactSubmission): string[] => {
   if (input.locality.length < 2) errors.push('locality')
   if (input.message.length < 8) errors.push('message')
   if (!input.marketingConsent) errors.push('marketingConsent')
+  if (!input.privacyConsent) errors.push('privacyConsent')
 
   return errors
 }
@@ -164,6 +166,7 @@ export const storeContactSubmission = async (
           locality: input.locality,
           preferredLanguage: input.language,
           marketingConsent: input.marketingConsent,
+          privacyConsent: input.privacyConsent,
           lastSubmittedAt: now,
           lastSource: input.source,
           latestMessage: input.message,
@@ -192,6 +195,7 @@ export const storeContactSubmission = async (
       locality: input.locality,
       marketingConsent: input.marketingConsent,
       consentText: input.consentText,
+      privacyConsent: input.privacyConsent,
       status: 'new',
       emailHash,
       ...(phoneHash ? {phoneHash} : {}),

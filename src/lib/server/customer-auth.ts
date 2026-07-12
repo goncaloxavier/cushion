@@ -41,6 +41,7 @@ export type CustomerUser = {
   nif: string
   purchaseType: string
   emailVerifiedAt: string | null
+  privacyConsentAt: string | null
 }
 
 type CustomerRow = {
@@ -51,6 +52,7 @@ type CustomerRow = {
   nif: string
   purchase_type: string
   email_verified_at: string | null
+  privacy_consent_at: string | null
 }
 
 const mapCustomer = (row: CustomerRow): CustomerUser => ({
@@ -61,6 +63,7 @@ const mapCustomer = (row: CustomerRow): CustomerUser => ({
   nif: row.nif ?? '',
   purchaseType: row.purchase_type ?? 'individual',
   emailVerifiedAt: row.email_verified_at,
+  privacyConsentAt: row.privacy_consent_at,
 })
 
 export const customerRateLimit = rateLimit
@@ -103,7 +106,7 @@ const randomToken = () => randomBytes(32).toString('base64url')
 export const findCustomerByEmail = async (email: string) => {
   if (!databaseConfigured()) return null
   const result = await query<(CustomerRow & {password_hash: string | null})>(
-    `select id, email, name, phone, nif, purchase_type, email_verified_at, password_hash
+    `select id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at, password_hash
      from customers
      where email_normalized = $1
      limit 1`,
@@ -125,9 +128,9 @@ export const createCustomer = async (input: {
   const passwordHash = await hashPassword(input.password)
 
   const result = await query<CustomerRow>(
-    `insert into customers (email, email_normalized, password_hash, name, phone, nif, purchase_type)
-     values ($1, $2, $3, $4, $5, $6, $7)
-     returning id, email, name, phone, nif, purchase_type, email_verified_at`,
+    `insert into customers (email, email_normalized, password_hash, name, phone, nif, purchase_type, privacy_consent_at)
+     values ($1, $2, $3, $4, $5, $6, $7, now())
+     returning id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at`,
     [
       email,
       emailNormalized,
@@ -150,7 +153,7 @@ export const updateCustomerProfile = async (
     `update customers
      set name = $2, phone = $3, nif = $4, purchase_type = $5, updated_at = now()
      where id = $1
-     returning id, email, name, phone, nif, purchase_type, email_verified_at`,
+     returning id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at`,
     [
       customerId,
       input.name.trim().slice(0, 160),
@@ -235,7 +238,8 @@ export const validateCustomerSession = async (token: string | undefined) => {
          c.phone,
          c.nif,
          c.purchase_type,
-         c.email_verified_at
+         c.email_verified_at,
+         c.privacy_consent_at
        from customer_sessions s
        join customers c on c.id = s.customer_id
        where s.token_hash = $1

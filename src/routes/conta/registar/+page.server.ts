@@ -42,6 +42,7 @@ export const actions: Actions = {
     const nif = clean(data.get('nif'), 16)
     const password = clean(data.get('password'), 500)
     const passwordConfirm = clean(data.get('passwordConfirm'), 500)
+    const privacyConsent = data.get('privacyConsent') === 'on'
     const csrfToken = clean(data.get('csrfToken'), 128)
 
     const name = `${firstName} ${lastName}`.trim()
@@ -72,6 +73,10 @@ export const actions: Actions = {
 
     if (password !== passwordConfirm) {
       return fail(400, {message: 'As passwords não coincidem.', values})
+    }
+
+    if (!privacyConsent) {
+      return fail(400, {message: 'Tem de aceitar a política de privacidade.', values})
     }
 
     if (await findCustomerByEmail(email)) {

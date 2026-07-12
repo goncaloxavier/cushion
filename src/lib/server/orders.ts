@@ -32,9 +32,11 @@ export type CheckoutCustomerInput = {
   phone: string
   nif: string
   purchaseType: 'individual' | 'company'
+  billingName: string
   billingAddress: string
   billingPostalCode: string
   billingLocality: string
+  deliveryName: string
   deliveryAddress: string
   deliveryPostalCode: string
   deliveryLocality: string
@@ -88,9 +90,11 @@ export type OrderRow = {
   phone: string
   nif: string
   purchaseType: string
+  billingName: string
   billingAddress: string
   billingPostalCode: string
   billingLocality: string
+  deliveryName: string
   deliveryAddress: string
   deliveryPostalCode: string
   deliveryLocality: string
@@ -136,6 +140,9 @@ export type CustomerAddressRow = {
   id: string
   addressType: 'billing' | 'delivery'
   name: string
+  // Only meaningful for billing addresses — the NIF tied to that invoice
+  // name, distinct from the account holder's own customers.nif.
+  nif: string
   addressLine1: string
   addressLine2: string
   postalCode: string
@@ -194,9 +201,11 @@ const mapOrder = (row: Record<string, unknown>): OrderRow => ({
   phone: String(row.phone ?? ''),
   nif: String(row.nif ?? ''),
   purchaseType: String(row.purchase_type),
+  billingName: String(row.billing_name ?? ''),
   billingAddress: String(row.billing_address ?? ''),
   billingPostalCode: String(row.billing_postal_code ?? ''),
   billingLocality: String(row.billing_locality ?? ''),
+  deliveryName: String(row.delivery_name ?? ''),
   deliveryAddress: String(row.delivery_address ?? ''),
   deliveryPostalCode: String(row.delivery_postal_code ?? ''),
   deliveryLocality: String(row.delivery_locality ?? ''),
@@ -244,6 +253,7 @@ const mapAddress = (row: Record<string, unknown>): CustomerAddressRow => ({
   id: String(row.id),
   addressType: String(row.address_type) === 'billing' ? 'billing' : 'delivery',
   name: String(row.name ?? ''),
+  nif: String(row.nif ?? ''),
   addressLine1: String(row.address_line1 ?? ''),
   addressLine2: String(row.address_line2 ?? ''),
   postalCode: String(row.postal_code ?? ''),
@@ -355,17 +365,17 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
     const orderResult = await client.query(
       `insert into orders (
         order_number, customer_id, language, customer_name, email, phone, nif, purchase_type,
-        billing_address, billing_postal_code, billing_locality,
-        delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
+        billing_name, billing_address, billing_postal_code, billing_locality,
+        delivery_name, delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
         customer_notes, product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
-        payment_method, submission_token
+        payment_method, submission_token, privacy_consent_at
       )
       values (
         $1, $2, $3, $4, $5, $6, $7, $8,
-        $9, $10, $11,
-        $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22,
-        $23, $24
+        $9, $10, $11, $12,
+        $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $22, $23, $24,
+        $25, $26, now()
       )
       on conflict (submission_token) do nothing
       returning *`,
@@ -378,9 +388,11 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         cleanLine(input.phone, 40),
         cleanLine(input.nif, 16),
         input.purchaseType,
+        cleanLine(input.billingName, 160),
         cleanLine(input.billingAddress, 240),
         normalizePostalCode(input.billingPostalCode),
         cleanLine(input.billingLocality, 120),
+        cleanLine(input.deliveryName, 160),
         cleanLine(input.deliveryAddress, 240),
         normalizePostalCode(input.deliveryPostalCode),
         cleanLine(input.deliveryLocality, 120),
@@ -473,16 +485,22 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         const address =
           addressType === 'billing'
             ? {
+                name: input.billingName,
+                nif: input.nif,
                 line1: input.billingAddress,
                 postalCode: input.billingPostalCode,
                 locality: input.billingLocality,
               }
             : {
+                name: input.deliveryName,
+                nif: '',
                 line1: input.deliveryAddress,
                 postalCode: input.deliveryPostalCode,
                 locality: input.deliveryLocality,
               }
 
+        const name = cleanLine(address.name, 160)
+        const nif = cleanLine(address.nif, 16)
         const line1 = cleanLine(address.line1, 240)
         const postalCode = normalizePostalCode(address.postalCode)
         const locality = cleanLine(address.locality, 120)
@@ -498,12 +516,12 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         // inserted exactly once, never duplicated by a select-then-insert race.
         await client.query(
           `insert into customer_addresses (
-            customer_id, address_type, address_line1, address_line2, postal_code, locality, country, is_default
+            customer_id, address_type, name, nif, address_line1, address_line2, postal_code, locality, country, is_default
           )
-          values ($1, $2, $3, '', $4, $5, 'PT', true)
+          values ($1, $2, $3, $4, $5, '', $6, $7, 'PT', true)
           on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
-          do update set is_default = true, updated_at = now()`,
-          [input.customerId, addressType, line1, postalCode, locality],
+          do update set name = excluded.name, nif = excluded.nif, is_default = true, updated_at = now()`,
+          [input.customerId, addressType, name, nif, line1, postalCode, locality],
         )
       }
     }
@@ -579,6 +597,8 @@ export const sendOrderEmails = async (order: OrderRow) => {
     `Nova encomenda ${order.orderNumber}`,
     `Cliente: ${order.customerName} <${order.email}>`,
     `Telefone: ${order.phone || '-'}`,
+    `Faturação: ${order.billingName || '-'}${order.nif ? ` · NIF ${order.nif}` : ''}`,
+    `Entrega: ${order.deliveryName || '-'}`,
     `Zona: ${order.deliveryZone} (${order.deliveryPostalCode})`,
     `Total: ${order.totalGross.toFixed(2)} EUR`,
     `Método de pagamento: ${paymentMethod}`,
@@ -645,6 +665,7 @@ export const listCustomerAddresses = async (customerId: string): Promise<Custome
 
 export type CustomerAddressInput = {
   name: string
+  nif: string
   line1: string
   line2: string
   postalCode: string
@@ -672,11 +693,12 @@ export const createCustomerAddress = async (
     }
     const result = await client.query(
       `insert into customer_addresses (
-        customer_id, address_type, name, address_line1, address_line2, postal_code, locality, country, is_default
-      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        customer_id, address_type, name, nif, address_line1, address_line2, postal_code, locality, country, is_default
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
       do update set
         name = excluded.name,
+        nif = excluded.nif,
         is_default = customer_addresses.is_default or excluded.is_default,
         updated_at = now()
       returning *`,
@@ -684,6 +706,7 @@ export const createCustomerAddress = async (
         customerId,
         addressType,
         cleanLine(input.name, 120),
+        cleanLine(input.nif, 16),
         cleanLine(input.line1, 240),
         cleanLine(input.line2, 240),
         normalizePostalCode(input.postalCode),
@@ -705,7 +728,7 @@ export const saveCustomerAddress = async (
   createCustomerAddress(
     customerId,
     addressType,
-    {name: '', line1: input.line1, line2: '', postalCode: input.postalCode, locality: input.locality, country: 'PT'},
+    {name: '', nif: '', line1: input.line1, line2: '', postalCode: input.postalCode, locality: input.locality, country: 'PT'},
     true,
   )
 
@@ -722,14 +745,15 @@ export const updateCustomerAddress = async (
   if (!databaseConfigured()) return null
   const result = await query(
     `update customer_addresses
-     set name = $3, address_line1 = $4, address_line2 = $5, postal_code = $6,
-         locality = $7, country = $8, updated_at = now()
+     set name = $3, nif = $4, address_line1 = $5, address_line2 = $6, postal_code = $7,
+         locality = $8, country = $9, updated_at = now()
      where customer_id = $1 and id = $2
      returning *`,
     [
       customerId,
       addressId,
       cleanLine(input.name, 120),
+      cleanLine(input.nif, 16),
       cleanLine(input.line1, 240),
       cleanLine(input.line2, 240),
       normalizePostalCode(input.postalCode),

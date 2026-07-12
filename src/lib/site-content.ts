@@ -96,6 +96,7 @@ export type ProductItem = {
   description: string
   image?: ContentImage
   images?: ContentImage[]
+  media?: StoreProductMedia[]
   videoUrl?: string
   videoTitle?: string
   toolUrl?: string
@@ -217,6 +218,7 @@ export type SiteContent = {
     cookiePolicyLabel: string
     cookiePolicyUrl: string
     marketingConsent: string
+    privacyConsentPrefix: string
   }
   home: {
     hero: CopyBlock
@@ -294,7 +296,7 @@ type SanityProduct = {
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
-  gallery?: SanityImage[]
+  gallery?: SanityStoreProductGalleryItem[]
   summary?: LocalizedValue
   description?: LocalizedValue
   videoUrl?: string
@@ -517,6 +519,10 @@ const contact = {
   facebook: 'https://www.facebook.com/dafabrica4you',
   instagram: 'https://www.instagram.com/dafabrica4you',
 }
+
+// The account auth pages (conta/registar, etc.) use fully hardcoded per-language
+// copy rather than data.site, so this is exported for their privacy-consent link.
+export const privacyPolicyUrl = contact.privacyPolicy
 
 const fallbackImages = {
   home: {
@@ -963,6 +969,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
+      privacyConsentPrefix: 'Eu concordo com a',
     },
     home: {
       hero: {
@@ -1205,6 +1212,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'I agree that my data may be used for commercial contact and marketing communications related to this request.',
+      privacyConsentPrefix: 'I agree with the',
     },
     home: {
       hero: {
@@ -1447,6 +1455,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       cookiePolicyUrl: contact.cookiePolicy,
       marketingConsent:
         'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
+      privacyConsentPrefix: 'Estoy de acuerdo con la',
     },
     home: {
       hero: {
@@ -1813,6 +1822,13 @@ export const productImagesFor = (item: ProductItem, fallback: ContentImage) => {
   return [fallback]
 }
 
+// For the interactive gallery only (thumbnails/SEO keep using productImagesFor,
+// unaffected). Falls back to plain images when a product has no uploaded video.
+export const productMediaFor = (item: ProductItem, fallback: ContentImage) => {
+  if (item.media?.length) return item.media
+  return productImagesFor(item, fallback).map((image) => storeProductMediaImage(image))
+}
+
 export const caseStudyImagesFor = (item: CaseStudy, fallback: ContentImage) => {
   if (item.images?.length) return item.images
   if (item.image) return [item.image]
@@ -2035,11 +2051,14 @@ const productsFromSanity = (
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
-          product.gallery,
+          (product.gallery ?? []).filter(
+            (item): item is SanityImage => !isSanityVideoFile(item),
+          ),
           language,
           fallbackProduct?.image ?? fallbackImages.product,
         ),
       )
+      const productMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
@@ -2047,6 +2066,7 @@ const productsFromSanity = (
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
         images: productImages,
+        media: productMedia,
         summary: cleanProductMaterialCopy(
           localized(product.summary, language, fallbackProduct?.summary ?? ''),
         ),

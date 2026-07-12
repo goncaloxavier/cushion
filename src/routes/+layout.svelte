@@ -2,6 +2,7 @@
   import {afterNavigate, goto, onNavigate} from '$app/navigation'
   import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
+  import CookieNotice, {type CookieNoticeStrings} from '$lib/components/CookieNotice.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
@@ -29,11 +30,9 @@
     | 'blog'
     | 'contact'
 
-  const solutionsLabel: Record<string, string> = {pt: 'Soluções', en: 'Solutions', es: 'Soluciones'}
-
   const navItems = $derived([
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
+    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
     {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
@@ -46,6 +45,12 @@
     en: {signedOut: 'Sign in', account: 'Account'},
     es: {signedOut: 'Entrar', account: 'Cuenta'},
   }
+  const returnsPolicyLabels: Record<string, string> = {
+    pt: 'Política de devoluções',
+    en: 'Returns policy',
+    es: 'Política de devoluciones',
+  }
+  const returnsPolicyLabel = $derived(returnsPolicyLabels[data.language] ?? returnsPolicyLabels.pt)
   const accountStrings = $derived(accountLabels[data.language] ?? accountLabels.pt)
   const isSignedIn = $derived(Boolean(data.account))
   const accountHref = $derived(isSignedIn ? '/conta/dados' : '/conta/entrar')
@@ -81,7 +86,7 @@
   const mobileMenuItems = $derived([
     {key: 'home' as NavKey, href: '/', label: content.nav.home},
     {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: solutionsLabel[data.language] ?? 'Soluções'},
+    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
     {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
     {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
     {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
@@ -144,6 +149,27 @@
   }
   const searchStrings = $derived(searchStringsByLanguage[data.language] ?? searchStringsByLanguage.pt)
   let searchOpen = $state(false)
+
+  const cookieNoticeStringsByLanguage: Record<string, CookieNoticeStrings> = {
+    pt: {
+      message: 'O nosso website utiliza cookies para melhorar e personalizar a sua experiência de navegação.',
+      learnMore: 'Saiba mais',
+      accept: 'Entendi',
+    },
+    en: {
+      message: 'Our website uses cookies to improve and personalise your browsing experience.',
+      learnMore: 'Learn more',
+      accept: 'Got it',
+    },
+    es: {
+      message: 'Nuestro sitio web utiliza cookies para mejorar y personalizar su experiencia de navegación.',
+      learnMore: 'Saber más',
+      accept: 'Entendido',
+    },
+  }
+  const cookieNoticeStrings = $derived(
+    cookieNoticeStringsByLanguage[data.language] ?? cookieNoticeStringsByLanguage.pt,
+  )
 
   const openMenu = () => {
     if (menuCloseTimer) clearTimeout(menuCloseTimer)
@@ -572,6 +598,9 @@
       <a href={content.common.cookiePolicyUrl} target="_blank" rel="noreferrer">
         {content.common.cookiePolicyLabel}
       </a>
+      <a href={withLanguage('/politica-de-devolucoes', data.language)}>
+        {returnsPolicyLabel}
+      </a>
     </div>
   </div>
   <div class="footer-social" aria-label={content.common.socialLabel}>
@@ -598,6 +627,7 @@
   {/if}
 
   <SearchOverlay bind:open={searchOpen} language={data.language} {content} strings={searchStrings} />
+  <CookieNotice policyUrl={content.common.cookiePolicyUrl} strings={cookieNoticeStrings} />
 {/if}
 
 <Toaster />

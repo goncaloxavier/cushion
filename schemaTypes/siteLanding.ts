@@ -408,6 +408,11 @@ export const siteLanding = defineType({
         }),
         localizedStringField('cookiePolicyLabel', 'Texto da Política de Cookies'),
         localizedTextField('marketingConsent', 'Consentimento de dados/marketing'),
+        localizedStringField(
+          'privacyConsentPrefix',
+          'Texto antes do link da Política de Privacidade',
+          'Exemplo: "Eu concordo com a". O link para a Política de Privacidade é adicionado a seguir automaticamente.',
+        ),
       ],
     }),
   ],

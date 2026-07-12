@@ -65,6 +65,7 @@ export const actions: Actions = {
     const addressType = addressTypeFrom(data.get('addressType'))
     const input: CustomerAddressInput = {
       name: clean(data.get('name'), 120),
+      nif: addressType === 'billing' ? clean(data.get('nif'), 16) : '',
       line1: clean(data.get('addressLine1'), 240),
       line2: clean(data.get('addressLine2'), 240),
       postalCode: clean(data.get('postalCode'), 32),
@@ -75,8 +76,8 @@ export const actions: Actions = {
 
     const guarded = await actionGuard(args, csrfToken, values)
     if (guarded) return guarded
-    if (!input.line1 || !input.postalCode || !input.locality) {
-      return fail(400, {address: 'error', message: 'Preencha a morada, código postal e localidade.', values})
+    if (!input.name || !input.line1 || !input.postalCode || !input.locality) {
+      return fail(400, {address: 'error', message: 'Preencha o nome, morada, código postal e localidade.', values})
     }
     if (addressType === 'delivery' && !isSupportedStorePostalCode(input.postalCode)) {
       return fail(400, {

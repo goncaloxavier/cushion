@@ -20,6 +20,7 @@
   // the button the instant a submit fires so a flurry of clicks never even
   // reaches the network, rather than relying only on the DB unique constraint.
   let submitting = $state(false)
+  let privacyConsentAccepted = $state(false)
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let clearedAfterSuccess = false
   const checkoutCopy = {
@@ -41,6 +42,7 @@
       email: 'Email',
       phone: 'Telefone',
       nif: 'NIF',
+      optionalField: 'opcional',
       purchaseType: 'Tipo de compra',
       individual: 'Particular',
       company: 'Empresa',
@@ -88,6 +90,7 @@
       email: 'Email',
       phone: 'Phone',
       nif: 'Tax number',
+      optionalField: 'optional',
       purchaseType: 'Purchase type',
       individual: 'Individual',
       company: 'Company',
@@ -134,6 +137,7 @@
       email: 'Email',
       phone: 'Teléfono',
       nif: 'NIF',
+      optionalField: 'opcional',
       purchaseType: 'Tipo de compra',
       individual: 'Particular',
       company: 'Empresa',
@@ -218,6 +222,7 @@
     id: string
     addressType: 'billing' | 'delivery'
     name: string
+    nif: string
     addressLine1: string
     addressLine2: string
     postalCode: string
@@ -420,10 +425,6 @@
               <input name="phone" autocomplete="tel" required value={values.phone ?? customer?.phone ?? ''} />
             </label>
             <label>
-              <span>{labels.nif}</span>
-              <input name="nif" inputmode="numeric" value={values.nif ?? customer?.nif ?? ''} />
-            </label>
-            <label>
               <span>{labels.purchaseType}</span>
               <select name="purchaseType">
                 <option value="individual" selected={(values.purchaseType ?? customer?.purchaseType) !== 'company'}>{labels.individual}</option>
@@ -464,6 +465,14 @@
 
             {#if useCustomBillingAddress}
               <label>
+                <span>{labels.name}</span>
+                <input name="billingName" autocomplete="billing name" required value={values.billingName ?? customer?.name ?? ''} />
+              </label>
+              <label>
+                <span>{labels.nif} <em>({labels.optionalField})</em></span>
+                <input name="nif" inputmode="numeric" value={values.nif ?? customer?.nif ?? ''} />
+              </label>
+              <label>
                 <span>{labels.address}</span>
                 <input name="billingAddress" autocomplete="billing street-address" required value={values.billingAddress ?? ''} />
               </label>
@@ -476,6 +485,8 @@
                 <input name="billingLocality" autocomplete="billing address-level2" required value={values.billingLocality ?? ''} />
               </label>
             {:else if billingAddress}
+              <input type="hidden" name="billingName" value={billingAddress.name} />
+              <input type="hidden" name="nif" value={billingAddress.nif} />
               <input type="hidden" name="billingAddress" value={billingAddress.addressLine1} />
               <input type="hidden" name="billingPostalCode" value={billingAddress.postalCode} />
               <input type="hidden" name="billingLocality" value={billingAddress.locality} />
@@ -514,6 +525,10 @@
 
             {#if useCustomDeliveryAddress}
               <label>
+                <span>{labels.name}</span>
+                <input name="deliveryName" autocomplete="shipping name" required value={values.deliveryName ?? customer?.name ?? ''} />
+              </label>
+              <label>
                 <span>{labels.address}</span>
                 <input name="deliveryAddress" autocomplete="shipping street-address" required value={values.deliveryAddress ?? ''} />
               </label>
@@ -526,6 +541,7 @@
                 <input name="deliveryLocality" autocomplete="shipping address-level2" required value={values.deliveryLocality ?? ''} />
               </label>
             {:else if deliveryAddress}
+              <input type="hidden" name="deliveryName" value={deliveryAddress.name} />
               <input type="hidden" name="deliveryAddress" value={deliveryAddress.addressLine1} />
               <input type="hidden" name="deliveryPostalCode" value={deliveryAddress.postalCode} />
               <input type="hidden" name="deliveryLocality" value={deliveryAddress.locality} />
@@ -592,6 +608,22 @@
             <textarea name="customerNotes" rows="4">{values.customerNotes ?? ''}</textarea>
           </label>
 
+          <label class="consent-field">
+            <input
+              name="privacyConsent"
+              type="checkbox"
+              required
+              aria-required="true"
+              bind:checked={privacyConsentAccepted}
+            />
+            <span>
+              {content.common.privacyConsentPrefix}
+              <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer"
+                >{content.common.privacyPolicyLabel}</a
+              >
+            </span>
+          </label>
+
         </form>
 
         <aside class="checkout-summary">
@@ -645,7 +677,11 @@
             class="button primary"
             type="submit"
             form="checkout-order-form"
-            disabled={!data.databaseReady || estimate.totalGross === null || paymentMethod === 'card' || submitting}
+            disabled={!data.databaseReady ||
+              estimate.totalGross === null ||
+              paymentMethod === 'card' ||
+              submitting ||
+              !privacyConsentAccepted}
           >
             {submitting ? labels.submitting : labels.submit}
           </button>

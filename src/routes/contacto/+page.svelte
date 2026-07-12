@@ -100,6 +100,7 @@
     message: '',
   })
   let consentAccepted = $state(false)
+  let privacyConsentAccepted = $state(false)
   let lastFormValues = $state<ContactFormValues | undefined>(undefined)
 
   $effect(() => {
@@ -127,7 +128,9 @@
   })
 
   const formIsComplete = $derived(
-    contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) && consentAccepted,
+    contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) &&
+      consentAccepted &&
+      privacyConsentAccepted,
   )
   const contactFields = $derived(
     contactFieldKeys.map((key, index) => ({
@@ -339,6 +342,21 @@
             bind:checked={consentAccepted}
           />
           <span>{content.common.marketingConsent}</span>
+        </label>
+        <label class="consent-field">
+          <input
+            name="privacyConsent"
+            type="checkbox"
+            required
+            aria-required="true"
+            bind:checked={privacyConsentAccepted}
+          />
+          <span>
+            {content.common.privacyConsentPrefix}
+            <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer"
+              >{content.common.privacyPolicyLabel}</a
+            >
+          </span>
         </label>
         <button class="button primary" type="submit" disabled={!formIsComplete}>
           {content.common.requestQuote}

@@ -81,6 +81,7 @@ export const actions: Actions = {
     const language = getLanguage(cleanLine(form.get('language'), 8))
     const csrfToken = cleanLine(form.get('csrfToken'), 128)
     const submissionToken = cleanLine(form.get('submissionToken'), 64)
+    const privacyConsent = form.get('privacyConsent') === 'on'
     const values = {
       name: cleanLine(form.get('name'), 160),
       email: cleanLine(form.get('email'), 254).toLowerCase(),
@@ -89,10 +90,12 @@ export const actions: Actions = {
       purchaseType: (cleanLine(form.get('purchaseType'), 20) === 'company'
         ? 'company'
         : 'individual') as 'individual' | 'company',
+      billingName: cleanLine(form.get('billingName'), 160),
       billingAddress: cleanLine(form.get('billingAddress'), 240),
       billingPostalCode: cleanLine(form.get('billingPostalCode'), 32),
       billingLocality: cleanLine(form.get('billingLocality'), 120),
       billingAddressId: cleanLine(form.get('billingAddressId'), 80),
+      deliveryName: cleanLine(form.get('deliveryName'), 160),
       deliveryAddress: cleanLine(form.get('deliveryAddress'), 240),
       deliveryPostalCode: cleanLine(form.get('deliveryPostalCode'), 32),
       deliveryLocality: cleanLine(form.get('deliveryLocality'), 120),
@@ -134,6 +137,8 @@ export const actions: Actions = {
         if (!billing) {
           return fail(400, {message: 'Escolha uma morada de faturação válida.', values})
         }
+        values.billingName = billing.name
+        values.nif = billing.nif
         values.billingAddress = billing.addressLine1
         values.billingPostalCode = billing.postalCode
         values.billingLocality = billing.locality
@@ -144,6 +149,7 @@ export const actions: Actions = {
         if (!delivery) {
           return fail(400, {message: 'Escolha uma morada de entrega válida.', values})
         }
+        values.deliveryName = delivery.name
         values.deliveryAddress = delivery.addressLine1
         values.deliveryPostalCode = delivery.postalCode
         values.deliveryLocality = delivery.locality
@@ -161,15 +167,21 @@ export const actions: Actions = {
       values.name,
       values.email,
       values.phone,
+      values.billingName,
       values.billingAddress,
       values.billingPostalCode,
       values.billingLocality,
+      values.deliveryName,
       values.deliveryAddress,
       values.deliveryPostalCode,
       values.deliveryLocality,
     ]
     if (required.some((value) => value.length < 2) || !isValidEmail(values.email)) {
       return fail(400, {message: 'Preencha todos os dados obrigatórios para finalizar o pedido.', values})
+    }
+
+    if (!privacyConsent) {
+      return fail(400, {message: 'Tem de aceitar a política de privacidade.', values})
     }
 
     if (values.paymentMethod === 'card') {

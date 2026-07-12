@@ -118,6 +118,13 @@ export const clientProfile = defineType({
       readOnly: true,
     }),
     defineField({
+      name: 'privacyConsent',
+      title: 'Aceitou a política de privacidade',
+      type: 'boolean',
+      group: 'management',
+      readOnly: true,
+    }),
+    defineField({
       name: 'submissionCount',
       title: 'Número de pedidos',
       type: 'number',

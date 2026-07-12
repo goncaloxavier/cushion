@@ -532,6 +532,12 @@
   line-height: 1.5;
 }
 
+.account-address-nif {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .account-address-block {
   display: grid;
   gap: 0.65rem;

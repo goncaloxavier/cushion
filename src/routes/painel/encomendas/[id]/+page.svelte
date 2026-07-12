@@ -56,10 +56,6 @@
         <span class="painel-field-value">{order.phone || '-'}</span>
       </div>
       <div class="painel-field">
-        <span class="painel-field-label">NIF</span>
-        <span class="painel-field-value">{order.nif || '-'}</span>
-      </div>
-      <div class="painel-field">
         <span class="painel-field-label">Tipo</span>
         <span class="painel-field-value">{order.purchaseType}</span>
       </div>
@@ -75,11 +71,17 @@
     <div class="painel-field-grid">
       <div class="painel-field painel-field-block">
         <span class="painel-field-label">Faturação</span>
-        <p class="painel-field-text">{order.billingAddress}<br />{order.billingPostalCode} {order.billingLocality}</p>
+        <p class="painel-field-text">
+          {order.billingName || '-'}{#if order.nif}&nbsp;· NIF {order.nif}{/if}
+          <br />{order.billingAddress}<br />{order.billingPostalCode} {order.billingLocality}
+        </p>
       </div>
       <div class="painel-field painel-field-block">
         <span class="painel-field-label">Entrega</span>
-        <p class="painel-field-text">{order.deliveryAddress}<br />{order.deliveryPostalCode} {order.deliveryLocality}<br />{order.deliveryZone}</p>
+        <p class="painel-field-text">
+          {order.deliveryName || '-'}
+          <br />{order.deliveryAddress}<br />{order.deliveryPostalCode} {order.deliveryLocality}<br />{order.deliveryZone}
+        </p>
       </div>
     </div>
   </section>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import AccountAuthLayout from '$lib/components/AccountAuthLayout.svelte'
   import {untrack} from 'svelte'
+  import {privacyPolicyUrl} from '$lib/site-content'
 
   let {data, form} = $props()
   const values = $derived(form?.values ?? {})
@@ -25,6 +26,8 @@
     strength: {weak: string; medium: string; strong: string; veryStrong: string}
     match: string
     noMatch: string
+    privacyConsentPrefix: string
+    privacyPolicyLabel: string
   }
 
   const copyByLanguage: Record<string, Copy> = {
@@ -48,6 +51,8 @@
       strength: {weak: 'Fraca', medium: 'Média', strong: 'Forte', veryStrong: 'Muito forte'},
       match: 'As passwords coincidem.',
       noMatch: 'As passwords não coincidem.',
+      privacyConsentPrefix: 'Eu concordo com a',
+      privacyPolicyLabel: 'política de privacidade',
     },
     en: {
       kicker: 'Account',
@@ -69,6 +74,8 @@
       strength: {weak: 'Weak', medium: 'Medium', strong: 'Strong', veryStrong: 'Very strong'},
       match: 'Passwords match.',
       noMatch: "Passwords don't match.",
+      privacyConsentPrefix: 'I agree with the',
+      privacyPolicyLabel: 'privacy policy',
     },
     es: {
       kicker: 'Cuenta',
@@ -90,6 +97,8 @@
       strength: {weak: 'Débil', medium: 'Media', strong: 'Fuerte', veryStrong: 'Muy fuerte'},
       match: 'Las contraseñas coinciden.',
       noMatch: 'Las contraseñas no coinciden.',
+      privacyConsentPrefix: 'Estoy de acuerdo con la',
+      privacyPolicyLabel: 'política de privacidad',
     },
   }
 
@@ -361,6 +370,7 @@
   let countryOpen = $state(false)
   let password = $state('')
   let passwordConfirm = $state('')
+  let privacyConsentAccepted = $state(false)
 
   const selectedCountry = $derived(countries.find((country) => country.code === phoneCountry) ?? countries[0])
   const filteredCountries = $derived.by(() => countries.filter((country) => countryMatches(country, countryQuery)).slice(0, 10))
@@ -541,7 +551,21 @@
       {/if}
     </label>
 
-    <button class="button primary" type="submit" disabled={confirmState === 'bad'}>
+    <label class="consent-field">
+      <input
+        name="privacyConsent"
+        type="checkbox"
+        required
+        aria-required="true"
+        bind:checked={privacyConsentAccepted}
+      />
+      <span>
+        {t.privacyConsentPrefix}
+        <a href={privacyPolicyUrl} target="_blank" rel="noreferrer">{t.privacyPolicyLabel}</a>
+      </span>
+    </label>
+
+    <button class="button primary" type="submit" disabled={confirmState === 'bad' || !privacyConsentAccepted}>
       {t.submit}
     </button>
   </form>

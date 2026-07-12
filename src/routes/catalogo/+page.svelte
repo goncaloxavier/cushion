@@ -20,6 +20,7 @@
     message: '',
   })
   let consentAccepted = $state(false)
+  let privacyConsentAccepted = $state(false)
   let lastFormValues = $state<Record<string, string> | undefined>(undefined)
 
   $effect(() => {
@@ -57,7 +58,7 @@
   }
 
   const formIsComplete = $derived(
-    fieldKeys.every((key) => Boolean(values[key]?.trim())) && consentAccepted,
+    fieldKeys.every((key) => Boolean(values[key]?.trim())) && consentAccepted && privacyConsentAccepted,
   )
 </script>
 
@@ -141,6 +142,22 @@
             bind:checked={consentAccepted}
           />
           <span>{content.common.marketingConsent}</span>
+        </label>
+
+        <label class="consent-field">
+          <input
+            name="privacyConsent"
+            type="checkbox"
+            required
+            aria-required="true"
+            bind:checked={privacyConsentAccepted}
+          />
+          <span>
+            {content.common.privacyConsentPrefix}
+            <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer"
+              >{content.common.privacyPolicyLabel}</a
+            >
+          </span>
         </label>
 
         <button class="button primary" type="submit" disabled={!formIsComplete}>

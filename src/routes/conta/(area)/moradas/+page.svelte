@@ -25,8 +25,8 @@
     deleted: string
     defaultSaved: string
     label: string
+    nif: string
     address: string
-    address2: string
     postalCode: string
     locality: string
     country: string
@@ -51,9 +51,9 @@
       saved: 'Morada guardada.',
       deleted: 'Morada removida.',
       defaultSaved: 'Preferência atualizada.',
-      label: 'Nome da morada',
+      label: 'Nome',
+      nif: 'NIF',
       address: 'Morada',
-      address2: 'Complemento',
       postalCode: 'Código postal',
       locality: 'Localidade',
       country: 'País',
@@ -76,9 +76,9 @@
       saved: 'Address saved.',
       deleted: 'Address removed.',
       defaultSaved: 'Preference updated.',
-      label: 'Address name',
+      label: 'Name',
+      nif: 'Tax number',
       address: 'Address',
-      address2: 'Address line 2',
       postalCode: 'Postal code',
       locality: 'Locality',
       country: 'Country',
@@ -101,9 +101,9 @@
       saved: 'Dirección guardada.',
       deleted: 'Dirección eliminada.',
       defaultSaved: 'Preferencia actualizada.',
-      label: 'Nombre de la dirección',
+      label: 'Nombre',
+      nif: 'NIF',
       address: 'Dirección',
-      address2: 'Complemento',
       postalCode: 'Código postal',
       locality: 'Localidad',
       country: 'País',
@@ -116,8 +116,8 @@
   const t = $derived(copyByLanguage[data.language] ?? copyByLanguage.pt)
   const editorLabels = $derived({
     label: t.label,
+    nif: t.nif,
     address: t.address,
-    address2: t.address2,
     postalCode: t.postalCode,
     locality: t.locality,
     country: t.country,
@@ -216,6 +216,9 @@
                       <span class="account-chip is-verified">{t.defaultLabel}</span>
                     {/if}
                   </div>
+                  {#if address.nif}
+                    <p class="account-address-nif">{t.nif}: {address.nif}</p>
+                  {/if}
                   <p class="account-address">
                     {address.addressLine1}
                     {#if address.addressLine2}<br />{address.addressLine2}{/if}
