@@ -152,12 +152,13 @@ const articleBlocks = [
   }),
 ]
 
-const localizedArticleField = (name: 'pt' | 'en' | 'es', title: string) =>
+const localizedArticleField = (name: 'pt' | 'en' | 'es', title: string, opts: {hidden?: boolean} = {}) =>
   defineField({
     name,
     title,
     type: 'array',
     of: articleBlocks,
+    ...(opts.hidden ? {hidden: true, readOnly: true} : {}),
   })
 
 export const localizedArticle = defineType({
@@ -166,7 +167,15 @@ export const localizedArticle = defineType({
   type: 'object',
   fields: [
     localizedArticleField('pt', 'Português'),
-    localizedArticleField('en', 'Inglês'),
-    localizedArticleField('es', 'Espanhol'),
+    localizedArticleField('en', 'Inglês', {hidden: true}),
+    localizedArticleField('es', 'Espanhol', {hidden: true}),
+    defineField({
+      name: 'translationHash',
+      title: 'Hash de tradução (uso interno)',
+      description: 'Gerido automaticamente pelo pipeline de tradução. Não editar.',
+      type: 'string',
+      hidden: true,
+      readOnly: true,
+    }),
   ],
 })

@@ -1,6 +1,6 @@
 import type {StructureResolver} from 'sanity/structure'
 
-const managedTypes = ['siteLanding', 'productCategory', 'storeProduct', 'caseStudy', 'blogPost']
+export const managedTypes = ['siteLanding', 'productCategory', 'storeProduct', 'caseStudy', 'blogPost']
 const crmManagedTypes = ['formSubmission', 'clientProfile', 'staffUser', 'staffSession']
 
 const storeCategories = [

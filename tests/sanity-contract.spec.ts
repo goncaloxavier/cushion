@@ -361,7 +361,11 @@ test.describe('Sanity Studio content contract', () => {
     expect(storeSchema).toContain("'Galeria do produto'")
     expect(storeSchema).toContain("name: 'galleryVideo'")
     expect(storeSchema).toContain("type: 'file'")
-    expect(productSchema).not.toContain("name: 'galleryVideo'")
+    // Produtos (outside the Loja) share the same mixed image/video gallery
+    // pattern as Loja store products — both use galleryImage + galleryVideo.
+    expect(productSchema).toContain("name: 'galleryImage'")
+    expect(productSchema).toContain("name: 'galleryVideo'")
+    expect(productSchema).toContain("type: 'file'")
     expect(storeSchema).toContain("'Variantes, pesos e preços'")
     expect(storeSchema).toContain("'Preço Natural/Cinza sem IVA'")
     expect(storeSchema).toContain("'Preço Castanho/Preto sem IVA'")
@@ -710,5 +714,71 @@ test.describe('Sanity Studio content contract', () => {
     expect(authLayout).toContain("$lib/styles/account.css")
     expect(checkout).toContain("$lib/styles/account-checkout.css")
     expect(painelLayout).toContain("$lib/styles/painel.css")
+  })
+
+  test('auto-translation pipeline: schema hides EN/ES and tracks a translation hash', () => {
+    const localizedString = read('schemaTypes/objects/localizedString.ts')
+    const localizedText = read('schemaTypes/objects/localizedText.ts')
+    const localizedArticle = read('schemaTypes/objects/localizedArticle.ts')
+    const translateContent = read('src/lib/server/translate-content.ts')
+    const translateEndpoint = read('src/routes/api/sanity/translate/+server.ts')
+    const translateDocument = read('src/lib/server/translate-document.ts')
+    const structure = read('sanity.structure.ts')
+    const config = read('sanity.config.ts')
+    const backfillScript = read('scripts/seed-translation-hashes.ts')
+    const envExample = read('.env.example')
+
+    // EN/ES must be hidden (client only ever fills PT), and every shared
+    // localized type must carry a translationHash the pipeline can diff
+    // against, so republishing unchanged content never re-burns DeepL quota.
+    for (const schema of [localizedString, localizedText, localizedArticle]) {
+      expect(schema).toContain('translationHash')
+    }
+    expect(localizedString).toContain("hidden: true")
+    expect(localizedText).toContain("hidden: true")
+    expect(localizedArticle).toContain('opts.hidden')
+
+    // The tree-walker must be shape-based (works for any localized field,
+    // present or future) and never mutate the input it collects/reinserts.
+    expect(translateContent).toContain('detectLocalizedKind')
+    expect(translateContent).toContain('findLocalizedFields')
+    expect(translateContent).toContain('structuredClone')
+    expect(translateContent).toContain('_key==')
+
+    // Both the automatic (Sanity webhook) and manual (Studio button) trigger
+    // paths must converge on the same orchestrator, and the manual path
+    // needs CORS since it's a genuine cross-origin browser request from the
+    // Studio's own origin.
+    expect(translateEndpoint).toContain('isValidSignature')
+    expect(translateEndpoint).toContain('x-sanity-translate-secret')
+    expect(translateEndpoint).toContain('access-control-allow-origin')
+    expect(translateEndpoint).toContain('translateDocument(')
+
+    // The manual-trigger secret is baked into a public Studio JS bundle, so
+    // it can't be treated as a real secret the way the signed webhook can —
+    // it gets its own, much tighter rate-limit bucket so a copied-out secret
+    // can't be hammered to exhaust DeepL quota.
+    expect(translateEndpoint).toContain('sanity-translate-manual')
+    expect(translateEndpoint).toContain('viaStudioButton &&')
+    expect(translateDocument).toContain('translationHash')
+
+    // A field's hash must only be stamped once BOTH languages succeed, so a
+    // partial DeepL failure stays "dirty" and gets retried later rather than
+    // being silently marked done.
+    expect(translateDocument).toContain('enSlice && esSlice')
+
+    // The manual Studio action and the one-off backfill script must both
+    // exist and reuse the same managed-types list / tree-walker rather than
+    // duplicating detection logic.
+    expect(structure).toContain('export const managedTypes')
+    expect(config).toContain('RetranslateAction')
+    expect(backfillScript).toContain('findLocalizedFields')
+    expect(backfillScript).toContain('!task.currentHash')
+    expect(backfillScript).not.toContain('patchPath}.en')
+    expect(backfillScript).not.toContain('patchPath}.es')
+
+    expect(envExample).toContain('DEEPL_API_KEY')
+    expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
+    expect(envExample).toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })
 })
