@@ -58,7 +58,7 @@ Use this to help agents avoid accidental damage.
 - Staff reviewing ecommerce orders in `/painel/encomendas`, including status changes and internal notes.
 - Editors changing page copy/contact/footer content through the Portuguese `Conteúdo do site` singleton.
 - Editors changing social links, WhatsApp, complaints-book link, privacy/cookie policy links, and marketing-consent copy through the Portuguese `Conteúdo do site` singleton.
-- Editors changing homepage institutional video, mixed media items, and partner/project logo entries through the Portuguese `Conteúdo do site` singleton.
+- Editors changing the homepage hero title/video, impact title/numbers, and partner/project entries through the Portuguese `Conteúdo do site` singleton.
 - Editors reviewing new private requests in the CRM Studio workspace, changing statuses, adding internal notes, and using client profiles for follow-up.
 - Developers generating visual snapshots only for local/session review, without committing the generated PNG baselines.
 - Developers seeding Content Lake starter documents with `npm run seed:studio` or intentionally refreshing code-managed content with `npm run deploy:content`.

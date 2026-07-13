@@ -9,12 +9,9 @@ export type LocalizedFieldKind = 'string' | 'article'
 
 const localizedShapeKeys = new Set(['pt', 'en', 'es', 'translationHash', '_key', '_type'])
 
-// Shape-based detection: every localizedString/localizedText/localizedArticle
-// instance in this codebase has exactly this key set, and nothing else does
-// (verified: `grep -rn "type: 'localizedString'\|type: 'localizedText'\|type: 'localizedArticle'"`
-// across schemaTypes/ = 48 hits, zero ad-hoc bypasses). The allow-listed keys
-// are defense-in-depth against a hypothetical unrelated object, not a fix for
-// an observed collision.
+// Shape-based detection: every localized text/article type has exactly this
+// key set, and nothing else does. The allow-list is defense in depth against
+// an unrelated object accidentally matching the shape.
 export const detectLocalizedKind = (value: unknown): LocalizedFieldKind | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
 

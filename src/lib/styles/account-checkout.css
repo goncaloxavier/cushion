@@ -9,6 +9,7 @@
 
 .account-page {
   overflow-x: clip;
+  background: linear-gradient(180deg, #edf7f3 0%, #f7fbf9 44%, #ffffff 100%);
 }
 
 .account-shell,
@@ -58,6 +59,26 @@
   border-bottom: 1px solid rgba(17, 57, 60, 0.14);
 }
 
+.checkout-head-reveal,
+.checkout-form-reveal,
+.checkout-summary-reveal,
+.checkout-actions-reveal,
+.checkout-outcome-reveal {
+  min-width: 0;
+  width: 100%;
+}
+
+.checkout-actions-reveal .checkout-actions {
+  width: 100%;
+}
+
+.checkout-form-reveal.visible,
+.checkout-summary-reveal.visible,
+.checkout-outcome-reveal.visible {
+  overflow: visible;
+  clip-path: none;
+}
+
 .checkout-flow {
   display: grid;
   gap: clamp(1.15rem, 2.4vw, 1.75rem);
@@ -80,6 +101,8 @@
 
 .account-card {
   scroll-margin-top: 6.5rem;
+  border-radius: 8px;
+  box-shadow: 0 1.1rem 2.8rem rgba(13, 52, 56, 0.055);
 }
 
 .account-form-card,

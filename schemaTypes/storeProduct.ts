@@ -23,6 +23,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'title',
       title: 'Nome do produto',
+      description: 'Nome público na Loja.',
       type: 'localizedString',
       group: 'conteudo',
       validation: (Rule) => Rule.required(),
@@ -30,6 +31,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'slug',
       title: 'Endereço da página',
+      description: 'Gere a partir do nome e evite alterar depois de publicar.',
       type: 'slug',
       group: 'conteudo',
       options: {source: 'title.pt', maxLength: 96},
@@ -38,6 +40,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'category',
       title: 'Categoria',
+      description: 'Usada nos filtros da Loja.',
       type: 'string',
       group: 'conteudo',
       options: {list: categoryOptions, layout: 'radio'},
@@ -45,16 +48,15 @@ export const storeProduct = defineType({
     }),
     defineField({
       name: 'summary',
-      title: 'Resumo curto',
-      description: 'Frase simples para explicar o produto no cartão e na página da Loja.',
+      title: 'Resumo',
+      description: 'Explique o produto numa frase curta.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'hasFinishChoice',
-      title: 'Tem escolha de acabamento/cor',
-      description:
-        'Desative quando o produto só tem um preço e não deve mostrar Natural/Cinza ou Castanho/Preto ao cliente.',
+      title: 'Permitir escolha de acabamento',
+      description: 'Desative quando existe apenas um acabamento e um preço.',
       type: 'boolean',
       group: 'organizacao',
       initialValue: true,
@@ -62,8 +64,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'image',
       title: 'Imagem principal',
-      description:
-        'Fotografia principal usada no cartão da Loja e como primeira imagem da página do produto.',
+      description: 'Usada no cartão e na página do produto.',
       type: 'image',
       group: 'imagens',
       options: {hotspot: true},
@@ -71,6 +72,7 @@ export const storeProduct = defineType({
         defineField({
           name: 'alt',
           title: 'Descrição da imagem',
+          description: 'Para acessibilidade. Diga o que se vê.',
           type: 'localizedString',
           validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
         }),
@@ -78,9 +80,8 @@ export const storeProduct = defineType({
     }),
     defineField({
       name: 'gallery',
-      title: 'Galeria do produto',
-      description:
-        'Fotografias e vídeos carregados para a página do produto. A imagem principal já aparece primeiro; aqui entram outros ângulos, detalhes ou vídeos curtos.',
+      title: 'Galeria',
+      description: 'Outros ângulos, detalhes e vídeos. A imagem principal já aparece primeiro.',
       type: 'array',
       group: 'imagens',
       of: [
@@ -93,6 +94,7 @@ export const storeProduct = defineType({
             defineField({
               name: 'alt',
               title: 'Descrição da imagem',
+              description: 'Para acessibilidade. Diga o que se vê.',
               type: 'localizedString',
               validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
             }),
@@ -110,19 +112,20 @@ export const storeProduct = defineType({
             defineField({
               name: 'title',
               title: 'Título do vídeo',
-              description: 'Texto curto usado no player e na miniatura.',
+              description: 'Identifica o vídeo no player.',
               type: 'localizedString',
             }),
             defineField({
               name: 'poster',
               title: 'Imagem de capa',
-              description: 'Opcional. Usada como capa antes de abrir/reproduzir o vídeo.',
+              description: 'Opcional. Aparece antes da reprodução.',
               type: 'image',
               options: {hotspot: true},
               fields: [
                 defineField({
                   name: 'alt',
                   title: 'Descrição da imagem',
+                  description: 'Para acessibilidade. Diga o que se vê.',
                   type: 'localizedString',
                   validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
                 }),
@@ -134,9 +137,8 @@ export const storeProduct = defineType({
     }),
     defineField({
       name: 'variants',
-      title: 'Variantes, pesos e preços',
-      description:
-        'Cada linha é uma opção comprável. O website usa estes preços e pesos para calcular transporte, IVA e total final.',
+      title: 'Opções, pesos e preços',
+      description: 'Cada item é uma opção comprável. Preços sem IVA.',
       type: 'array',
       group: 'precos',
       of: [
@@ -147,46 +149,43 @@ export const storeProduct = defineType({
           fields: [
             defineField({
               name: 'label',
-              title: 'Nome da variante',
+              title: 'Nome da opção',
               description: 'Exemplo: 2000 mm, Com tampa, 750 x 750 mm.',
               type: 'localizedString',
               validation: (Rule) => Rule.required(),
             }),
             defineField({
               name: 'dimensions',
-              title: 'Dimensões visíveis',
-              description: 'Linhas curtas que aparecem na página do produto.',
+              title: 'Dimensões',
+              description: 'Uma medida ou característica por linha.',
               type: 'array',
               of: [{type: 'localizedString'}],
             }),
             defineField({
               name: 'weightKg',
               title: 'Peso (kg)',
-              description:
-                'Obrigatório para calcular transporte. Use o peso da unidade desta variante.',
+              description: 'Peso de uma unidade. Usado no transporte.',
               type: 'number',
               validation: (Rule) => Rule.required().min(0.01).precision(2),
             }),
             defineField({
               name: 'priceNatural',
-              title: 'Preço Natural/Cinza sem IVA',
-              description:
-                'Preço base da unidade, sem IVA e sem transporte. O website calcula transporte e IVA depois.',
+              title: 'Natural/Cinza (sem IVA)',
+              description: 'Preço de uma unidade, sem transporte.',
               type: 'number',
               validation: (Rule) => Rule.required().min(0).precision(2),
             }),
             defineField({
               name: 'priceDark',
-              title: 'Preço Castanho/Preto sem IVA',
-              description:
-                'Preço base da unidade, sem IVA e sem transporte. O website calcula transporte e IVA depois.',
+              title: 'Castanho/Preto (sem IVA)',
+              description: 'Preço de uma unidade, sem transporte.',
               type: 'number',
               validation: (Rule) => Rule.required().min(0).precision(2),
             }),
             defineField({
               name: 'note',
-              title: 'Nota opcional da variante',
-              description: 'Use apenas quando esta variante precisar de uma explicação extra.',
+              title: 'Nota da opção',
+              description: 'Opcional. Aparece junto às características.',
               type: 'localizedText',
             }),
           ],
@@ -209,9 +208,8 @@ export const storeProduct = defineType({
     }),
     defineField({
       name: 'flatTransportPrice',
-      title: 'Transporte fixo (todas as zonas)',
-      description:
-        'Opcional. Quando definido, ignora o cálculo normal de transporte por peso/zona e cobra sempre este valor fixo para este produto, em qualquer zona do país. Use apenas para produtos leves onde o transporte calculado por peso não faz sentido.',
+      title: 'Transporte fixo',
+      description: 'Opcional. Substitui o cálculo por peso e zona para este produto.',
       type: 'number',
       group: 'precos',
       validation: (Rule) => Rule.min(0).precision(2),
@@ -219,6 +217,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'active',
       title: 'Mostrar na Loja',
+      description: 'Desative para ocultar sem apagar.',
       type: 'boolean',
       group: 'organizacao',
       initialValue: true,
@@ -226,6 +225,7 @@ export const storeProduct = defineType({
     defineField({
       name: 'orderRank',
       title: 'Ordem de apresentação',
+      description: 'O número mais baixo aparece primeiro.',
       type: 'number',
       group: 'organizacao',
       initialValue: 100,

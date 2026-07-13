@@ -39,18 +39,30 @@ const client = createClient({
   apiVersion,
   useCdn: false,
   token,
+  // Maintenance must inspect stored drafts as well as published documents.
+  // The default published perspective hides `drafts.*` even when the GROQ
+  // query explicitly asks for those IDs.
+  perspective: 'raw',
 })
 
 type SiteDoc = {
   _id: string
+  title?: unknown
   footer?: unknown
-  home?: {manifesto?: unknown}
-  about?: {principles?: unknown}
+  home?: {
+    manifesto?: unknown
+    hero?: {kicker?: unknown; lead?: unknown}
+    heroImage?: unknown
+    intro?: unknown
+    impact?: {lead?: unknown}
+  }
+  about?: {hero?: {lead?: unknown}; principles?: unknown}
   productsPage?: {hero?: {lead?: unknown}; lead?: unknown}
   storePage?: {hero?: {lead?: unknown}; lead?: unknown}
   catalogue?: {hero?: {lead?: unknown}; quoteFlow?: unknown; estimate?: {cards?: unknown}}
   casesPage?: {hero?: {lead?: unknown}}
   blogPage?: {hero?: {lead?: unknown}; newsletter?: unknown}
+  contactPage?: {fields?: unknown; formLabels?: {name?: unknown}}
 }
 
 type ProductDoc = {
@@ -62,14 +74,16 @@ type ProductDoc = {
 const siteDocs = await client.fetch<SiteDoc[]>(
   `*[_type == "siteLanding" || _id in ["siteContent", "drafts.siteContent"]]{
     _id,
+    title,
     footer,
-    home{manifesto},
-    about{principles},
+    home{manifesto, hero{kicker, lead}, heroImage, intro, impact{lead}},
+    about{hero{lead}, principles},
     productsPage{hero{lead}, lead},
     storePage{hero{lead}, lead},
     catalogue{hero{lead}, quoteFlow, estimate{cards}},
     casesPage{hero{lead}},
-    blogPage{hero{lead}, newsletter}
+    blogPage{hero{lead}, newsletter},
+    contactPage{fields, formLabels{name}}
   }`,
 )
 
@@ -86,9 +100,16 @@ const isPresent = (value: unknown) => value !== undefined && value !== null
 
 for (const doc of siteDocs) {
   const unset = [
+    isPresent(doc.title) ? 'title' : '',
     isPresent(doc.footer) ? 'footer' : '',
     isPresent(doc.home?.manifesto) ? 'home.manifesto' : '',
+    isPresent(doc.home?.hero?.kicker) ? 'home.hero.kicker' : '',
+    isPresent(doc.home?.hero?.lead) ? 'home.hero.lead' : '',
+    isPresent(doc.home?.heroImage) ? 'home.heroImage' : '',
+    isPresent(doc.home?.intro) ? 'home.intro' : '',
+    isPresent(doc.home?.impact?.lead) ? 'home.impact.lead' : '',
     isPresent(doc.about?.principles) ? 'about.principles' : '',
+    isPresent(doc.about?.hero?.lead) ? 'about.hero.lead' : '',
     isPresent(doc.productsPage?.hero?.lead) ? 'productsPage.hero.lead' : '',
     isPresent(doc.productsPage?.lead) ? 'productsPage.lead' : '',
     isPresent(doc.storePage?.hero?.lead) ? 'storePage.hero.lead' : '',
@@ -99,6 +120,8 @@ for (const doc of siteDocs) {
     isPresent(doc.casesPage?.hero?.lead) ? 'casesPage.hero.lead' : '',
     isPresent(doc.blogPage?.hero?.lead) ? 'blogPage.hero.lead' : '',
     isPresent(doc.blogPage?.newsletter) ? 'blogPage.newsletter' : '',
+    isPresent(doc.contactPage?.fields) ? 'contactPage.fields' : '',
+    isPresent(doc.contactPage?.formLabels?.name) ? 'contactPage.formLabels.name' : '',
   ].filter(Boolean)
 
   if (unset.length) patches.push({id: doc._id, unset})

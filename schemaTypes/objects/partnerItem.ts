@@ -16,25 +16,28 @@ export const partnerItem = defineType({
     defineField({
       name: 'name',
       title: 'Nome',
+      description: 'Nome público da entidade ou projeto.',
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'url',
       title: 'Link',
+      description: 'Página oficial da entidade ou projeto.',
       type: 'url',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'logo',
       title: 'Logotipo',
+      description: 'Use uma imagem nítida e com margem suficiente.',
       type: 'image',
       options: {hotspot: false},
       fields: [
         defineField({
           name: 'alt',
           title: 'Descrição da imagem',
-          description: 'Texto simples para acessibilidade. Exemplo: Logotipo Eco-Escolas.',
+          description: 'Exemplo: Logotipo Eco-Escolas.',
           type: 'localizedString',
           validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
         }),
@@ -44,7 +47,7 @@ export const partnerItem = defineType({
     defineField({
       name: 'logoTone',
       title: 'Fundo do logotipo',
-      description: 'Use fundo escuro quando o logotipo for branco ou muito claro.',
+      description: 'Escolha escuro para logotipos brancos ou muito claros.',
       type: 'string',
       initialValue: 'light',
       options: {
@@ -55,7 +58,7 @@ export const partnerItem = defineType({
         ],
       },
     }),
-    localizedTextField('text', 'Texto curto', 'Explique a ligação ou o contexto deste parceiro.'),
+    localizedTextField('text', 'Descrição', 'Explique a ligação a este parceiro.'),
   ],
   preview: {
     select: {

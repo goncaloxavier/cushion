@@ -2,7 +2,6 @@ import {siteLanding} from './siteLanding'
 import {blogPost} from './blogPost'
 import {caseStudy} from './caseStudy'
 import {contentCard} from './objects/contentCard'
-import {impactStat} from './objects/impactStat'
 import {localizedArticle} from './objects/localizedArticle'
 import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
@@ -25,7 +24,6 @@ export const websiteSchemaTypes = [
   localizedText,
   partnerItem,
   contentCard,
-  impactStat,
 ]
 
 export const crmSchemaTypes = [clientProfile, formSubmission, staffUser, staffSession]

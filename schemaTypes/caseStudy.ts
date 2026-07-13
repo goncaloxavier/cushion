@@ -13,7 +13,7 @@ export const caseStudy = defineType({
     defineField({
       name: 'title',
       title: 'Nome do projeto',
-      description: 'Título público do caso de estudo.',
+      description: 'Título público do caso.',
       type: 'localizedString',
       group: 'conteudo',
       validation: (Rule) => Rule.required(),
@@ -21,8 +21,7 @@ export const caseStudy = defineType({
     defineField({
       name: 'slug',
       title: 'Endereço da página',
-      description:
-        'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
+      description: 'Gere a partir do nome e evite alterar depois de publicar.',
       type: 'slug',
       group: 'conteudo',
       options: {source: 'title.pt', maxLength: 96},
@@ -31,7 +30,7 @@ export const caseStudy = defineType({
     defineField({
       name: 'image',
       title: 'Imagem principal',
-      description: 'Imagem usada na listagem de casos e na página de detalhe.',
+      description: 'Usada na listagem e na página do caso.',
       type: 'image',
       group: 'imagens',
       options: {hotspot: true},
@@ -39,7 +38,7 @@ export const caseStudy = defineType({
         defineField({
           name: 'alt',
           title: 'Descrição da imagem',
-          description: 'Texto simples para acessibilidade. Diga o que se vê na fotografia.',
+          description: 'Para acessibilidade. Diga o que se vê.',
           type: 'localizedString',
           validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
         }),
@@ -47,8 +46,8 @@ export const caseStudy = defineType({
     }),
     defineField({
       name: 'gallery',
-      title: 'Galeria do projeto',
-      description: 'Imagens extra para a página do caso e a vista ampliada.',
+      title: 'Galeria',
+      description: 'Imagens adicionais do projeto.',
       type: 'array',
       group: 'imagens',
       of: [
@@ -59,7 +58,7 @@ export const caseStudy = defineType({
             defineField({
               name: 'alt',
               title: 'Descrição da imagem',
-              description: 'Texto simples para acessibilidade.',
+              description: 'Para acessibilidade. Diga o que se vê.',
               type: 'localizedString',
               validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
             }),
@@ -70,50 +69,49 @@ export const caseStudy = defineType({
     defineField({
       name: 'location',
       title: 'Localização',
-      description: 'Local ou zona do projeto. Exemplo: Moita, Torres do Mondego.',
+      description: 'Exemplo: Moita ou Torres do Mondego.',
       type: 'string',
       group: 'conteudo',
     }),
     defineField({
       name: 'summary',
       title: 'Resumo',
-      description: 'Frase curta para a listagem de casos.',
+      description: 'Frase curta sobre o projeto.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'description',
-      title: 'Descrição do caso',
-      description:
-        'Texto livre para casos simples vindos da página antiga: título, descrição e fotografias.',
+      title: 'Descrição',
+      description: 'Texto principal para um caso simples.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'challenge',
       title: 'Desafio',
-      description: 'O problema inicial do cliente ou do espaço.',
+      description: 'Opcional. Problema inicial do espaço.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'solution',
       title: 'Solução',
-      description: 'O que foi feito e que material/abordagem foi usado.',
+      description: 'Opcional. O que foi feito.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'result',
       title: 'Resultado',
-      description: 'Benefício final: menos manutenção, mais segurança, melhor uso do espaço, etc.',
+      description: 'Opcional. Benefício final do projeto.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'orderRank',
       title: 'Ordem de apresentação',
-      description: 'Número mais baixo aparece primeiro na listagem.',
+      description: 'O número mais baixo aparece primeiro.',
       type: 'number',
       group: 'organizacao',
       initialValue: 100,

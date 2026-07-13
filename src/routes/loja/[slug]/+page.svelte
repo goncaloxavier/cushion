@@ -2,6 +2,8 @@
   import {browser} from '$app/environment'
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {lineReveal} from '$lib/actions/line-reveal'
+  import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -289,70 +291,75 @@
       aria-hidden={deliveryModalOpen}
       inert={deliveryModalOpen}
     >
-    <div class="store-detail-head">
-      <a class="detail-back-link" href={backHref}>
-        <span aria-hidden="true">←</span>
-        {labels.back}
-      </a>
-      <div class="store-detail-delivery">
-        <div class="store-delivery-info">
-          <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
-            <circle cx="12" cy="10" r="2.6" />
-          </svg>
-          <span class="store-delivery-text">
-            <span>{labels.deliveryPostcode}</span>
-            <strong>{deliveryZonePrefix}</strong>
-            {#if deliveryZone}
-              <small>{deliveryZone.label}</small>
-            {/if}
-          </span>
+    <Reveal class="store-detail-head-reveal" variant="panel">
+      <div class="store-detail-head">
+        <a class="detail-back-link" href={backHref}>
+          <span aria-hidden="true">←</span>
+          {labels.back}
+        </a>
+        <div class="store-detail-delivery">
+          <div class="store-delivery-info">
+            <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="2.6" />
+            </svg>
+            <span class="store-delivery-text">
+              <span>{labels.deliveryPostcode}</span>
+              <strong>{deliveryZonePrefix}</strong>
+              {#if deliveryZone}
+                <small>{deliveryZone.label}</small>
+              {/if}
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick={() => {
+              deliveryModalOpen = true
+            }}
+          >
+            {labels.changePostcode}
+          </button>
         </div>
-        <button
-          type="button"
-          onclick={() => {
-            deliveryModalOpen = true
-          }}
-        >
-          {labels.changePostcode}
-        </button>
       </div>
-    </div>
+    </Reveal>
 
     <section class="store-detail-shell">
-      <div class="store-detail-copy">
+      <Reveal class="store-detail-copy" variant="hero" priority>
         <p class="store-detail-category">
           <span>{labels.category}</span>
           {content.storePage.categoryLabels[data.storeProduct.category]}
         </p>
-        <h1>{data.storeProduct.title}</h1>
+        <h1 use:lineReveal>{data.storeProduct.title}</h1>
         <p class="article-lead">{data.storeProduct.summary}</p>
-      </div>
+      </Reveal>
 
-      <div
-        class="store-detail-visual"
-        class:no-image={!hasStoreMedia}
-        data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
-        data-sanity-edit-target={!hasStoreMedia && imageDataAttribute ? true : undefined}
-      >
-        {#if hasStoreMedia}
-          <StoreMediaGallery
-            media={storeMedia}
-            label={content.common.zoomImage}
-            closeLabel={content.common.close}
-            className="store-detail-gallery"
-            sizes="(max-width: 900px) 92vw, 520px"
-            dataAttribute={mediaDataAttribute}
-          />
-        {:else}
-          <div aria-hidden="true">
-            <strong>{initials}</strong>
-            <span>{labels.imagePending}</span>
-          </div>
-        {/if}
-      </div>
+      <Reveal class="store-detail-visual-reveal" delay={120} variant="media">
+        <div
+          class="store-detail-visual"
+          class:no-image={!hasStoreMedia}
+          data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
+          data-sanity-edit-target={!hasStoreMedia && imageDataAttribute ? true : undefined}
+        >
+          {#if hasStoreMedia}
+            <StoreMediaGallery
+              media={storeMedia}
+              label={content.common.zoomImage}
+              closeLabel={content.common.close}
+              className="store-detail-gallery"
+              sizes="(max-width: 900px) 92vw, 520px"
+              dataAttribute={mediaDataAttribute}
+            />
+          {:else}
+            <div aria-hidden="true">
+              <strong>{initials}</strong>
+              <span>{labels.imagePending}</span>
+            </div>
+          {/if}
+        </div>
+      </Reveal>
     </section>
 
+    <Reveal class="store-buy-panel-reveal" variant="panel">
     <section class="store-buy-panel" aria-label={`${data.storeProduct.title}: ${labels.selectedPrice}`}>
       <div class="store-option-grid">
         <fieldset class="store-detail-variants">
@@ -471,6 +478,7 @@
         <a class="text-link" href={`/carrinho${langQuery}`}>{labels.viewCart}</a>
       </div>
     </section>
+    </Reveal>
     </article>
 
     {#if deliveryModalOpen}

@@ -54,12 +54,13 @@ test.describe('server foundations', () => {
           order_number, language, customer_name, email, phone, nif, purchase_type,
           billing_address, billing_postal_code, billing_locality,
           delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
-          product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier
+          product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
+          privacy_consent_at
         ) values (
           $1, 'pt', 'Audit customer', $2, '', '', 'individual',
           'Rua de teste', '1000-001', 'Lisboa',
           'Rua de teste', '1000-001', 'Lisboa', 'Lisboa',
-          10, 2, 2.76, 14.76, 1, 2.5
+          10, 2, 2.76, 14.76, 1, 2.5, now()
         ) returning id`,
         [`AUDIT-${suffix}`, email],
       )

@@ -397,12 +397,9 @@ type SanitySiteContent = {
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
-    heroImage?: SanityImage
     heroVideoUrl?: string
-    intro?: SanityCopyBlock
     impact?: {
       title?: LocalizedValue
-      lead?: LocalizedValue
       stats?: SanityContentCard[]
     }
     partners?: {
@@ -447,7 +444,6 @@ type SanitySiteContent = {
   }
   contactPage?: {
     hero?: SanityCopyBlock
-    fields?: LocalizedValue[]
     formLabels?: Partial<Record<ContactFieldKey, LocalizedValue>>
   }
 }
@@ -2241,14 +2237,14 @@ const applySiteContentFromSanity = (
   target.common = commonFromSanity(source.common, language, fallback.common)
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
-    heroImage: imageFromSanity(source.home?.heroImage, language, fallback.home.heroImage),
+    heroImage: fallback.home.heroImage,
     heroVideoUrl: source.home?.heroVideoUrl?.trim() || fallback.home.heroVideoUrl,
     heroVideoLabel: fallback.home.heroVideoLabel,
     heroVideoCloseLabel: fallback.home.heroVideoCloseLabel,
-    intro: copyBlockFromSanity(source.home?.intro, language, fallback.home.intro),
+    intro: fallback.home.intro,
     impact: {
       title: localized(source.home?.impact?.title, language, fallback.home.impact.title),
-      lead: localized(source.home?.impact?.lead, language, fallback.home.impact.lead),
+      lead: fallback.home.impact.lead,
       stats: contentCardsFromSanity(
         source.home?.impact?.stats,
         language,
@@ -2329,22 +2325,16 @@ const applySiteContentFromSanity = (
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
   }
 
-  const legacyContactFields = localizedListFromSanity(
-    source.contactPage?.fields,
-    language,
-    fallback.contactPage.fields,
-  )
-
   target.contactPage = {
     hero: copyBlockFromSanity(source.contactPage?.hero, language, fallback.contactPage.hero),
-    fields: legacyContactFields,
+    fields: fallback.contactPage.fields,
     formLabels: Object.fromEntries(
       contactFieldKeys.map((key, index) => [
         key,
         localized(
           source.contactPage?.formLabels?.[key],
           language,
-          fallback.contactPage.formLabels[key] || legacyContactFields[index] || key,
+          fallback.contactPage.formLabels[key] || fallback.contactPage.fields[index] || key,
         ),
       ]),
     ) as ContactFormLabels,

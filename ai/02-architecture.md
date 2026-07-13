@@ -97,7 +97,7 @@ visitor query -> /api/search -> src/lib/server/search.ts scoring across product/
 - `sanity.config.ts` - multi-workspace Studio config: website editing at `/website`, private requests/client profiles at `/crm`.
 - `sanity.structure.ts` - client-friendly Studio navigation for public website content and private CRM workflows.
 - `sanity.cli.ts` - Sanity CLI project, dataset, and deployment settings for the hosted Studio at `https://dafabrica4you.sanity.studio/`.
-- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, Loja products, case studies, blog posts, and private CRM documents (`clientProfile`, `formSubmission`, `staffUser`, `staffSession`).
+- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, Loja products, case studies, blog posts, and private CRM documents (`clientProfile`, `formSubmission`, `staffUser`, `staffSession`). Localized short copy uses a compact two-line `localizedString` textarea and longer copy uses `localizedText`; EN/ES are hidden and filled by the translation pipeline. Keeping the established object type avoids migrations for existing content.
 - `static/logo/brand_mark.png` - provided brand mark.
 - `static/images/recycled-products-hero.png` - generated hero image for this project.
 - `static/images/product-materials.png`, `static/images/case-installation.png`, and `static/images/blog-editorial.png` - generated fallback collection images used until Sanity entries have uploaded images.
@@ -161,6 +161,7 @@ visitor query -> /api/search -> src/lib/server/search.ts scoring across product/
 
 - Keep `sanity.config.ts` and `sanity.cli.ts` aligned on project id. `sanity.cli.ts` defaults to the public `production` dataset; the CRM workspace intentionally targets private dataset `crm`.
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
+- Do not retain hidden legacy fields in client-facing schemas. Remove confirmed dead values with `scripts/cleanup-removed-website-fields.ts` so Studio stays free of unknown/ghost fields.
 - Keep public website schemas in `websiteSchemaTypes` and private CRM schemas in `crmSchemaTypes`.
 - Never add CRM/client profile/form submission documents to the public website GROQ query or fallback content.
 - Public content in dataset `production` can be readable by the website. Editing that content happens through Sanity login/permissions in Studio.
@@ -186,7 +187,7 @@ visitor query -> /api/search -> src/lib/server/search.ts scoring across product/
 - Product categories, Loja products, case studies, and blog posts should keep editable Sanity image fields with hotspot support and localized alt text; product/case/blog detail galleries keep their gallery fields.
 - Contact/social/legal Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, layout/footer rendering, and contact route rendering.
 - Partner Sanity fields must stay aligned across schema definitions, GROQ projections, fallback normalization, public route rendering, and tests.
-- The homepage institutional video is the editable `home.heroVideoUrl` field, rendered as a muted looping hero background and as a full modal player from the video button. The old homepage media/gallery section has been removed; keep `heroVideoUrl` aligned across schema, GROQ, fallback, normalization, and the hero, and keep play/close control labels (`heroVideoLabel`, `heroVideoCloseLabel`) as fallback-only localized UI strings.
+- The homepage Studio model only exposes fields rendered on that page: hero title/video, impact title/numbers, and partner content. Historical hero kicker/supporting text/image, company-introduction block, and impact supporting text are intentionally removed. `home.heroVideoUrl` renders as a muted looping background and full modal player; play/close labels and fallback SEO media remain code-managed.
 - Desktop navigation should expose the full primary route set, including Loja. Mobile navigation should use the stable full-screen overlay menu and must not swap links based on the current route.
 - When adding public routes, fallback CMS items, or form/backend behavior, update Playwright route/CMS-contract coverage. Generate visual snapshots only for local/session review and do not commit them.
 - Keep Playwright deterministic by leaving `SANITY_DISABLE_REMOTE=true` for automated route and visual tests.

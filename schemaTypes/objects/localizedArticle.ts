@@ -47,9 +47,10 @@ const articleBlocks = [
     fields: [
       defineField({
         name: 'alt',
-        title: 'Descrição alternativa',
-        description: 'Texto curto para acessibilidade. Diga o que aparece na imagem.',
-        type: 'string',
+        title: 'Descrição da imagem',
+        description: 'Para acessibilidade. Diga o que aparece na imagem.',
+        type: 'text',
+        rows: 2,
         validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
       }),
       defineField({
@@ -73,9 +74,10 @@ const articleBlocks = [
       }),
       defineField({
         name: 'title',
-        title: 'Título acessível',
-        description: 'Usado por leitores de ecrã e no iframe.',
-        type: 'string',
+        title: 'Título do vídeo',
+        description: 'Identifica o vídeo para leitores de ecrã.',
+        type: 'text',
+        rows: 2,
       }),
       defineField({
         name: 'caption',
@@ -172,7 +174,7 @@ export const localizedArticle = defineType({
     defineField({
       name: 'translationHash',
       title: 'Hash de tradução (uso interno)',
-      description: 'Gerido automaticamente pelo pipeline de tradução. Não editar.',
+      description: 'Gerido automaticamente. Não editar.',
       type: 'string',
       hidden: true,
       readOnly: true,

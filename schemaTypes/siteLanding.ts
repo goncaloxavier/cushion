@@ -16,45 +16,20 @@ const localizedTextField = (name: string, title: string, description?: string) =
     type: 'localizedText',
   })
 
-const hiddenLocalizedStringField = (name: string, title: string, description: string) =>
-  defineField({
-    name,
-    title,
-    description,
-    type: 'localizedString',
-    hidden: true,
-  })
-
-const hiddenLocalizedTextField = (name: string, title: string, description: string) =>
-  defineField({
-    name,
-    title,
-    description,
-    type: 'localizedText',
-    hidden: true,
-  })
-
 const copyBlockField = (
   name: string,
   title: string,
   description?: string,
-  options: {includeLead?: boolean; hiddenLead?: boolean} = {},
+  options: {includeKicker?: boolean; includeLead?: boolean} = {},
 ) => {
-  const fields = [
-    localizedStringField('kicker', 'Etiqueta pequena', 'Texto curto acima do título, quando existir.'),
-    localizedStringField('title', 'Título principal', 'O título visível nesta zona da página.'),
-  ]
+  const fields = [localizedStringField('title', 'Título', 'Título visível nesta zona.')]
 
-  if (options.hiddenLead) {
-    fields.push(
-      hiddenLocalizedTextField(
-        'lead',
-        'Texto de apoio antigo',
-        'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
-      ),
-    )
-  } else if (options.includeLead !== false) {
-    fields.push(localizedTextField('lead', 'Texto de apoio', 'Texto curto logo abaixo do título.'))
+  if (options.includeKicker !== false) {
+    fields.unshift(localizedStringField('kicker', 'Etiqueta', 'Texto curto acima do título.'))
+  }
+
+  if (options.includeLead !== false) {
+    fields.push(localizedTextField('lead', 'Texto', 'Aparece abaixo do título.'))
   }
 
   return defineField({
@@ -78,7 +53,7 @@ const pageImageField = (name: string, title: string, description?: string) =>
       defineField({
         name: 'alt',
         title: 'Descrição da imagem',
-        description: 'Texto simples para acessibilidade. Diga o que se vê na imagem.',
+        description: 'Para acessibilidade. Diga o que se vê.',
         type: 'localizedString',
         validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
       }),
@@ -115,8 +90,8 @@ const localizedStringListField = (name: string, title: string, description?: str
 const contactFormLabelsField = () =>
   defineField({
     name: 'formLabels',
-    title: 'Labels visíveis do formulário',
-    description: 'Edite o texto que aparece junto a cada campo. Os nomes técnicos ficam fixos.',
+    title: 'Nomes dos campos',
+    description: 'Texto visível junto a cada campo do formulário.',
     type: 'object',
     options: {collapsible: true},
     fields: [
@@ -128,11 +103,6 @@ const contactFormLabelsField = () =>
       localizedStringField('postalCode', 'Código postal'),
       localizedStringField('locality', 'Localidade'),
       localizedStringField('message', 'Mensagem'),
-      hiddenLocalizedStringField(
-        'name',
-        'Nome antigo',
-        'Compatibilidade com conteúdo antigo. O formulário público usa Primeiro nome e Apelido.',
-      ),
     ],
   })
 
@@ -161,189 +131,137 @@ export const siteLanding = defineType({
     {name: 'contact', title: 'Contacto e rodapé'},
   ],
   fields: [
-    defineField({
-      name: 'title',
-      title: 'Título interno',
-      type: 'string',
-      initialValue: 'Conteúdo do site DaFábrica4You',
-      validation: (Rule) => Rule.required(),
-      hidden: true,
-    }),
     pageSectionField(
       'home',
       'Página inicial',
       [
         copyBlockField(
           'hero',
-          'Primeira secção',
-          'Título e introdução principal da página inicial.',
-        ),
-        pageImageField(
-          'heroImage',
-          'Imagem principal da primeira secção',
-          'Imagem grande no topo da página inicial. Serve também de capa do vídeo do topo, quando existir.',
+          'Topo da página',
+          'Título principal.',
+          {includeKicker: false, includeLead: false},
         ),
         defineField({
           name: 'heroVideoUrl',
-          title: 'Vídeo do topo (YouTube)',
-          description:
-            'Opcional. Cole o link do vídeo institucional para o mostrar no topo da página inicial, por cima da imagem principal. Se ficar vazio, o topo mostra apenas a imagem.',
+          title: 'Vídeo do topo',
+          description: 'Opcional. Cole o link do vídeo no YouTube.',
           type: 'url',
         }),
-        copyBlockField(
-          'intro',
-          'Apresentação da empresa',
-          'Explicação curta sobre a empresa usada depois da primeira secção.',
-        ),
         defineField({
           name: 'impact',
           title: 'Impacto e prova',
-          description: 'Números e texto curto que dão credibilidade à página inicial.',
+          description: 'Título e números de impacto.',
           type: 'object',
           options: {collapsible: true},
           fields: [
-            localizedStringField('title', 'Título da secção'),
-            localizedTextField('lead', 'Texto da secção'),
-            contentCardsField('stats', 'Números de impacto'),
+            localizedStringField('title', 'Título'),
+            contentCardsField('stats', 'Números'),
           ],
         }),
         defineField({
           name: 'partners',
           title: 'Parceiros e projetos',
-          description: 'Logotipos e textos curtos para entidades parceiras e projetos relevantes.',
+          description: 'Entidades, projetos, logotipos e links.',
           type: 'object',
           options: {collapsible: true},
           fields: [
-            localizedStringField('kicker', 'Etiqueta pequena'),
-            localizedStringField('title', 'Título da secção'),
-            localizedTextField('lead', 'Texto da secção'),
+            localizedStringField('kicker', 'Etiqueta'),
+            localizedStringField('title', 'Título'),
+            localizedTextField('lead', 'Texto'),
             partnerItemsField('items', 'Parceiros'),
           ],
         }),
       ],
-      'Edite os textos públicos da página inicial. A composição visual continua controlada pelo website.',
+      'Textos, vídeo e parceiros da página inicial.',
     ),
     pageSectionField(
       'about',
       'Página Sobre',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         contentCardsField('timeline', 'Momentos da empresa'),
       ],
-      'Edite o título, introdução e momentos da página Sobre.',
+      'Título e momentos da empresa.',
     ),
     pageSectionField(
       'productsPage',
       'Página Produtos',
       [
-        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
-        pageImageField(
-          'heroImage',
-          'Imagem principal da primeira secção',
-          'Imagem grande usada no topo da página de produtos.',
-        ),
-        hiddenLocalizedTextField(
-          'lead',
-          'Texto antigo da listagem',
-          'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
-        ),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
+        pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
       ],
-      'Edite apenas os textos da listagem de produtos. Cada produto é editado na área Produtos.',
+      'Topo da listagem. Edite cada solução na área Produtos.',
     ),
     pageSectionField(
       'storePage',
       'Página Loja',
       [
-        copyBlockField('hero', 'Primeira secção', undefined, {hiddenLead: true}),
-        hiddenLocalizedTextField(
-          'lead',
-          'Texto antigo junto aos filtros',
-          'Compatibilidade com conteúdo antigo. Este texto já não é apresentado no website.',
-        ),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         defineField({
           name: 'transportMultiplier',
           title: 'Multiplicador de transporte',
-          description:
-            'Valor aplicado ao preço líquido de transporte antes de calcular o IVA. Use 2.5 quando não houver indicação em contrário.',
+          description: 'Multiplica o custo de transporte antes do IVA. Valor atual: 2,5.',
           type: 'number',
           initialValue: 2.5,
           validation: (Rule) => Rule.min(0.1).max(20).precision(2),
         }),
       ],
-      'Edite os textos públicos da Loja. Cada produto, variante e preço é editado na área Loja.',
+      'Topo e cálculo de transporte. Produtos e preços ficam na área Loja.',
     ),
     pageSectionField(
       'catalogue',
       'Página Catálogo',
       [
-        copyBlockField('hero', 'Primeira secção', undefined, {hiddenLead: true}),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         localizedStringField('ctaLabel', 'Texto do botão'),
         defineField({
           name: 'estimate',
           title: 'Pedido de catálogo',
-          description:
-            'Bloco principal que explica que o catálogo deve ser pedido através do formulário.',
+          description: 'Explica como pedir o catálogo.',
           type: 'object',
           options: {collapsible: true},
           fields: [
-            localizedStringField('kicker', 'Etiqueta pequena'),
-            localizedStringField('title', 'Título da secção'),
-            localizedTextField('lead', 'Texto da secção'),
-            localizedStringField('checklistTitle', 'Título da checklist'),
-            localizedStringListField('checklist', 'Itens da checklist'),
+            localizedStringField('kicker', 'Etiqueta'),
+            localizedStringField('title', 'Título'),
+            localizedTextField('lead', 'Texto'),
+            localizedStringField('checklistTitle', 'Título da lista'),
+            localizedStringListField('checklist', 'Itens da lista'),
           ],
         }),
       ],
-      'Edite a página Catálogo: texto principal, lista de informação útil e botão para o formulário.',
+      'Topo, instruções e botão do formulário.',
     ),
     pageSectionField(
       'casesPage',
       'Página Casos',
       [
-        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
-        pageImageField(
-          'heroImage',
-          'Imagem principal da primeira secção',
-          'Imagem grande usada no topo da listagem de casos.',
-        ),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
+        pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
       ],
-      'Edite o título e introdução da listagem de casos. Cada caso é editado na área Casos de estudo.',
+      'Topo da listagem. Edite cada projeto na área Casos de estudo.',
     ),
     pageSectionField(
       'blogPage',
       'Página Blog',
       [
-        copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false}),
-        pageImageField(
-          'heroImage',
-          'Imagem principal da primeira secção',
-          'Imagem grande usada no topo da listagem do blog.',
-        ),
+        copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
+        pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
       ],
-      'Edite a introdução do Blog. Cada artigo é editado na área Artigos do blog.',
+      'Topo da listagem. Edite cada artigo na área Artigos do blog.',
     ),
     pageSectionField(
       'contactPage',
       'Página Contacto',
       [
-        copyBlockField('hero', 'Primeira secção'),
+        copyBlockField('hero', 'Topo da página'),
         contactFormLabelsField(),
-        defineField({
-          name: 'fields',
-          title: 'Labels antigos do formulário',
-          description:
-            'Compatibilidade com conteúdo antigo. Não editar; use os campos nomeados acima.',
-          type: 'array',
-          of: [{type: 'localizedString'}],
-          hidden: true,
-        }),
       ],
-      'Edite o título, texto introdutório e labels do formulário de contacto.',
+      'Topo e nomes visíveis dos campos.',
     ),
     defineField({
       name: 'common',
-      title: 'Dados de contacto',
-      description: 'Usado na página de contacto e no rodapé.',
+      title: 'Contacto, redes e legal',
+      description: 'Informação usada no contacto e no rodapé.',
       type: 'object',
       group: 'contact',
       options: {collapsible: true},
@@ -365,61 +283,63 @@ export const siteLanding = defineType({
           type: 'url',
         }),
         localizedStringField('whatsappLabel', 'Texto do botão WhatsApp'),
-        localizedStringField('socialLabel', 'Título das redes sociais'),
+        localizedStringField('socialLabel', 'Nome das redes sociais'),
         defineField({
           name: 'youtubeUrl',
-          title: 'Link YouTube',
+          title: 'Link do YouTube',
           type: 'url',
         }),
         defineField({
           name: 'facebookUrl',
-          title: 'Link Facebook',
+          title: 'Link do Facebook',
           type: 'url',
         }),
         defineField({
           name: 'instagramUrl',
-          title: 'Link Instagram',
+          title: 'Link do Instagram',
           type: 'url',
         }),
         defineField({
           name: 'complaintsUrl',
-          title: 'Link Livro de Reclamações',
-          description: 'Use o endereço oficial ou o link específico da empresa quando existir.',
+          title: 'Link do Livro de Reclamações',
+          description: 'Link oficial da empresa.',
           type: 'url',
         }),
         localizedStringField('complaintsLabel', 'Texto do Livro de Reclamações'),
         localizedTextField(
           'complaintsNote',
-          'Texto legal junto ao Livro de Reclamações',
-          'Mostrado sempre que o link do Livro de Reclamações aparece.',
+          'Nota legal do Livro de Reclamações',
+          'Aparece junto ao link.',
         ),
         defineField({
           name: 'privacyPolicyUrl',
-          title: 'Link Política de Privacidade',
-          description: 'Link público para a política de privacidade da empresa.',
+          title: 'Link da Política de Privacidade',
           type: 'url',
         }),
-        localizedStringField('privacyPolicyLabel', 'Texto da Política de Privacidade'),
+        localizedStringField('privacyPolicyLabel', 'Nome da Política de Privacidade'),
         defineField({
           name: 'cookiePolicyUrl',
-          title: 'Link Política de Cookies',
-          description: 'Link público para a política de cookies da empresa.',
+          title: 'Link da Política de Cookies',
           type: 'url',
         }),
-        localizedStringField('cookiePolicyLabel', 'Texto da Política de Cookies'),
-        localizedTextField('marketingConsent', 'Consentimento de dados/marketing'),
+        localizedStringField('cookiePolicyLabel', 'Nome da Política de Cookies'),
+        localizedTextField(
+          'marketingConsent',
+          'Consentimento de contacto',
+          'Texto apresentado junto à caixa de consentimento.',
+        ),
         localizedStringField(
           'privacyConsentPrefix',
-          'Texto antes do link da Política de Privacidade',
-          'Exemplo: "Eu concordo com a". O link para a Política de Privacidade é adicionado a seguir automaticamente.',
+          'Texto antes da Política de Privacidade',
+          'Exemplo: “Eu concordo com a”. O link é adicionado automaticamente.',
         ),
       ],
     }),
   ],
   preview: {
     select: {
-      title: 'title',
       subtitle: 'home.hero.title.pt',
     },
+    prepare: ({subtitle}) => ({title: 'Conteúdo do site', subtitle}),
   },
 })

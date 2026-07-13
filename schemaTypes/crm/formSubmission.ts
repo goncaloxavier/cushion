@@ -125,7 +125,8 @@ export const formSubmission = defineType({
     defineField({
       name: 'address',
       title: 'Morada',
-      type: 'string',
+      type: 'text',
+      rows: 2,
       group: 'client',
       readOnly: true,
     }),
@@ -145,14 +146,14 @@ export const formSubmission = defineType({
     }),
     defineField({
       name: 'marketingConsent',
-      title: 'Aceitou contacto comercial/marketing',
+      title: 'Consentimento de marketing',
       type: 'boolean',
       group: 'client',
       readOnly: true,
     }),
     defineField({
       name: 'consentText',
-      title: 'Texto de consentimento aceite',
+      title: 'Texto aceite',
       type: 'text',
       rows: 3,
       group: 'client',
@@ -160,7 +161,7 @@ export const formSubmission = defineType({
     }),
     defineField({
       name: 'privacyConsent',
-      title: 'Aceitou a política de privacidade',
+      title: 'Consentimento de privacidade',
       type: 'boolean',
       group: 'client',
       readOnly: true,
@@ -177,7 +178,7 @@ export const formSubmission = defineType({
     defineField({
       name: 'internalNotes',
       title: 'Notas internas',
-      description: 'Notas de acompanhamento. Nunca aparecem no website.',
+      description: 'Nunca aparecem no website.',
       type: 'text',
       rows: 4,
       group: 'management',

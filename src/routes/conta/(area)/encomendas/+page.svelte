@@ -130,7 +130,7 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<Reveal class="account-card account-orders" variant="card">
+<Reveal class="account-card account-orders" variant="card" priority>
   <div class="account-card-head">
     <h2>{t.title}</h2>
   </div>
@@ -143,8 +143,8 @@
         <span role="columnheader">{t.payment}</span>
         <span role="columnheader">{t.total}</span>
       </div>
-      {#each data.orders as order (order.id)}
-        <div class="account-order-row" role="row">
+      {#each data.orders as order, index (order.id)}
+        <div class="account-order-row" role="row" style={`--item-index: ${index}`}>
           <div class="account-order-main" role="cell">
             <strong>{t.order} {order.orderNumber}</strong>
             <span class="account-order-date">{dateFormatter.format(new Date(order.createdAt))}</span>
