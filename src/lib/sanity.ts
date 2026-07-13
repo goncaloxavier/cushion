@@ -64,23 +64,12 @@ const collectionsQuery = `{
       privacyConsentPrefix
     },
     home {
-      hero,
-      heroImage {
-        asset -> {
-          url,
-          metadata {
-            dimensions {
-              aspectRatio
-            }
-          }
-        },
-        alt
+      hero {
+        title
       },
       heroVideoUrl,
-      intro,
       impact {
         title,
-        lead,
         stats[] {
           title,
           text
@@ -110,7 +99,10 @@ const collectionsQuery = `{
       }
     },
     about {
-      hero,
+      hero {
+        kicker,
+        title
+      },
       timeline[] {
         title,
         text
@@ -190,8 +182,7 @@ const collectionsQuery = `{
     },
     contactPage {
       hero,
-      formLabels,
-      fields[]
+      formLabels
     }
   },
   "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {

@@ -127,7 +127,6 @@ const storeProductGallery = (productIndex: number) => {
 const siteContentDocument = {
   _id: 'siteContent',
   _type: 'siteLanding',
-  title: 'Conteúdo do site DaFábrica4You',
   common: {
     contactEmail: fallbackContent.pt.common.contactEmail,
     contactPhone: fallbackContent.pt.common.contactPhone,
@@ -147,13 +146,12 @@ const siteContentDocument = {
     marketingConsent: localizedSiteValue((content) => content.common.marketingConsent),
   },
   home: {
-    hero: copyBlock((content) => content.home.hero),
-    heroImage: imageFromSiteContent((content) => content.home.heroImage),
+    hero: {
+      title: localizedSiteValue((content) => content.home.hero.title),
+    },
     heroVideoUrl: fallbackContent.pt.home.heroVideoUrl,
-    intro: copyBlock((content) => content.home.intro),
     impact: {
       title: localizedSiteValue((content) => content.home.impact.title),
-      lead: localizedSiteValue((content) => content.home.impact.lead),
       stats: contentCards((content) => content.home.impact.stats, 'impact-stat'),
     },
     partners: {
@@ -175,7 +173,7 @@ const siteContentDocument = {
     },
   },
   about: {
-    hero: copyBlock((content) => content.about.hero),
+    hero: copyBlockWithoutLead((content) => content.about.hero),
     timeline: contentCards((content) => content.about.timeline, 'timeline'),
   },
   productsPage: {
@@ -216,7 +214,6 @@ const siteContentDocument = {
         localizedSiteValue((content) => content.contactPage.formLabels[key]),
       ]),
     ),
-    fields: localizedSiteList((content) => content.contactPage.fields, 'contact-field'),
   },
 }
 

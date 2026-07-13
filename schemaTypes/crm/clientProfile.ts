@@ -54,8 +54,9 @@ export const clientProfile = defineType({
     defineField({
       name: 'address',
       title: 'Morada',
-      description: 'Morada para envio do catálogo (quando aplicável).',
-      type: 'string',
+      description: 'Usada para envio do catálogo, quando aplicável.',
+      type: 'text',
+      rows: 2,
       group: 'client',
     }),
     defineField({
@@ -95,8 +96,8 @@ export const clientProfile = defineType({
     }),
     defineField({
       name: 'tags',
-      title: 'Etiquetas internas',
-      description: 'Exemplos: catálogo, município, agricultura, urgente.',
+      title: 'Etiquetas',
+      description: 'Exemplo: catálogo, município ou urgente.',
       type: 'array',
       group: 'management',
       of: [{type: 'string'}],
@@ -105,21 +106,21 @@ export const clientProfile = defineType({
     defineField({
       name: 'notes',
       title: 'Notas internas',
-      description: 'Notas comerciais. Nunca aparecem no website.',
+      description: 'Nunca aparecem no website.',
       type: 'text',
       rows: 5,
       group: 'management',
     }),
     defineField({
       name: 'marketingConsent',
-      title: 'Aceitou contacto comercial/marketing',
+      title: 'Consentimento de marketing',
       type: 'boolean',
       group: 'management',
       readOnly: true,
     }),
     defineField({
       name: 'privacyConsent',
-      title: 'Aceitou a política de privacidade',
+      title: 'Consentimento de privacidade',
       type: 'boolean',
       group: 'management',
       readOnly: true,

@@ -657,7 +657,7 @@ export const listCustomerAddresses = async (customerId: string): Promise<Custome
     `select *
      from customer_addresses
      where customer_id = $1
-     order by address_type asc, is_default desc, updated_at desc`,
+     order by address_type asc, created_at asc, id asc`,
     [customerId],
   )
   return result.rows.map(mapAddress)

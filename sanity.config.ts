@@ -8,6 +8,7 @@ import {crmStructure, managedTypes, websiteStructure} from './sanity.structure'
 
 const projectId = 'u4uyfix8'
 const localPreviewOrigin = 'http://localhost:5173'
+const enableCrmWorkspace = process.env.SANITY_STUDIO_ENABLE_CRM === 'true'
 
 const collectionLocation = (basePath: string, fallbackTitle: string) =>
   defineLocations({
@@ -90,18 +91,22 @@ export default defineConfig([
         managedTypes.includes(context.schemaType) ? [...prev, RetranslateAction] : prev,
     },
   },
-  {
-    name: 'crm',
-    basePath: '/crm',
-    title: 'DaFábrica4You - Pedidos',
+  ...(enableCrmWorkspace
+    ? [
+        {
+          name: 'crm',
+          basePath: '/crm',
+          title: 'DaFábrica4You - Pedidos',
 
-    projectId,
-    dataset: 'crm',
+          projectId,
+          dataset: 'crm',
 
-    plugins: [structureTool({structure: crmStructure})],
+          plugins: [structureTool({structure: crmStructure})],
 
-    schema: {
-      types: crmSchemaTypes,
-    },
-  },
+          schema: {
+            types: crmSchemaTypes,
+          },
+        },
+      ]
+    : []),
 ])

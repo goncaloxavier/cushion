@@ -207,7 +207,7 @@
     </Reveal>
   {/if}
 
-  <Reveal class="account-card account-details-card" variant="card">
+  <Reveal class="account-card account-details-card" variant="card" priority>
     <div class="account-card-head">
       <h2>{t.title}</h2>
       {#if !editing}

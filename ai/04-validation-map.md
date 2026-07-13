@@ -17,7 +17,7 @@ npm run seed:studio:write
 ## What Is Protected
 
 - Unit tests: none configured.
-- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, Loja Studio structure/gallery/editing/import contracts, the Alto Alentejo transport/IVA pricing formula including editable multiplier override, CSP/preview/staff-role contracts, and direct in-process rate-limit boundary/reset behavior. `tests/server-foundation.spec.ts` uses the CI PostgreSQL service to exercise customer verification, session invalidation after password reset, sign-in credentials, and staff order status/note persistence.
+- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, client-friendly multiline inputs, removal of legacy Studio fields, Loja structure/gallery/editing/import contracts, the Alto Alentejo transport/IVA pricing formula including editable multiplier override, CSP/preview/staff-role contracts, and direct in-process rate-limit boundary/reset behavior. `tests/server-foundation.spec.ts` uses the CI PostgreSQL service to exercise customer verification, session invalidation after password reset, sign-in credentials, and staff order status/note persistence.
 - E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable full-screen mobile overlay menu, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/checkout handoff flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, 404 handling, global search (trigger click, Ctrl/Cmd+K, cross-category results, click-through, Escape/focus restore, desktop vs mobile trigger visibility), and the language switcher across desktop/mobile where the viewport matters. `tests/commerce.spec.ts` covers the public cart/checkout handoff and account entry routes. All are included in `npm run e2e` and CI.
 - Visual tests: `tests/visual.spec.ts` can generate/review full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages. Snapshot output is ignored and session-only.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 21 starter Sanity documents from fallback content: the site singleton, 5 product categories, and 15 Loja products.
@@ -47,6 +47,7 @@ npm run seed:studio:write
 
 ## Known Gaps
 
+- The legacy `/crm` Studio workspace is opt-in through `SANITY_STUDIO_ENABLE_CRM=true`. Keep it disabled until the private `crm` dataset is provisioned. This lets the website Studio deploy its current schema without exposing CRM schemas or data through public `production`.
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
 - Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` are configured before relying on live submissions.

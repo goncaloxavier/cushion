@@ -2,6 +2,8 @@
   import {enhance} from '$app/forms'
   import {browser} from '$app/environment'
   import '$lib/styles/account-checkout.css'
+  import {lineReveal} from '$lib/actions/line-reveal'
+  import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {cartTotalQuantity, clearCart, readCart, storeVariantForCartItem, type StoreCartItem} from '$lib/cart'
   import {
@@ -358,27 +360,34 @@
 
 <main class="checkout-page">
   <section class="checkout-shell">
-    <header class="checkout-head">
-      <p class="kicker">{labels.kicker}</p>
-      <h1>{labels.title}</h1>
-    </header>
+    <Reveal class="checkout-head-reveal" variant="hero" priority>
+      <header class="checkout-head">
+        <p class="kicker">{labels.kicker}</p>
+        <h1 use:lineReveal>{labels.title}</h1>
+      </header>
+    </Reveal>
 
     {#if form?.success}
-      <div class="checkout-success">
-        <p class="kicker">{labels.successKicker}</p>
-        <h1>{form.orderNumber}</h1>
-        <p>{form.message}</p>
-        <p>{labels.successTotal}: <strong>{money.format(form.totalGross)}</strong></p>
-        <a class="button primary" href={`/loja${langQuery}`}>{labels.backToStore}</a>
-      </div>
+      <Reveal class="checkout-outcome-reveal" variant="scale">
+        <div class="checkout-success">
+          <p class="kicker">{labels.successKicker}</p>
+          <h1>{form.orderNumber}</h1>
+          <p>{form.message}</p>
+          <p>{labels.successTotal}: <strong>{money.format(form.totalGross)}</strong></p>
+          <a class="button primary" href={`/loja${langQuery}`}>{labels.backToStore}</a>
+        </div>
+      </Reveal>
     {:else if !rows.length}
-      <div class="checkout-success">
-        <p class="kicker">{labels.emptyKicker}</p>
-        <h1>{labels.emptyTitle}</h1>
-        <a class="button primary" href={`/loja${langQuery}`}>{labels.continueStore}</a>
-      </div>
+      <Reveal class="checkout-outcome-reveal" variant="scale">
+        <div class="checkout-success">
+          <p class="kicker">{labels.emptyKicker}</p>
+          <h1>{labels.emptyTitle}</h1>
+          <a class="button primary" href={`/loja${langQuery}`}>{labels.continueStore}</a>
+        </div>
+      </Reveal>
     {:else}
       <div class="checkout-flow">
+        <Reveal class="checkout-form-reveal" variant="panel">
         <form
           method="POST"
           id="checkout-order-form"
@@ -626,7 +635,9 @@
           </label>
 
         </form>
+        </Reveal>
 
+        <Reveal class="checkout-summary-reveal" delay={100} variant="panel">
         <aside class="checkout-summary">
           <div class="checkout-card-head">
             <div>
@@ -672,21 +683,24 @@
             <p class="checkout-account-hint">{labels.guestHint}</p>
           {/if}
         </aside>
+        </Reveal>
 
-        <div class="checkout-actions checkout-final-actions">
-          <button
-            class="button primary"
-            type="submit"
-            form="checkout-order-form"
-            disabled={!data.databaseReady ||
-              estimate.totalGross === null ||
-              paymentMethod === 'card' ||
-              submitting ||
-              !privacyConsentAccepted}
-          >
-            {submitting ? labels.submitting : labels.submit}
-          </button>
-        </div>
+        <Reveal class="checkout-actions-reveal" delay={140} variant="scale">
+          <div class="checkout-actions checkout-final-actions">
+            <button
+              class="button primary"
+              type="submit"
+              form="checkout-order-form"
+              disabled={!data.databaseReady ||
+                estimate.totalGross === null ||
+                paymentMethod === 'card' ||
+                submitting ||
+                !privacyConsentAccepted}
+            >
+              {submitting ? labels.submitting : labels.submit}
+            </button>
+          </div>
+        </Reveal>
       </div>
     {/if}
   </section>

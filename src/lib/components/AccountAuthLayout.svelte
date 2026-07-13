@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {lineReveal} from '$lib/actions/line-reveal'
   import Reveal from '$lib/components/Reveal.svelte'
   import '$lib/styles/account.css'
   import '$lib/styles/account-checkout.css'
@@ -20,15 +21,15 @@
 
 <main class="auth-simple">
   <section class="auth-shell">
-    <Reveal class="auth-intro" variant="panel" priority>
+    <Reveal class="auth-intro" variant="hero" priority>
       <p class="kicker">{kicker}</p>
-      <h1>{title}</h1>
+      <h1 use:lineReveal>{title}</h1>
       {#if lead}
         <p class="auth-card-lead">{lead}</p>
       {/if}
     </Reveal>
 
-    <Reveal class="auth-card" variant="panel" delay={80} priority>
+    <Reveal class="auth-card" variant="panel" delay={100}>
       {@render children()}
     </Reveal>
   </section>
