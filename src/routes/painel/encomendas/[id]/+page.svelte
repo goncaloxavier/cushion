@@ -3,6 +3,7 @@
     fmtDateTime,
     orderStatusLabels,
     orderStatuses,
+    orderStatusTone,
     paymentMethodLabels,
     paymentStatusLabels,
   } from '$lib/painel'
@@ -21,82 +22,87 @@
 </svelte:head>
 
 <header class="painel-page-head">
-  <a class="painel-back" href="/painel/encomendas">← Voltar às encomendas</a>
-  <h1>{order.orderNumber}</h1>
-  <p>{orderStatusLabels[order.status] ?? order.status}</p>
+  <div>
+    <a class="painel-back" href="/painel/encomendas">← Voltar às encomendas</a>
+    <h1>{order.orderNumber}</h1>
+  </div>
+  <span class="painel-tag" data-tone={orderStatusTone(order.status)}>
+    {orderStatusLabels[order.status] ?? order.status}
+  </span>
 </header>
 
-<div class="painel-record">
-  <form method="POST" action="?/setStatus" class="painel-record-section painel-record-status">
-    <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
-    <label class="painel-field-label" for="order-status">Estado da encomenda</label>
-    <div class="painel-record-status-row">
-      <select id="order-status" name="status">
-        {#each orderStatuses as status}
-          <option value={status} selected={status === order.status}>{orderStatusLabels[status]}</option>
-        {/each}
-      </select>
-      <button type="submit">Guardar estado</button>
-    </div>
-  </form>
+<form method="POST" action="?/setStatus" class="painel-panel">
+  <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
+  <label class="painel-field-label" for="order-status">Estado da encomenda</label>
+  <div class="painel-form-row">
+    <select id="order-status" name="status" class="painel-select">
+      {#each orderStatuses as status}
+        <option value={status} selected={status === order.status}>{orderStatusLabels[status]}</option>
+      {/each}
+    </select>
+    <button type="submit" class="painel-btn painel-btn-primary">Guardar estado</button>
+  </div>
+</form>
 
-  <section class="painel-record-section">
-    <h2 class="painel-record-title">Cliente</h2>
-    <div class="painel-field-grid">
-      <div class="painel-field">
-        <span class="painel-field-label">Nome</span>
-        <span class="painel-field-value">{order.customerName}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Email</span>
-        <span class="painel-field-value"><a href={`mailto:${order.email}`}>{order.email}</a></span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Telefone</span>
-        <span class="painel-field-value">{order.phone || '-'}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Tipo</span>
-        <span class="painel-field-value">{order.purchaseType}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Recebida em</span>
-        <span class="painel-field-value">{fmtDateTime(order.createdAt)}</span>
-      </div>
+<div class="painel-panel">
+  <h2 class="painel-panel-title">Cliente</h2>
+  <div class="painel-field-grid">
+    <div class="painel-field">
+      <span class="painel-field-label">Nome</span>
+      <p class="painel-field-value">{order.customerName}</p>
     </div>
-  </section>
-
-  <section class="painel-record-section">
-    <h2 class="painel-record-title">Moradas</h2>
-    <div class="painel-field-grid">
-      <div class="painel-field painel-field-block">
-        <span class="painel-field-label">Faturação</span>
-        <p class="painel-field-text">
-          {order.billingName || '-'}{#if order.nif}&nbsp;· NIF {order.nif}{/if}
-          <br />{order.billingAddress}<br />{order.billingPostalCode} {order.billingLocality}
-        </p>
-      </div>
-      <div class="painel-field painel-field-block">
-        <span class="painel-field-label">Entrega</span>
-        <p class="painel-field-text">
-          {order.deliveryName || '-'}
-          <br />{order.deliveryAddress}<br />{order.deliveryPostalCode} {order.deliveryLocality}<br />{order.deliveryZone}
-        </p>
-      </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Email</span>
+      <p class="painel-field-value"><a href={`mailto:${order.email}`}>{order.email}</a></p>
     </div>
-  </section>
+    <div class="painel-field">
+      <span class="painel-field-label">Telefone</span>
+      <p class="painel-field-value">{order.phone || '-'}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Tipo</span>
+      <p class="painel-field-value">{order.purchaseType}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Recebida em</span>
+      <p class="painel-field-value painel-mono">{fmtDateTime(order.createdAt)}</p>
+    </div>
+  </div>
+</div>
 
-  <section class="painel-record-section">
-    <h2 class="painel-record-title">Itens</h2>
+<div class="painel-panel">
+  <h2 class="painel-panel-title">Moradas</h2>
+  <div class="painel-field-grid">
+    <div class="painel-field painel-field-block">
+      <span class="painel-field-label">Faturação</span>
+      <p class="painel-field-text">
+        {order.billingName || '-'}{#if order.nif}&nbsp;· NIF {order.nif}{/if}
+        <br />{order.billingAddress}<br />{order.billingPostalCode} {order.billingLocality}
+      </p>
+    </div>
+    <div class="painel-field painel-field-block">
+      <span class="painel-field-label">Entrega</span>
+      <p class="painel-field-text">
+        {order.deliveryName || '-'}
+        <br />{order.deliveryAddress}<br />{order.deliveryPostalCode} {order.deliveryLocality}<br
+        />{order.deliveryZone}
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="painel-panel">
+  <h2 class="painel-panel-title">Itens</h2>
+  <div class="painel-table-wrap">
     <table class="painel-table">
       <thead>
         <tr>
           <th>Produto</th>
           <th>Variante</th>
           <th>Acabamento</th>
-          <th>Qtd.</th>
-          <th>Preço un.</th>
-          <th>Total</th>
+          <th data-num>Qtd.</th>
+          <th data-num>Preço un.</th>
+          <th data-num>Total</th>
         </tr>
       </thead>
       <tbody>
@@ -110,71 +116,74 @@
               {/if}
             </td>
             <td>{item.finishLabel || 'Sem opção'}</td>
-            <td>{item.quantity}</td>
-            <td>{money.format(item.unitPriceNet)}</td>
-            <td>{money.format(item.lineTotalNet)}</td>
+            <td data-num>{item.quantity}</td>
+            <td data-num>{money.format(item.unitPriceNet)}</td>
+            <td data-num>{money.format(item.lineTotalNet)}</td>
           </tr>
         {/each}
       </tbody>
     </table>
-  </section>
+  </div>
+</div>
 
-  <section class="painel-record-section">
-    <h2 class="painel-record-title">Totais e pagamento</h2>
-    <div class="painel-field-grid">
-      <div class="painel-field">
-        <span class="painel-field-label">Produtos s/ IVA</span>
-        <span class="painel-field-value">{money.format(order.productNet)}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Transporte s/ IVA</span>
-        <span class="painel-field-value">{money.format(order.transportNet)}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">IVA</span>
-        <span class="painel-field-value">{money.format(order.vat)}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Total</span>
-        <span class="painel-field-value">{money.format(order.totalGross)}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Multiplicador transporte</span>
-        <span class="painel-field-value">{order.transportMultiplier}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Pagamento</span>
-        <span class="painel-field-value">{paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus}</span>
-      </div>
-      <div class="painel-field">
-        <span class="painel-field-label">Método escolhido</span>
-        <span class="painel-field-value">{paymentMethodLabels[order.paymentMethod] ?? (order.paymentMethod || '-')}</span>
-      </div>
-      {#if order.paymentUrl}
-        <div class="painel-field painel-field-block">
-          <span class="painel-field-label">Link de pagamento</span>
-          <span class="painel-field-value"><a href={order.paymentUrl}>{order.paymentUrl}</a></span>
-        </div>
-      {/if}
+<div class="painel-panel">
+  <h2 class="painel-panel-title">Totais e pagamento</h2>
+  <div class="painel-field-grid">
+    <div class="painel-field">
+      <span class="painel-field-label">Produtos s/ IVA</span>
+      <p class="painel-field-value painel-mono">{money.format(order.productNet)}</p>
     </div>
-  </section>
-
-  {#if order.customerNotes}
-    <section class="painel-record-section">
-      <h2 class="painel-record-title">Notas do cliente</h2>
-      <p class="painel-field-text">{order.customerNotes}</p>
-    </section>
-  {/if}
-
-  <section class="painel-record-section">
-    <h2 class="painel-record-title">Notas internas</h2>
-    {#if order.internalNotes}
-      <pre class="painel-notes-log">{order.internalNotes}</pre>
+    <div class="painel-field">
+      <span class="painel-field-label">Transporte s/ IVA</span>
+      <p class="painel-field-value painel-mono">{money.format(order.transportNet)}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">IVA</span>
+      <p class="painel-field-value painel-mono">{money.format(order.vat)}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Total</span>
+      <p class="painel-field-value painel-mono">{money.format(order.totalGross)}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Multiplicador transporte</span>
+      <p class="painel-field-value painel-mono">{order.transportMultiplier}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Pagamento</span>
+      <p class="painel-field-value">{paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus}</p>
+    </div>
+    <div class="painel-field">
+      <span class="painel-field-label">Método escolhido</span>
+      <p class="painel-field-value">{paymentMethodLabels[order.paymentMethod] ?? (order.paymentMethod || '-')}</p>
+    </div>
+    {#if order.paymentUrl}
+      <div class="painel-field painel-field-block">
+        <span class="painel-field-label">Link de pagamento</span>
+        <p class="painel-field-value"><a href={order.paymentUrl}>{order.paymentUrl}</a></p>
+      </div>
     {/if}
-    <form method="POST" action="?/addNote" class="painel-note-add">
-      <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
-      <textarea name="note" rows="3" placeholder="Escreva uma nota interna…" maxlength="2000"></textarea>
-      <button type="submit" class="painel-btn-ghost">Adicionar nota</button>
-    </form>
-  </section>
+  </div>
+</div>
+
+{#if order.customerNotes}
+  <div class="painel-panel">
+    <h2 class="painel-panel-title">Notas do cliente</h2>
+    <p class="painel-field-text">{order.customerNotes}</p>
+  </div>
+{/if}
+
+<div class="painel-panel">
+  <h2 class="painel-panel-title">Notas internas</h2>
+  {#if order.internalNotes}
+    <pre class="painel-notes-log">{order.internalNotes}</pre>
+  {/if}
+  <form method="POST" action="?/addNote">
+    <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
+    <textarea name="note" rows="3" class="painel-textarea" placeholder="Escreva uma nota interna…" maxlength="2000"
+    ></textarea>
+    <div class="painel-form-row">
+      <button type="submit" class="painel-btn">Adicionar nota</button>
+    </div>
+  </form>
 </div>

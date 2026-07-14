@@ -15,7 +15,7 @@
     <input type="hidden" name="csrfToken" value={data.csrfToken} />
 
     {#if form?.message}
-      <p class="painel-login-error" role="alert">{form.message}</p>
+      <p class="painel-alert" data-tone="error" role="alert">{form.message}</p>
     {/if}
 
     <label for="login-username">
@@ -37,6 +37,6 @@
       <input id="login-password" name="password" type="password" autocomplete="current-password" required />
     </label>
 
-    <button class="button primary" type="submit">Entrar</button>
+    <button type="submit">Entrar</button>
   </form>
 </div>

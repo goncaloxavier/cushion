@@ -1,18 +1,19 @@
-import {createHmac} from 'node:crypto'
 import {fail, redirect} from '@sveltejs/kit'
-import {authenticate, createSession, normalizeUsername, sessionCookieName} from '$lib/server/auth'
-import {crmHashSecret} from '$lib/server/crm-client'
+import {authenticate, createSession, normalizeUsername, setStaffSessionCookie} from '$lib/server/staff-auth'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
-import {rateLimit} from '$lib/server/rate-limit'
+import {rateLimit, rateLimitKey} from '$lib/server/rate-limit'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_login_csrf'
 
-const safeNext = (value: string) => (value.startsWith('/painel') ? value : '/painel')
+const safeNext = (value: string) => {
+  if (!value.startsWith('/painel')) return '/painel/pedidos'
+  return value === '/painel' ? '/painel/pedidos' : value
+}
 
 export const load: PageServerLoad = async ({cookies, url}) => {
   return {
-    next: safeNext(url.searchParams.get('next') ?? '/painel'),
+    next: safeNext(url.searchParams.get('next') ?? '/painel/pedidos'),
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/painel/login', url.protocol === 'https:'),
   }
 }
@@ -32,17 +33,8 @@ export const actions: Actions = {
       return fail(403, {message: 'Atualize a página e tente novamente.', username})
     }
 
-    const hashSecret = crmHashSecret()
-    if (!hashSecret) {
-      return fail(503, {message: 'O backoffice ainda não está configurado.', username})
-    }
-
-    const ipHash = createHmac('sha256', hashSecret).update(getClientAddress()).digest('hex')
-
-    if (
-      rateLimit(`login:ip:${ipHash}`, 10, 15 * 60 * 1000) ||
-      rateLimit(`login:user:${username}`, 5, 15 * 60 * 1000)
-    ) {
+    const ipHash = rateLimitKey('login-ip', getClientAddress())
+    if (rateLimit(ipHash, 10, 15 * 60 * 1000) || rateLimit(rateLimitKey('login-user', username), 5, 15 * 60 * 1000)) {
       return fail(429, {message: 'Demasiadas tentativas. Tente novamente dentro de alguns minutos.', username})
     }
 
@@ -51,18 +43,8 @@ export const actions: Actions = {
       return fail(400, {message: 'Utilizador ou palavra-passe incorretos.', username})
     }
 
-    const session = await createSession(user._id, ipHash, request.headers.get('user-agent') ?? '')
-    if (!session) {
-      return fail(503, {message: 'O backoffice ainda não está configurado.', username})
-    }
-
-    cookies.set(sessionCookieName, session.token, {
-      path: '/painel',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: url.protocol === 'https:',
-      expires: new Date(session.expiresAt),
-    })
+    const session = await createSession(user.id, {ipHash, userAgent: request.headers.get('user-agent') ?? ''})
+    setStaffSessionCookie(cookies, session.token, session.expiresAt, url.protocol === 'https:')
 
     redirect(303, next)
   },

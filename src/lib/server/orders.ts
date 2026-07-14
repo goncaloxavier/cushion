@@ -852,22 +852,6 @@ export const getOrderDetail = async (id: string, customerId?: string | null): Pr
   }
 }
 
-export const getPainelOrderStats = async () => {
-  if (!databaseConfigured()) return {orders: 0, pendingPaymentLink: 0}
-  const result = await query<{
-    orders: string
-    pending_payment_link: string
-  }>(`select
-      count(*)::text as orders,
-      count(*) filter (where status = 'pending_payment_link')::text as pending_payment_link
-    from orders`)
-  const row = result.rows[0]
-  return {
-    orders: Number(row?.orders ?? 0),
-    pendingPaymentLink: Number(row?.pending_payment_link ?? 0),
-  }
-}
-
 export const setOrderStatus = async (id: string, status: string, actorLabel: string) => {
   if (!databaseConfigured()) return
   const allowed = new Set([

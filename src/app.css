@@ -8389,3 +8389,23 @@ html.reduce-motion .is-magnetic {
   transform: none !important;
   transition: none !important;
 }
+/* CMS text overrides use fixed breakpoints so typography remains predictable. */
+.cms-styled-text {
+  font-size: var(--cms-text-size-desktop, inherit);
+  white-space: pre-line;
+}
+
+@media (max-width: 900px) {
+  .cms-styled-text {
+    font-size: var(--cms-text-size-tablet, var(--cms-text-size-desktop, inherit));
+  }
+}
+
+@media (max-width: 640px) {
+  .cms-styled-text {
+    font-size: var(
+      --cms-text-size-mobile,
+      var(--cms-text-size-tablet, var(--cms-text-size-desktop, inherit))
+    );
+  }
+}

@@ -136,7 +136,6 @@
       onfocus={() => preloadFull(item)}
       onclick={openLightbox}
       data-sanity={activeDataAttribute}
-      data-sanity-edit-target={activeDataAttribute ? true : undefined}
     >
       {#if item.type === 'image'}
         <img
@@ -187,7 +186,6 @@
             class:is-video={mediaItem.type === 'video'}
             aria-label={`${mediaItem.type === 'video' ? mediaItem.title || label : label} ${index + 1}`}
             data-sanity={thumbAttr}
-            data-sanity-edit-target={thumbAttr ? true : undefined}
             onclick={() => {
               selectItem(index)
             }}

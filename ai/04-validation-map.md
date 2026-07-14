@@ -17,8 +17,8 @@ npm run seed:studio:write
 ## What Is Protected
 
 - Unit tests: none configured.
-- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, client-friendly multiline inputs, removal of legacy Studio fields, Loja structure/gallery/editing/import contracts, the Alto Alentejo transport/IVA pricing formula including editable multiplier override, CSP/preview/staff-role contracts, and direct in-process rate-limit boundary/reset behavior. `tests/server-foundation.spec.ts` uses the CI PostgreSQL service to exercise customer verification, session invalidation after password reset, sign-in credentials, and staff order status/note persistence.
-- E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable full-screen mobile overlay menu, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/checkout handoff flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, 404 handling, global search (trigger click, Ctrl/Cmd+K, cross-category results, click-through, Escape/focus restore, desktop vs mobile trigger visibility), and the language switcher across desktop/mobile where the viewport matters. `tests/commerce.spec.ts` covers the public cart/checkout handoff and account entry routes. All are included in `npm run e2e` and CI.
+- Integration tests: `tests/sanity-contract.spec.ts` checks schema/query/page-copy/contact/social/legal/image/media/partner/fallback alignment, client-friendly multiline inputs, removal of legacy Studio fields, Loja structure/gallery/editing/import contracts, builder document validation and protected standalone-builder boundaries, the Alto Alentejo transport/IVA pricing formula including editable multiplier override, CSP/preview/staff-role contracts, and direct in-process rate-limit boundary/reset behavior. `tests/server-foundation.spec.ts` uses the CI PostgreSQL service to exercise customer verification, session invalidation after password reset, sign-in credentials, staff order status/note persistence, staff login against a hardcoded legacy-format password hash fixture (proves the Sanity→Postgres migration's "zero forced resets" guarantee), and CRM lead dedup-by-email (`storeContactSubmission`).
+- E2E tests: `tests/routes.spec.ts` checks public routes, desktop navigation, the stable full-screen mobile overlay menu, language-safe links, overflow, detail links, collection images, Loja filters/pagination/detail price controls, Carrinho add/update/checkout handoff flow, pagination scroll, refresh scroll reset, contact form gating, contact/social/legal links, 404 handling, global search (trigger click, Ctrl/Cmd+K, cross-category results, click-through, Escape/focus restore, desktop vs mobile trigger visibility), and the language switcher across desktop/mobile where the viewport matters. `tests/commerce.spec.ts` covers the public cart/checkout handoff and account entry routes. `tests/site-editor.spec.ts` exercises the standalone editor on desktop and mobile: focused field editing, reload-free autosave, selection close/reopen, live overlay geometry across scroll, off-screen restoration, strict unmatched-field fallback, independent mouse-wheel scrolling in both side panels, Escape handling, numeric and gallery editing, media upload/removal, navigation add/remove, responsive containment, and mutation CSRF rejection. All are included in `npm run e2e` and CI.
 - Visual tests: `tests/visual.spec.ts` can generate/review full-page desktop/mobile screenshots for public routes plus current fallback product, case-study, and blog detail pages. Snapshot output is ignored and session-only.
 - Seed generation: `scripts/write-sanity-seed.ts` generates 21 starter Sanity documents from fallback content: the site singleton, 5 product categories, and 15 Loja products.
 - Build/type checks: `npm run check` runs SvelteKit sync and TypeScript; `npm run build` builds SvelteKit; `npm run build:studio` builds Sanity Studio.
@@ -26,18 +26,20 @@ npm run seed:studio:write
 
 ## What Is Manual
 
-- Sanity Studio UX/content editing review for product categories, Loja products/prices, case studies, blog posts, the `Conteúdo do site` singleton, and the private CRM requests/client-profile workflow.
+- Sanity Studio UX/content editing review for product categories, Loja products/prices, case studies, blog posts, and the `Conteúdo do site` singleton. The private CRM requests/client-profile workflow now lives in the Postgres-backed `/painel/pedidos` and `/painel/perfis`, not Studio.
 - Sanity Presentation/Visual Editing review: open the `/website` Studio workspace, enter Presentation, confirm preview mode enables, draft content appears before publishing, click-to-edit overlays target the expected fields, and disabling preview returns to published visitor content.
+- Standalone builder review against live Sanity: sign in to `/painel/site`, select real site content through the iframe, verify the overlay remains attached while scrolling, focused fields and the explicit all-settings escape hatch, desktop/tablet/mobile canvas sizing, autosave/conflict feedback, media upload, navigation editing, and admin-only publishing. Repeat page-by-page during migration; do not enable the public renderer switch early.
 - Public SvelteKit route review across desktop and mobile: `/`, `/produtos`, `/produtos/[slug]`, `/loja`, `/loja/[slug]`, `/carrinho`, `/catalogo`, `/casos-de-estudo`, `/casos-de-estudo/[slug]`, `/blog`, `/blog/[slug]`, and `/contacto`.
 - Language toggle review for `?lang=pt`, `?lang=en`, and `?lang=es`.
 - Targeted browser screenshots are acceptable for small visual/UI fixes when Xavier explicitly asks to skip Playwright E2E or visual runs.
 - Sanity dataset/project changes.
-- Live contact-form delivery into the private `crm` dataset, because automated Playwright runs do not use a real CRM write token.
+- Running `scripts/migrate-crm-to-postgres.ts` for real against production data, because it needs a live `SANITY_CRM_WRITE_TOKEN` with read access to the legacy `crm` dataset.
 - Visual Editing token/origin setup, because automated local tests do not have a real `SANITY_VIEWER_TOKEN`, deployed Studio URL, or browser iframe session.
 
 ## Test Data Or Fixtures
 
-- None present.
+- `src/lib/server/site-editor-e2e.ts` provides request-scoped site-content and Loja-product fixtures for `tests/site-editor.spec.ts`. It is available only when `NODE_ENV !== "production"`, `SITE_EDITOR_E2E=true`, and a request supplies the matching test key. It never reads from or writes to the live Sanity dataset.
+- `/painel/site/e2e-preview` is the matching deterministic canvas route. It returns 404 outside that gated test mode.
 
 ## CI
 
@@ -47,13 +49,14 @@ npm run seed:studio:write
 
 ## Known Gaps
 
-- The legacy `/crm` Studio workspace is opt-in through `SANITY_STUDIO_ENABLE_CRM=true`. Keep it disabled until the private `crm` dataset is provisioned. This lets the website Studio deploy its current schema without exposing CRM schemas or data through public `production`.
+- The legacy `/crm` Studio workspace is opt-in through `SANITY_STUDIO_ENABLE_CRM=true`, is now read-only history (the backoffice no longer writes to it), and is scheduled for deletion after a post-migration verification window (see `schemaTypes/crm/*`, `sanity.structure.ts`).
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
-- Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET` are configured before relying on live submissions.
+- Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm production `DATABASE_URL` is configured before relying on live submissions.
 - Ecommerce checkout tests now run their real order-creation path in CI (see above). Contract coverage additionally checks server-side price rebuilding, stable cart variant identity, checkout idempotency/rate limits, address-zone and unique-address behavior, email-token invalidation, same-origin/CSRF handling, and public-response security headers. Public contact and catalogue forms also use the bounded in-process abuse limit. Manual/staging validation must still confirm production `DATABASE_URL`, Resend settings, and `/painel/encomendas` before relying on live orders — CI proves the code path works, not that production secrets are configured.
 - Visual snapshot output is platform-specific and generated under ignored `tests/*-snapshots/` folders for local/session review only.
 - Playwright E2E/visual runs can be expensive locally; if skipped by explicit instruction, record that in the handoff and use the strongest lighter checks available.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
 - ESLint ignores `.svelte-kit/`, `.sanity/`, build outputs, `test-results/`, and `playwright-report/` so generated test artifacts do not crash lint.
 - Contract tests verify the Visual Editing wiring, but they do not prove Sanity token permissions; manually confirm the token can read drafts and preview-secret documents in the target environment.
+- The deterministic site-editor suite proves interaction behavior without mutable remote content. It does not replace a final manual save/upload/publish pass against the intended Sanity project and role permissions.

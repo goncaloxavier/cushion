@@ -1,7 +1,7 @@
 import {fail, type Action, type RequestEvent} from '@sveltejs/kit'
-import {canManageStaff} from '$lib/server/auth'
+import {canManageStaff} from '$lib/server/staff-auth'
 import type {ProfileStatus, SubmissionStatus} from '$lib/painel'
-import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-admin'
+import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-postgres'
 import {csrfOk, sameOriginOk} from './form-guard'
 
 // Shared SvelteKit form actions for the /painel management pages. Every action

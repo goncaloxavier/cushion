@@ -1,12 +1,28 @@
 import {contentFromSanity, getLanguage, languages} from '$lib/site-content'
 import {getSanityCollections, sanityStudioUrl} from '$lib/sanity'
 import {isPreview} from '$lib/server/preview'
+import {isBuilderPreviewRequest} from '$lib/server/builder-preview'
+import {
+  builderDataset,
+  getBuilderPreviewPage,
+  getBuilderPreviewSettings,
+} from '$lib/server/builder'
 import type {LayoutServerLoad} from './$types'
 
 export const load: LayoutServerLoad = async ({url, cookies, locals, request}) => {
   const preview = isPreview(cookies, request.headers)
-  const collections = await getSanityCollections(preview)
+  const builderPreview = isBuilderPreviewRequest(cookies, url, request.headers)
+  const builderRenderMode =
+    builderPreview && url.searchParams.get('__view') === 'builder' ? 'builder' : 'legacy'
+  const collections = await getSanityCollections(preview || builderPreview)
   const language = getLanguage(url.searchParams.get('lang'))
+  const [builderPage, builderSettings] =
+    builderRenderMode === 'builder'
+      ? await Promise.all([
+          getBuilderPreviewPage(url.pathname).catch(() => null),
+          getBuilderPreviewSettings().catch(() => null),
+        ])
+      : [null, null]
 
   return {
     // contentFromSanity builds all 3 languages (cheap in-memory work off a
@@ -21,6 +37,11 @@ export const load: LayoutServerLoad = async ({url, cookies, locals, request}) =>
     languages,
     currentPath: url.pathname,
     preview,
+    builderPreview,
+    builderRenderMode,
+    builderPage,
+    builderSettings,
+    builderDataset: builderPreview ? builderDataset() : '',
     studioUrl: preview ? sanityStudioUrl : '',
     // Minimal, non-sensitive account summary for header state. The customer's
     // own data; full details load per-page under /conta.

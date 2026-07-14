@@ -24,7 +24,7 @@ const config = {
         // workflow, but keeping the allowlist explicit means CSP does not
         // break editors while public visitors still have a narrow policy.
         'connect-src': ['self', 'https://*.api.sanity.io', 'https://*.sanity.io'],
-        'frame-src': ['https://www.youtube-nocookie.com'],
+        'frame-src': ['self', 'https://www.youtube-nocookie.com'],
         'frame-ancestors': ['self', 'http://localhost:3333', 'https://dafabrica4you.sanity.studio'],
         'object-src': ['none'],
         'base-uri': ['self'],

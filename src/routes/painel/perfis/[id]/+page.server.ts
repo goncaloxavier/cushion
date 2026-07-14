@@ -1,5 +1,5 @@
 import {error} from '@sveltejs/kit'
-import {getProfile} from '$lib/server/crm-admin'
+import {getProfile} from '$lib/server/crm-postgres'
 import {profileManageActions} from '$lib/server/painel-actions'
 import type {Actions, PageServerLoad} from './$types'
 

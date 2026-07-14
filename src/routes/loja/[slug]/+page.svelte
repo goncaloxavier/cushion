@@ -338,7 +338,6 @@
           class="store-detail-visual"
           class:no-image={!hasStoreMedia}
           data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
-          data-sanity-edit-target={!hasStoreMedia && imageDataAttribute ? true : undefined}
         >
           {#if hasStoreMedia}
             <StoreMediaGallery
@@ -433,7 +432,7 @@
           <section
             class="store-spec-weight"
             data-sanity={selectedWeightDataAttribute}
-            data-sanity-edit-target={selectedWeightDataAttribute ? true : undefined}
+            data-df4y-editor-field={selectedWeightDataAttribute ? true : undefined}
           >
             <h2>{labels.weight}</h2>
             <p class="store-spec-weight-value">{selectedVariant.weightKg} kg</p>
@@ -443,7 +442,7 @@
         <section
           class="store-spec-price"
           data-sanity={selectedPriceDataAttribute}
-          data-sanity-edit-target={selectedPriceDataAttribute ? true : undefined}
+          data-df4y-editor-field={selectedPriceDataAttribute ? true : undefined}
         >
           <h2>{labels.productNet}</h2>
           <p class="store-spec-price-value">{formatPrice(selectedEstimate.productNet)}</p>

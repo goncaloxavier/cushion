@@ -1,19 +1,18 @@
 import {fail, redirect} from '@sveltejs/kit'
+import {listSubmissions} from '$lib/server/crm-postgres'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
-import {destroySession, sessionCookieName} from '$lib/server/auth'
-import {getStats, listSubmissions} from '$lib/server/crm-admin'
-import {getPainelOrderStats} from '$lib/server/orders'
+import {clearStaffSessionCookie, destroySession, sessionCookieName} from '$lib/server/staff-auth'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
 
-export const load: PageServerLoad = async () => {
-  const [stats, orderStats, recent] = await Promise.all([
-    getStats(),
-    getPainelOrderStats(),
-    listSubmissions('all', 8),
-  ])
-  return {stats: {...stats, ...orderStats}, recent}
+const isFilter = (value: string): value is 'all' | 'catalogue' | 'contact' =>
+  value === 'catalogue' || value === 'contact' || value === 'all'
+
+export const load: PageServerLoad = async ({url}) => {
+  const requested = url.searchParams.get('source') ?? 'all'
+  const filter = isFilter(requested) ? requested : 'all'
+  return {rows: await listSubmissions(filter), filter}
 }
 
 export const actions: Actions = {
@@ -29,7 +28,7 @@ export const actions: Actions = {
     }
 
     await destroySession(cookies.get(sessionCookieName))
-    cookies.delete(sessionCookieName, {path: '/painel'})
+    clearStaffSessionCookie(cookies, url.protocol === 'https:')
     redirect(303, '/painel/login')
   },
 }

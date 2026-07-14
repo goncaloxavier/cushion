@@ -1,10 +1,12 @@
+import {stegaClean} from '@sanity/client/stega'
 import type {RichArticleBlock} from './article-structure'
 import {storeProductsForLanguage} from './store-fallback'
 import {storeTransportMultiplier} from './store-shipping'
+import type {TextAppearance} from './text-appearance'
 
 export type LanguageCode = 'pt' | 'en' | 'es'
 
-export type LocalizedValue = Partial<Record<LanguageCode, string>>
+export type LocalizedValue = Partial<Record<LanguageCode, string>> & TextAppearance
 export type LocalizedArticleValue = Partial<Record<LanguageCode, RichArticleBlock[]>>
 
 export type LanguageOption = {
@@ -16,6 +18,14 @@ export type LanguageOption = {
 export type LinkItem = {
   href: string
   label: string
+}
+
+export type SiteNavigationItem = LinkItem & {
+  key: string
+  placement: 'primary' | 'utility'
+  visibleDesktop: boolean
+  visibleMobile: boolean
+  newTab: boolean
 }
 
 export type CopyBlock = {
@@ -166,6 +176,7 @@ export type StoreProduct = {
 }
 
 export type SiteContent = {
+  navigation?: SiteNavigationItem[]
   nav: {
     home: string
     about: string
@@ -272,6 +283,12 @@ export type SiteContent = {
       checklist: string[]
     }
   }
+  returnsPolicy: {
+    kicker: string
+    title: string
+    lead: string
+    conditions: string[]
+  }
   casesPage: {
     hero: CopyBlock
     heroImage: ContentImage
@@ -299,12 +316,6 @@ type SanityProduct = {
   gallery?: SanityStoreProductGalleryItem[]
   summary?: LocalizedValue
   description?: LocalizedValue
-  videoUrl?: string
-  videoTitle?: LocalizedValue
-  toolUrl?: string
-  toolTitle?: LocalizedValue
-  toolText?: LocalizedValue
-  toolLabel?: LocalizedValue
 }
 
 type SanityCaseStudy = {
@@ -393,11 +404,22 @@ type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], Com
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
 
 type SanitySiteContent = {
+  navigation?: Array<{
+    _key?: string
+    label?: LocalizedValue
+    href?: string
+    placement?: 'primary' | 'utility'
+    visibleDesktop?: boolean
+    visibleMobile?: boolean
+    newTab?: boolean
+  }>
   nav?: SanityLocalizedRecord<SiteContent['nav']>
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
     heroVideoUrl?: string
+    heroVideoLabel?: LocalizedValue
+    heroVideoCloseLabel?: LocalizedValue
     impact?: {
       title?: LocalizedValue
       stats?: SanityContentCard[]
@@ -422,6 +444,23 @@ type SanitySiteContent = {
     hero?: SanityCopyBlock
     lead?: LocalizedValue
     transportMultiplier?: number
+    searchLabel?: LocalizedValue
+    categoryLabel?: LocalizedValue
+    finishLabel?: LocalizedValue
+    sortLabel?: LocalizedValue
+    allCategoriesLabel?: LocalizedValue
+    categoryLabels?: Partial<Record<StoreCategory, LocalizedValue>>
+    finishLabels?: Partial<Record<StoreFinish, LocalizedValue>>
+    priceFromLabel?: LocalizedValue
+    requestLabel?: LocalizedValue
+    noResults?: LocalizedValue
+    vatNote?: LocalizedValue
+  }
+  returnsPolicy?: {
+    kicker?: LocalizedValue
+    title?: LocalizedValue
+    lead?: LocalizedValue
+    conditions?: LocalizedValue[]
   }
   catalogue?: {
     hero?: SanityCopyBlock
@@ -573,13 +612,6 @@ const productCategories = {
         'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
         'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking aplicado em exterior',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Planeie o seu deck',
-      toolText:
-        'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
-      toolLabel: 'Construir o meu deck',
     },
     {
       title: 'Vedações, divisórias e resguardos',
@@ -621,13 +653,6 @@ const productCategories = {
       summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
         'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking installed outdoors',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Plan your deck',
-      toolText:
-        'Open the simulator to prepare measurements and options before moving to a quote request.',
-      toolLabel: 'Build my deck',
     },
     {
       title: 'Fencing, dividers and screens',
@@ -669,13 +694,6 @@ const productCategories = {
         'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
         'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking instalado en exterior',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Planifica tu deck',
-      toolText:
-        'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
-      toolLabel: 'Construir mi deck',
     },
     {
       title: 'Vallas, divisorias y resguardos',
@@ -910,6 +928,48 @@ const blogPosts = {
   ],
 } satisfies Record<LanguageCode, BlogPost[]>
 
+const returnsPolicyDefaults: Record<
+  LanguageCode,
+  SiteContent['returnsPolicy']
+> = {
+  pt: {
+    kicker: 'Política',
+    title: 'Política de devoluções',
+    lead: 'Aceitamos devoluções, nas condições:',
+    conditions: [
+      'Produto tem que ser entregue à empresa de logística ao nível da rua',
+      'Recolha entre as 9.00 e 18:00 horas',
+      'Produto ser devolvido não danificado',
+      'Devolução no máximo de 14 dias de calendário, da data de entrega',
+      'Restituição integral do dinheiro na data de receção na nossa fábrica em Ponte Sor',
+    ],
+  },
+  en: {
+    kicker: 'Policy',
+    title: 'Returns policy',
+    lead: 'We accept returns under the following conditions:',
+    conditions: [
+      'The product must be handed over to the logistics company at street level',
+      'Collection between 9:00 AM and 6:00 PM',
+      'The product must be returned undamaged',
+      'Returns within a maximum of 14 calendar days from the delivery date',
+      'Full refund on the date the product is received at our factory in Ponte Sor',
+    ],
+  },
+  es: {
+    kicker: 'Política',
+    title: 'Política de devoluciones',
+    lead: 'Aceptamos devoluciones en las siguientes condiciones:',
+    conditions: [
+      'El producto debe entregarse a la empresa de logística a nivel de calle',
+      'Recogida entre las 9:00 y las 18:00 horas',
+      'El producto debe devolverse sin daños',
+      'Devolución en un máximo de 14 días naturales desde la fecha de entrega',
+      'Reembolso íntegro en la fecha de recepción en nuestra fábrica en Ponte Sor',
+    ],
+  },
+}
+
 export const fallbackContent: Record<LanguageCode, SiteContent> = {
   pt: {
     nav: {
@@ -1114,6 +1174,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.pt,
     casesPage: {
       hero: {
         kicker: 'Casos de estudo',
@@ -1357,6 +1418,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.en,
     casesPage: {
       hero: {
         kicker: 'Case studies',
@@ -1600,6 +1662,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.es,
     casesPage: {
       hero: {
         kicker: 'Casos de estudio',
@@ -1872,7 +1935,7 @@ const optionalImageFromSanity = (
         aspectRatio: image.asset.metadata?.dimensions?.aspectRatio,
         sourceName: image.asset.originalFilename,
         lqip: image.asset.metadata?.lqip,
-    }
+      }
     : undefined
 
 const storeProductMediaImage = (image: ContentImage, editPath?: string): StoreProductMedia => ({
@@ -1883,8 +1946,7 @@ const storeProductMediaImage = (image: ContentImage, editPath?: string): StorePr
 
 const isSanityVideoFile = (
   item: SanityStoreProductGalleryItem | undefined,
-): item is SanityVideoFile =>
-  item?._type === 'galleryVideo'
+): item is SanityVideoFile => item?._type === 'galleryVideo'
 
 const videoFromSanity = (
   item: SanityStoreProductGalleryItem | undefined,
@@ -1914,9 +1976,7 @@ const storeProductMediaFromSanity = (
   if (primaryImage) media.push(storeProductMediaImage(primaryImage, 'image'))
 
   for (const item of gallery ?? []) {
-    const editPath = item?._key
-      ? `gallery[_key=="${item._key.replace(/"/g, '\\"')}"]`
-      : 'gallery'
+    const editPath = item?._key ? `gallery[_key=="${item._key.replace(/"/g, '\\"')}"]` : 'gallery'
 
     if (isSanityVideoFile(item)) {
       const video = videoFromSanity(item, language, editPath)
@@ -2026,30 +2086,38 @@ const productFallbackForSlug = (
   slug: string,
   language: LanguageCode,
   fallback: ProductItem[],
-): Partial<ProductItem> | undefined =>
-  fallback.find((item) => item.slug === slug) ??
-  (slug === 'decking' || slug === 'decking-pavimentos-passadicos'
+): Partial<ProductItem> | undefined => fallback.find((item) => item.slug === slug)
+
+const exclusiveProductExtrasForSlug = (
+  slug: string,
+  language: LanguageCode,
+): Partial<ProductItem> =>
+  slug === 'decking' || slug === 'decking-pavimentos-passadicos'
     ? deckingProductExtras[language]
-    : undefined)
+    : {}
 
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
   fallback: ProductItem[],
 ) => {
-  if (!products?.length) return fallback
+  if (!products?.length) {
+    return fallback.map((product) => ({
+      ...product,
+      ...exclusiveProductExtrasForSlug(product.slug, language),
+    }))
+  }
 
   return products
     .filter((product) => product.slug?.current)
     .map((product, index) => {
       const slug = product.slug?.current ?? ''
       const fallbackProduct = productFallbackForSlug(slug, language, fallback)
+      const exclusiveExtras = exclusiveProductExtrasForSlug(slug, language)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
-          (product.gallery ?? []).filter(
-            (item): item is SanityImage => !isSanityVideoFile(item),
-          ),
+          (product.gallery ?? []).filter((item): item is SanityImage => !isSanityVideoFile(item)),
           language,
           fallbackProduct?.image ?? fallbackImages.product,
         ),
@@ -2069,12 +2137,7 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
-        videoUrl: product.videoUrl?.trim() || fallbackProduct?.videoUrl || '',
-        videoTitle: localized(product.videoTitle, language, fallbackProduct?.videoTitle ?? ''),
-        toolUrl: product.toolUrl?.trim() || fallbackProduct?.toolUrl || '',
-        toolTitle: localized(product.toolTitle, language, fallbackProduct?.toolTitle ?? ''),
-        toolText: localized(product.toolText, language, fallbackProduct?.toolText ?? ''),
-        toolLabel: localized(product.toolLabel, language, fallbackProduct?.toolLabel ?? ''),
+        ...exclusiveExtras,
       }
     })
 }
@@ -2111,7 +2174,7 @@ const storeProductsFromSanity = (
             prices: {natural, dark},
           }
           const weightKg = variant.weightKg ?? fallbackVariant?.weightKg
-      const note = localized(variant.note, language, fallbackVariant?.note ?? '')
+          const note = localized(variant.note, language, fallbackVariant?.note ?? '')
 
           if (typeof weightKg === 'number') nextVariant.weightKg = weightKg
           if (note) nextVariant.note = note
@@ -2233,14 +2296,37 @@ const applySiteContentFromSanity = (
 ) => {
   if (!source) return
 
+  target.navigation = (source.navigation ?? [])
+    .map((item, index) => {
+      const href = stegaClean(item.href?.trim() || '')
+      const placement = stegaClean(item.placement || '')
+      return {
+        key: item._key || `navigation-${index}`,
+        label: localized(item.label, language, ''),
+        href,
+        placement: placement === 'utility' ? ('utility' as const) : ('primary' as const),
+        visibleDesktop: item.visibleDesktop !== false,
+        visibleMobile: item.visibleMobile !== false,
+        newTab: item.newTab === true,
+      }
+    })
+    .filter((item) => item.label && item.href)
   target.nav = localizedRecord(source.nav, language, fallback.nav)
   target.common = commonFromSanity(source.common, language, fallback.common)
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
     heroImage: fallback.home.heroImage,
     heroVideoUrl: source.home?.heroVideoUrl?.trim() || fallback.home.heroVideoUrl,
-    heroVideoLabel: fallback.home.heroVideoLabel,
-    heroVideoCloseLabel: fallback.home.heroVideoCloseLabel,
+    heroVideoLabel: localized(
+      source.home?.heroVideoLabel,
+      language,
+      fallback.home.heroVideoLabel,
+    ),
+    heroVideoCloseLabel: localized(
+      source.home?.heroVideoCloseLabel,
+      language,
+      fallback.home.heroVideoCloseLabel,
+    ),
     intro: fallback.home.intro,
     impact: {
       title: localized(source.home?.impact?.title, language, fallback.home.impact.title),
@@ -2267,7 +2353,10 @@ const applySiteContentFromSanity = (
   }
 
   target.productsPage = {
-    hero: {...copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero),
+      lead: '',
+    },
     heroImage: imageFromSanity(
       source.productsPage?.heroImage,
       language,
@@ -2278,8 +2367,68 @@ const applySiteContentFromSanity = (
 
   target.storePage = {
     ...fallback.storePage,
-    hero: {...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero),
+      lead: '',
+    },
     lead: '',
+    searchLabel: localized(
+      source.storePage?.searchLabel,
+      language,
+      fallback.storePage.searchLabel,
+    ),
+    categoryLabel: localized(
+      source.storePage?.categoryLabel,
+      language,
+      fallback.storePage.categoryLabel,
+    ),
+    finishLabel: localized(
+      source.storePage?.finishLabel,
+      language,
+      fallback.storePage.finishLabel,
+    ),
+    sortLabel: localized(source.storePage?.sortLabel, language, fallback.storePage.sortLabel),
+    allCategoriesLabel: localized(
+      source.storePage?.allCategoriesLabel,
+      language,
+      fallback.storePage.allCategoriesLabel,
+    ),
+    categoryLabels: Object.fromEntries(
+      (Object.keys(fallback.storePage.categoryLabels) as StoreCategory[]).map((key) => [
+        key,
+        localized(
+          source.storePage?.categoryLabels?.[key],
+          language,
+          fallback.storePage.categoryLabels[key],
+        ),
+      ]),
+    ) as Record<StoreCategory, string>,
+    finishLabels: Object.fromEntries(
+      (Object.keys(fallback.storePage.finishLabels) as StoreFinish[]).map((key) => [
+        key,
+        localized(
+          source.storePage?.finishLabels?.[key],
+          language,
+          fallback.storePage.finishLabels[key],
+        ),
+      ]),
+    ) as Record<StoreFinish, string>,
+    priceFromLabel: localized(
+      source.storePage?.priceFromLabel,
+      language,
+      fallback.storePage.priceFromLabel,
+    ),
+    requestLabel: localized(
+      source.storePage?.requestLabel,
+      language,
+      fallback.storePage.requestLabel,
+    ),
+    noResults: localized(
+      source.storePage?.noResults,
+      language,
+      fallback.storePage.noResults,
+    ),
+    vatNote: localized(source.storePage?.vatNote, language, fallback.storePage.vatNote),
     transportMultiplier:
       Number.isFinite(source.storePage?.transportMultiplier) &&
       (source.storePage?.transportMultiplier ?? 0) > 0
@@ -2315,8 +2464,26 @@ const applySiteContentFromSanity = (
     },
   }
 
+  target.returnsPolicy = {
+    kicker: localized(
+      source.returnsPolicy?.kicker,
+      language,
+      fallback.returnsPolicy.kicker,
+    ),
+    title: localized(source.returnsPolicy?.title, language, fallback.returnsPolicy.title),
+    lead: localized(source.returnsPolicy?.lead, language, fallback.returnsPolicy.lead),
+    conditions: localizedListFromSanity(
+      source.returnsPolicy?.conditions,
+      language,
+      fallback.returnsPolicy.conditions,
+    ),
+  }
+
   target.casesPage = {
-    hero: {...copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero),
+      lead: '',
+    },
     heroImage: imageFromSanity(source.casesPage?.heroImage, language, fallback.casesPage.heroImage),
   }
 
@@ -2344,7 +2511,19 @@ const applySiteContentFromSanity = (
 export const contentFromSanity = (
   collections: SanityCollections | null,
 ): Record<LanguageCode, SiteContent> => {
-  if (!collections) return fallbackContent
+  if (!collections) {
+    const next = structuredClone(fallbackContent)
+
+    for (const language of Object.keys(next) as LanguageCode[]) {
+      next[language].products = productsFromSanity(
+        undefined,
+        language,
+        fallbackContent[language].products,
+      )
+    }
+
+    return next
+  }
 
   const next = structuredClone(fallbackContent)
 

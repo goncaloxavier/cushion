@@ -112,7 +112,6 @@
       onfocus={() => preloadFull(image)}
       onclick={openLightbox}
       data-sanity={activeDataAttribute}
-      data-sanity-edit-target={activeDataAttribute ? true : undefined}
     >
       <img
         src={sizedImage(image.url, 1600, 76)}
@@ -139,7 +138,6 @@
             class:active={selectedImageIndex === index}
             aria-label={`${label} ${index + 1}`}
             data-sanity={thumbAttr}
-            data-sanity-edit-target={thumbAttr ? true : undefined}
             onclick={() => {
               selectImage(index)
             }}

@@ -1,4 +1,4 @@
-import {listProfiles} from '$lib/server/crm-admin'
+import {listProfiles} from '$lib/server/crm-postgres'
 import type {PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async ({url}) => {

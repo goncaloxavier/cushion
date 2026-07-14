@@ -69,6 +69,12 @@ type ProductDoc = {
   _id: string
   features?: unknown
   applications?: unknown
+  videoUrl?: unknown
+  videoTitle?: unknown
+  toolUrl?: unknown
+  toolTitle?: unknown
+  toolText?: unknown
+  toolLabel?: unknown
 }
 
 const siteDocs = await client.fetch<SiteDoc[]>(
@@ -88,10 +94,25 @@ const siteDocs = await client.fetch<SiteDoc[]>(
 )
 
 const productDocs = await client.fetch<ProductDoc[]>(
-  `*[_type == "productCategory" && (defined(features) || defined(applications))]{
+  `*[_type == "productCategory" && (
+    defined(features) ||
+    defined(applications) ||
+    defined(videoUrl) ||
+    defined(videoTitle) ||
+    defined(toolUrl) ||
+    defined(toolTitle) ||
+    defined(toolText) ||
+    defined(toolLabel)
+  )]{
     _id,
     features,
-    applications
+    applications,
+    videoUrl,
+    videoTitle,
+    toolUrl,
+    toolTitle,
+    toolText,
+    toolLabel
   }`,
 )
 
@@ -131,6 +152,12 @@ for (const doc of productDocs) {
   const unset = [
     isPresent(doc.features) ? 'features' : '',
     isPresent(doc.applications) ? 'applications' : '',
+    isPresent(doc.videoUrl) ? 'videoUrl' : '',
+    isPresent(doc.videoTitle) ? 'videoTitle' : '',
+    isPresent(doc.toolUrl) ? 'toolUrl' : '',
+    isPresent(doc.toolTitle) ? 'toolTitle' : '',
+    isPresent(doc.toolText) ? 'toolText' : '',
+    isPresent(doc.toolLabel) ? 'toolLabel' : '',
   ].filter(Boolean)
 
   if (unset.length) patches.push({id: doc._id, unset})

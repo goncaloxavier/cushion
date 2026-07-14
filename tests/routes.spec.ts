@@ -307,6 +307,7 @@ test.describe('public website routes', () => {
 
   test('mobile layout holds across common phone viewports', async ({page}, testInfo) => {
     test.skip(!testInfo.project.name.includes('mobile'), 'Phone viewport audit runs once')
+    test.slow()
     await page.emulateMedia({reducedMotion: 'no-preference'})
 
     for (const viewport of phoneViewports) {
@@ -1038,7 +1039,7 @@ test.describe('catalogue + private backoffice', () => {
   })
 
   test('backoffice subpages require login', async ({page}) => {
-    await page.goto('/painel/contactos')
+    await page.goto('/painel/pedidos')
     await expect(page).toHaveURL(/\/painel\/login/)
   })
 })

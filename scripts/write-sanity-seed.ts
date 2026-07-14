@@ -128,6 +128,37 @@ const siteContentDocument = {
   _id: 'siteContent',
   _type: 'siteLanding',
   common: {
+    ...Object.fromEntries(
+      [
+        'readMore',
+        'requestQuote',
+        'exploreProducts',
+        'viewCases',
+        'allProducts',
+        'latestPosts',
+        'challenge',
+        'solution',
+        'result',
+        'emailLabel',
+        'phoneLabel',
+        'backToProducts',
+        'backToCases',
+        'backToBlog',
+        'searchProducts',
+        'searchCases',
+        'searchPosts',
+        'searchPlaceholder',
+        'noResults',
+        'pageLabel',
+        'previous',
+        'next',
+        'zoomImage',
+        'close',
+      ].map((key) => [
+        key,
+        localizedSiteValue((content) => content.common[key as keyof SiteContent['common']]),
+      ]),
+    ),
     contactEmail: fallbackContent.pt.common.contactEmail,
     contactPhone: fallbackContent.pt.common.contactPhone,
     whatsappUrl: fallbackContent.pt.common.whatsappUrl,
@@ -150,6 +181,8 @@ const siteContentDocument = {
       title: localizedSiteValue((content) => content.home.hero.title),
     },
     heroVideoUrl: fallbackContent.pt.home.heroVideoUrl,
+    heroVideoLabel: localizedSiteValue((content) => content.home.heroVideoLabel),
+    heroVideoCloseLabel: localizedSiteValue((content) => content.home.heroVideoCloseLabel),
     impact: {
       title: localizedSiteValue((content) => content.home.impact.title),
       stats: contentCards((content) => content.home.impact.stats, 'impact-stat'),
@@ -182,7 +215,47 @@ const siteContentDocument = {
   },
   storePage: {
     hero: copyBlockWithoutLead((content) => content.storePage.hero),
+    searchLabel: localizedSiteValue((content) => content.storePage.searchLabel),
+    categoryLabel: localizedSiteValue((content) => content.storePage.categoryLabel),
+    finishLabel: localizedSiteValue((content) => content.storePage.finishLabel),
+    sortLabel: localizedSiteValue((content) => content.storePage.sortLabel),
+    allCategoriesLabel: localizedSiteValue((content) => content.storePage.allCategoriesLabel),
+    categoryLabels: Object.fromEntries(
+      Object.keys(fallbackContent.pt.storePage.categoryLabels).map((key) => [
+        key,
+        localizedSiteValue(
+          (content) =>
+            content.storePage.categoryLabels[
+              key as keyof SiteContent['storePage']['categoryLabels']
+            ],
+        ),
+      ]),
+    ),
+    finishLabels: Object.fromEntries(
+      Object.keys(fallbackContent.pt.storePage.finishLabels).map((key) => [
+        key,
+        localizedSiteValue(
+          (content) =>
+            content.storePage.finishLabels[
+              key as keyof SiteContent['storePage']['finishLabels']
+            ],
+        ),
+      ]),
+    ),
+    priceFromLabel: localizedSiteValue((content) => content.storePage.priceFromLabel),
+    requestLabel: localizedSiteValue((content) => content.storePage.requestLabel),
+    noResults: localizedSiteValue((content) => content.storePage.noResults),
+    vatNote: localizedSiteValue((content) => content.storePage.vatNote),
     transportMultiplier: fallbackContent.pt.storePage.transportMultiplier,
+  },
+  returnsPolicy: {
+    kicker: localizedSiteValue((content) => content.returnsPolicy.kicker),
+    title: localizedSiteValue((content) => content.returnsPolicy.title),
+    lead: localizedSiteValue((content) => content.returnsPolicy.lead),
+    conditions: localizedSiteList(
+      (content) => content.returnsPolicy.conditions,
+      'returns-condition',
+    ),
   },
   catalogue: {
     hero: copyBlockWithoutLead((content) => content.catalogue.hero),

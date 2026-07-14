@@ -1,6 +1,6 @@
 import {error, fail} from '@sveltejs/kit'
 import {appendOrderNote, getOrderDetail, setOrderStatus} from '$lib/server/orders'
-import {canManageStaff} from '$lib/server/auth'
+import {canManageStaff} from '$lib/server/staff-auth'
 import {orderStatuses} from '$lib/painel'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
 import type {Actions, PageServerLoad} from './$types'

@@ -3,6 +3,7 @@ import {defineConfig} from '@playwright/test'
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173)
 const baseURL = `http://127.0.0.1:${port}`
 const browserChannel = process.env.PLAYWRIGHT_CHANNEL ?? (process.env.CI ? undefined : 'chrome')
+const siteEditorE2eKey = 'df4y-playwright-site-editor'
 
 export default defineConfig({
   testDir: './tests',
@@ -18,6 +19,9 @@ export default defineConfig({
     env: {
       ...process.env,
       SANITY_DISABLE_REMOTE: 'true',
+      SITE_EDITOR_E2E: 'true',
+      SITE_EDITOR_E2E_KEY: siteEditorE2eKey,
+      BUILDER_PREVIEW_SECRET: 'df4y-playwright-preview-only',
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
@@ -37,6 +41,9 @@ export default defineConfig({
     reducedMotion: 'reduce',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
+    extraHTTPHeaders: {
+      'x-df4y-site-editor-e2e': siteEditorE2eKey,
+    },
   },
   projects: [
     {

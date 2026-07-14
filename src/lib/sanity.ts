@@ -7,6 +7,7 @@ const projectId = 'u4uyfix8'
 // the deployed content today we instead use SANITY_DISABLE_REMOTE (see below),
 // which renders the in-code fallback and never reads/writes Sanity.
 const dataset = env.SANITY_DATASET || 'production'
+export const sanityDataset = dataset
 
 const apiVersion = '2026-06-10'
 
@@ -34,6 +35,27 @@ export const previewClient = sanityClient.withConfig({
 
 export const previewEnabled = () => Boolean(env.SANITY_VIEWER_TOKEN)
 
+const sitePageQuery = `*[
+  _type == "sitePage" &&
+  route == $route &&
+  ($includeInactive || coalesce(active, true))
+][0]`
+
+const siteEditorSettingsQuery = `coalesce(
+  *[_id == "builderSiteSettings"][0],
+  *[_type == "builderSiteSettings"][0]
+)`
+
+export const getSitePage = async (route: string, preview = false) => {
+  const client = preview && previewEnabled() ? previewClient : sanityClient
+  return client.fetch(sitePageQuery, {route, includeInactive: preview})
+}
+
+export const getSiteEditorSettings = async (preview = false) => {
+  const client = preview && previewEnabled() ? previewClient : sanityClient
+  return client.fetch(siteEditorSettingsQuery)
+}
+
 // Plain authed client for validating the preview-url secret. Must NOT use stega,
 // otherwise the stored secret string gets encoded with invisible characters and
 // no longer matches the secret from the URL.
@@ -44,7 +66,40 @@ export const previewSecretClient = sanityClient.withConfig({
 
 const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
+    navigation[] {
+      _key,
+      label,
+      href,
+      placement,
+      visibleDesktop,
+      visibleMobile,
+      newTab
+    },
     common {
+      readMore,
+      requestQuote,
+      exploreProducts,
+      viewCases,
+      allProducts,
+      latestPosts,
+      challenge,
+      solution,
+      result,
+      emailLabel,
+      phoneLabel,
+      backToProducts,
+      backToCases,
+      backToBlog,
+      searchProducts,
+      searchCases,
+      searchPosts,
+      searchPlaceholder,
+      noResults,
+      pageLabel,
+      previous,
+      next,
+      zoomImage,
+      close,
       contactEmail,
       contactPhone,
       whatsappLabel,
@@ -68,6 +123,8 @@ const collectionsQuery = `{
         title
       },
       heroVideoUrl,
+      heroVideoLabel,
+      heroVideoCloseLabel,
       impact {
         title,
         stats[] {
@@ -130,8 +187,20 @@ const collectionsQuery = `{
         kicker,
         title
       },
+      searchLabel,
+      categoryLabel,
+      finishLabel,
+      sortLabel,
+      allCategoriesLabel,
+      categoryLabels,
+      finishLabels,
+      priceFromLabel,
+      requestLabel,
+      noResults,
+      vatNote,
       transportMultiplier
     },
+    returnsPolicy,
     catalogue {
       hero {
         kicker,
@@ -251,13 +320,7 @@ const collectionsQuery = `{
       },
     },
     summary,
-    description,
-    videoUrl,
-    videoTitle,
-    toolUrl,
-    toolTitle,
-    toolText,
-    toolLabel
+    description
   },
   "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
     _id,
@@ -475,12 +538,10 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
 }`
 
 const collectionCacheTtlMs = Math.max(0, Number(env.SANITY_COLLECTION_CACHE_MS ?? 15_000))
-let collectionCache:
-  | {
-      expiresAt: number
-      value: unknown
-    }
-  | null = null
+let collectionCache: {
+  expiresAt: number
+  value: unknown
+} | null = null
 
 export const getSanityCollections = async (preview = false) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null

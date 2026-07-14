@@ -1,12 +1,7 @@
-import {createHmac, randomUUID} from 'node:crypto'
-import {createClient} from '@sanity/client'
-import {env} from '$env/dynamic/private'
 import type {LanguageCode} from '$lib/site-content'
-import {rateLimit} from './rate-limit'
-
-const projectId = 'u4uyfix8'
-const dataset = env.SANITY_CRM_DATASET || 'crm'
-const apiVersion = '2026-06-10'
+import {databaseConfigured, withTransaction} from './db'
+import {tokenHashOf} from './password-auth'
+import {rateLimit, rateLimitKey} from './rate-limit'
 
 export type SubmissionSource =
   | 'contact'
@@ -62,9 +57,6 @@ export const normalizeEmail = (value: string) => value.trim().toLowerCase()
 
 export const normalizePhone = (value: string) => value.replace(/[^\d+]/g, '').slice(0, 32)
 
-const hmac = (secret: string, value: string) =>
-  createHmac('sha256', secret).update(value).digest('hex')
-
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254
 
 export const validateSubmission = (input: ContactSubmission): string[] => {
@@ -87,10 +79,7 @@ export const validateSubmission = (input: ContactSubmission): string[] => {
 export const storeContactSubmission = async (
   input: ContactSubmission,
 ): Promise<StoreSubmissionResult> => {
-  const token = env.SANITY_CRM_WRITE_TOKEN
-  const hashSecret = env.CRM_HASH_SECRET
-
-  if (!token || !hashSecret) {
+  if (!databaseConfigured()) {
     return {
       ok: false,
       status: 503,
@@ -98,11 +87,9 @@ export const storeContactSubmission = async (
     }
   }
 
-  const emailHash = hmac(hashSecret, normalizeEmail(input.email))
-  const phoneHash = input.phone ? hmac(hashSecret, normalizePhone(input.phone)) : undefined
-  const ipHash = input.ipAddress ? hmac(hashSecret, input.ipAddress) : undefined
+  const emailNormalized = normalizeEmail(input.email)
 
-  if (ipHash && rateLimit(`crm:ip:${ipHash}`, 5, 10 * 60 * 1000)) {
+  if (input.ipAddress && rateLimit(rateLimitKey('crm-ip', input.ipAddress), 5, 10 * 60 * 1000)) {
     return {
       ok: false,
       status: 429,
@@ -110,7 +97,7 @@ export const storeContactSubmission = async (
     }
   }
 
-  if (rateLimit(`crm:email:${emailHash}`, 3, 30 * 60 * 1000)) {
+  if (rateLimit(rateLimitKey('crm-email', emailNormalized), 3, 30 * 60 * 1000)) {
     return {
       ok: false,
       status: 429,
@@ -118,91 +105,85 @@ export const storeContactSubmission = async (
     }
   }
 
-  const client = createClient({
-    projectId,
-    dataset,
-    apiVersion,
-    useCdn: false,
-    token,
+  const ipHash = input.ipAddress ? tokenHashOf(input.ipAddress) : ''
+
+  const submissionId = await withTransaction(async (client) => {
+    const profile = await client.query<{id: string}>(
+      `insert into crm_client_profiles (
+         first_name, last_name, name, email, email_normalized, phone, address, postal_code, locality,
+         preferred_language, status, submission_count, first_submitted_at, last_submitted_at,
+         first_source, last_source, latest_message, marketing_consent, privacy_consent
+       )
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'new', 1, now(), now(), $11, $11, $12, $13, $14)
+       on conflict (email_normalized) do update
+       set first_name = excluded.first_name,
+           last_name = excluded.last_name,
+           name = excluded.name,
+           email = excluded.email,
+           phone = excluded.phone,
+           address = coalesce(nullif(excluded.address, ''), crm_client_profiles.address),
+           postal_code = excluded.postal_code,
+           locality = excluded.locality,
+           preferred_language = excluded.preferred_language,
+           marketing_consent = excluded.marketing_consent,
+           privacy_consent = excluded.privacy_consent,
+           last_submitted_at = now(),
+           last_source = excluded.last_source,
+           latest_message = excluded.latest_message,
+           submission_count = crm_client_profiles.submission_count + 1,
+           updated_at = now()
+       returning id`,
+      [
+        input.firstName,
+        input.lastName,
+        input.name,
+        input.email,
+        emailNormalized,
+        input.phone,
+        input.address,
+        input.postalCode,
+        input.locality,
+        input.language,
+        input.source,
+        input.message,
+        input.marketingConsent,
+        input.privacyConsent,
+      ],
+    )
+
+    const profileId = profile.rows[0].id
+
+    const submission = await client.query<{id: string}>(
+      `insert into crm_form_submissions (
+         profile_id, source, source_path, language, message, first_name, last_name, name, email, phone,
+         address, postal_code, locality, marketing_consent, consent_text, privacy_consent, ip_hash, user_agent
+       )
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       returning id`,
+      [
+        profileId,
+        input.source,
+        input.sourcePath,
+        input.language,
+        input.message,
+        input.firstName,
+        input.lastName,
+        input.name,
+        input.email,
+        input.phone,
+        input.address,
+        input.postalCode,
+        input.locality,
+        input.marketingConsent,
+        input.consentText,
+        input.privacyConsent,
+        ipHash,
+        input.userAgent.slice(0, 240),
+      ],
+    )
+
+    return submission.rows[0].id
   })
 
-  const now = new Date().toISOString()
-  const requestId = randomUUID()
-  const profileId = `clientProfile.${emailHash.slice(0, 48)}`
-
-  await client
-    .transaction()
-    .createIfNotExists({
-      _id: profileId,
-      _type: 'clientProfile',
-      firstName: input.firstName,
-      lastName: input.lastName,
-      name: input.name,
-      email: input.email,
-      status: 'new',
-      submissionCount: 0,
-      firstSubmittedAt: now,
-      firstSource: input.source,
-      emailHash,
-      ...(phoneHash ? {phoneHash} : {}),
-    })
-    .patch(profileId, (patch) =>
-      patch
-        .setIfMissing({
-          status: 'new',
-          tags: [],
-          submissionCount: 0,
-          firstSubmittedAt: now,
-          firstSource: input.source,
-        })
-        .set({
-          firstName: input.firstName,
-          lastName: input.lastName,
-          name: input.name,
-          email: input.email,
-          phone: input.phone,
-          ...(input.address ? {address: input.address} : {}),
-          postalCode: input.postalCode,
-          locality: input.locality,
-          preferredLanguage: input.language,
-          marketingConsent: input.marketingConsent,
-          privacyConsent: input.privacyConsent,
-          lastSubmittedAt: now,
-          lastSource: input.source,
-          latestMessage: input.message,
-          emailHash,
-          ...(phoneHash ? {phoneHash} : {}),
-        })
-        .inc({submissionCount: 1}),
-    )
-    .create({
-      _id: `formSubmission.${requestId}`,
-      _type: 'formSubmission',
-      submittedAt: now,
-      requestId,
-      source: input.source,
-      sourcePath: input.sourcePath,
-      language: input.language,
-      message: input.message,
-      profile: {_type: 'reference', _ref: profileId},
-      firstName: input.firstName,
-      lastName: input.lastName,
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      address: input.address,
-      postalCode: input.postalCode,
-      locality: input.locality,
-      marketingConsent: input.marketingConsent,
-      consentText: input.consentText,
-      privacyConsent: input.privacyConsent,
-      status: 'new',
-      emailHash,
-      ...(phoneHash ? {phoneHash} : {}),
-      ...(ipHash ? {ipHash} : {}),
-      userAgent: input.userAgent.slice(0, 240),
-    })
-    .commit()
-
-  return {ok: true, requestId}
+  return {ok: true, requestId: submissionId}
 }

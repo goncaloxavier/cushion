@@ -1,5 +1,5 @@
 import {error} from '@sveltejs/kit'
-import {getSubmission} from '$lib/server/crm-admin'
+import {getSubmission} from '$lib/server/crm-postgres'
 import {submissionManageActions} from '$lib/server/painel-actions'
 import type {Actions, PageServerLoad} from './$types'
 

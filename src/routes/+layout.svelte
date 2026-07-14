@@ -2,11 +2,13 @@
   import {afterNavigate, goto, onNavigate} from '$app/navigation'
   import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
+  import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
   import CookieNotice, {type CookieNoticeStrings} from '$lib/components/CookieNotice.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import SearchOverlay, {type SearchStrings} from '$lib/components/SearchOverlay.svelte'
+  import SiteEditorOverlay from '$lib/components/SiteEditorOverlay.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
@@ -30,13 +32,41 @@
     | 'blog'
     | 'contact'
 
-  const navItems = $derived([
-    {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
-    {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
-  ])
+  const configuredNavigation = $derived(
+    content.navigation?.length ? content.navigation : undefined,
+  )
+  const navItems = $derived(
+    configuredNavigation
+      ? configuredNavigation.filter(
+          (item) => item.placement === 'primary' && item.visibleDesktop,
+        )
+      : [
+          {key: 'about', href: '/sobre-nos', label: content.nav.about, newTab: false},
+          {key: 'products', href: '/produtos', label: content.nav.products, newTab: false},
+          {key: 'store', href: '/loja', label: content.nav.store, newTab: false},
+          {key: 'cases', href: '/casos-de-estudo', label: content.nav.cases, newTab: false},
+          {key: 'blog', href: '/blog', label: content.nav.blog, newTab: false},
+        ],
+  )
+  const utilityNavItems = $derived(
+    configuredNavigation?.filter(
+      (item) =>
+        item.placement === 'utility' &&
+        item.visibleDesktop &&
+        !item.href.startsWith('/conta') &&
+        item.href !== '/carrinho',
+    ) ?? [],
+  )
+  const configuredAccountItem = $derived(
+    configuredNavigation?.find((item) => item.visibleDesktop && item.href.startsWith('/conta')),
+  )
+  const configuredCartItem = $derived(
+    configuredNavigation?.find((item) => item.visibleDesktop && item.href === '/carrinho'),
+  )
+  const showAccountAction = $derived(!configuredNavigation || Boolean(configuredAccountItem))
+  const showCartAction = $derived(!configuredNavigation || Boolean(configuredCartItem))
+  const desktopHref = (href: string) =>
+    href.startsWith('/') ? withLanguage(href, data.language) : href
 
   const catalogueLabel = $derived(content.nav.catalogue)
 
@@ -76,6 +106,7 @@
     return 'home'
   })
   const isPainel = $derived(data.currentPath === '/painel' || data.currentPath.startsWith('/painel/'))
+  const isBuilderCanvas = $derived(Boolean(data.builderPreview))
   let VisualEditingComponent = $state<
     (typeof import('@sanity/visual-editing/svelte'))['VisualEditing'] | null
   >(null)
@@ -85,16 +116,31 @@
   let menuCloseTimer: ReturnType<typeof setTimeout> | undefined
   let menuCloseButton = $state<HTMLButtonElement | null>(null)
   let previouslyFocusedBeforeMenu: HTMLElement | null = null
-  const mobileMenuItems = $derived([
-    {key: 'home' as NavKey, href: '/', label: content.nav.home},
-    {key: 'about' as NavKey, href: '/sobre-nos', label: content.nav.about},
-    {key: 'products' as NavKey, href: '/produtos', label: content.nav.products},
-    {key: 'store' as NavKey, href: '/loja', label: content.nav.store},
-    {key: 'catalogue' as NavKey, href: '/catalogo', label: content.nav.catalogue},
-    {key: 'cases' as NavKey, href: '/casos-de-estudo', label: content.nav.cases},
-    {key: 'blog' as NavKey, href: '/blog', label: content.nav.blog},
-    {key: 'contact' as NavKey, href: '/contacto', label: content.nav.contact},
-  ])
+  const mobileMenuItems = $derived(
+    configuredNavigation
+      ? configuredNavigation.filter(
+          (item) =>
+            item.visibleMobile && !item.href.startsWith('/conta') && item.href !== '/carrinho',
+        )
+      : [
+          {key: 'home', href: '/', label: content.nav.home, newTab: false},
+          {key: 'about', href: '/sobre-nos', label: content.nav.about, newTab: false},
+          {key: 'products', href: '/produtos', label: content.nav.products, newTab: false},
+          {key: 'store', href: '/loja', label: content.nav.store, newTab: false},
+          {key: 'catalogue', href: '/catalogo', label: content.nav.catalogue, newTab: false},
+          {key: 'cases', href: '/casos-de-estudo', label: content.nav.cases, newTab: false},
+          {key: 'blog', href: '/blog', label: content.nav.blog, newTab: false},
+          {key: 'contact', href: '/contacto', label: content.nav.contact, newTab: false},
+        ],
+  )
+  const configuredMobileAccount = $derived(
+    configuredNavigation?.find((item) => item.visibleMobile && item.href.startsWith('/conta')),
+  )
+  const configuredMobileCart = $derived(
+    configuredNavigation?.find((item) => item.visibleMobile && item.href === '/carrinho'),
+  )
+  const showMobileAccount = $derived(!configuredNavigation || Boolean(configuredMobileAccount))
+  const showMobileCart = $derived(!configuredNavigation || Boolean(configuredMobileCart))
   const menuStringsByLanguage: Record<string, {menu: string; open: string; close: string}> = {
     pt: {menu: 'Menu', open: 'Abrir menu', close: 'Fechar menu'},
     en: {menu: 'Menu', open: 'Open menu', close: 'Close menu'},
@@ -335,6 +381,12 @@
   onMount(() => {
     document.documentElement.dataset.appReady = 'true'
 
+    if (isPainel) {
+      return () => {
+        delete document.documentElement.dataset.appReady
+      }
+    }
+
     const resetScroll = () => {
       if (smooth) smooth.toTop(true)
       else window.scrollTo(0, 0)
@@ -379,8 +431,10 @@
 {#if isPainel}
   {@render children()}
 {:else}
-  <RouteProgress />
-  <Intro />
+  {#if !isBuilderCanvas}
+    <RouteProgress />
+    <Intro />
+  {/if}
   <a class="skip-link" href="#main-content">{skipLinkLabel}</a>
 
 <header class="site-header">
@@ -393,7 +447,9 @@
       <a
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
-        href={withLanguage(item.href, data.language)}
+        href={desktopHref(item.href)}
+        target={item.newTab ? '_blank' : undefined}
+        rel={item.newTab ? 'noreferrer' : undefined}
       >
         {item.label}
       </a>
@@ -412,43 +468,62 @@
   </nav>
 
   <div class="header-actions">
-    <a
-      class="account-link"
-      class:active={accountActive}
-      class:signed-in={isSignedIn}
-      aria-current={accountActive ? 'page' : undefined}
-      href={withLanguage(accountHref, data.language)}
-    >
-      <span class="account-label">{accountLabel}</span>
-    </a>
-    <a
-      class="cart-link"
-      class:active={currentNavKey === 'cart'}
-      aria-current={currentNavKey === 'cart' ? 'page' : undefined}
-      aria-label={`${content.nav.cart} (${cartCount})`}
-      href={withLanguage('/carrinho', data.language)}
-    >
-      <span class="cart-label">{content.nav.cart}</span>
-      {#if cartCount > 0}
-        <span class="cart-count">{cartCount}</span>
-      {/if}
-    </a>
-    <a
-      class="catalogue-link"
-      class:active={currentNavKey === 'catalogue'}
-      aria-current={currentNavKey === 'catalogue' ? 'page' : undefined}
-      href={withLanguage('/catalogo', data.language)}
-    >
-      {catalogueLabel}
-    </a>
-    <a
-      class="contact-link"
-      class:active={currentNavKey === 'contact'}
-      aria-current={currentNavKey === 'contact' ? 'page' : undefined}
-      href={withLanguage('/contacto', data.language)}
-    >
-      {content.nav.contact}
-    </a>
+    {#if showAccountAction}
+      <a
+        class="account-link"
+        class:active={accountActive}
+        class:signed-in={isSignedIn}
+        aria-current={accountActive ? 'page' : undefined}
+        href={withLanguage(accountHref, data.language)}
+      >
+        <span class="account-label">{configuredAccountItem?.label || accountLabel}</span>
+      </a>
+    {/if}
+    {#if showCartAction}
+      <a
+        class="cart-link"
+        class:active={currentNavKey === 'cart'}
+        aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+        aria-label={`${configuredCartItem?.label || content.nav.cart} (${cartCount})`}
+        href={withLanguage('/carrinho', data.language)}
+      >
+        <span class="cart-label">{configuredCartItem?.label || content.nav.cart}</span>
+        {#if cartCount > 0}
+          <span class="cart-count">{cartCount}</span>
+        {/if}
+      </a>
+    {/if}
+    {#if configuredNavigation}
+      {#each utilityNavItems as item}
+        <a
+          class="catalogue-link"
+          class:active={isActive(item.href)}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+          href={desktopHref(item.href)}
+          target={item.newTab ? '_blank' : undefined}
+          rel={item.newTab ? 'noreferrer' : undefined}
+        >
+          {item.label}
+        </a>
+      {/each}
+    {:else}
+      <a
+        class="catalogue-link"
+        class:active={currentNavKey === 'catalogue'}
+        aria-current={currentNavKey === 'catalogue' ? 'page' : undefined}
+        href={withLanguage('/catalogo', data.language)}
+      >
+        {catalogueLabel}
+      </a>
+      <a
+        class="contact-link"
+        class:active={currentNavKey === 'contact'}
+        aria-current={currentNavKey === 'contact' ? 'page' : undefined}
+        href={withLanguage('/contacto', data.language)}
+      >
+        {content.nav.contact}
+      </a>
+    {/if}
     <select
       class="language-switcher"
       aria-label="Language"
@@ -512,9 +587,11 @@
     <nav class="mobile-menu-nav" aria-label={menuStrings.menu}>
       {#each mobileMenuItems as item, index}
         <a
-          href={withLanguage(item.href, data.language)}
+          href={desktopHref(item.href)}
           class:active={isActive(item.href)}
           aria-current={isActive(item.href) ? 'page' : undefined}
+          target={item.newTab ? '_blank' : undefined}
+          rel={item.newTab ? 'noreferrer' : undefined}
           style={`--menu-index: ${index}`}
           onclick={closeMenu}
         >
@@ -524,31 +601,35 @@
     </nav>
 
     <div class="mobile-menu-foot">
-      <a
-        class="account-link mobile-menu-account"
-        class:active={accountActive}
-        class:signed-in={isSignedIn}
-        aria-current={accountActive ? 'page' : undefined}
-        href={withLanguage(accountHref, data.language)}
-        onclick={closeMenu}
-      >
-        <span class="account-label">
-          {accountLabel}
-        </span>
-      </a>
-      <a
-        class="cart-link mobile-menu-cart"
-        class:active={currentNavKey === 'cart'}
-        aria-current={currentNavKey === 'cart' ? 'page' : undefined}
-        href={withLanguage('/carrinho', data.language)}
-        aria-label={`${content.nav.cart} (${cartCount})`}
-        onclick={closeMenu}
-      >
-        <span class="cart-label">{content.nav.cart}</span>
-        {#if cartCount > 0}
-          <span class="cart-count">{cartCount}</span>
-        {/if}
-      </a>
+      {#if showMobileAccount}
+        <a
+          class="account-link mobile-menu-account"
+          class:active={accountActive}
+          class:signed-in={isSignedIn}
+          aria-current={accountActive ? 'page' : undefined}
+          href={withLanguage(accountHref, data.language)}
+          onclick={closeMenu}
+        >
+          <span class="account-label">
+            {configuredMobileAccount?.label || accountLabel}
+          </span>
+        </a>
+      {/if}
+      {#if showMobileCart}
+        <a
+          class="cart-link mobile-menu-cart"
+          class:active={currentNavKey === 'cart'}
+          aria-current={currentNavKey === 'cart' ? 'page' : undefined}
+          href={withLanguage('/carrinho', data.language)}
+          aria-label={`${configuredMobileCart?.label || content.nav.cart} (${cartCount})`}
+          onclick={closeMenu}
+        >
+          <span class="cart-label">{configuredMobileCart?.label || content.nav.cart}</span>
+          {#if cartCount > 0}
+            <span class="cart-count">{cartCount}</span>
+          {/if}
+        </a>
+      {/if}
       <div class="mobile-menu-lang" aria-label="Language">
         {#each data.languages as language}
           <a
@@ -576,7 +657,18 @@
 
 {#key sceneKey}
   <RouteScene kind={routeKind}>
-    {@render children()}
+    {#if data.builderPreview && data.builderRenderMode === 'builder'}
+      <BuilderPageRenderer
+        page={data.builderPage}
+        settings={data.builderSettings}
+        {content}
+        language={data.language}
+        dataset={data.builderDataset}
+        preview
+      />
+    {:else}
+      {@render children()}
+    {/if}
   </RouteScene>
 {/key}
 
@@ -615,7 +707,7 @@
   </div>
 </footer>
 
-{#if showWhatsappFloat}
+{#if showWhatsappFloat && !isBuilderCanvas}
   <a
     class="whatsapp-float"
     href={content.common.whatsappUrl}
@@ -628,12 +720,18 @@
   </a>
   {/if}
 
-  <SearchOverlay bind:open={searchOpen} language={data.language} {content} strings={searchStrings} />
-  <CookieNotice policyUrl={content.common.cookiePolicyUrl} strings={cookieNoticeStrings} />
+  {#if !isBuilderCanvas}
+    <SearchOverlay bind:open={searchOpen} language={data.language} {content} strings={searchStrings} />
+    <CookieNotice policyUrl={content.common.cookiePolicyUrl} strings={cookieNoticeStrings} />
+  {/if}
 {/if}
 
 <Toaster />
 
 {#if data.preview && VisualEditingComponent}
   <VisualEditingComponent />
+{/if}
+
+{#if data.builderPreview && data.builderRenderMode !== 'builder'}
+  <SiteEditorOverlay />
 {/if}

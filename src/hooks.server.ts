@@ -1,6 +1,7 @@
 import {redirect, type Handle} from '@sveltejs/kit'
-import {sessionCookieName, validateSession} from '$lib/server/auth'
+import {sessionCookieName, validateSession} from '$lib/server/staff-auth'
 import {customerSessionCookieName, validateCustomerSession} from '$lib/server/customer-auth'
+import {siteEditorE2eRequestStaff} from '$lib/server/site-editor-e2e'
 
 export const handle: Handle = async ({event, resolve}) => {
   const {pathname} = event.url
@@ -12,7 +13,10 @@ export const handle: Handle = async ({event, resolve}) => {
   // Guard the private CRM backend. Validate the session for every /painel
   // request and expose the staff member on locals; redirect otherwise.
   if (pathname === '/painel' || pathname.startsWith('/painel/')) {
-    const staff = await validateSession(event.cookies.get(sessionCookieName))
+    const fixtureStaff = pathname.startsWith('/painel/site')
+      ? siteEditorE2eRequestStaff(event.request.headers)
+      : null
+    const staff = fixtureStaff ?? await validateSession(event.cookies.get(sessionCookieName))
     event.locals.staff = staff
 
     const isLogin = pathname === '/painel/login'
@@ -20,7 +24,11 @@ export const handle: Handle = async ({event, resolve}) => {
       redirect(303, `/painel/login?next=${encodeURIComponent(pathname)}`)
     }
     if (staff && isLogin) {
-      redirect(303, '/painel')
+      redirect(303, '/painel/pedidos')
+    }
+    // There is no dashboard at bare /painel — pedidos is the default landing page.
+    if (staff && pathname === '/painel') {
+      redirect(303, '/painel/pedidos')
     }
   } else {
     event.locals.staff = null

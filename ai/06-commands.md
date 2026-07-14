@@ -18,17 +18,10 @@ npm run dev:studio
 Sanity Studio now exposes two workspaces:
 
 - `/website` edits public website content in dataset `production`.
-- `/crm` reviews private requests and client profiles in dataset `crm`.
+- `/crm` is a legacy, read-only view of already-migrated requests/client profiles/staff accounts in dataset `crm`; the backoffice no longer writes here (scheduled for deletion after a post-migration verification window).
+- `/painel/site` is the standalone visual builder. It uses the normal staff login and stores drafts/assets in the configured Sanity website dataset through server-only endpoints.
 
-Live form submissions require private server environment variables:
-
-```bash
-SANITY_CRM_WRITE_TOKEN=...
-CRM_HASH_SECRET=...
-SANITY_CRM_DATASET=crm
-```
-
-Customer accounts, checkout orders, addresses, sessions, and payment attempts require Railway Postgres:
+Live form submissions, the backoffice, customer accounts, checkout orders, addresses, sessions, and payment attempts all require Railway Postgres:
 
 ```bash
 DATABASE_URL=...
@@ -44,6 +37,12 @@ ORDERS_TO_EMAIL=...
 APP_ORIGIN=https://example.com
 ```
 
+Use an independent signing secret for the builder's short-lived iframe preview session:
+
+```bash
+BUILDER_PREVIEW_SECRET="$(openssl rand -base64 32)"
+```
+
 ## Validation
 
 ```bash
@@ -57,6 +56,8 @@ npm run seed:studio:write
 ```
 
 No unit-test runner is configured. Route and CMS-contract Playwright checks are the normal automated E2E path; visual Playwright checks are optional/session-only.
+
+`npm run e2e` also runs `tests/site-editor.spec.ts`. That suite uses a request-scoped, non-production fixture and exercises the real `/painel/site` shell plus a deterministic canvas; it cannot mutate live Sanity content.
 
 ## Deployment
 
@@ -99,14 +100,16 @@ npm run import:store-images
 - `import:store-products` creates missing Loja product documents from fallback content without replacing existing manual store products.
 - `import:store-images` uploads approved Loja product photos from `static/images/store/` and patches only the configured `storeProduct` documents. Use this for incoming Loja image batches instead of rerunning the full starter seed.
 
-## Sanity CRM Dataset
+## Legacy Sanity CRM Dataset Migration
 
 ```bash
-npx sanity datasets visibility get crm
+SANITY_CRM_WRITE_TOKEN=... npm run migrate:crm -- --dry-run
+SANITY_CRM_WRITE_TOKEN=... npm run migrate:crm
 ```
 
-- The `crm` dataset should remain private.
-- Do not import public seed/content data into `crm`.
+- One-off, idempotent (`legacy_sanity_id`-keyed) copy of staff accounts, client profiles, and form submissions from the legacy Sanity `crm` dataset into Postgres. Safe to re-run.
+- Needs `SANITY_CRM_WRITE_TOKEN` (read access to dataset `crm`) and `DATABASE_URL` (target Postgres).
+- The `crm` dataset should remain private and is otherwise read-only history now; do not import public seed/content data into it.
 - Do not add `SANITY_CRM_WRITE_TOKEN` to public/client environment variables.
 
 ## Ecommerce Database
@@ -158,6 +161,7 @@ npm ls @playwright/test
 
 - `npm run dev` is the SvelteKit website.
 - `npm run dev:studio` is Sanity Studio on port `3333` with `/website` and `/crm` workspaces.
+- `http://localhost:5173/painel/site` is the standalone builder; it requires local Postgres staff auth plus `SANITY_VIEWER_TOKEN` or `SANITY_WRITE_TOKEN` for drafts, and `SANITY_WRITE_TOKEN` for saves/uploads/publishing.
 - `npm run build` produces the SvelteKit Node build used by Railway.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.
 - The repo is on Sanity Studio 6 with Vite 7 and Svelte 5.
@@ -165,4 +169,5 @@ npm ls @playwright/test
 - Playwright route/CMS tests are optimized so viewport-independent checks run once, while mobile/desktop route behavior is still covered where it matters.
 - The CI run also uses its own disposable Postgres service. `tests/server-foundation.spec.ts` runs there and self-skips on a local machine without `DATABASE_URL`.
 - Playwright tests force fallback fixtures with `SANITY_DISABLE_REMOTE=true`.
+- Site-editor Playwright tests additionally set `SITE_EDITOR_E2E=true` and a per-run test key in `playwright.config.ts`. Do not use that harness as a development login shortcut or deploy those environment values.
 - Generated Playwright folders are ignored by git/ESLint where relevant: `test-results/`, `playwright-report/`, and visual snapshot folders.

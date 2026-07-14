@@ -337,7 +337,6 @@
                 <div
                   class={`store-card-visual ${product.image ? '' : 'no-image'}`}
                   data-sanity={cardImageDataAttribute}
-                  data-sanity-edit-target={cardImageDataAttribute ? true : undefined}
                 >
                   {#if product.image}
                     <img
