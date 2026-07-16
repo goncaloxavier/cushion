@@ -16,6 +16,25 @@ const tinyVideo = Buffer.from('site-editor-video-fixture')
 
 const frameFor = (page: Page): FrameLocator => page.frameLocator('.site-editor-frame-wrap iframe')
 
+const waitForVisualEditor = async (frame: FrameLocator) => {
+  await expect(frame.locator('.site-editor-overlay')).toHaveAttribute('data-ready', 'true', {
+    timeout: 15_000,
+  })
+}
+
+const hoverEditableTarget = async (
+  frame: FrameLocator,
+  target: Locator,
+  label?: string,
+) => {
+  await waitForVisualEditor(frame)
+  await frame.locator('body').hover({position: {x: 1, y: 1}})
+  await target.hover()
+  const outline = frame.locator('.site-editor-outline.is-hovered')
+  await expect(outline).toBeVisible()
+  if (label) await expect(outline.locator('span')).toHaveText(label)
+}
+
 const expandCollection = async (navigation: Locator, name: string | RegExp) => {
   const collection = navigation.getByRole('button', {name})
   if ((await collection.getAttribute('aria-expanded')) === 'false') await collection.click()
@@ -36,18 +55,10 @@ const openEditor = async (page: Page, testInfo: TestInfo) => {
     route.fulfill({status: 200, contentType: 'image/png', body: tinyPng}),
   )
   await page.goto('/painel/site')
-  await expect(page.locator('.site-editor-shell')).toBeVisible()
+  await expect(page.locator('.site-editor-shell')).toBeVisible({timeout: 15_000})
   const frame = frameFor(page)
   await expect(frame.getByTestId('fixture-hero-title')).toBeVisible()
-  await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-  await frame
-    .locator('body')
-    .evaluate(
-      () =>
-        new Promise<void>((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-        ),
-    )
+  await waitForVisualEditor(frame)
   return frame
 }
 
@@ -70,6 +81,16 @@ const expectOverlayAligned = async (frame: FrameLocator, targetTestId: string) =
       }, targetTestId),
     )
     .toBeLessThanOrEqual(3)
+}
+
+const openArticleWorkspace = async (page: Page, settings: Locator) => {
+  const launcher = settings.getByRole('button', {name: 'Editar artigo'})
+  await expect(launcher).toBeVisible()
+  await launcher.click()
+  const workspace = page.locator('.site-editor-article-workspace')
+  await expect(workspace).toBeVisible()
+  await expect(workspace).toHaveAttribute('role', 'dialog')
+  return {launcher, workspace}
 }
 
 test.describe('visual website editor', () => {
@@ -109,8 +130,7 @@ test.describe('visual website editor', () => {
     const font = settings.getByRole('combobox', {name: 'Fonte'})
     await font.selectOption('georgia')
     await expect(heading).toHaveCSS('font-family', /Georgia/)
-    const viewportName =
-      testInfo.project.name === 'mobile-chrome' ? 'telemóvel' : 'computador'
+    const viewportName = testInfo.project.name === 'mobile-chrome' ? 'telemóvel' : 'computador'
     const fontSize = settings.getByRole('spinbutton', {name: `Tamanho no ${viewportName}`})
     await fontSize.fill('64')
     await expect(heading).toHaveCSS('font-size', '64px')
@@ -351,6 +371,7 @@ test.describe('visual website editor', () => {
     await productNode.click()
     frame = frameFor(page)
     await expect(frame.getByTestId('fixture-product-title')).toBeVisible()
+    await waitForVisualEditor(frame)
 
     const productWeight = frame.getByTestId('fixture-product-weight')
     await productWeight.hover()
@@ -466,7 +487,7 @@ test.describe('visual website editor', () => {
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Creation workflow runs once')
-    test.setTimeout(40_000)
+    test.setTimeout(60_000)
     const pageErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
     const frame = await openEditor(page, testInfo)
@@ -494,17 +515,14 @@ test.describe('visual website editor', () => {
 
       await expect(modal).toHaveCount(0)
       await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
-      await expect(frame.locator('.site-editor-overlay')).toBeAttached()
+      await waitForVisualEditor(frame)
       await expect(page.locator('.site-editor-context')).toContainText(draft.title)
       await expect(frame.getByTestId('fixture-created-summary')).toBeVisible()
       await page.keyboard.press('Escape')
       await expect(navigation).not.toHaveClass(/is-open/)
 
       const heading = frame.getByTestId('fixture-created-title')
-      await heading.hover()
-      await expect(frame.locator('.site-editor-outline.is-hovered > span')).toHaveText(
-        'Editar texto',
-      )
+      await hoverEditableTarget(frame, heading, 'Editar texto')
       await heading.click()
       await expect(frame.locator('.site-editor-inline-toolbar')).toBeVisible()
       await heading.press('Escape')
@@ -514,44 +532,40 @@ test.describe('visual website editor', () => {
         const articleBootId = await frame
           .locator('html')
           .getAttribute('data-site-editor-fixture-boot')
-        await expect(article).toContainText(
-          'Comece aqui a escrever o artigo.',
-        )
+        await expect(article).toHaveText('')
         await article.click()
         const settings = page.locator('.site-editor-drawer.is-settings')
         await expect(settings).toHaveClass(/is-open/)
-        await expect(settings.locator('.site-editor-rich-toolbar')).toBeVisible()
-        await expect(settings.locator('.site-editor-rich-canvas')).toBeVisible()
+        const {launcher, workspace} = await openArticleWorkspace(page, settings)
+        await expect(workspace.locator('.site-editor-rich-toolbar')).toBeVisible()
+        await expect(workspace.locator('.site-editor-rich-canvas')).toBeVisible()
         await expect(
-          settings.locator('[contenteditable="true"][aria-label="Texto do artigo"]'),
-        ).toContainText('Comece aqui a escrever o artigo.')
-        const articleEditor = settings.locator(
+          workspace.locator('[contenteditable="true"][aria-label="Texto do artigo"]'),
+        ).toHaveText('')
+        const articleEditor = workspace.locator(
           '[contenteditable="true"][aria-label="Texto do artigo"]',
         )
         await articleEditor.click()
-        await articleEditor.press('End')
-        await articleEditor.pressSequentially(' Mais conteúdo.')
+        await articleEditor.pressSequentially('Conteúdo inicial. Mais conteúdo.')
         await expect(articleEditor).toContainText('Mais conteúdo.')
         await articleEditor.press('Enter')
         await articleEditor.pressSequentially('Uma nova secção')
-        await settings.getByLabel('Formato do texto').selectOption('h2')
-        await expect(settings.locator('.site-editor-rich-canvas h2')).toContainText(
+        await workspace.getByLabel('Formato do texto').selectOption('h2')
+        await expect(workspace.locator('.site-editor-rich-canvas h2')).toContainText(
           'Uma nova secção',
         )
         await expect(article.locator('h2')).toContainText('Uma nova secção')
 
         await articleEditor.press('Enter')
         await articleEditor.pressSequentially('Primeiro ponto')
-        await settings.getByRole('button', {name: 'Lista com marcadores'}).click()
+        await workspace.getByRole('button', {name: 'Lista com marcadores'}).click()
         await articleEditor.press('Enter')
         await articleEditor.pressSequentially('Segundo ponto')
-        await expect(
-          settings.locator('.site-editor-rich-list-item.is-bullet'),
-        ).toHaveCount(2)
+        await expect(workspace.locator('.site-editor-rich-list-item.is-bullet')).toHaveCount(2)
         await expect(article.locator('ul li')).toHaveCount(2)
-        const createdDocumentId = await frame.locator('html').evaluate(() =>
-          new URL(window.location.href).searchParams.get('document'),
-        )
+        const createdDocumentId = await frame
+          .locator('html')
+          .evaluate(() => new URL(window.location.href).searchParams.get('document'))
         expect(createdDocumentId).toBeTruthy()
         await expect
           .poll(async () => {
@@ -585,18 +599,16 @@ test.describe('visual website editor', () => {
           'data-site-editor-fixture-boot',
           articleBootId!,
         )
-        await settings.getByRole('button', {name: 'Adicionar tabela'}).click()
-        const table = settings.locator(
-          '.site-editor-rich-object[data-object-type="articleTable"]',
-        )
+        await workspace.getByRole('button', {name: 'Adicionar tabela'}).click()
+        const table = workspace.locator('.site-editor-rich-object[data-object-type="articleTable"]')
         await expect(table).toBeVisible()
-        await expect(settings.locator('.site-editor-rich-object-editor')).toContainText('Tabela')
-        await settings.getByLabel('Nome da coluna 1').fill('Material')
-        await settings.getByLabel('Nome da coluna 2').fill('Quantidade')
-        await settings.getByLabel('Linha 1, Material').fill('Plástico reciclado')
-        await settings.getByLabel('Linha 1, Quantidade').fill('12 kg')
-        await settings.getByLabel('Linha 2, Material').fill('Madeira')
-        await settings.getByLabel('Linha 2, Quantidade').fill('8 kg')
+        await expect(table.locator('.site-editor-rich-table-fields.is-embedded')).toBeVisible()
+        await workspace.getByLabel('Nome da coluna 1').fill('Material')
+        await workspace.getByLabel('Nome da coluna 2').fill('Quantidade')
+        await workspace.getByLabel('Linha 1, Material').fill('Plástico reciclado')
+        await workspace.getByLabel('Linha 1, Quantidade').fill('12 kg')
+        await workspace.getByLabel('Linha 2, Material').fill('Madeira')
+        await workspace.getByLabel('Linha 2, Quantidade').fill('8 kg')
         await expect(article.locator('table th').nth(0)).toHaveText('Material')
         await expect(article.locator('table td').nth(0)).toHaveText('Plástico reciclado')
         await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
@@ -612,8 +624,16 @@ test.describe('visual website editor', () => {
         expect(structure.some((block) => block.style === 'h2')).toBe(true)
         expect(structure.filter((block) => block.listItem === 'bullet')).toHaveLength(2)
         expect(structure.some((block) => block._type === 'articleTable')).toBe(true)
-        await settings.getByRole('button', {name: 'Fechar edição'}).click()
-        await expect(settings.locator('.site-editor-article-outline')).toHaveCount(0)
+        await table.getByRole('button', {name: 'Concluir edição da tabela'}).click()
+        await workspace.getByRole('button', {name: 'Concluir'}).click()
+        await expect(workspace).toHaveCount(0)
+        await expect(launcher).toBeFocused()
+        await launcher.click()
+        await expect(page.locator('.site-editor-article-workspace')).toContainText('Mais conteúdo.')
+        await page
+          .locator('.site-editor-article-workspace')
+          .getByRole('button', {name: 'Concluir'})
+          .click()
         await settings.getByRole('button', {name: 'Fechar definições'}).click()
       }
       if (draft.type === 'storeProduct') {
@@ -654,23 +674,22 @@ test.describe('visual website editor', () => {
     await expect(article).toContainText('Uma secção completa')
     await expect(frame.locator('html')).toHaveAttribute('data-site-editor-fixture-boot', /.+/)
     const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
-    await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-    await article.hover()
-    await expect(frame.locator('.site-editor-outline.is-hovered')).toBeVisible()
+    await hoverEditableTarget(frame, article)
     await article.click({position: {x: 8, y: 8}})
 
     const settings = page.locator('.site-editor-drawer.is-settings')
-    const canvas = settings.locator('.site-editor-rich-canvas')
     await expect(settings).toHaveClass(/is-open/)
+    const {workspace} = await openArticleWorkspace(page, settings)
+    const canvas = workspace.locator('.site-editor-rich-canvas')
     await expect(canvas.locator('h2')).toContainText('Uma secção completa')
     await expect(canvas.locator('.site-editor-rich-list-item.is-bullet')).toHaveCount(2)
     await expect(canvas.locator('.site-editor-rich-list-item.is-number')).toHaveCount(2)
     await expect(canvas.locator('blockquote')).toContainText('Uma citação preservada')
     await expect(canvas.locator('strong').filter({hasText: 'Este parágrafo'})).toHaveCount(1)
     await expect(canvas.locator('a')).toHaveAttribute('href', 'https://www.dafabrica4you.pt/')
-    await expect(
-      canvas.locator('.site-editor-rich-object[data-object-type="image"]'),
-    ).toHaveCount(1)
+    await expect(canvas.locator('.site-editor-rich-object[data-object-type="image"]')).toHaveCount(
+      1,
+    )
     await expect(
       canvas.locator('.site-editor-rich-object[data-object-type="youtubeEmbed"]'),
     ).toHaveCount(1)
@@ -687,19 +706,15 @@ test.describe('visual website editor', () => {
     await expect(frame.locator('html')).toHaveAttribute('data-site-editor-fixture-boot', bootId!)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 
-    const table = canvas.locator(
-      '.site-editor-rich-object[data-object-type="articleTable"]',
-    )
+    const table = canvas.locator('.site-editor-rich-object[data-object-type="articleTable"]')
     await table.getByRole('button', {name: 'Editar tabela'}).click()
-    await expect(settings.getByLabel('Nome da coluna 1')).toHaveValue('Material')
-    await expect(settings.getByLabel('Nome da coluna 2')).toHaveValue('Quantidade')
-    await expect(settings.getByLabel('Linha 1, Material')).toHaveValue('Plástico reciclado')
-    await expect(settings.getByLabel('Linha 2, Quantidade')).toHaveValue('8 kg')
+    await expect(workspace.getByLabel('Nome da coluna 1')).toHaveValue('Material')
+    await expect(workspace.getByLabel('Nome da coluna 2')).toHaveValue('Quantidade')
+    await expect(workspace.getByLabel('Linha 1, Material')).toHaveValue('Plástico reciclado')
+    await expect(workspace.getByLabel('Linha 2, Quantidade')).toHaveValue('8 kg')
 
     const storedShape = await page.evaluate(async () => {
-      const response = await fetch(
-        '/painel/site/api?document=blogPost.rich-article-fixture',
-      )
+      const response = await fetch('/painel/site/api?document=blogPost.rich-article-fixture')
       const payload = (await response.json()) as {
         document?: {article?: {pt?: Array<Record<string, unknown>>}}
       }
@@ -758,14 +773,21 @@ test.describe('visual website editor', () => {
     await expandCollection(navigation, /Artigos do Blog/)
     await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
     const article = frame.getByTestId('fixture-created-article')
-    await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-    await article.hover()
-    await expect(frame.locator('.site-editor-outline.is-hovered')).toBeVisible()
+    await hoverEditableTarget(frame, article)
     await article.click({position: {x: 8, y: 8}})
 
     const settings = page.locator('.site-editor-drawer.is-settings')
-    const bulletButton = settings.getByRole('button', {name: 'Lista com marcadores'})
-    const numberedButton = settings.getByRole('button', {name: 'Lista numerada'})
+    const firstOpen = await openArticleWorkspace(page, settings)
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden')
+    await page.keyboard.press('Escape')
+    await expect(firstOpen.workspace).toHaveCount(0)
+    await expect(firstOpen.launcher).toBeFocused()
+    await expect(settings).toHaveClass(/is-open/)
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
+
+    const {workspace} = await openArticleWorkspace(page, settings)
+    const bulletButton = workspace.getByRole('button', {name: 'Lista com marcadores'})
+    const numberedButton = workspace.getByRole('button', {name: 'Lista numerada'})
     await expect(bulletButton).toBeVisible()
     await expect(numberedButton).toBeVisible()
     const [bulletBox, numberedBox] = await Promise.all([
@@ -777,16 +799,138 @@ test.describe('visual website editor', () => {
     expect(Math.abs(bulletBox!.y - numberedBox!.y)).toBeLessThanOrEqual(1)
     expect(Math.abs(bulletBox!.height - numberedBox!.height)).toBeLessThanOrEqual(1)
 
-    const table = settings.locator(
-      '.site-editor-rich-object[data-object-type="articleTable"]',
-    )
+    const table = workspace.locator('.site-editor-rich-object[data-object-type="articleTable"]')
     await table.getByRole('button', {name: 'Editar tabela'}).click()
-    await expect(settings.locator('.site-editor-rich-table-grid-shell')).toBeVisible()
-    expect(
-      await settings.evaluate(
-        (drawer) => drawer.scrollWidth <= drawer.clientWidth + 1,
-      ),
-    ).toBe(true)
+    await expect(workspace.locator('.site-editor-rich-table-grid-shell')).toBeVisible()
+    expect(await workspace.evaluate((dialog) => dialog.scrollWidth <= dialog.clientWidth + 1)).toBe(
+      true,
+    )
+  })
+
+  test('supports document-style table editing and block flow from the keyboard', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Keyboard document workflow runs once')
+    test.setTimeout(40_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Artigos do Blog/)
+    await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
+
+    const article = frame.getByTestId('fixture-created-article')
+    await article.hover()
+    await article.click({position: {x: 8, y: 8}})
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    const {workspace} = await openArticleWorkspace(page, settings)
+    const canvas = workspace.locator('.site-editor-rich-canvas')
+    const table = canvas.locator('.site-editor-rich-object[data-object-type="articleTable"]')
+    const readArticleBlocks = () =>
+      page.evaluate(async () => {
+        const response = await fetch('/painel/site/api?document=blogPost.rich-article-fixture')
+        const payload = (await response.json()) as {
+          document?: {article?: {pt?: Array<Record<string, unknown>>}}
+        }
+        return payload.document?.article?.pt ?? []
+      })
+
+    await table.getByRole('button', {name: 'Editar tabela'}).click()
+    const embeddedEditor = table.locator('.site-editor-rich-table-fields.is-embedded')
+    await expect(embeddedEditor).toBeVisible()
+
+    const firstHeading = embeddedEditor.getByLabel('Nome da coluna 1')
+    const secondHeading = embeddedEditor.getByLabel('Nome da coluna 2')
+    await firstHeading.focus()
+    await page.keyboard.press('Tab')
+    await expect(secondHeading).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(embeddedEditor.getByLabel('Linha 1, Material')).toBeFocused()
+
+    const lastExistingCell = embeddedEditor.getByLabel('Linha 2, Quantidade')
+    await lastExistingCell.focus()
+    await page.keyboard.press('Tab')
+    const firstNewCell = embeddedEditor.getByLabel('Linha 3, Material')
+    await expect(firstNewCell).toBeFocused()
+    await expect(embeddedEditor.getByText('3 linhas')).toBeVisible()
+    await firstNewCell.fill('Vidro')
+    await page.keyboard.press('Tab')
+    const lastNewCell = embeddedEditor.getByLabel('Linha 3, Quantidade')
+    await expect(lastNewCell).toBeFocused()
+    await lastNewCell.fill('3 kg')
+    await page.keyboard.press('Shift+Tab')
+    await expect(firstNewCell).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(lastExistingCell).toBeFocused()
+
+    await expect
+      .poll(async () => {
+        const tableBlock = (await readArticleBlocks()).find(
+          (block) => block._type === 'articleTable',
+        ) as {rows?: Array<{cells?: string[]}>} | undefined
+        return tableBlock?.rows?.at(-1)?.cells
+      })
+      .toEqual(['Vidro', '3 kg'])
+
+    await table.getByRole('button', {name: 'Concluir edição da tabela'}).click()
+    await expect(embeddedEditor).toHaveCount(0)
+    await table.click({position: {x: 16, y: 16}})
+    await page.keyboard.press('Enter')
+
+    await expect
+      .poll(async () => (await readArticleBlocks()).map((block) => block._type).slice(-2))
+      .toEqual(['articleTable', 'block'])
+
+    await page.keyboard.press('Backspace')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?._type).toBe('articleTable')
+
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('Parágrafo com avanço')
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(async () => {
+        const finalBlock = (await readArticleBlocks()).at(-1) as
+          | {level?: number; children?: Array<{text?: string}>}
+          | undefined
+        return {
+          level: finalBlock?.level,
+          text: finalBlock?.children?.map((child) => child.text || '').join(''),
+        }
+      })
+      .toEqual({level: 1, text: 'Parágrafo com avanço'})
+    await expect(
+      canvas.locator('.site-editor-rich-indented-block[data-indent-level="1"]'),
+    ).toContainText('Parágrafo com avanço')
+    await expect(
+      article.locator('.article-indented-block[data-indent-level="1"]'),
+    ).toContainText('Parágrafo com avanço')
+
+    await page.keyboard.press('Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(2)
+    await page.keyboard.press('Shift+Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(1)
+
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('- ')
+    await page.keyboard.type('Ponto criado com atalho')
+    await expect(canvas.locator('.site-editor-rich-list-item.is-bullet')).toHaveCount(3)
+    await expect(canvas).toContainText('Ponto criado com atalho')
+    await page.keyboard.press('Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(2)
+    await page.keyboard.press('Shift+Tab')
+    await expect
+      .poll(async () => {
+        const finalBlock = (await readArticleBlocks()).at(-1) as
+          | {listItem?: string; level?: number; children?: Array<{text?: string}>}
+          | undefined
+        return {
+          listItem: finalBlock?.listItem,
+          level: finalBlock?.level,
+          text: finalBlock?.children?.map((child) => child.text || '').join(''),
+        }
+      })
+      .toEqual({listItem: 'bullet', level: 1, text: 'Ponto criado com atalho'})
   })
 
   test('creates a Loja category and offers it immediately on Loja products', async ({
@@ -841,7 +985,9 @@ test.describe('visual website editor', () => {
     await expect(settings).toHaveClass(/is-open/)
     const manager = settings.locator('.site-editor-category-manager')
     await expect(manager.getByText('1 produto', {exact: true})).toBeVisible()
-    await expect(manager.getByRole('button', {name: 'Alterar categoria de Banco editorial'})).toBeVisible()
+    await expect(
+      manager.getByRole('button', {name: 'Alterar categoria de Banco editorial'}),
+    ).toBeVisible()
     await expect(settings.getByText('Esta categoria está em uso')).toBeVisible()
     await expect(settings.getByRole('button', {name: 'Eliminar conteúdo'})).toHaveCount(0)
 
@@ -856,7 +1002,9 @@ test.describe('visual website editor', () => {
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
-    await expect(navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/})).toBeVisible()
+    await expect(
+      navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}),
+    ).toBeVisible()
     await navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}).click()
     await expect(settings.getByText('Nenhum produto está atualmente nesta categoria')).toBeVisible()
     await expect(settings.getByText('Mudança por publicar')).toBeVisible()

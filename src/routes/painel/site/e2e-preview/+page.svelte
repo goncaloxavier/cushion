@@ -62,7 +62,7 @@
           )}
         >{data.created.summary}</p>
       {/if}
-      {#if data.created.article?.length || data.created.content}
+      {#if data.created.type === 'blogPost' || data.created.article?.length || data.created.content}
         <div
           class="fixture-created-article"
           data-testid="fixture-created-article"
@@ -386,6 +386,10 @@
     margin: 0;
     font-size: 20px;
     line-height: 1.6;
+  }
+
+  .fixture-created-article {
+    min-height: 72px;
   }
 
   .fixture-created-media {

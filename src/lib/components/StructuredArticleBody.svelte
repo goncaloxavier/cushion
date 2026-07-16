@@ -112,6 +112,14 @@
       })
       .join('')
 
+  const portableIndentLevel = (block: PortableTextBlock) =>
+    block.listItem ? 0 : Math.min(4, Math.max(0, Number(block.level) || 0))
+
+  const portableIndentStyle = (block: PortableTextBlock) => {
+    const level = portableIndentLevel(block)
+    return level ? `--article-indent-level: ${level}` : undefined
+  }
+
   const imageStyle = (aspectRatio: number | undefined) =>
     aspectRatio && Number.isFinite(aspectRatio) ? `--media-aspect: ${aspectRatio}` : undefined
 
@@ -205,13 +213,29 @@
       {/each}
     </svelte:element>
   {:else if isPortableBlock(block) && block.style === 'h2'}
-    <h2>{@html renderPortableInline(block)}</h2>
+    <h2
+      class:article-indented-block={portableIndentLevel(block) > 0}
+      data-indent-level={portableIndentLevel(block) || undefined}
+      style={portableIndentStyle(block)}
+    >{@html renderPortableInline(block)}</h2>
   {:else if isPortableBlock(block) && block.style === 'h3'}
-    <h3>{@html renderPortableInline(block)}</h3>
+    <h3
+      class:article-indented-block={portableIndentLevel(block) > 0}
+      data-indent-level={portableIndentLevel(block) || undefined}
+      style={portableIndentStyle(block)}
+    >{@html renderPortableInline(block)}</h3>
   {:else if isPortableBlock(block) && block.style === 'blockquote'}
-    <blockquote>{@html renderPortableInline(block)}</blockquote>
+    <blockquote
+      class:article-indented-block={portableIndentLevel(block) > 0}
+      data-indent-level={portableIndentLevel(block) || undefined}
+      style={portableIndentStyle(block)}
+    >{@html renderPortableInline(block)}</blockquote>
   {:else if isPortableBlock(block)}
-    <p>{@html renderPortableInline(block)}</p>
+    <p
+      class:article-indented-block={portableIndentLevel(block) > 0}
+      data-indent-level={portableIndentLevel(block) || undefined}
+      style={portableIndentStyle(block)}
+    >{@html renderPortableInline(block)}</p>
   {:else if '_type' in block && (block._type === 'image' || block._type === 'articleImage')}
     {#if block.asset?.url}
       <figure

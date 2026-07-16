@@ -57,6 +57,8 @@
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
     "@portabletext/editor": "^7.10.5",
+    "@portabletext/plugin-markdown-shortcuts": "^8.0.33",
+    "@portabletext/plugin-paste-link": "^4.0.32",
     "@sanity/client": "^7.22.1",
     "@sanity/icons": "^5.0.0",
     "@sanity/preview-url-secret": "^4.0.7",

@@ -1009,6 +1009,10 @@ test.describe('Sanity Studio content contract', () => {
     expect(hooks).toContain(
       "headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')",
     )
+    expect(hooks).toContain('if (!fixtureStaff) await applyPreviewAdminPolicy()')
+    expect(hooks.indexOf('const fixtureStaff')).toBeLessThan(
+      hooks.indexOf('if (!fixtureStaff) await applyPreviewAdminPolicy()'),
+    )
     expect(previewEnable).toContain("rateLimitKey('preview-enable', getClientAddress())")
     expect(staffAuth).toContain("staff?.role === 'admin'")
     expect(painelActions).toContain('canManageStaff(event.locals.staff)')

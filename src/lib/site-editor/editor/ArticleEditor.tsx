@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {
   defineSchema,
   EditorProvider,
@@ -14,11 +14,15 @@ import {
   type RenderDecoratorFunction,
   type RenderStyleFunction,
 } from '@portabletext/editor'
-import {EventListenerPlugin} from '@portabletext/editor/plugins'
+import {defineBehavior, raise} from '@portabletext/editor/behaviors'
+import {BehaviorPlugin, EventListenerPlugin} from '@portabletext/editor/plugins'
 import * as selectors from '@portabletext/editor/selectors'
+import {MarkdownShortcutsPlugin} from '@portabletext/plugin-markdown-shortcuts'
+import {PasteLinkPlugin} from '@portabletext/plugin-paste-link'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
 import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {BoldIcon} from '@sanity/icons/Bold'
+import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {CloseIcon} from '@sanity/icons/Close'
 import {EditIcon} from '@sanity/icons/Edit'
 import {ImageIcon} from '@sanity/icons/Image'
@@ -113,9 +117,7 @@ const schemaDefinition = defineSchema({
               name: 'articleTableRow',
               title: 'Linha',
               type: 'object',
-              fields: [
-                {name: 'cells', title: 'Células', type: 'array', of: [{type: 'string'}]},
-              ],
+              fields: [{name: 'cells', title: 'Células', type: 'array', of: [{type: 'string'}]}],
             },
           ],
         },
@@ -124,11 +126,103 @@ const schemaDefinition = defineSchema({
   ],
 })
 
-const renderStyle: RenderStyleFunction = ({children, schemaType}) => {
-  if (schemaType.value === 'h2') return <h2>{children}</h2>
-  if (schemaType.value === 'h3') return <h3>{children}</h3>
-  if (schemaType.value === 'blockquote') return <blockquote>{children}</blockquote>
-  return <p>{children}</p>
+const MAX_PARAGRAPH_INDENT = 4
+
+const paragraphIndentLevel = (block: Pick<PortableTextBlock, 'level' | 'listItem'>) =>
+  block.listItem
+    ? 0
+    : Math.min(MAX_PARAGRAPH_INDENT, Math.max(0, Number(block.level) || 0))
+
+const paragraphIndentProps = (block: Pick<PortableTextBlock, 'level' | 'listItem'>) => {
+  const level = paragraphIndentLevel(block)
+  if (!level) return {}
+
+  return {
+    className: 'site-editor-rich-indented-block',
+    'data-indent-level': level,
+    style: {'--article-indent-level': level} as React.CSSProperties,
+  }
+}
+
+const isPlainTab = (event: {
+  key: string
+  altKey: boolean
+  ctrlKey: boolean
+  metaKey: boolean
+  shiftKey: boolean
+}) =>
+  event.key === 'Tab' &&
+  !event.altKey &&
+  !event.ctrlKey &&
+  !event.metaKey &&
+  !event.shiftKey
+
+const isPlainShiftTab = (event: {
+  key: string
+  altKey: boolean
+  ctrlKey: boolean
+  metaKey: boolean
+  shiftKey: boolean
+}) =>
+  event.key === 'Tab' &&
+  !event.altKey &&
+  !event.ctrlKey &&
+  !event.metaKey &&
+  event.shiftKey
+
+const indentParagraphOnTab = defineBehavior({
+  on: 'keyboard.keydown',
+  guard: ({snapshot, event}) => {
+    if (!isPlainTab(event.originEvent)) return false
+    const selectedBlocks = selectors.getSelectedTextBlocks(snapshot)
+    if (!selectedBlocks.length || selectedBlocks.some(({node}) => Boolean(node.listItem))) {
+      return false
+    }
+    return {selectedBlocks}
+  },
+  actions: [
+    (_, {selectedBlocks}) =>
+      selectedBlocks.map(({node, path}) =>
+        raise({
+          type: 'block.set',
+          at: path,
+          props: {level: Math.min(MAX_PARAGRAPH_INDENT, paragraphIndentLevel(node) + 1)},
+        }),
+      ),
+  ],
+})
+
+const unindentParagraphOnShiftTab = defineBehavior({
+  on: 'keyboard.keydown',
+  guard: ({snapshot, event}) => {
+    if (!isPlainShiftTab(event.originEvent)) return false
+    const selectedBlocks = selectors.getSelectedTextBlocks(snapshot)
+    if (!selectedBlocks.length || selectedBlocks.some(({node}) => Boolean(node.listItem))) {
+      return false
+    }
+    return {selectedBlocks}
+  },
+  actions: [
+    (_, {selectedBlocks}) =>
+      selectedBlocks.map(({node, path}) => {
+        const nextLevel = paragraphIndentLevel(node) - 1
+        return nextLevel > 0
+          ? raise({type: 'block.set', at: path, props: {level: nextLevel}})
+          : raise({type: 'block.unset', at: path, props: ['level']})
+      }),
+  ],
+})
+
+const paragraphIndentBehaviors = [indentParagraphOnTab, unindentParagraphOnShiftTab]
+
+const renderStyle: RenderStyleFunction = ({block, children, schemaType}) => {
+  const indentProps = paragraphIndentProps(block)
+  if (schemaType.value === 'h2') return <h2 {...indentProps}>{children}</h2>
+  if (schemaType.value === 'h3') return <h3 {...indentProps}>{children}</h3>
+  if (schemaType.value === 'blockquote') {
+    return <blockquote {...indentProps}>{children}</blockquote>
+  }
+  return <p {...indentProps}>{children}</p>
 }
 
 const renderDecorator: RenderDecoratorFunction = ({children, value}) => {
@@ -192,16 +286,21 @@ function ArticleObjectCard({
   props,
   projectId,
   dataset,
+  selected,
   onEdit,
 }: {
   props: BlockRenderProps
   projectId: string
   dataset: string
-  onEdit: (selected: SelectedObject) => void
+  selected?: SelectedObject
+  onEdit: (selected?: SelectedObject) => void
 }) {
   const editor = useEditor()
   const node = props.value as ArticleObject
-  const imageUrl = node._type === 'image' ? sanityAssetUrl(node.asset?._ref, projectId, dataset) : ''
+  const isEditing = selected?.node._key === node._key
+  const currentNode = isEditing ? selected.node : node
+  const imageUrl =
+    node._type === 'image' ? sanityAssetUrl(node.asset?._ref, projectId, dataset) : ''
   const columns = Array.isArray(node.columns) ? node.columns.map((item) => String(item || '')) : []
   const rows = Array.isArray(node.rows) ? node.rows : []
 
@@ -210,10 +309,22 @@ function ArticleObjectCard({
     event.stopPropagation()
   }
 
+  const selectObject = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target
+    if (target instanceof Element && target.closest('button, input, textarea, select, a, label')) {
+      return
+    }
+
+    const point = {path: props.path, offset: 0}
+    editor.send({type: 'select', at: {anchor: point, focus: point}})
+    editor.send({type: 'focus'})
+  }
+
   return (
     <div
-      className={`site-editor-rich-object${props.selected ? ' is-selected' : ''}`}
+      className={`site-editor-rich-object${props.selected || isEditing ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}`}
       data-object-type={node._type}
+      onClick={selectObject}
     >
       <span className="site-editor-rich-object-spacer">{props.children}</span>
       <div className="site-editor-rich-object-content" contentEditable={false}>
@@ -232,11 +343,11 @@ function ArticleObjectCard({
             <button
               type="button"
               onMouseDown={keepEditorSelection}
-              onClick={() => onEdit({node, path: props.path})}
-              aria-label={`Editar ${objectLabel(node).toLowerCase()}`}
-              title={`Editar ${objectLabel(node).toLowerCase()}`}
+              onClick={() => onEdit(isEditing ? undefined : {node, path: props.path})}
+              aria-label={`${isEditing ? 'Concluir edição da' : 'Editar'} ${objectLabel(node).toLowerCase()}`}
+              title={`${isEditing ? 'Concluir edição da' : 'Editar'} ${objectLabel(node).toLowerCase()}`}
             >
-              <EditIcon />
+              {isEditing ? <CheckmarkIcon /> : <EditIcon />}
             </button>
             <button
               type="button"
@@ -282,7 +393,16 @@ function ArticleObjectCard({
             </span>
           </div>
         ) : node._type === 'articleTable' ? (
-          columns.length ? (
+          isEditing ? (
+            <TableFields
+              node={currentNode}
+              embedded
+              onChange={(next) => {
+                editor.send({type: 'block.set', at: props.path, props: next})
+                onEdit({node: {...currentNode, ...next}, path: props.path})
+              }}
+            />
+          ) : columns.length ? (
             <div className="site-editor-rich-table-wrap">
               <table>
                 <thead>
@@ -353,7 +473,10 @@ function ArticleToolbar({
     value: Record<string, unknown>,
   ) => {
     const existingKeys = new Set(
-      editor.getSnapshot().context.value.map((block) => block._key).filter(Boolean),
+      editor
+        .getSnapshot()
+        .context.value.map((block) => block._key)
+        .filter(Boolean),
     )
     refocus()
     editor.send({
@@ -602,12 +725,29 @@ function ArticleToolbar({
 function TableFields({
   node,
   onChange,
+  embedded = false,
 }: {
   node: ArticleObject
   onChange: (props: Record<string, unknown>) => void
+  embedded?: boolean
 }) {
   const columns = Array.isArray(node.columns) ? node.columns.map((item) => String(item || '')) : []
   const rows = Array.isArray(node.rows) ? node.rows : []
+  const grid = useRef<HTMLDivElement>(null)
+  const pendingFocus = useRef<{row: number; column: number}>()
+
+  useEffect(() => {
+    const target = pendingFocus.current
+    if (!target) return
+    pendingFocus.current = undefined
+    window.requestAnimationFrame(() => {
+      grid.current
+        ?.querySelector<HTMLElement>(
+          `[data-table-row="${target.row}"][data-table-column="${target.column}"]`,
+        )
+        ?.focus()
+    })
+  }, [rows.length])
 
   const setColumns = (nextColumns: string[]) => onChange({columns: nextColumns})
   const addColumn = () => {
@@ -653,9 +793,32 @@ function TableFields({
     })
     onChange({rows: nextRows})
   }
+  const moveBetweenFields = (
+    event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    if (event.key !== 'Tab') return
+    const fields = Array.from(
+      grid.current?.querySelectorAll<HTMLElement>('[data-table-field="true"]') ?? [],
+    )
+    const index = fields.indexOf(event.currentTarget)
+    if (index < 0) return
+
+    const nextIndex = index + (event.shiftKey ? -1 : 1)
+    if (nextIndex >= 0 && nextIndex < fields.length) {
+      event.preventDefault()
+      fields[nextIndex].focus()
+      return
+    }
+
+    if (!event.shiftKey && columns.length) {
+      event.preventDefault()
+      pendingFocus.current = {row: rows.length, column: 0}
+      addRow()
+    }
+  }
 
   return (
-    <div className="site-editor-rich-table-fields">
+    <div className={`site-editor-rich-table-fields${embedded ? ' is-embedded' : ''}`}>
       <header className="site-editor-rich-table-manager-head">
         <span>
           <strong>Conteúdo da tabela</strong>
@@ -665,28 +828,36 @@ function TableFields({
           </small>
         </span>
         <nav aria-label="Estrutura da tabela">
-          <button type="button" onClick={addColumn}>+ Coluna</button>
-          <button type="button" onClick={addRow} disabled={!columns.length}>+ Linha</button>
+          <button type="button" onClick={addColumn}>
+            + Coluna
+          </button>
+          <button type="button" onClick={addRow} disabled={!columns.length}>
+            + Linha
+          </button>
         </nav>
       </header>
 
       {columns.length ? (
         <div className="site-editor-rich-table-grid-shell">
           <div
+            ref={grid}
             className="site-editor-rich-table-grid"
             style={{gridTemplateColumns: `42px repeat(${columns.length}, minmax(150px, 1fr))`}}
           >
-            <div className="site-editor-rich-table-corner" aria-hidden="true">Linha</div>
+            <div className="site-editor-rich-table-corner" aria-hidden="true">
+              Linha
+            </div>
             {columns.map((column, columnIndex) => (
-              <label
-                className="site-editor-rich-table-heading"
-                key={`heading-${columnIndex}`}
-              >
+              <label className="site-editor-rich-table-heading" key={`heading-${columnIndex}`}>
                 <span>Coluna {columnIndex + 1}</span>
                 <span>
                   <input
                     aria-label={`Nome da coluna ${columnIndex + 1}`}
+                    data-table-field="true"
+                    data-table-row="heading"
+                    data-table-column={columnIndex}
                     value={column}
+                    onKeyDown={moveBetweenFields}
                     onChange={(event) => {
                       const next = [...columns]
                       next[columnIndex] = event.currentTarget.value
@@ -698,7 +869,9 @@ function TableFields({
                     onClick={() => removeColumn(columnIndex)}
                     disabled={columns.length <= 1}
                     aria-label={`Eliminar coluna ${columnIndex + 1}`}
-                    title={columns.length <= 1 ? 'A tabela precisa de uma coluna' : 'Eliminar coluna'}
+                    title={
+                      columns.length <= 1 ? 'A tabela precisa de uma coluna' : 'Eliminar coluna'
+                    }
                   >
                     <TrashIcon />
                   </button>
@@ -730,13 +903,15 @@ function TableFields({
                     <textarea
                       rows={2}
                       aria-label={`Linha ${rowIndex + 1}, ${column || `coluna ${columnIndex + 1}`}`}
+                      data-table-field="true"
+                      data-table-row={rowIndex}
+                      data-table-column={columnIndex}
                       placeholder="Conteúdo"
-                      value={String(
-                        Array.isArray(row.cells) ? row.cells[columnIndex] || '' : '',
-                      )}
+                      value={String(Array.isArray(row.cells) ? row.cells[columnIndex] || '' : '')}
                       onChange={(event) =>
                         updateCell(rowIndex, columnIndex, event.currentTarget.value)
                       }
+                      onKeyDown={moveBetweenFields}
                     />
                   </label>
                 ))}
@@ -768,19 +943,18 @@ function ArticleObjectEditor({
 
   useEffect(() => {
     if (!selected) return
-    const latest = editor.getSnapshot().context.value.find(
-      (block) => block._key === selected.node._key,
-    ) as ArticleObject | undefined
+    const latest = editor
+      .getSnapshot()
+      .context.value.find((block) => block._key === selected.node._key) as ArticleObject | undefined
     if (!latest) setSelected(undefined)
   }, [editor, selected, setSelected])
 
   if (!selected) return null
+  if (selected.node._type === 'articleTable') return null
 
   const patch = (props: Record<string, unknown>) => {
     editor.send({type: 'block.set', at: selected.path, props})
-    setSelected((current) =>
-      current ? {...current, node: {...current.node, ...props}} : current,
-    )
+    setSelected((current) => (current ? {...current, node: {...current.node, ...props}} : current))
   }
 
   return (
@@ -856,8 +1030,6 @@ function ArticleObjectEditor({
               />
             </label>
           </div>
-        ) : selected.node._type === 'articleTable' ? (
-          <TableFields node={selected.node} onChange={patch} />
         ) : (
           <p>Este conteúdo está preservado, mas ainda não pode ser alterado aqui.</p>
         )}
@@ -885,6 +1057,7 @@ function ArticleSurface({
         props={props}
         projectId={projectId}
         dataset={dataset}
+        selected={selected}
         onEdit={setSelected}
       />
     )
@@ -900,29 +1073,14 @@ function ArticleSurface({
           renderAnnotation={renderAnnotation}
           renderBlock={renderBlock}
           renderListItem={(props) => <ArticleListItem {...props} />}
-          renderPlaceholder={() => <span>Comece a escrever o artigo…</span>}
         />
       </div>
-      <ArticleObjectEditor
-        selected={selected}
-        setSelected={setSelected}
-        onUpload={onUpload}
-      />
-      <p className="site-editor-article-note">
-        Escreva em português. As traduções são tratadas automaticamente depois de guardar.
-      </p>
+      <ArticleObjectEditor selected={selected} setSelected={setSelected} onUpload={onUpload} />
     </>
   )
 }
 
-export function ArticleEditor({
-  value,
-  documentKey,
-  projectId,
-  dataset,
-  onChange,
-  onUpload,
-}: Props) {
+export function ArticleEditor({value, documentKey, projectId, dataset, onChange, onUpload}: Props) {
   const article = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
   const blocks = useMemo(
     () => (Array.isArray(article.pt) ? (article.pt as PortableTextBlock[]) : []),
@@ -948,6 +1106,35 @@ export function ArticleEditor({
             })
           }}
         />
+        <BehaviorPlugin behaviors={paragraphIndentBehaviors} />
+        <MarkdownShortcutsPlugin
+          boldDecorator={({context}) =>
+            context.schema.decorators.find((decorator) => decorator.name === 'strong')?.name
+          }
+          italicDecorator={({context}) =>
+            context.schema.decorators.find((decorator) => decorator.name === 'em')?.name
+          }
+          defaultStyle={({context}) =>
+            context.schema.styles.find((style) => style.name === 'normal')?.name
+          }
+          headingStyle={({context, props}) =>
+            context.schema.styles.find((style) => style.name === `h${props.level}`)?.name
+          }
+          blockquoteStyle={({context}) =>
+            context.schema.styles.find((style) => style.name === 'blockquote')?.name
+          }
+          orderedList={({context}) =>
+            context.schema.lists.find((list) => list.name === 'number')?.name
+          }
+          unorderedList={({context}) =>
+            context.schema.lists.find((list) => list.name === 'bullet')?.name
+          }
+          linkObject={({context, props}) => {
+            const link = context.schema.annotations.find((annotation) => annotation.name === 'link')
+            return link ? {_type: link.name, href: props.href} : undefined
+          }}
+        />
+        <PasteLinkPlugin />
         <ArticleSurface projectId={projectId} dataset={dataset} onUpload={onUpload} />
       </EditorProvider>
     </div>

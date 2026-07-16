@@ -6105,6 +6105,10 @@ body.lightbox-open {
   margin: 0 0 1.15rem;
 }
 
+.article-indented-block {
+  margin-inline-start: calc(var(--article-indent-level, 0) * min(2rem, 6vw));
+}
+
 .blog-body ul,
 .blog-body ol {
   display: grid;
