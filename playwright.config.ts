@@ -22,6 +22,7 @@ export default defineConfig({
       SITE_EDITOR_E2E: 'true',
       SITE_EDITOR_E2E_KEY: siteEditorE2eKey,
       BUILDER_PREVIEW_SECRET: 'df4y-playwright-preview-only',
+      PREVIEW_ADMIN_ENABLED: 'false',
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,

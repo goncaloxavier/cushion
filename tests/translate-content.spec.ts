@@ -13,6 +13,7 @@ const articleFixture: PortableTextBlock[] = [
     _type: 'block',
     _key: 'block1',
     style: 'h2',
+    level: 2,
     children: [{_type: 'span', _key: 'span1', text: 'Título de secção', marks: []}],
   },
   {
@@ -102,6 +103,7 @@ test.describe('translate-content tree-walker', () => {
     // Structural fields survive byte-identical.
     expect(result[0]._key).toBe('block1')
     expect(result[0].style).toBe('h2')
+    expect(result[0].level).toBe(2)
     expect((result[1] as PortableTextBlock).listItem).toBe('bullet')
     expect((result[1] as PortableTextBlock).level).toBe(1)
     expect((result[1].markDefs as PortableTextBlock[])[0].href).toBe('https://dafabrica4you.pt')

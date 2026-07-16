@@ -2860,6 +2860,10 @@
   margin: 0 0 0.85em;
 }
 
+.site-editor-rich-canvas .site-editor-rich-indented-block {
+  margin-inline-start: calc(var(--article-indent-level, 0) * min(2rem, 6vw));
+}
+
 .site-editor-rich-canvas h2 {
   color: #132d26;
   font-size: 22px;
@@ -2948,6 +2952,10 @@
 .site-editor-rich-object.is-selected .site-editor-rich-object-content {
   border-color: #2f8b73;
   box-shadow: 0 0 0 2px rgb(47 139 115 / 13%);
+}
+
+.site-editor-rich-object.is-editing .site-editor-rich-object-content {
+  overflow: visible;
 }
 
 .site-editor-rich-object-content > header {
@@ -3142,6 +3150,11 @@
 .site-editor-rich-table-fields {
   display: grid;
   gap: 10px;
+}
+
+.site-editor-rich-table-fields.is-embedded {
+  padding: 14px;
+  background: #fbfdfc;
 }
 
 .site-editor-rich-table-manager-head {
@@ -4390,5 +4403,4 @@
   .site-editor-frame-stage {
     padding: 8px;
   }
-
 }

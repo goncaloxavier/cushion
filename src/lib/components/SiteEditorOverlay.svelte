@@ -48,6 +48,7 @@
   let toolbarLeft = $state(8)
   let toolbarTop = $state(8)
   let toolbarElement = $state<HTMLDivElement>()
+  let overlayReady = $state(false)
   let editing: EditableSession | undefined
   let selectedElement: HTMLElement | SVGElement | undefined
   const elements = new Map<string, RegisteredElement>()
@@ -808,6 +809,7 @@
       attributes: true,
       attributeFilter: ['data-sanity'],
     })
+    overlayReady = true
     post({type: 'df4y:site-editor:ready', route: currentRoute()})
     return () => {
       releaseEditing(true)
@@ -834,7 +836,7 @@
   })
 </script>
 
-<div class="site-editor-overlay" bind:this={overlayHost}>
+<div class="site-editor-overlay" bind:this={overlayHost} data-ready={overlayReady}>
   {#if hoveredRect && hoveredId !== activeId}
     <div
       class="site-editor-outline is-hovered"

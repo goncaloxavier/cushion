@@ -17,22 +17,7 @@ const starterKey = (prefix: string) => `${prefix}-${randomUUID().replace(/-/g, '
 
 const starterArticle = () => ({
   _type: 'localizedArticle',
-  pt: [
-    {
-      _key: starterKey('paragraph'),
-      _type: 'block',
-      style: 'normal',
-      markDefs: [],
-      children: [
-        {
-          _key: starterKey('span'),
-          _type: 'span',
-          marks: [],
-          text: 'Comece aqui a escrever o artigo.',
-        },
-      ],
-    },
-  ],
+  pt: [],
 })
 
 export const createSiteEditorStarterFields = ({
@@ -56,9 +41,7 @@ export const createSiteEditorStarterFields = ({
       ...identity,
       gallery: [],
       summary: localizedText('Apresente aqui, numa frase, onde este produto é útil.'),
-      description: localizedText(
-        'Descreva o produto, as aplicações e as principais vantagens.',
-      ),
+      description: localizedText('Descreva o produto, as aplicações e as principais vantagens.'),
       orderRank: 100,
     }
   }

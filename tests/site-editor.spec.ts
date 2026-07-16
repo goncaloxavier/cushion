@@ -16,6 +16,12 @@ const tinyVideo = Buffer.from('site-editor-video-fixture')
 
 const frameFor = (page: Page): FrameLocator => page.frameLocator('.site-editor-frame-wrap iframe')
 
+const waitForVisualEditor = async (frame: FrameLocator) => {
+  await expect(frame.locator('.site-editor-overlay')).toHaveAttribute('data-ready', 'true', {
+    timeout: 15_000,
+  })
+}
+
 const expandCollection = async (navigation: Locator, name: string | RegExp) => {
   const collection = navigation.getByRole('button', {name})
   if ((await collection.getAttribute('aria-expanded')) === 'false') await collection.click()
@@ -36,18 +42,10 @@ const openEditor = async (page: Page, testInfo: TestInfo) => {
     route.fulfill({status: 200, contentType: 'image/png', body: tinyPng}),
   )
   await page.goto('/painel/site')
-  await expect(page.locator('.site-editor-shell')).toBeVisible()
+  await expect(page.locator('.site-editor-shell')).toBeVisible({timeout: 15_000})
   const frame = frameFor(page)
   await expect(frame.getByTestId('fixture-hero-title')).toBeVisible()
-  await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-  await frame
-    .locator('body')
-    .evaluate(
-      () =>
-        new Promise<void>((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-        ),
-    )
+  await waitForVisualEditor(frame)
   return frame
 }
 
@@ -360,6 +358,7 @@ test.describe('visual website editor', () => {
     await productNode.click()
     frame = frameFor(page)
     await expect(frame.getByTestId('fixture-product-title')).toBeVisible()
+    await waitForVisualEditor(frame)
 
     const productWeight = frame.getByTestId('fixture-product-weight')
     await productWeight.hover()
@@ -503,7 +502,7 @@ test.describe('visual website editor', () => {
 
       await expect(modal).toHaveCount(0)
       await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
-      await expect(frame.locator('.site-editor-overlay')).toBeAttached()
+      await waitForVisualEditor(frame)
       await expect(page.locator('.site-editor-context')).toContainText(draft.title)
       await expect(frame.getByTestId('fixture-created-summary')).toBeVisible()
       await page.keyboard.press('Escape')
@@ -523,7 +522,7 @@ test.describe('visual website editor', () => {
         const articleBootId = await frame
           .locator('html')
           .getAttribute('data-site-editor-fixture-boot')
-        await expect(article).toContainText('Comece aqui a escrever o artigo.')
+        await expect(article).toHaveText('')
         await article.click()
         const settings = page.locator('.site-editor-drawer.is-settings')
         await expect(settings).toHaveClass(/is-open/)
@@ -532,13 +531,12 @@ test.describe('visual website editor', () => {
         await expect(workspace.locator('.site-editor-rich-canvas')).toBeVisible()
         await expect(
           workspace.locator('[contenteditable="true"][aria-label="Texto do artigo"]'),
-        ).toContainText('Comece aqui a escrever o artigo.')
+        ).toHaveText('')
         const articleEditor = workspace.locator(
           '[contenteditable="true"][aria-label="Texto do artigo"]',
         )
         await articleEditor.click()
-        await articleEditor.press('End')
-        await articleEditor.pressSequentially(' Mais conteúdo.')
+        await articleEditor.pressSequentially('Conteúdo inicial. Mais conteúdo.')
         await expect(articleEditor).toContainText('Mais conteúdo.')
         await articleEditor.press('Enter')
         await articleEditor.pressSequentially('Uma nova secção')
@@ -594,7 +592,7 @@ test.describe('visual website editor', () => {
         await workspace.getByRole('button', {name: 'Adicionar tabela'}).click()
         const table = workspace.locator('.site-editor-rich-object[data-object-type="articleTable"]')
         await expect(table).toBeVisible()
-        await expect(workspace.locator('.site-editor-rich-object-editor')).toContainText('Tabela')
+        await expect(table.locator('.site-editor-rich-table-fields.is-embedded')).toBeVisible()
         await workspace.getByLabel('Nome da coluna 1').fill('Material')
         await workspace.getByLabel('Nome da coluna 2').fill('Quantidade')
         await workspace.getByLabel('Linha 1, Material').fill('Plástico reciclado')
@@ -616,7 +614,7 @@ test.describe('visual website editor', () => {
         expect(structure.some((block) => block.style === 'h2')).toBe(true)
         expect(structure.filter((block) => block.listItem === 'bullet')).toHaveLength(2)
         expect(structure.some((block) => block._type === 'articleTable')).toBe(true)
-        await workspace.getByRole('button', {name: 'Fechar edição'}).click()
+        await table.getByRole('button', {name: 'Concluir edição da tabela'}).click()
         await workspace.getByRole('button', {name: 'Concluir'}).click()
         await expect(workspace).toHaveCount(0)
         await expect(launcher).toBeFocused()
@@ -801,6 +799,132 @@ test.describe('visual website editor', () => {
     expect(await workspace.evaluate((dialog) => dialog.scrollWidth <= dialog.clientWidth + 1)).toBe(
       true,
     )
+  })
+
+  test('supports document-style table editing and block flow from the keyboard', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Keyboard document workflow runs once')
+    test.setTimeout(40_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Artigos do Blog/)
+    await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
+
+    const article = frame.getByTestId('fixture-created-article')
+    await article.hover()
+    await article.click({position: {x: 8, y: 8}})
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    const {workspace} = await openArticleWorkspace(page, settings)
+    const canvas = workspace.locator('.site-editor-rich-canvas')
+    const table = canvas.locator('.site-editor-rich-object[data-object-type="articleTable"]')
+    const readArticleBlocks = () =>
+      page.evaluate(async () => {
+        const response = await fetch('/painel/site/api?document=blogPost.rich-article-fixture')
+        const payload = (await response.json()) as {
+          document?: {article?: {pt?: Array<Record<string, unknown>>}}
+        }
+        return payload.document?.article?.pt ?? []
+      })
+
+    await table.getByRole('button', {name: 'Editar tabela'}).click()
+    const embeddedEditor = table.locator('.site-editor-rich-table-fields.is-embedded')
+    await expect(embeddedEditor).toBeVisible()
+
+    const firstHeading = embeddedEditor.getByLabel('Nome da coluna 1')
+    const secondHeading = embeddedEditor.getByLabel('Nome da coluna 2')
+    await firstHeading.focus()
+    await page.keyboard.press('Tab')
+    await expect(secondHeading).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(embeddedEditor.getByLabel('Linha 1, Material')).toBeFocused()
+
+    const lastExistingCell = embeddedEditor.getByLabel('Linha 2, Quantidade')
+    await lastExistingCell.focus()
+    await page.keyboard.press('Tab')
+    const firstNewCell = embeddedEditor.getByLabel('Linha 3, Material')
+    await expect(firstNewCell).toBeFocused()
+    await expect(embeddedEditor.getByText('3 linhas')).toBeVisible()
+    await firstNewCell.fill('Vidro')
+    await page.keyboard.press('Tab')
+    const lastNewCell = embeddedEditor.getByLabel('Linha 3, Quantidade')
+    await expect(lastNewCell).toBeFocused()
+    await lastNewCell.fill('3 kg')
+    await page.keyboard.press('Shift+Tab')
+    await expect(firstNewCell).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(lastExistingCell).toBeFocused()
+
+    await expect
+      .poll(async () => {
+        const tableBlock = (await readArticleBlocks()).find(
+          (block) => block._type === 'articleTable',
+        ) as {rows?: Array<{cells?: string[]}>} | undefined
+        return tableBlock?.rows?.at(-1)?.cells
+      })
+      .toEqual(['Vidro', '3 kg'])
+
+    await table.getByRole('button', {name: 'Concluir edição da tabela'}).click()
+    await expect(embeddedEditor).toHaveCount(0)
+    await table.click({position: {x: 16, y: 16}})
+    await page.keyboard.press('Enter')
+
+    await expect
+      .poll(async () => (await readArticleBlocks()).map((block) => block._type).slice(-2))
+      .toEqual(['articleTable', 'block'])
+
+    await page.keyboard.press('Backspace')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?._type).toBe('articleTable')
+
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('Parágrafo com avanço')
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(async () => {
+        const finalBlock = (await readArticleBlocks()).at(-1) as
+          | {level?: number; children?: Array<{text?: string}>}
+          | undefined
+        return {
+          level: finalBlock?.level,
+          text: finalBlock?.children?.map((child) => child.text || '').join(''),
+        }
+      })
+      .toEqual({level: 1, text: 'Parágrafo com avanço'})
+    await expect(
+      canvas.locator('.site-editor-rich-indented-block[data-indent-level="1"]'),
+    ).toContainText('Parágrafo com avanço')
+    await expect(
+      article.locator('.article-indented-block[data-indent-level="1"]'),
+    ).toContainText('Parágrafo com avanço')
+
+    await page.keyboard.press('Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(2)
+    await page.keyboard.press('Shift+Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(1)
+
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('- ')
+    await page.keyboard.type('Ponto criado com atalho')
+    await expect(canvas.locator('.site-editor-rich-list-item.is-bullet')).toHaveCount(3)
+    await expect(canvas).toContainText('Ponto criado com atalho')
+    await page.keyboard.press('Tab')
+    await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(2)
+    await page.keyboard.press('Shift+Tab')
+    await expect
+      .poll(async () => {
+        const finalBlock = (await readArticleBlocks()).at(-1) as
+          | {listItem?: string; level?: number; children?: Array<{text?: string}>}
+          | undefined
+        return {
+          listItem: finalBlock?.listItem,
+          level: finalBlock?.level,
+          text: finalBlock?.children?.map((child) => child.text || '').join(''),
+        }
+      })
+      .toEqual({listItem: 'bullet', level: 1, text: 'Ponto criado com atalho'})
   })
 
   test('creates a Loja category and offers it immediately on Loja products', async ({
