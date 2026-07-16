@@ -93,6 +93,7 @@ Use this to help agents avoid accidental damage.
 - `SANITY_WRITE_TOKEN` and `BUILDER_PREVIEW_SECRET` are server-only builder credentials. Builder mutations must retain staff auth, same-origin and CSRF checks; draft preview must retain the signed, short-lived, iframe-only cookie boundary.
 - Future public/private content boundaries if non-public draft content is introduced.
 - The current Railway deployment (`cushion` service, `dafab4you-website.up.railway.app`) is a dev/test preview server, not the client's final production domain (see `01-project-overview.md`'s open questions). Two infra gaps found in a security audit are real but lower urgency while that holds: `ADDRESS_HEADER`/`XFF_DEPTH` are unset, so in-process rate limiting (`src/lib/server/rate-limit.ts`) buckets by Railway's proxy IP rather than real visitor IPs; and `ORIGIN` is unset (only `APP_ORIGIN` is), so adapter-node derives `url.origin` from the raw client `Host` header, which could theoretically let a forged Host header land in a password-reset/verification email link. Revisit both before this deployment (or whatever replaces it) is treated as production-facing.
+- Public Sanity documents must have root-level IDs without dots. Sanity treats any ID containing `.` as a private sub-path that anonymous website queries cannot read, even after publication. The custom editor therefore creates public content with `<type>-<uuid>` IDs; keep the contract guard in `tests/sanity-contract.spec.ts` when changing document creation.
 
 ## Common Regression Patterns
 

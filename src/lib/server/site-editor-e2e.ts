@@ -591,7 +591,7 @@ export const createSiteEditorE2eDocument = (
   scope = 'default',
 ) => {
   if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
-  const id = `${type}.${randomUUID()}`
+  const id = `${type}-${randomUUID()}`
   const slug = fixtureSlug(title)
   const duplicate = [...stateFor(scope).documents.values()].some((document) =>
     type === 'sitePage'

@@ -748,7 +748,9 @@ export const createSiteEditorDocument = async (
       'Já existe conteúdo deste tipo com o mesmo endereço.',
     )
   }
-  const id = `${type}.${randomUUID()}`
+  // Sanity treats every ID containing a dot as a private sub-path. Keep
+  // published website content at the root so anonymous visitors can read it.
+  const id = `${type}-${randomUUID()}`
   const base: Record<string, unknown> = {
     _id: editorDraftId(id),
     _type: type,
