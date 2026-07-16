@@ -22,6 +22,19 @@ const waitForVisualEditor = async (frame: FrameLocator) => {
   })
 }
 
+const hoverEditableTarget = async (
+  frame: FrameLocator,
+  target: Locator,
+  label?: string,
+) => {
+  await waitForVisualEditor(frame)
+  await frame.locator('body').hover({position: {x: 1, y: 1}})
+  await target.hover()
+  const outline = frame.locator('.site-editor-outline.is-hovered')
+  await expect(outline).toBeVisible()
+  if (label) await expect(outline.locator('span')).toHaveText(label)
+}
+
 const expandCollection = async (navigation: Locator, name: string | RegExp) => {
   const collection = navigation.getByRole('button', {name})
   if ((await collection.getAttribute('aria-expanded')) === 'false') await collection.click()
@@ -509,10 +522,7 @@ test.describe('visual website editor', () => {
       await expect(navigation).not.toHaveClass(/is-open/)
 
       const heading = frame.getByTestId('fixture-created-title')
-      await heading.hover()
-      await expect(frame.locator('.site-editor-outline.is-hovered > span')).toHaveText(
-        'Editar texto',
-      )
+      await hoverEditableTarget(frame, heading, 'Editar texto')
       await heading.click()
       await expect(frame.locator('.site-editor-inline-toolbar')).toBeVisible()
       await heading.press('Escape')
@@ -664,9 +674,7 @@ test.describe('visual website editor', () => {
     await expect(article).toContainText('Uma secção completa')
     await expect(frame.locator('html')).toHaveAttribute('data-site-editor-fixture-boot', /.+/)
     const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
-    await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-    await article.hover()
-    await expect(frame.locator('.site-editor-outline.is-hovered')).toBeVisible()
+    await hoverEditableTarget(frame, article)
     await article.click({position: {x: 8, y: 8}})
 
     const settings = page.locator('.site-editor-drawer.is-settings')
@@ -765,9 +773,7 @@ test.describe('visual website editor', () => {
     await expandCollection(navigation, /Artigos do Blog/)
     await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
     const article = frame.getByTestId('fixture-created-article')
-    await expect(frame.locator('.site-editor-overlay')).toBeAttached()
-    await article.hover()
-    await expect(frame.locator('.site-editor-outline.is-hovered')).toBeVisible()
+    await hoverEditableTarget(frame, article)
     await article.click({position: {x: 8, y: 8}})
 
     const settings = page.locator('.site-editor-drawer.is-settings')
