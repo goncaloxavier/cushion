@@ -7,6 +7,9 @@ import type {
   SiteEditorManifest,
   SiteEditorNode,
 } from '$lib/site-editor/types'
+import {createBuilderSection} from '$lib/builder/defaults'
+import {invalidateSanityCollectionsCache} from '$lib/sanity'
+import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {editorDraftId, normalizeEditorDocumentId} from '$lib/site-editor/path'
 import {
   createSiteEditorE2eDocument,
@@ -17,6 +20,12 @@ import {
   saveSiteEditorE2eDocument,
   siteEditorE2eEnabled,
 } from './site-editor-e2e'
+import {
+  SiteEditorCategoryInUseError,
+  SiteEditorDuplicateError,
+  SiteEditorValidationError,
+} from './site-editor-errors'
+import {createSiteEditorStarterFields} from './site-editor-starters'
 
 const projectId = 'u4uyfix8'
 const apiVersion = '2026-07-13'
@@ -24,6 +33,7 @@ const apiVersion = '2026-07-13'
 const documentTypes = new Set<SiteEditorDocumentType>([
   'siteLanding',
   'productCategory',
+  'storeCategory',
   'storeProduct',
   'caseStudy',
   'blogPost',
@@ -37,6 +47,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'about',
     'productsPage',
     'storePage',
+    'cartPage',
     'returnsPolicy',
     'catalogue',
     'casesPage',
@@ -45,6 +56,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'common',
   ],
   productCategory: ['title', 'slug', 'image', 'gallery', 'summary', 'description', 'orderRank'],
+  storeCategory: ['title', 'slug', 'orderRank'],
   storeProduct: [
     'title',
     'slug',
@@ -71,7 +83,17 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'result',
     'orderRank',
   ],
-  blogPost: ['title', 'slug', 'image', 'gallery', 'publishedAt', 'category', 'excerpt', 'article', 'body'],
+  blogPost: [
+    'title',
+    'slug',
+    'image',
+    'gallery',
+    'publishedAt',
+    'category',
+    'excerpt',
+    'article',
+    'body',
+  ],
   sitePage: ['editorVersion', 'title', 'route', 'active', 'sections', 'seo'],
 }
 
@@ -83,8 +105,9 @@ const staticPages: Array<{
 }> = [
   {id: 'page-home', title: 'Página inicial', route: '/', rootPath: 'home'},
   {id: 'page-about', title: 'Sobre', route: '/sobre-nos', rootPath: 'about'},
-  {id: 'page-products', title: 'Soluções', route: '/produtos', rootPath: 'productsPage'},
+  {id: 'page-products', title: 'Produtos', route: '/produtos', rootPath: 'productsPage'},
   {id: 'page-store', title: 'Loja', route: '/loja', rootPath: 'storePage'},
+  {id: 'page-cart', title: 'Carrinho', route: '/carrinho', rootPath: 'cartPage'},
   {id: 'page-catalogue', title: 'Catálogo', route: '/catalogo', rootPath: 'catalogue'},
   {id: 'page-cases', title: 'Casos de estudo', route: '/casos-de-estudo', rootPath: 'casesPage'},
   {id: 'page-blog', title: 'Blog', route: '/blog', rootPath: 'blogPage'},
@@ -103,9 +126,20 @@ const collectionDefinitions: Array<{
   type: SiteEditorDocumentType
   routePrefix: string
 }> = [
-  {id: 'collection-products', title: 'Soluções', type: 'productCategory', routePrefix: '/produtos'},
+  {id: 'collection-products', title: 'Produtos', type: 'productCategory', routePrefix: '/produtos'},
+  {
+    id: 'collection-store-categories',
+    title: 'Categorias da Loja',
+    type: 'storeCategory',
+    routePrefix: '/loja',
+  },
   {id: 'collection-store', title: 'Produtos da Loja', type: 'storeProduct', routePrefix: '/loja'},
-  {id: 'collection-cases', title: 'Casos de estudo', type: 'caseStudy', routePrefix: '/casos-de-estudo'},
+  {
+    id: 'collection-cases',
+    title: 'Casos de estudo',
+    type: 'caseStudy',
+    routePrefix: '/casos-de-estudo',
+  },
   {id: 'collection-blog', title: 'Artigos do Blog', type: 'blogPost', routePrefix: '/blog'},
 ]
 
@@ -154,6 +188,8 @@ type ManifestDocument = {
   publishedAt?: string
   location?: string
   thumbnailUrl?: string
+  orderRank?: number
+  category?: string
   navigation?: Array<{
     _key?: string
     label?: string
@@ -183,7 +219,8 @@ const writeToken = () => env.SANITY_WRITE_TOKEN || ''
 
 const requireReadClient = () => {
   const token = readToken()
-  if (!token) throw new Error('Configure SANITY_VIEWER_TOKEN ou SANITY_WRITE_TOKEN para abrir o editor.')
+  if (!token)
+    throw new Error('Configure SANITY_VIEWER_TOKEN ou SANITY_WRITE_TOKEN para abrir o editor.')
   return clientFor(token)
 }
 
@@ -202,6 +239,11 @@ export const siteEditorCapabilities = () => ({
 })
 
 const isDraft = (id: string) => id.startsWith('drafts.')
+
+const documentSlug = (document?: SiteEditorDocument | null) => {
+  const slug = (document?.slug as {current?: unknown} | undefined)?.current
+  return typeof slug === 'string' ? slug.trim() : ''
+}
 
 const preferDrafts = <T extends {_id: string}>(documents: T[]) => {
   const merged = new Map<string, T>()
@@ -231,9 +273,14 @@ export const getSiteEditorManifest = async (
       "slug": slug.current,
       route,
       active,
+      orderRank,
+      category,
       publishedAt,
       location,
-      "thumbnailUrl": image.asset->url,
+      "thumbnailUrl": coalesce(
+        image.asset->url,
+        gallery[_type in ["image", "galleryImage"]][0].asset->url
+      ),
       navigation[] {
         _key,
         "label": label.pt,
@@ -244,6 +291,37 @@ export const getSiteEditorManifest = async (
     {types: [...documentTypes]},
   )
   const preferred = preferDrafts(documents)
+  const publishedStoreProductCategories = new Map(
+    documents
+      .filter(
+        (document) =>
+          document._type === 'storeProduct' && !isDraft(document._id) && document.category,
+      )
+      .map((document) => [normalizeEditorDocumentId(document._id), document.category!]),
+  )
+  const storeProductCounts = preferred
+    .filter((document) => document._type === 'storeProduct' && document.category)
+    .reduce((counts, document) => {
+      const category = document.category!
+      counts.set(category, (counts.get(category) ?? 0) + 1)
+      return counts
+    }, new Map<string, number>())
+  const storeCategoryOptions = new Map<string, {label: string; value: string}>(
+    defaultStoreCategoryOptions.map((option) => [option.value, option]),
+  )
+  preferred
+    .filter((document) => document._type === 'storeCategory' && document.slug)
+    .sort(
+      (left, right) =>
+        (left.orderRank ?? 100) - (right.orderRank ?? 100) ||
+        titleFor(left).localeCompare(titleFor(right), 'pt'),
+    )
+    .forEach((document) => {
+      storeCategoryOptions.set(document.slug!, {
+        label: titleFor(document),
+        value: document.slug!,
+      })
+    })
   const siteDocument =
     preferred.find((document) => document._type === 'siteLanding') ??
     ({_id: 'siteContent', _type: 'siteLanding'} as ManifestDocument)
@@ -331,12 +409,21 @@ export const getSiteEditorManifest = async (
         area: 'content',
         title: titleFor(item),
         subtitle:
-          item._type === 'blogPost'
+          item._type === 'storeCategory'
+            ? `${storeProductCounts.get(item.slug || '') ?? 0} ${
+                (storeProductCounts.get(item.slug || '') ?? 0) === 1 ? 'produto' : 'produtos'
+              }`
+            : item._type === 'blogPost'
             ? item.publishedAt
             : item._type === 'caseStudy'
               ? item.location
               : undefined,
-        route: item.slug ? `${definition.routePrefix}/${item.slug}` : definition.routePrefix,
+        route:
+          item._type === 'storeCategory'
+            ? definition.routePrefix
+            : item.slug
+              ? `${definition.routePrefix}/${item.slug}`
+              : definition.routePrefix,
         documentId: normalizeEditorDocumentId(item._id),
         documentType: item._type,
         parentId: definition.id,
@@ -344,6 +431,16 @@ export const getSiteEditorManifest = async (
         updatedAt: item._updatedAt,
         active: item.active,
         thumbnailUrl: item.thumbnailUrl,
+        slug: item.slug,
+        category: item.category,
+        publishedCategory:
+          item._type === 'storeProduct'
+            ? publishedStoreProductCategories.get(normalizeEditorDocumentId(item._id))
+            : undefined,
+        count:
+          item._type === 'storeCategory'
+            ? storeProductCounts.get(item.slug || '') ?? 0
+            : undefined,
       })
     }
   }
@@ -377,6 +474,7 @@ export const getSiteEditorManifest = async (
 
   return {
     nodes,
+    optionSources: {storeCategories: [...storeCategoryOptions.values()]},
     capabilities: {...siteEditorCapabilities(), canPublish},
   }
 }
@@ -424,6 +522,29 @@ const validateStructuredValue = (value: unknown, depth = 0): void => {
   }
 }
 
+const validateArticleValue = (document: SiteEditorDocument) => {
+  if (document._type !== 'blogPost' || document.article === undefined) return
+  if (!document.article || typeof document.article !== 'object' || Array.isArray(document.article)) {
+    throw new SiteEditorValidationError('O artigo tem um formato inválido. Reabra o editor antes de guardar.')
+  }
+  const blocks = (document.article as {pt?: unknown}).pt
+  if (!Array.isArray(blocks)) {
+    throw new SiteEditorValidationError(
+      'O texto do artigo perdeu a estrutura. Reabra o editor antes de guardar.',
+    )
+  }
+  if (
+    blocks.some(
+      (block) =>
+        !block ||
+        typeof block !== 'object' ||
+        typeof (block as {_type?: unknown})._type !== 'string',
+    )
+  ) {
+    throw new SiteEditorValidationError('O artigo contém um bloco inválido.')
+  }
+}
+
 const editableDocument = (input: SiteEditorDocument) => {
   const type = assertDocumentType(input?._type)
   const id = normalizeEditorDocumentId(String(input?._id || ''))
@@ -444,7 +565,8 @@ const validateDocument = (document: SiteEditorDocument) => {
       : typeof localizedTitle?.pt === 'string'
         ? localizedTitle.pt.trim()
         : ''
-  if (document._type !== 'siteLanding' && !title) throw new Error('Preencha o título antes de publicar.')
+  if (document._type !== 'siteLanding' && !title)
+    throw new Error('Preencha o título antes de publicar.')
 
   if (document._type === 'sitePage') {
     const route = String(document.route || '')
@@ -457,9 +579,30 @@ const validateDocument = (document: SiteEditorDocument) => {
   }
 
   if (document._type === 'storeProduct') {
+    if (typeof document.category !== 'string' || !document.category.trim()) {
+      throw new Error('Escolha uma categoria da Loja.')
+    }
     const variants = document.variants
     if (!Array.isArray(variants) || variants.length === 0) {
       throw new Error('Adicione pelo menos uma opção comprável.')
+    }
+    for (const variant of variants) {
+      if (!variant || typeof variant !== 'object') {
+        throw new Error('Uma das opções do produto está incompleta.')
+      }
+      const value = variant as Record<string, unknown>
+      const label = value.label as {pt?: unknown} | undefined
+      if (typeof label?.pt !== 'string' || !label.pt.trim()) {
+        throw new Error('Dê um nome a todas as opções do produto.')
+      }
+      if (typeof value.weightKg !== 'number' || !Number.isFinite(value.weightKg) || value.weightKg <= 0) {
+        throw new Error('Indique um peso superior a zero em todas as opções.')
+      }
+      for (const field of ['priceNatural', 'priceDark'] as const) {
+        if (typeof value[field] !== 'number' || !Number.isFinite(value[field]) || value[field] <= 0) {
+          throw new Error('Indique preços superiores a zero em todas as opções.')
+        }
+      }
     }
   }
 }
@@ -469,10 +612,8 @@ const unsetMissingFields = (document: SiteEditorDocument) =>
     (field) => !Object.prototype.hasOwnProperty.call(document, field),
   )
 
-export const saveSiteEditorDocument = async (
-  input: SiteEditorDocument,
-  scope = 'default',
-) => {
+export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
+  validateArticleValue(input)
   if (siteEditorE2eEnabled()) {
     try {
       return saveSiteEditorE2eDocument(input, scope)
@@ -491,6 +632,16 @@ export const saveSiteEditorDocument = async (
     client.getDocument<SiteEditorDocument>(publishedId),
     client.getDocument<SiteEditorDocument>(draftId),
   ])
+
+  if (document._type === 'storeCategory') {
+    const existingSlug = documentSlug(draft ?? published)
+    const nextSlug = documentSlug(document)
+    if (existingSlug && nextSlug !== existingSlug) {
+      throw new Error(
+        'O identificador da categoria é estável para proteger os produtos associados. Altere apenas o nome apresentado.',
+      )
+    }
+  }
 
   if (draft) {
     if (!isDraft(input._id) || input._rev !== draft._rev) {
@@ -527,10 +678,7 @@ export const saveSiteEditorDocument = async (
   return client.create(draftDocument as SiteEditorDocument)
 }
 
-export const publishSiteEditorDocument = async (
-  input: SiteEditorDocument,
-  scope = 'default',
-) => {
+export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
   if (siteEditorE2eEnabled()) return publishSiteEditorE2eDocument(input, scope)
   const saved = await saveSiteEditorDocument(input, scope)
   validateDocument(saved)
@@ -546,6 +694,7 @@ export const publishSiteEditorDocument = async (
   })
   const result = await client.getDocument<SiteEditorDocument>(publishedId)
   if (!result) throw new Error('A publicação terminou sem devolver o conteúdo.')
+  invalidateSanityCollectionsCache()
   return result
 }
 
@@ -558,6 +707,17 @@ const slugFromTitle = (title: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 90) || 'novo-conteudo'
 
+const sitePageRoutePattern = /^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+const sitePageRoute = (value: unknown, fallbackSlug: string) => {
+  const input = String(value || `/${fallbackSlug}`).trim()
+  const route = input.startsWith('/') ? input : `/${input}`
+  if (!sitePageRoutePattern.test(route)) {
+    throw new Error('Use um endereço válido, por exemplo /sustentabilidade.')
+  }
+  return route
+}
+
 export const createSiteEditorDocument = async (
   typeValue: unknown,
   titleValue: unknown,
@@ -567,11 +727,27 @@ export const createSiteEditorDocument = async (
   const type = assertDocumentType(typeValue)
   if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
   const title = String(titleValue || '').trim()
-  if (title.length < 2 || title.length > 100) throw new Error('Indique um nome entre 2 e 100 caracteres.')
-  if (siteEditorE2eEnabled()) {
-    return createSiteEditorE2eDocument(type, title, String(routeValue || '').trim() || undefined, scope)
-  }
+  if (title.length < 2 || title.length > 100)
+    throw new Error('Indique um nome entre 2 e 100 caracteres.')
   const slug = slugFromTitle(title)
+  const normalizedRoute = type === 'sitePage' ? sitePageRoute(routeValue, slug) : undefined
+  if (siteEditorE2eEnabled()) {
+    return createSiteEditorE2eDocument(type, title, normalizedRoute, scope)
+  }
+  const existing = await requireReadClient().fetch<string | null>(
+    type === 'sitePage'
+      ? `*[_type == "sitePage" && route == $route && !(_id in path("versions.**"))][0]._id`
+      : `*[_type == $type && slug.current == $slug && !(_id in path("versions.**"))][0]._id`,
+    type === 'sitePage' ? {route: normalizedRoute} : {type, slug},
+  )
+  if (existing) {
+    if (type === 'storeCategory') {
+      throw new SiteEditorDuplicateError('Já existe uma categoria com este nome.')
+    }
+    throw new SiteEditorDuplicateError(
+      'Já existe conteúdo deste tipo com o mesmo endereço.',
+    )
+  }
   const id = `${type}.${randomUUID()}`
   const base: Record<string, unknown> = {
     _id: editorDraftId(id),
@@ -579,24 +755,32 @@ export const createSiteEditorDocument = async (
   }
 
   if (type === 'sitePage') {
-    const route = String(routeValue || `/${slug}`).trim()
+    const hero = createBuilderSection('builderHeroSection')
+    hero.title = {...hero.title, pt: title}
+    hero.body = {...hero.body, pt: ''}
     base.editorVersion = 1
     base.title = title
-    base.route = route.startsWith('/') ? route : `/${route}`
+    base.route = normalizedRoute
     base.active = true
-    base.sections = []
-  } else {
-    base.title = {_type: 'localizedString', pt: title}
-    base.slug = {_type: 'slug', current: slug}
-    if (type === 'storeProduct') {
-      base.category = 'bancos'
-      base.active = false
-      base.hasFinishChoice = true
-      base.orderRank = 100
-      base.variants = []
+    base.sections = [hero]
+    base.seo = {
+      _type: 'builderSeo',
+      title: {_type: 'localizedString', pt: title},
+      description: {_type: 'localizedText', pt: ''},
+      noIndex: true,
     }
-    if (type === 'productCategory' || type === 'caseStudy') base.orderRank = 100
-    if (type === 'blogPost') base.publishedAt = new Date().toISOString().slice(0, 10)
+  } else {
+    const storeCategory =
+      type === 'storeProduct'
+        ? ((await requireReadClient().fetch<string | null>(
+            `*[_type == "storeCategory" && defined(slug.current) && !(_id in path("versions.**"))]
+              | order(orderRank asc, title.pt asc)[0].slug.current`,
+          )) ?? defaultStoreCategoryOptions[0]?.value ?? 'bancos')
+        : undefined
+    Object.assign(
+      base,
+      createSiteEditorStarterFields({type, title, slug, storeCategory}),
+    )
   }
 
   validateStructuredValue(base)
@@ -611,9 +795,32 @@ export const deleteSiteEditorDocument = async (id: string, scope = 'default') =>
   }
   const document = await getSiteEditorDocument(publishedId)
   if (document._type === 'siteLanding') throw new Error('O conteúdo global não pode ser eliminado.')
-  return requireWriteClient()
+  if (document._type === 'storeCategory') {
+    const slug = (document.slug as {current?: unknown} | undefined)?.current
+    if (typeof slug !== 'string' || !slug.trim()) {
+      throw new Error('A categoria não tem um identificador válido.')
+    }
+    const assigned = await requireReadClient().fetch<Array<{_id: string; title?: string}>>(
+      `*[_type == "storeProduct" && category == $category && !(_id in path("versions.**"))] {
+        _id,
+        "title": coalesce(title.pt, title)
+      }`,
+      {category: slug},
+    )
+    const uniqueProducts = new Map<string, string>()
+    for (const product of assigned) {
+      const productId = normalizeEditorDocumentId(product._id)
+      uniqueProducts.set(productId, product.title?.trim() || 'Produto sem nome')
+    }
+    if (uniqueProducts.size) {
+      throw new SiteEditorCategoryInUseError([...uniqueProducts.values()])
+    }
+  }
+  const result = await requireWriteClient()
     .transaction()
     .delete(publishedId)
     .delete(editorDraftId(publishedId))
     .commit()
+  invalidateSanityCollectionsCache()
+  return result
 }

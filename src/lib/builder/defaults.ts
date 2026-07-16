@@ -52,7 +52,7 @@ export const builderSectionDefinitions: Array<{
   {
     type: 'builderCollectionSection',
     title: 'Lista automática',
-    description: 'Soluções, loja, casos ou artigos vindos do CMS.',
+    description: 'Produtos, loja, casos ou artigos vindos do CMS.',
   },
   {
     type: 'builderPartnersSection',

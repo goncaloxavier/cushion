@@ -92,7 +92,9 @@ function TextAppearanceEditor({
         onChange={(event) => patch('fontFamily', event.currentTarget.value)}
       >
         {fontOptions.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
         ))}
       </select>
       <label className="site-editor-font-size" title={`Tamanho no ${viewportNames[viewport]}`}>
@@ -121,14 +123,18 @@ function TextAppearanceEditor({
             ['bold', '700'].includes(String(value.fontWeight || '')) ? '' : 'bold',
           )
         }
-      ><BoldIcon /></button>
+      >
+        <BoldIcon />
+      </button>
       <button
         type="button"
         className={value.fontStyle === 'italic' ? 'is-active' : ''}
         aria-label="Itálico"
         title="Itálico"
         onClick={() => patch('fontStyle', value.fontStyle === 'italic' ? '' : 'italic')}
-      ><ItalicIcon /></button>
+      >
+        <ItalicIcon />
+      </button>
       <select
         aria-label="Alinhamento"
         title="Alinhamento"
@@ -166,8 +172,7 @@ const localized = (value: unknown, type: 'localizedString' | 'localizedText') =>
 })
 
 const arrayItemPath = (path: string, item: unknown, index: number) => {
-  const key =
-    item && typeof item === 'object' && '_key' in item ? String(item._key || '') : ''
+  const key = item && typeof item === 'object' && '_key' in item ? String(item._key || '') : ''
   return key ? `${path}[_key=="${key.replace(/"/g, '\\"')}"]` : `${path}[${index}]`
 }
 
@@ -189,22 +194,48 @@ const defaultValue = (field: SiteEditorField, path: string): unknown => {
     field.type === 'gallery' ||
     field.type === 'navigation' ||
     field.type === 'sections'
-  ) return []
+  )
+    return []
   if (field.type === 'slug') return {_type: 'slug', current: ''}
   if (field.type === 'object') {
     const value: Record<string, unknown> = {_type: defaultObjectType(path)}
-    for (const child of field.fields ?? []) value[child.name] = defaultValue(child, `${path}.${child.name}`)
+    for (const child of field.fields ?? [])
+      value[child.name] = defaultValue(child, `${path}.${child.name}`)
     return value
   }
   return ''
 }
 
-function Toggle({checked, onChange}: {checked: boolean; onChange: (checked: boolean) => void}) {
+const arrayItemTitle = (item: unknown, index: number, fallback: string) => {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return `${fallback} ${index + 1}`
+  const value = item as Record<string, unknown>
+  const localizedCandidates = ['label', 'title', 'text']
+  for (const key of localizedCandidates) {
+    const candidate = value[key]
+    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+      const pt = String((candidate as Record<string, unknown>).pt || '').trim()
+      if (pt) return pt
+    }
+  }
+  const name = String(value.name || '').trim()
+  return name || `${fallback} ${index + 1}`
+}
+
+function Toggle({
+  checked,
+  label = 'Ativar opção',
+  onChange,
+}: {
+  checked: boolean
+  label?: string
+  onChange: (checked: boolean) => void
+}) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={label}
       className={`site-editor-toggle${checked ? ' is-on' : ''}`}
       onClick={() => onChange(!checked)}
     >
@@ -292,12 +323,30 @@ function NavigationEditor({
                   <LinkIcon />
                   <span>
                     <strong>{String(label.pt || `Ligação ${index + 1}`)}</strong>
-                    <small>{String(item.href || 'Sem destino')} · {placement}</small>
+                    <small>
+                      {String(item.href || 'Sem destino')} · {placement}
+                    </small>
                   </span>
                 </button>
                 <div className="site-editor-navigation-order">
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Subir" title="Subir"><ArrowUpIcon /></button>
-                  <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Descer" title="Descer"><ArrowDownIcon /></button>
+                  <button
+                    type="button"
+                    onClick={() => move(index, -1)}
+                    disabled={index === 0}
+                    aria-label="Subir"
+                    title="Subir"
+                  >
+                    <ArrowUpIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(index, 1)}
+                    disabled={index === items.length - 1}
+                    aria-label="Descer"
+                    title="Descer"
+                  >
+                    <ArrowDownIcon />
+                  </button>
                 </div>
               </div>
               {active ? (
@@ -307,7 +356,9 @@ function NavigationEditor({
                     <textarea
                       rows={2}
                       value={String(label.pt || '')}
-                      onChange={(event) => update(index, {...item, label: {...label, pt: event.currentTarget.value}})}
+                      onChange={(event) =>
+                        update(index, {...item, label: {...label, pt: event.currentTarget.value}})
+                      }
                     />
                   </label>
                   <TextAppearanceEditor
@@ -320,30 +371,70 @@ function NavigationEditor({
                     <input
                       value={String(item.href || '')}
                       placeholder="/loja"
-                      onChange={(event) => update(index, {...item, href: event.currentTarget.value})}
+                      onChange={(event) =>
+                        update(index, {...item, href: event.currentTarget.value})
+                      }
                     />
                   </label>
-                  <div className="site-editor-navigation-placement" role="group" aria-label="Zona da navegação">
-                    <button type="button" className={item.placement !== 'utility' ? 'is-active' : ''} onClick={() => update(index, {...item, placement: 'primary'})}>Menu</button>
-                    <button type="button" className={item.placement === 'utility' ? 'is-active' : ''} onClick={() => update(index, {...item, placement: 'utility'})}>Ação</button>
+                  <div
+                    className="site-editor-navigation-placement"
+                    role="group"
+                    aria-label="Zona da navegação"
+                  >
+                    <button
+                      type="button"
+                      className={item.placement !== 'utility' ? 'is-active' : ''}
+                      onClick={() => update(index, {...item, placement: 'primary'})}
+                    >
+                      Menu
+                    </button>
+                    <button
+                      type="button"
+                      className={item.placement === 'utility' ? 'is-active' : ''}
+                      onClick={() => update(index, {...item, placement: 'utility'})}
+                    >
+                      Ação
+                    </button>
                   </div>
                   <div className="site-editor-navigation-switches">
-                    <span><DesktopIcon /> Computador <Toggle checked={item.visibleDesktop !== false} onChange={(checked) => update(index, {...item, visibleDesktop: checked})} /></span>
-                    <span><MobileDeviceIcon /> Telemóvel <Toggle checked={item.visibleMobile !== false} onChange={(checked) => update(index, {...item, visibleMobile: checked})} /></span>
-                    <span><LaunchIcon /> Novo separador <Toggle checked={item.newTab === true} onChange={(checked) => update(index, {...item, newTab: checked})} /></span>
+                    <span>
+                      <DesktopIcon /> Computador{' '}
+                      <Toggle
+                        checked={item.visibleDesktop !== false}
+                        onChange={(checked) => update(index, {...item, visibleDesktop: checked})}
+                      />
+                    </span>
+                    <span>
+                      <MobileDeviceIcon /> Telemóvel{' '}
+                      <Toggle
+                        checked={item.visibleMobile !== false}
+                        onChange={(checked) => update(index, {...item, visibleMobile: checked})}
+                      />
+                    </span>
+                    <span>
+                      <LaunchIcon /> Novo separador{' '}
+                      <Toggle
+                        checked={item.newTab === true}
+                        onChange={(checked) => update(index, {...item, newTab: checked})}
+                      />
+                    </span>
                   </div>
                   <button
                     type="button"
                     className="site-editor-navigation-remove"
                     onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}
-                  ><TrashIcon /> Remover ligação</button>
+                  >
+                    <TrashIcon /> Remover ligação
+                  </button>
                 </div>
               ) : null}
             </article>
           )
         })}
       </div>
-      <button className="site-editor-array-add" type="button" onClick={add}><AddIcon /> Adicionar ligação</button>
+      <button className="site-editor-array-add" type="button" onClick={add}>
+        <AddIcon /> Adicionar ligação
+      </button>
     </div>
   )
 }
@@ -379,7 +470,13 @@ function ImageEditor({
 
   return (
     <div className="site-editor-image-field">
-      {url ? <img src={url} alt="" /> : <div className="site-editor-image-empty"><ImageIcon /></div>}
+      {url ? (
+        <img src={url} alt="" />
+      ) : (
+        <div className="site-editor-image-empty">
+          <ImageIcon />
+        </div>
+      )}
       <div className="site-editor-media-actions">
         <label className="site-editor-upload-button">
           <UploadIcon /> {busy ? 'A carregar…' : url ? 'Substituir' : 'Carregar imagem'}
@@ -405,9 +502,7 @@ function ImageEditor({
         <textarea
           rows={2}
           value={String(alt.pt || '')}
-          onChange={(event) =>
-            onChange({...image, alt: {...alt, pt: event.currentTarget.value}})
-          }
+          onChange={(event) => onChange({...image, alt: {...alt, pt: event.currentTarget.value}})}
         />
       </label>
     </div>
@@ -416,6 +511,8 @@ function ImageEditor({
 
 function GalleryEditor({
   value,
+  path,
+  selectedPath,
   documentType,
   projectId,
   dataset,
@@ -423,16 +520,40 @@ function GalleryEditor({
   onUpload,
 }: {
   value: unknown
+  path: string
+  selectedPath?: string
   documentType: SiteEditorDocumentType
   projectId: string
   dataset: string
   onChange: (value: unknown) => void
   onUpload: Props['onUpload']
 }) {
-  const items = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []
+  const items = useMemo(
+    () => (Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []),
+    [value],
+  )
   const [busy, setBusy] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
-  const acceptsVideo = documentType === 'productCategory' || documentType === 'storeProduct'
+  const acceptsVideo = ['productCategory', 'storeProduct', 'caseStudy', 'blogPost'].includes(
+    documentType,
+  )
+  const selectedItemIndex = useMemo(() => {
+    if (!selectedPath?.startsWith(`${path}[`)) return undefined
+    const selector = selectedPath.slice(path.length)
+    const keyed = selector.match(/^\[_key==["']([^"']+)["']\]/)?.[1]
+    if (keyed) {
+      const index = items.findIndex((item) => String(item._key || '') === keyed)
+      return index >= 0 ? index : undefined
+    }
+    const indexed = selector.match(/^\[(\d+)\]/)?.[1]
+    if (indexed === undefined) return undefined
+    const index = Number(indexed)
+    return index >= 0 && index < items.length ? index : undefined
+  }, [items, path, selectedPath])
+
+  useEffect(() => {
+    if (selectedItemIndex !== undefined) setActiveIndex(selectedItemIndex)
+  }, [selectedItemIndex])
 
   useEffect(() => {
     if (!items.length) setActiveIndex(0)
@@ -457,6 +578,10 @@ function GalleryEditor({
   const createMediaItem = async (file: File) => {
     const kind = acceptsVideo && file.type.startsWith('video/') ? 'video' : 'image'
     const asset = await onUpload(file, kind)
+    const galleryImageType =
+      documentType === 'productCategory' || documentType === 'storeProduct'
+        ? 'galleryImage'
+        : 'image'
     return kind === 'video'
       ? {
           _key: editorKey(),
@@ -466,10 +591,7 @@ function GalleryEditor({
         }
       : {
           _key: editorKey(),
-          _type:
-            documentType === 'productCategory' || documentType === 'storeProduct'
-              ? 'galleryImage'
-              : 'image',
+          _type: galleryImageType,
           asset: {_type: 'reference', _ref: asset.id},
           alt: {_type: 'localizedString', pt: ''},
         }
@@ -537,12 +659,19 @@ function GalleryEditor({
                   <ImageIcon />
                 )}
                 <i>{index + 1}</i>
-                {isVideo ? <em><VideoIcon /></em> : null}
+                {isVideo ? (
+                  <em>
+                    <VideoIcon />
+                  </em>
+                ) : null}
               </span>
             </button>
           )
         })}
-        <label className="site-editor-gallery-add-tile" aria-label={acceptsVideo ? 'Adicionar imagens ou vídeos' : 'Adicionar imagens'}>
+        <label
+          className="site-editor-gallery-add-tile"
+          aria-label={acceptsVideo ? 'Adicionar imagens ou vídeos' : 'Adicionar imagens'}
+        >
           {acceptsVideo ? <VideoIcon /> : <ImageIcon />}
           <span>{busy ? 'A carregar…' : 'Adicionar'}</span>
           <input
@@ -569,10 +698,39 @@ function GalleryEditor({
             )}
           </div>
           <div className="site-editor-gallery-active-head">
-            <span><strong>{activeIsVideo ? 'Vídeo' : 'Imagem'} {activeIndex + 1}</strong><small>{items.length} {items.length === 1 ? 'item' : 'itens'} na galeria</small></span>
+            <span>
+              <strong>
+                {activeIsVideo ? 'Vídeo' : 'Imagem'} {activeIndex + 1}
+              </strong>
+              <small>
+                {items.length} {items.length === 1 ? 'item' : 'itens'} na galeria
+              </small>
+            </span>
             <div className="site-editor-gallery-order">
-              <button type="button" onClick={() => {move(activeIndex, -1); setActiveIndex(Math.max(0, activeIndex - 1))}} disabled={activeIndex === 0} aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeftIcon /></button>
-              <button type="button" onClick={() => {move(activeIndex, 1); setActiveIndex(Math.min(items.length - 1, activeIndex + 1))}} disabled={activeIndex === items.length - 1} aria-label="Mover para a direita" title="Mover para a direita"><ArrowRightIcon /></button>
+              <button
+                type="button"
+                onClick={() => {
+                  move(activeIndex, -1)
+                  setActiveIndex(Math.max(0, activeIndex - 1))
+                }}
+                disabled={activeIndex === 0}
+                aria-label="Mover para a esquerda"
+                title="Mover para a esquerda"
+              >
+                <ArrowLeftIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  move(activeIndex, 1)
+                  setActiveIndex(Math.min(items.length - 1, activeIndex + 1))
+                }}
+                disabled={activeIndex === items.length - 1}
+                aria-label="Mover para a direita"
+                title="Mover para a direita"
+              >
+                <ArrowRightIcon />
+              </button>
             </div>
           </div>
           <label className="site-editor-gallery-description">
@@ -598,16 +756,29 @@ function GalleryEditor({
                 accept={acceptsVideo ? 'image/*,video/mp4,video/webm,video/quicktime' : 'image/*'}
                 disabled={busy}
                 onChange={(event) => {
-                  if (event.currentTarget.files?.length) void upload(event.currentTarget.files, activeIndex)
+                  if (event.currentTarget.files?.length)
+                    void upload(event.currentTarget.files, activeIndex)
                   event.currentTarget.value = ''
                 }}
               />
             </label>
-            <button type="button" className="is-danger" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== activeIndex))}><TrashIcon /> Remover</button>
+            <button
+              type="button"
+              className="is-danger"
+              onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== activeIndex))}
+            >
+              <TrashIcon /> Remover
+            </button>
           </div>
         </section>
       ) : (
-        <div className="site-editor-gallery-empty"><ImagesIcon /> <span><strong>Galeria vazia</strong><small>Adicione a primeira imagem ou vídeo.</small></span></div>
+        <div className="site-editor-gallery-empty">
+          <ImagesIcon />{' '}
+          <span>
+            <strong>Galeria vazia</strong>
+            <small>Adicione a primeira imagem ou vídeo.</small>
+          </span>
+        </div>
       )}
     </div>
   )
@@ -627,15 +798,27 @@ export function SiteEditorFieldInput({
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const value = getEditorValue(source, path)
+  const [activeArrayKey, setActiveArrayKey] = useState<string>()
   const selected = Boolean(
-    selectedPath && (selectedPath === path || selectedPath.startsWith(`${path}.`) || selectedPath.startsWith(`${path}[`)),
+    selectedPath &&
+    (selectedPath === path ||
+      selectedPath.startsWith(`${path}.`) ||
+      selectedPath.startsWith(`${path}[`)),
   )
 
   useEffect(() => {
     if (!selected || !container.current) return
     container.current.scrollIntoView({behavior: 'smooth', block: 'center'})
-    container.current.querySelector<HTMLElement>('input, textarea, select, button')?.focus({preventScroll: true})
+    container.current
+      .querySelector<HTMLElement>('input, textarea, select, button')
+      ?.focus({preventScroll: true})
   }, [selected, selectedPath])
+
+  useEffect(() => {
+    if (field.type !== 'array' || !selectedPath?.startsWith(`${path}[`)) return
+    const selector = selectedPath.slice(path.length).match(/^\[_key==["']([^"']+)["']\]/)
+    if (selector?.[1]) setActiveArrayKey(selector[1])
+  }, [field.type, path, selectedPath])
 
   if (field.type === 'object') {
     return (
@@ -670,14 +853,160 @@ export function SiteEditorFieldInput({
   if (field.type === 'navigation') {
     return (
       <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
-        <div className="site-editor-field-head"><strong>{field.label}</strong>{field.description ? <small>{field.description}</small> : null}</div>
-        <NavigationEditor value={value} viewport={viewport} onChange={(next) => onChange(path, next)} />
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <NavigationEditor
+          value={value}
+          viewport={viewport}
+          onChange={(next) => onChange(path, next)}
+        />
       </div>
     )
   }
 
   if (field.type === 'array') {
     const items = Array.isArray(value) ? value : []
+    const compactObjects = field.item?.type === 'object'
+    const activeIndex = compactObjects
+      ? items.findIndex(
+          (item, index) => String((item as {_key?: string})?._key || index) === activeArrayKey,
+        )
+      : -1
+    const moveItem = (index: number, direction: -1 | 1) => {
+      const target = index + direction
+      if (target < 0 || target >= items.length) return
+      const next = [...items]
+      const [moved] = next.splice(index, 1)
+      next.splice(target, 0, moved)
+      onChange(path, next)
+    }
+    const removeItem = (index: number) => {
+      onChange(
+        path,
+        items.filter((_, itemIndex) => itemIndex !== index),
+      )
+      setActiveArrayKey(undefined)
+    }
+    const addItem = () => {
+      const next = defaultValue(field.item ?? {name: 'item', label: 'Item', type: 'string'}, path)
+      const keyed =
+        next && typeof next === 'object' && !Array.isArray(next)
+          ? {...(next as Record<string, unknown>), _key: editorKey()}
+          : next
+      onChange(path, [...items, keyed])
+      if (compactObjects) {
+        setActiveArrayKey(String((keyed as {_key?: string})?._key || items.length))
+      }
+    }
+
+    if (compactObjects && activeIndex >= 0 && field.item) {
+      const activeItem = items[activeIndex]
+      const itemPath = arrayItemPath(path, activeItem, activeIndex)
+      return (
+        <div ref={container} className={`site-editor-array${selected ? ' is-selected' : ''}`}>
+          <div className="site-editor-array-detail-head">
+            <button type="button" onClick={() => setActiveArrayKey(undefined)}>
+              <ArrowLeftIcon /> Todas as opções
+            </button>
+            <div>
+              <span>
+                <strong>{arrayItemTitle(activeItem, activeIndex, field.item.label)}</strong>
+                <small>
+                  {activeIndex + 1} de {items.length}
+                </small>
+              </span>
+              <div className="site-editor-array-toolbar">
+                <button
+                  type="button"
+                  onClick={() => moveItem(activeIndex, -1)}
+                  disabled={activeIndex === 0}
+                  aria-label="Subir"
+                >
+                  <ArrowUpIcon />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveItem(activeIndex, 1)}
+                  disabled={activeIndex === items.length - 1}
+                  aria-label="Descer"
+                >
+                  <ArrowDownIcon />
+                </button>
+                <button type="button" onClick={() => removeItem(activeIndex)} aria-label="Eliminar">
+                  <TrashIcon />
+                </button>
+              </div>
+            </div>
+          </div>
+          <SiteEditorFieldInput
+            field={field.item}
+            path={itemPath}
+            source={source}
+            documentType={documentType}
+            selectedPath={selectedPath}
+            projectId={projectId}
+            dataset={dataset}
+            viewport={viewport}
+            onChange={onChange}
+            onUpload={onUpload}
+          />
+        </div>
+      )
+    }
+
+    if (compactObjects) {
+      return (
+        <div ref={container} className={`site-editor-array${selected ? ' is-selected' : ''}`}>
+          <div className="site-editor-field-head">
+            <strong>{field.label}</strong>
+            {field.description ? <small>{field.description}</small> : null}
+          </div>
+          <div className="site-editor-array-index">
+            {items.map((item, index) => {
+              const key = String((item as {_key?: string})?._key || index)
+              return (
+                <div key={key}>
+                  <button type="button" onClick={() => setActiveArrayKey(key)}>
+                    <span>
+                      <strong>{arrayItemTitle(item, index, field.item!.label)}</strong>
+                      <small>Editar {field.item!.label.toLocaleLowerCase('pt')}</small>
+                    </span>
+                    <ArrowRightIcon />
+                  </button>
+                  <div className="site-editor-array-toolbar">
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, -1)}
+                      disabled={index === 0}
+                      aria-label="Subir"
+                    >
+                      <ArrowUpIcon />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, 1)}
+                      disabled={index === items.length - 1}
+                      aria-label="Descer"
+                    >
+                      <ArrowDownIcon />
+                    </button>
+                    <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                      <TrashIcon />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <button className="site-editor-array-add" type="button" onClick={addItem}>
+            <AddIcon /> Adicionar {field.item.label.toLocaleLowerCase('pt')}
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div ref={container} className={`site-editor-array${selected ? ' is-selected' : ''}`}>
         <div className="site-editor-field-head">
@@ -688,22 +1017,31 @@ export function SiteEditorFieldInput({
           {items.map((item, index) => {
             const itemPath = arrayItemPath(path, item, index)
             return (
-              <div className="site-editor-array-item" key={(item as {_key?: string})?._key || index}>
+              <div
+                className="site-editor-array-item"
+                key={(item as {_key?: string})?._key || index}
+              >
                 <div className="site-editor-array-toolbar">
                   <strong>{field.item?.label || `Item ${index + 1}`}</strong>
-                  <button type="button" onClick={() => {
-                    const next = [...items]
-                    const [moved] = next.splice(index, 1)
-                    next.splice(index - 1, 0, moved)
-                    onChange(path, next)
-                  }} disabled={index === 0} aria-label="Subir"><ArrowUpIcon /></button>
-                  <button type="button" onClick={() => {
-                    const next = [...items]
-                    const [moved] = next.splice(index, 1)
-                    next.splice(index + 1, 0, moved)
-                    onChange(path, next)
-                  }} disabled={index === items.length - 1} aria-label="Descer"><ArrowDownIcon /></button>
-                  <button type="button" onClick={() => onChange(path, items.filter((_, itemIndex) => itemIndex !== index))} aria-label="Eliminar"><TrashIcon /></button>
+                  <button
+                    type="button"
+                    onClick={() => moveItem(index, -1)}
+                    disabled={index === 0}
+                    aria-label="Subir"
+                  >
+                    <ArrowUpIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveItem(index, 1)}
+                    disabled={index === items.length - 1}
+                    aria-label="Descer"
+                  >
+                    <ArrowDownIcon />
+                  </button>
+                  <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                    <TrashIcon />
+                  </button>
                 </div>
                 {field.item ? (
                   <SiteEditorFieldInput
@@ -723,18 +1061,7 @@ export function SiteEditorFieldInput({
             )
           })}
         </div>
-        <button
-          className="site-editor-array-add"
-          type="button"
-          onClick={() => {
-            const next = defaultValue(field.item ?? {name: 'item', label: 'Item', type: 'string'}, path)
-            const keyed =
-              next && typeof next === 'object' && !Array.isArray(next)
-                ? {...(next as Record<string, unknown>), _key: editorKey()}
-                : next
-            onChange(path, [...items, keyed])
-          }}
-        >
+        <button className="site-editor-array-add" type="button" onClick={addItem}>
           <AddIcon /> Adicionar
         </button>
       </div>
@@ -744,8 +1071,17 @@ export function SiteEditorFieldInput({
   if (field.type === 'image') {
     return (
       <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
-        <div className="site-editor-field-head"><strong>{field.label}</strong>{field.description ? <small>{field.description}</small> : null}</div>
-        <ImageEditor value={value} projectId={projectId} dataset={dataset} onChange={(next) => onChange(path, next)} onUpload={onUpload} />
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <ImageEditor
+          value={value}
+          projectId={projectId}
+          dataset={dataset}
+          onChange={(next) => onChange(path, next)}
+          onUpload={onUpload}
+        />
       </div>
     )
   }
@@ -753,8 +1089,20 @@ export function SiteEditorFieldInput({
   if (field.type === 'gallery') {
     return (
       <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
-        <div className="site-editor-field-head"><strong>{field.label}</strong>{field.description ? <small>{field.description}</small> : null}</div>
-        <GalleryEditor value={value} documentType={documentType} projectId={projectId} dataset={dataset} onChange={(next) => onChange(path, next)} onUpload={onUpload} />
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <GalleryEditor
+          value={value}
+          path={path}
+          selectedPath={selectedPath}
+          documentType={documentType}
+          projectId={projectId}
+          dataset={dataset}
+          onChange={(next) => onChange(path, next)}
+          onUpload={onUpload}
+        />
       </div>
     )
   }
@@ -762,8 +1110,22 @@ export function SiteEditorFieldInput({
   if (field.type === 'article') {
     return (
       <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
-        <div className="site-editor-field-head"><strong>{field.label}</strong>{field.description ? <small>{field.description}</small> : null}</div>
-        <ArticleEditor value={value} projectId={projectId} dataset={dataset} onChange={(next) => onChange(path, next)} onUpload={onUpload} />
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <ArticleEditor
+          value={value}
+          documentKey={
+            source && typeof source === 'object' && '_id' in source
+              ? String(source._id)
+              : `${documentType}:${path}`
+          }
+          projectId={projectId}
+          dataset={dataset}
+          onChange={(next) => onChange(path, next)}
+          onUpload={onUpload}
+        />
       </div>
     )
   }
@@ -774,39 +1136,84 @@ export function SiteEditorFieldInput({
     : undefined
   const plainValue = localizedType ? String(localizedValue?.pt || '') : value
   const commit = (next: unknown) =>
-    onChange(
-      path,
-      localizedType ? {...localizedValue, pt: next} : next,
-    )
+    onChange(path, localizedType ? {...localizedValue, pt: next} : next)
 
   return (
     <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
       <div className="site-editor-field-head">
-        <strong>{field.label}{field.required ? <sup>*</sup> : null}</strong>
+        <strong>
+          {field.label}
+          {field.required ? <sup>*</sup> : null}
+        </strong>
         {field.description ? <small>{field.description}</small> : null}
       </div>
       {field.type === 'boolean' ? (
-        <Toggle checked={value === true} onChange={commit} />
-      ) : field.type === 'text' || field.type === 'localizedText' || field.type === 'localizedString' ? (
-        <textarea rows={field.rows ?? 5} value={String(plainValue || '')} onChange={(event) => commit(event.currentTarget.value)} />
+        <Toggle checked={value === true} label={field.label} onChange={commit} />
+      ) : field.type === 'text' ||
+        field.type === 'localizedText' ||
+        field.type === 'localizedString' ? (
+        <textarea
+          aria-label={field.label}
+          rows={field.rows ?? 5}
+          value={String(plainValue || '')}
+          onChange={(event) => commit(event.currentTarget.value)}
+        />
       ) : field.type === 'number' ? (
-        <input type="number" min={field.min} max={field.max} step={field.step ?? 'any'} value={typeof value === 'number' ? value : ''} onChange={(event) => commit(event.currentTarget.value === '' ? null : Number(event.currentTarget.value))} />
+        <input
+          aria-label={field.label}
+          type="number"
+          min={field.min}
+          max={field.max}
+          step={field.step ?? 'any'}
+          value={typeof value === 'number' ? value : ''}
+          onChange={(event) =>
+            commit(event.currentTarget.value === '' ? null : Number(event.currentTarget.value))
+          }
+        />
       ) : field.type === 'select' ? (
-        <select value={String(value || '')} onChange={(event) => commit(event.currentTarget.value)}>
+        <select
+          aria-label={field.label}
+          value={String(value || '')}
+          onChange={(event) => commit(event.currentTarget.value)}
+        >
           <option value="">Escolha uma opção</option>
-          {(field.options ?? []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          {(field.options ?? []).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       ) : field.type === 'slug' ? (
         <div className="site-editor-slug-field">
-          <input value={String((value as {current?: string} | undefined)?.current || '')} onChange={(event) => commit({_type: 'slug', current: slugify(event.currentTarget.value)})} />
-          <button type="button" onClick={() => {
-            const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
-            commit({_type: 'slug', current: slugify(title)})
-          }}>Gerar</button>
+          <input
+            aria-label={field.label}
+            value={String((value as {current?: string} | undefined)?.current || '')}
+            onChange={(event) =>
+              commit({_type: 'slug', current: slugify(event.currentTarget.value)})
+            }
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
+              commit({_type: 'slug', current: slugify(title)})
+            }}
+          >
+            Gerar
+          </button>
         </div>
       ) : (
         <input
-          type={field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : 'text'}
+          aria-label={field.label}
+          type={
+            field.type === 'email'
+              ? 'email'
+              : field.type === 'url'
+                ? 'url'
+                : field.type === 'date'
+                  ? 'date'
+                  : 'text'
+          }
           value={String(plainValue || '')}
           onChange={(event) => commit(event.currentTarget.value)}
         />
@@ -818,7 +1225,9 @@ export function SiteEditorFieldInput({
           onChange={(next) => onChange(path, next)}
         />
       ) : null}
-      {localizedType ? <small className="site-editor-translation-note">Português · EN e ES automáticos</small> : null}
+      {localizedType ? (
+        <small className="site-editor-translation-note">Português · EN e ES automáticos</small>
+      ) : null}
     </div>
   )
 }

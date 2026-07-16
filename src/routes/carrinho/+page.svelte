@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/environment'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -14,7 +15,6 @@
     storeVariantForCartItem,
     type StoreCartItem,
   } from '$lib/cart'
-  import type {LanguageCode} from '$lib/site-content'
   import {
     calculateStoreEstimate,
     postalZonePrefixFor,
@@ -28,128 +28,21 @@
 
   let {data} = $props()
 
-  type CartLabels = {
-    hero: {kicker: string; title: string; lead: string}
-    empty: string
-    continueShopping: string
-    clear: string
-    clearConfirm: string
-    request: string
-    quantity: string
-    remove: string
-    removed: string
-    finish: string
-    unitPrice: string
-    total: string
-    productSubtotal: string
-    transport: string
-    iva: string
-    finalTotal: string
-    deliveryPostcode: string
-    changePostcode: string
-    totalWeight: string
-    transportPending: string
-    transportOverweight: string
-    summary: string
-    product: string
-  }
-
-  const labelsByLanguage: Record<LanguageCode, CartLabels> = {
-    pt: {
-      hero: {
-        kicker: 'Carrinho',
-        title: 'Reveja os produtos antes de pedir orçamento',
-        lead: '',
-      },
-      empty: 'O carrinho ainda está vazio.',
-      continueShopping: 'Continuar na loja',
-      clear: 'Limpar carrinho',
-      clearConfirm: 'Quer mesmo remover todos os produtos do carrinho?',
-      request: 'Finalizar pedido',
-      quantity: 'Quantidade',
-      remove: 'Remover',
-      removed: 'Produto removido do carrinho',
-      finish: 'Acabamento',
-      unitPrice: 'Preço unitário',
-      total: 'Total estimado',
-      productSubtotal: 'Produtos s/ IVA',
-      transport: 'Transporte',
-      iva: 'IVA 23%',
-      finalTotal: 'Total c/ IVA',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Alterar',
-      totalWeight: 'Peso total',
-      transportPending: 'A confirmar',
-      transportOverweight: 'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
-      summary: 'Resumo',
-      product: 'Produto',
-    },
-    en: {
-      hero: {
-        kicker: 'Cart',
-        title: 'Review the products before requesting a quote',
-        lead: '',
-      },
-      empty: 'Your cart is still empty.',
-      continueShopping: 'Continue shopping',
-      clear: 'Clear cart',
-      clearConfirm: 'Remove every item from the cart?',
-      request: 'Checkout',
-      quantity: 'Quantity',
-      remove: 'Remove',
-      removed: 'Item removed from cart',
-      finish: 'Finish',
-      unitPrice: 'Unit price',
-      total: 'Estimated total',
-      productSubtotal: 'Products excl. VAT',
-      transport: 'Transport',
-      iva: 'VAT 23%',
-      finalTotal: 'Total incl. VAT',
-      deliveryPostcode: 'Zone',
-      changePostcode: 'Change',
-      totalWeight: 'Total weight',
-      transportPending: 'To confirm',
-      transportOverweight: 'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
-      summary: 'Summary',
-      product: 'Product',
-    },
-    es: {
-      hero: {
-        kicker: 'Carrito',
-        title: 'Revisa los productos antes de pedir presupuesto',
-        lead: '',
-      },
-      empty: 'El carrito todavía está vacío.',
-      continueShopping: 'Seguir en tienda',
-      clear: 'Vaciar carrito',
-      clearConfirm: '¿Quieres eliminar todos los productos del carrito?',
-      request: 'Finalizar pedido',
-      quantity: 'Cantidad',
-      remove: 'Eliminar',
-      removed: 'Producto eliminado del carrito',
-      finish: 'Acabado',
-      unitPrice: 'Precio unitario',
-      total: 'Total estimado',
-      productSubtotal: 'Productos sin IVA',
-      transport: 'Transporte',
-      iva: 'IVA 23%',
-      finalTotal: 'Total con IVA',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Cambiar',
-      totalWeight: 'Peso total',
-      transportPending: 'Por confirmar',
-      transportOverweight: 'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
-      summary: 'Resumen',
-      product: 'Producto',
-    },
-  }
-
   let items = $state<StoreCartItem[]>([])
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site)
-  const labels = $derived(labelsByLanguage[data.language])
+  const labels = $derived(content.cartPage)
+  const siteContentDataAttribute = $derived(
+    (data.preview || data.builderPreview) && data.studioUrl
+      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      : null,
+  )
+  const cartPageDataAttribute = (path: string) =>
+    siteContentDataAttribute?.(`cartPage.${path}`)
+  const cartHeroDataAttribute = (field: 'kicker' | 'title' | 'lead') =>
+    cartPageDataAttribute(`hero.${field}.pt`)
   const langQuery = $derived(`?lang=${data.language}`)
   const priceFormatter = $derived(
     new Intl.NumberFormat(
@@ -237,7 +130,7 @@
 <SeoHead title={content.nav.cart} description={labels.hero.title} noindex />
 
 <main class="cart-page">
-  <PageHero {...labels.hero} />
+  <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
 
   <section class="section cart-section">
     {#if rows.length}
@@ -347,23 +240,23 @@
         </div>
 
         <aside class="cart-summary">
-          <p class="kicker">{labels.summary}</p>
+          <p class="kicker" data-sanity={cartPageDataAttribute('summary.pt')}>{labels.summary}</p>
           <dl>
             <div>
-              <dt>{content.nav.cart}</dt>
+              <dt data-sanity={cartPageDataAttribute('cartItems.pt')}>{labels.cartItems}</dt>
               <dd>{itemCount}</dd>
             </div>
             <div>
-              <dt>{labels.productSubtotal}</dt>
+              <dt data-sanity={cartPageDataAttribute('productSubtotal.pt')}>{labels.productSubtotal}</dt>
               <dd>{formatPrice(cartEstimate.productNet)}</dd>
             </div>
             <div>
-              <dt>{labels.totalWeight}</dt>
+              <dt data-sanity={cartPageDataAttribute('totalWeight.pt')}>{labels.totalWeight}</dt>
               <dd>{cartEstimate.totalWeightKg.toLocaleString(data.language)} kg</dd>
             </div>
             {#if deliveryPostalCode}
               <div>
-                <dt>{labels.transport}</dt>
+                <dt data-sanity={cartPageDataAttribute('transport.pt')}>{labels.transport}</dt>
                 <dd>
                   {cartEstimate.transport
                     ? formatPrice(cartEstimate.transport.transportNet)
@@ -371,11 +264,11 @@
                 </dd>
               </div>
               <div>
-                <dt>{labels.iva}</dt>
+                <dt data-sanity={cartPageDataAttribute('iva.pt')}>{labels.iva}</dt>
                 <dd>{cartEstimate.vat !== null ? formatPrice(cartEstimate.vat) : transportStatus}</dd>
               </div>
               <div class="cart-summary-total">
-                <dt>{labels.finalTotal}</dt>
+                <dt data-sanity={cartPageDataAttribute('finalTotal.pt')}>{labels.finalTotal}</dt>
                 <dd>
                   {cartEstimate.totalGross !== null
                     ? formatPrice(cartEstimate.totalGross)
@@ -384,17 +277,26 @@
               </div>
             {:else}
               <div>
-                <dt>{labels.transport}</dt>
-                <dd>{labels.transportPending}</dd>
+                <dt data-sanity={cartPageDataAttribute('transport.pt')}>{labels.transport}</dt>
+                <dd data-sanity={cartPageDataAttribute('transportPending.pt')}>{labels.transportPending}</dd>
               </div>
             {/if}
           </dl>
 
-          <a class="button primary" href={`/finalizar-compra${langQuery}`}>{labels.request}</a>
-          <a class="text-link" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
+          <a
+            class="button primary"
+            href={`/finalizar-compra${langQuery}`}
+            data-sanity={cartPageDataAttribute('request.pt')}
+          >{labels.request}</a>
+          <a
+            class="text-link"
+            href={`/loja${langQuery}`}
+            data-sanity={cartPageDataAttribute('continueShopping.pt')}
+          >{labels.continueShopping}</a>
           <button
             class="cart-clear"
             type="button"
+            data-sanity={cartPageDataAttribute('clear.pt')}
             onclick={() => {
               if (window.confirm(labels.clearConfirm)) clearCart()
             }}
@@ -407,7 +309,7 @@
       {#if !deliveryPostalCode || deliveryModalOpen}
         <div class="store-gate-layer" role="presentation">
           <StorePostalGate
-            language={data.language}
+            labels={content.storePage.postalGate}
             initialPostalCode={deliveryPostalCode}
             closable={Boolean(deliveryPostalCode)}
             onclose={() => {
@@ -422,8 +324,12 @@
       {/if}
     {:else}
       <div class="cart-empty">
-        <p>{labels.empty}</p>
-        <a class="button primary" href={`/loja${langQuery}`}>{labels.continueShopping}</a>
+        <p data-sanity={cartPageDataAttribute('empty.pt')}>{labels.empty}</p>
+        <a
+          class="button primary"
+          href={`/loja${langQuery}`}
+          data-sanity={cartPageDataAttribute('continueShopping.pt')}
+        >{labels.continueShopping}</a>
       </div>
     {/if}
   </section>

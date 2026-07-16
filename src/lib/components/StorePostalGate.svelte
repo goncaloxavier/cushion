@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type {LanguageCode} from '$lib/site-content'
+  import type {StorePostalGateLabels} from '$lib/site-content'
   import {
     normalizeStorePostalCode,
     postalCodeIssue,
@@ -7,73 +7,15 @@
     writeStorePostalCode,
   } from '$lib/store-shipping'
 
-  type Labels = {
-    kicker: string
-    title: string
-    lead: string
-    field: string
-    placeholder: string
-    submit: string
-    update: string
-    close: string
-    incomplete: string
-    unsupported: string
-  }
-
-  const labelsByLanguage: Record<LanguageCode, Labels> = {
-    pt: {
-      kicker: 'Código postal',
-      title: 'Preços certos desde o início',
-      lead:
-        'Calculamos transporte e IVA para a sua zona e mostramos logo os valores completos, sem surpresas mais à frente.',
-      field: 'Código postal',
-      placeholder: '7000',
-      submit: 'Entrar na loja',
-      update: 'Atualizar código postal',
-      close: 'Fechar',
-      incomplete: 'Indique os quatro dígitos do código postal.',
-      unsupported:
-        'Neste momento a loja calcula transporte apenas para Portugal continental entre 1000 e 8999.',
-    },
-    en: {
-      kicker: 'Postcode',
-      title: 'The right prices from the start',
-      lead:
-        'We calculate delivery and VAT for your area so you see complete prices straight away, with no surprises later.',
-      field: 'Postcode',
-      placeholder: '7000',
-      submit: 'Enter store',
-      update: 'Update postcode',
-      close: 'Close',
-      incomplete: 'Enter the four postcode digits.',
-      unsupported:
-        'The store currently estimates transport only for mainland Portugal between 1000 and 8999.',
-    },
-    es: {
-      kicker: 'Código postal',
-      title: 'Precios correctos desde el inicio',
-      lead:
-        'Calculamos transporte e IVA para tu zona y mostramos los valores completos desde el principio, sin sorpresas después.',
-      field: 'Código postal',
-      placeholder: '7000',
-      submit: 'Entrar en la tienda',
-      update: 'Actualizar código postal',
-      close: 'Cerrar',
-      incomplete: 'Indica los cuatro dígitos del código postal.',
-      unsupported:
-        'La tienda calcula transporte solo para Portugal continental entre 1000 y 8999.',
-    },
-  }
-
   let {
-    language,
+    labels,
     compact = false,
     initialPostalCode = '',
     closable = false,
     onconfirm,
     onclose,
   } = $props<{
-    language: LanguageCode
+    labels: StorePostalGateLabels
     compact?: boolean
     initialPostalCode?: string
     closable?: boolean
@@ -85,7 +27,6 @@
   let previousInitialPostalCode = $state<string | null>(null)
   let error = $state('')
 
-  const labels = $derived(labelsByLanguage[language])
   const zone = $derived(postalZoneFor(postalCode))
 
   $effect(() => {

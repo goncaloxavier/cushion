@@ -1,16 +1,20 @@
+import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import type {SiteEditorField, SiteEditorPanel} from './types'
 
-const localizedString = (
-  name: string,
-  label: string,
-  description?: string,
-): SiteEditorField => ({name, label, description, type: 'localizedString'})
+const localizedString = (name: string, label: string, description?: string): SiteEditorField => ({
+  name,
+  label,
+  description,
+  type: 'localizedString',
+})
 
-const localizedText = (
-  name: string,
-  label: string,
-  description?: string,
-): SiteEditorField => ({name, label, description, type: 'localizedText', rows: 5})
+const localizedText = (name: string, label: string, description?: string): SiteEditorField => ({
+  name,
+  label,
+  description,
+  type: 'localizedText',
+  rows: 5,
+})
 
 const image = (name: string, label = 'Imagem', description?: string): SiteEditorField => ({
   name,
@@ -65,6 +69,17 @@ const gallery: SiteEditorField = {
   type: 'gallery',
   description: 'Imagens e vídeos apresentados nesta página.',
 }
+
+const contactFormLabelFields = [
+  localizedString('firstName', 'Primeiro nome'),
+  localizedString('lastName', 'Apelido'),
+  localizedString('email', 'Email'),
+  localizedString('phone', 'Telefone'),
+  localizedString('address', 'Morada'),
+  localizedString('postalCode', 'Código postal'),
+  localizedString('locality', 'Localidade'),
+  localizedString('message', 'Mensagem'),
+]
 
 const baseDocumentPanels = (titleLabel: string): SiteEditorPanel[] => [
   {
@@ -151,6 +166,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       label: 'Página Sobre',
       fields: [
         copyBlock('hero', 'Topo da página'),
+        copyBlock('statement', 'Apresentação da história'),
         {name: 'timeline', label: 'Momentos da empresa', type: 'array', item: contentCardItem},
       ],
     },
@@ -158,25 +174,22 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   productsPage: [
     {
       id: 'products-page',
-      label: 'Página Soluções',
+      label: 'Página Produtos',
       fields: [copyBlock('hero', 'Topo da página'), image('heroImage', 'Imagem principal')],
     },
   ],
   storePage: [
     {
-      id: 'store-page',
-      label: 'Página Loja',
+      id: 'store-page-hero',
+      label: 'Topo da Loja',
+      description: 'Título e etiqueta apresentados no início da Loja.',
+      fields: [copyBlock('hero', 'Texto do topo')],
+    },
+    {
+      id: 'store-page-transport',
+      label: 'Cálculo do transporte',
+      description: 'Valor global usado para calcular o transporte em toda a Loja.',
       fields: [
-        copyBlock('hero', 'Topo da página'),
-        localizedString('searchLabel', 'Pesquisa'),
-        localizedString('categoryLabel', 'Categorias'),
-        localizedString('finishLabel', 'Acabamentos'),
-        localizedString('sortLabel', 'Ordenação'),
-        localizedString('allCategoriesLabel', 'Todas as categorias'),
-        localizedString('priceFromLabel', 'Texto antes do preço'),
-        localizedString('requestLabel', 'Pedir proposta'),
-        localizedString('noResults', 'Sem resultados'),
-        localizedString('vatNote', 'Nota sobre IVA'),
         {
           name: 'transportMultiplier',
           label: 'Multiplicador de transporte',
@@ -189,6 +202,38 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       ],
     },
   ],
+  cartPage: [
+    {
+      id: 'cart-page',
+      label: 'Página Carrinho',
+      fields: [
+        copyBlock('hero', 'Topo da página'),
+        localizedString('cartItems', 'Produtos no carrinho'),
+        localizedString('empty', 'Carrinho vazio'),
+        localizedString('continueShopping', 'Continuar na Loja'),
+        localizedString('clear', 'Limpar carrinho'),
+        localizedText('clearConfirm', 'Confirmação para limpar'),
+        localizedString('request', 'Finalizar pedido'),
+        localizedString('quantity', 'Quantidade'),
+        localizedString('remove', 'Remover produto'),
+        localizedString('removed', 'Aviso de produto removido'),
+        localizedString('finish', 'Acabamento'),
+        localizedString('unitPrice', 'Preço unitário'),
+        localizedString('total', 'Total da linha'),
+        localizedString('productSubtotal', 'Subtotal dos produtos'),
+        localizedString('transport', 'Transporte'),
+        localizedString('iva', 'IVA'),
+        localizedString('finalTotal', 'Total final'),
+        localizedString('deliveryPostcode', 'Zona de entrega'),
+        localizedString('changePostcode', 'Alterar código postal'),
+        localizedString('totalWeight', 'Peso total'),
+        localizedString('transportPending', 'Transporte por confirmar'),
+        localizedText('transportOverweight', 'Aviso de excesso de peso'),
+        localizedString('summary', 'Resumo'),
+        localizedString('product', 'Produto'),
+      ],
+    },
+  ],
   catalogue: [
     {
       id: 'catalogue-page',
@@ -196,6 +241,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       fields: [
         copyBlock('hero', 'Topo da página'),
         localizedString('ctaLabel', 'Texto do botão'),
+        {
+          name: 'formLabels',
+          label: 'Nomes dos campos',
+          type: 'object',
+          fields: contactFormLabelFields,
+        },
         {
           name: 'estimate',
           label: 'Pedido de catálogo',
@@ -296,6 +347,9 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         {name: 'privacyPolicyUrl', label: 'Ligação da Política de Privacidade', type: 'url'},
         localizedString('cookiePolicyLabel', 'Política de Cookies'),
         {name: 'cookiePolicyUrl', label: 'Ligação da Política de Cookies', type: 'url'},
+        localizedText('cookieNoticeMessage', 'Mensagem do aviso de cookies'),
+        localizedString('cookieNoticeLearnMore', 'Ligação do aviso de cookies'),
+        localizedString('cookieNoticeAccept', 'Botão do aviso de cookies'),
         localizedText('marketingConsent', 'Consentimento de contacto'),
         localizedString('privacyConsentPrefix', 'Texto antes da política'),
       ],
@@ -309,11 +363,22 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         localizedString('requestQuote', 'Pedir orçamento'),
         localizedString('exploreProducts', 'Explorar produtos'),
         localizedString('viewCases', 'Ver casos'),
-        localizedString('backToProducts', 'Voltar às soluções'),
+        localizedString('allProducts', 'Todos os produtos'),
+        localizedString('latestPosts', 'Artigos recentes'),
+        localizedString('challenge', 'Desafio'),
+        localizedString('solution', 'Solução'),
+        localizedString('result', 'Resultado'),
+        localizedString('emailLabel', 'Email'),
+        localizedString('phoneLabel', 'Telefone'),
+        localizedString('backToProducts', 'Voltar aos produtos'),
         localizedString('backToCases', 'Voltar aos casos'),
         localizedString('backToBlog', 'Voltar ao blog'),
+        localizedString('searchProducts', 'Pesquisar produtos'),
+        localizedString('searchCases', 'Pesquisar casos'),
+        localizedString('searchPosts', 'Pesquisar artigos'),
         localizedString('searchPlaceholder', 'Texto da pesquisa'),
         localizedString('noResults', 'Sem resultados'),
+        localizedString('pageLabel', 'Paginação'),
         localizedString('previous', 'Anterior'),
         localizedString('next', 'Seguinte'),
         localizedString('zoomImage', 'Ampliar imagem'),
@@ -340,6 +405,20 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
       fields: [{name: 'orderRank', label: 'Ordem', type: 'number', step: 1}],
     },
   ],
+  storeCategory: [
+    {
+      id: 'content',
+      label: 'Categoria',
+      description: 'Nome e identificador usados nos filtros da Loja.',
+      fields: [localizedString('title', 'Nome da categoria')],
+    },
+    {
+      id: 'organization',
+      label: 'Ordem',
+      description: 'Escolha a posição da categoria no filtro.',
+      fields: [{name: 'orderRank', label: 'Ordem de apresentação', type: 'number', step: 1}],
+    },
+  ],
   storeProduct: [
     {
       ...baseDocumentPanels('Nome do produto')[0],
@@ -349,14 +428,9 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
           name: 'category',
           label: 'Categoria',
           type: 'select',
-          options: [
-            {label: 'Bancos', value: 'bancos'},
-            {label: 'Mesas e conjuntos', value: 'mesas'},
-            {label: 'Cadeiras', value: 'cadeiras'},
-            {label: 'Decking', value: 'decking'},
-            {label: 'Resíduos', value: 'residuos'},
-            {label: 'Cultivo', value: 'cultivo'},
-          ],
+          description: 'As categorias são geridas em Conteúdo > Categorias da Loja.',
+          options: defaultStoreCategoryOptions,
+          optionsSource: 'storeCategories',
         },
         localizedText('summary', 'Resumo'),
       ],
@@ -383,8 +457,20 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
                 item: localizedString('item', 'Medida'),
               },
               {name: 'weightKg', label: 'Peso (kg)', type: 'number', min: 0.01, step: 0.01},
-              {name: 'priceNatural', label: 'Natural/Cinza sem IVA', type: 'number', min: 0, step: 0.01},
-              {name: 'priceDark', label: 'Castanho/Preto sem IVA', type: 'number', min: 0, step: 0.01},
+              {
+                name: 'priceNatural',
+                label: 'Natural/Cinza sem IVA',
+                type: 'number',
+                min: 0,
+                step: 0.01,
+              },
+              {
+                name: 'priceDark',
+                label: 'Castanho/Preto sem IVA',
+                type: 'number',
+                min: 0,
+                step: 0.01,
+              },
               localizedText('note', 'Nota'),
             ],
           },
@@ -415,7 +501,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         localizedText('result', 'Resultado'),
       ],
     },
-    {id: 'media', label: 'Imagens', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
       label: 'Organização',
@@ -424,17 +510,35 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
   ],
   blogPost: [
     {
-      ...baseDocumentPanels('Título do artigo')[0],
+      id: 'article-details',
+      label: 'Informação do artigo',
+      description: 'Título, data, tema e resumo.',
       fields: [
         ...baseDocumentPanels('Título do artigo')[0].fields,
         {name: 'publishedAt', label: 'Data de publicação', type: 'date'},
         localizedString('category', 'Tema'),
         localizedText('excerpt', 'Resumo'),
-        {name: 'article', label: 'Conteúdo estruturado', type: 'article'},
-        localizedText('body', 'Texto simples antigo'),
       ],
     },
-    {id: 'media', label: 'Imagens', fields: [image('image', 'Imagem de capa'), gallery]},
+    {
+      id: 'article-content',
+      label: 'Texto do artigo',
+      description: 'Parágrafos, títulos, imagens e vídeos.',
+      fields: [
+        {
+          name: 'article',
+          label: 'Texto do artigo',
+          description: 'Escreva e formate o artigo num único documento.',
+          type: 'article',
+        },
+      ],
+    },
+    {
+      id: 'media',
+      label: 'Capa e galeria',
+      description: 'Imagem de capa e ficheiros adicionais.',
+      fields: [image('image', 'Imagem de capa'), gallery],
+    },
   ],
   sitePage: [
     {
@@ -472,10 +576,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
   ],
 }
 
-export const panelsForEditorNode = (
-  documentType: string | undefined,
-  rootPath?: string,
-) => {
+export const panelsForEditorNode = (documentType: string | undefined, rootPath?: string) => {
   if (documentType === 'siteLanding' && rootPath?.startsWith('navigation[')) {
     return [
       {

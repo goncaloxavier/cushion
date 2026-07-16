@@ -9,6 +9,7 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
+  import {textAppearanceStyle} from '$lib/text-appearance'
 
   let {data} = $props()
   const readArticleLabels: Record<LanguageCode, string> = {
@@ -86,8 +87,15 @@
 <main class="blog-page">
   <section class="blog-index-hero">
     <Reveal class="blog-index-copy" variant="hero" priority>
-      <p class="kicker">{content.blogPage.hero.kicker}</p>
-      <h1 use:lineReveal>{content.blogPage.hero.title}</h1>
+      <p
+        class="kicker cms-styled-text"
+        style={textAppearanceStyle(content.blogPage.hero.textAppearance?.kicker)}
+      >{content.blogPage.hero.kicker}</p>
+      <h1
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.blogPage.hero.textAppearance?.title)}
+        use:lineReveal
+      >{content.blogPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="blog-index-media" delay={120} variant="media" priority>
@@ -143,10 +151,19 @@
             />
           </div>
           <div class="journal-card-copy">
-            <span>{post.category}</span>
+            <span
+              class="cms-styled-text"
+              style={textAppearanceStyle(post.textAppearance?.category)}
+            >{post.category}</span>
             <time datetime={post.publishedAt}>{post.publishedAt}</time>
-            <h2>{post.title}</h2>
-            <p>{post.excerpt}</p>
+            <h2
+              class="cms-styled-text"
+              style={textAppearanceStyle(post.textAppearance?.title)}
+            >{post.title}</h2>
+            <p
+              class="cms-styled-text"
+              style={textAppearanceStyle(post.textAppearance?.excerpt)}
+            >{post.excerpt}</p>
             <strong>{readArticleLabel}</strong>
           </div>
         </a>

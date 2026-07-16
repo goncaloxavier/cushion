@@ -72,6 +72,9 @@ export default defineConfig([
               ],
             }),
             productCategory: collectionLocation('/produtos', 'Produto'),
+            storeCategory: defineLocations({
+              locations: [{title: 'Categorias da Loja', href: '/loja'}],
+            }),
             storeProduct: collectionLocation('/loja', 'Produto da loja'),
             caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo'),
             blogPost: collectionLocation('/blog', 'Artigo do blog'),

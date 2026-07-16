@@ -22,10 +22,7 @@ type LocalizedKey<T> = {
 const localizedSiteValue = (read: (content: SiteContent) => string) =>
   Object.fromEntries(languages.map((language) => [language, read(fallbackContent[language])]))
 
-const localizedProductField = (
-  index: number,
-  key: LocalizedKey<ProductItem>,
-) =>
+const localizedProductField = (index: number, key: LocalizedKey<ProductItem>) =>
   Object.fromEntries(
     languages.map((language) => [
       language,
@@ -66,6 +63,14 @@ const localizedSiteList = (
     ...localizedSiteValue((content) => read(content)[itemIndex]),
   }))
 
+const localizedSiteRecord = <T extends Record<string, string>>(read: (content: SiteContent) => T) =>
+  Object.fromEntries(
+    (Object.keys(read(fallbackContent.pt)) as Array<keyof T>).map((key) => [
+      key,
+      localizedSiteValue((content) => read(content)[key]),
+    ]),
+  )
+
 const contentCards = (read: (content: SiteContent) => ContentCard[], keyPrefix: string) =>
   read(fallbackContent.pt).map((_, itemIndex) => ({
     _key: `${keyPrefix}-${itemIndex}`,
@@ -98,7 +103,10 @@ const staticImageAsset = (image: ContentImage, alt: Record<LanguageCode, string>
 }
 
 const imageFromSiteContent = (read: (content: SiteContent) => ContentImage) =>
-  staticImageAsset(read(fallbackContent.pt), localizedSiteValue((content) => read(content).alt))
+  staticImageAsset(
+    read(fallbackContent.pt),
+    localizedSiteValue((content) => read(content).alt),
+  )
 
 const localizedStoreImageAlt = (productIndex: number, imageIndex: number) =>
   Object.fromEntries(
@@ -174,7 +182,11 @@ const siteContentDocument = {
     privacyPolicyLabel: localizedSiteValue((content) => content.common.privacyPolicyLabel),
     cookiePolicyUrl: fallbackContent.pt.common.cookiePolicyUrl,
     cookiePolicyLabel: localizedSiteValue((content) => content.common.cookiePolicyLabel),
+    cookieNoticeMessage: localizedSiteValue((content) => content.common.cookieNoticeMessage),
+    cookieNoticeLearnMore: localizedSiteValue((content) => content.common.cookieNoticeLearnMore),
+    cookieNoticeAccept: localizedSiteValue((content) => content.common.cookieNoticeAccept),
     marketingConsent: localizedSiteValue((content) => content.common.marketingConsent),
+    privacyConsentPrefix: localizedSiteValue((content) => content.common.privacyConsentPrefix),
   },
   home: {
     hero: {
@@ -207,6 +219,7 @@ const siteContentDocument = {
   },
   about: {
     hero: copyBlockWithoutLead((content) => content.about.hero),
+    statement: copyBlockWithoutLead((content) => content.about.statement),
     timeline: contentCards((content) => content.about.timeline, 'timeline'),
   },
   productsPage: {
@@ -220,25 +233,13 @@ const siteContentDocument = {
     finishLabel: localizedSiteValue((content) => content.storePage.finishLabel),
     sortLabel: localizedSiteValue((content) => content.storePage.sortLabel),
     allCategoriesLabel: localizedSiteValue((content) => content.storePage.allCategoriesLabel),
-    categoryLabels: Object.fromEntries(
-      Object.keys(fallbackContent.pt.storePage.categoryLabels).map((key) => [
-        key,
-        localizedSiteValue(
-          (content) =>
-            content.storePage.categoryLabels[
-              key as keyof SiteContent['storePage']['categoryLabels']
-            ],
-        ),
-      ]),
-    ),
+    sortOptions: localizedSiteRecord((content) => content.storePage.sortOptions),
     finishLabels: Object.fromEntries(
       Object.keys(fallbackContent.pt.storePage.finishLabels).map((key) => [
         key,
         localizedSiteValue(
           (content) =>
-            content.storePage.finishLabels[
-              key as keyof SiteContent['storePage']['finishLabels']
-            ],
+            content.storePage.finishLabels[key as keyof SiteContent['storePage']['finishLabels']],
         ),
       ]),
     ),
@@ -246,7 +247,17 @@ const siteContentDocument = {
     requestLabel: localizedSiteValue((content) => content.storePage.requestLabel),
     noResults: localizedSiteValue((content) => content.storePage.noResults),
     vatNote: localizedSiteValue((content) => content.storePage.vatNote),
+    delivery: localizedSiteRecord((content) => content.storePage.delivery),
+    postalGate: localizedSiteRecord((content) => content.storePage.postalGate),
+    detail: localizedSiteRecord((content) => content.storePage.detail),
     transportMultiplier: fallbackContent.pt.storePage.transportMultiplier,
+  },
+  cartPage: {
+    hero: copyBlockWithoutLead((content) => content.cartPage.hero),
+    ...localizedSiteRecord((content) => {
+      const {hero: _hero, ...labels} = content.cartPage
+      return labels
+    }),
   },
   returnsPolicy: {
     kicker: localizedSiteValue((content) => content.returnsPolicy.kicker),
@@ -260,6 +271,7 @@ const siteContentDocument = {
   catalogue: {
     hero: copyBlockWithoutLead((content) => content.catalogue.hero),
     ctaLabel: localizedSiteValue((content) => content.catalogue.ctaLabel),
+    formLabels: localizedSiteRecord((content) => content.catalogue.formLabels),
     estimate: {
       kicker: localizedSiteValue((content) => content.catalogue.estimate.kicker),
       title: localizedSiteValue((content) => content.catalogue.estimate.title),
@@ -300,6 +312,16 @@ const productDocuments = fallbackContent.pt.products.map((product, index) => ({
   orderRank: (index + 1) * 10,
 }))
 
+const storeCategoryDocuments = fallbackContent.pt.storePage.categories.map((category, index) => ({
+  _id: `storeCategory-${category.slug}`,
+  _type: 'storeCategory',
+  title: localizedSiteValue(
+    (content) => content.storePage.categoryLabels[category.slug] || category.label,
+  ),
+  slug: {_type: 'slug', current: category.slug},
+  orderRank: (index + 1) * 10,
+}))
+
 const storeProductDocuments = fallbackContent.pt.storeProducts.map((product, productIndex) => ({
   _id: `storeProduct-${product.slug}`,
   _type: 'storeProduct',
@@ -330,7 +352,12 @@ const storeProductDocuments = fallbackContent.pt.storeProducts.map((product, pro
   orderRank: (productIndex + 1) * 10,
 }))
 
-const documents = [siteContentDocument, ...productDocuments, ...storeProductDocuments]
+const documents = [
+  siteContentDocument,
+  ...productDocuments,
+  ...storeCategoryDocuments,
+  ...storeProductDocuments,
+]
 
 await mkdir('.sanity', {recursive: true})
 await writeFile(outputFile, `${documents.map((document) => JSON.stringify(document)).join('\n')}\n`)

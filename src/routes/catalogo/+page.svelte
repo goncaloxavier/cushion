@@ -40,7 +40,7 @@
     }
   })
 
-  const labelFor = (key: ContactFieldKey) => content.contactPage.formLabels[key]
+  const labelFor = (key: ContactFieldKey) => content.catalogue.formLabels[key]
 
   const isMessageField = (key: ContactFieldKey) => key === 'message'
 

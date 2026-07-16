@@ -231,7 +231,7 @@ export const builderCollectionSection = defineType({
       initialValue: 'productCategory',
       options: {
         list: [
-          {title: 'Soluções', value: 'productCategory'},
+          {title: 'Produtos', value: 'productCategory'},
           {title: 'Produtos da loja', value: 'storeProduct'},
           {title: 'Casos de estudo', value: 'caseStudy'},
           {title: 'Artigos do blog', value: 'blogPost'},

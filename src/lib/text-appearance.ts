@@ -1,3 +1,5 @@
+import {stegaClean} from '@sanity/client/stega'
+
 export type TextAppearance = {
   fontFamily?: string
   fontSize?: number
@@ -52,25 +54,35 @@ const bounded = (value: unknown, min: number, max: number) => {
 const customColor = (value: string | undefined) =>
   value && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined
 
+const cleanToken = (value: string | undefined) =>
+  value ? stegaClean(value).trim() || undefined : undefined
+
 export const textAppearanceStyle = (value: TextAppearance | null | undefined) => {
   if (!value) return ''
 
   const desktop = bounded(value.fontSize, 10, 120)
   const tablet = bounded(value.fontSizeTablet, 10, 120) ?? desktop
   const mobile = bounded(value.fontSizeMobile, 10, 120) ?? tablet
-  const family = value.fontFamily ? fontFamilies[value.fontFamily] : undefined
-  const weight = value.fontWeight ? fontWeights[value.fontWeight] : undefined
-  const align = ['left', 'center', 'right'].includes(value.textAlign || '')
-    ? value.textAlign
+  const fontFamily = cleanToken(value.fontFamily)
+  const fontWeight = cleanToken(value.fontWeight)
+  const textAlign = cleanToken(value.textAlign)
+  const lineHeightToken =
+    typeof value.lineHeight === 'string' ? cleanToken(value.lineHeight) : value.lineHeight
+  const colorToken = cleanToken(value.color)
+  const fontStyleToken = cleanToken(value.fontStyle)
+  const family = fontFamily ? fontFamilies[fontFamily] : undefined
+  const weight = fontWeight ? fontWeights[fontWeight] : undefined
+  const align = ['left', 'center', 'right'].includes(textAlign || '')
+    ? textAlign
     : undefined
   const lineHeight =
-    typeof value.lineHeight === 'number'
-      ? bounded(value.lineHeight, 0.9, 2)
-      : value.lineHeight
-        ? lineHeights[value.lineHeight]
+    typeof lineHeightToken === 'number'
+      ? bounded(lineHeightToken, 0.9, 2)
+      : lineHeightToken
+        ? lineHeights[lineHeightToken]
         : undefined
-  const fontStyle = value.fontStyle === 'italic' ? 'italic' : undefined
-  const color = colorTokens[value.color || ''] || customColor(value.color)
+  const fontStyle = fontStyleToken === 'italic' ? 'italic' : undefined
+  const color = colorTokens[colorToken || ''] || customColor(colorToken)
 
   return [
     desktop ? `--cms-text-size-desktop:${desktop}px` : '',

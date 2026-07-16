@@ -11,10 +11,11 @@
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {showToast} from '$lib/toast'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {
+    storeCategoryLabel,
     storeProductMediaFor,
     withLanguage,
-    type LanguageCode,
     type StoreFinish,
   } from '$lib/site-content'
   import {
@@ -30,99 +31,6 @@
   let {data} = $props()
 
   const finishes: StoreFinish[] = ['natural', 'dark']
-  const pageCopy: Record<
-    LanguageCode,
-    {
-      back: string
-      category: string
-      variant: string
-      finish: string
-      dimensions: string
-      weight: string
-      selectedPrice: string
-      productNet: string
-      transport: string
-      totalWithVat: string
-      ivaIncluded: string
-      deliveryPostcode: string
-      changePostcode: string
-      transportPending: string
-      transportOverweight: string
-      addToCart: string
-      added: string
-      viewCart: string
-      imagePending: string
-      quantity: string
-    }
-  > = {
-    pt: {
-      back: 'Voltar à loja',
-      category: 'Categoria',
-      variant: 'Medida / variante',
-      finish: 'Acabamento',
-      dimensions: 'Dimensões',
-      weight: 'Peso',
-      selectedPrice: 'Preço selecionado',
-      productNet: 'Produto s/ IVA',
-      transport: 'Transporte',
-      totalWithVat: 'Total',
-      ivaIncluded: 'IVA incluído',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Alterar',
-      transportPending: 'Transporte a confirmar',
-      transportOverweight: 'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
-      addToCart: 'Adicionar ao carrinho',
-      added: 'Adicionado ao carrinho',
-      viewCart: 'Ver carrinho',
-      imagePending: 'Imagem a adicionar pelo cliente',
-      quantity: 'Quantidade',
-    },
-    en: {
-      back: 'Back to store',
-      category: 'Category',
-      variant: 'Size / variant',
-      finish: 'Finish',
-      dimensions: 'Dimensions',
-      weight: 'Weight',
-      selectedPrice: 'Selected price',
-      productNet: 'Product excl. VAT',
-      transport: 'Transport',
-      totalWithVat: 'Total',
-      ivaIncluded: 'VAT included',
-      deliveryPostcode: 'Zone',
-      changePostcode: 'Change',
-      transportPending: 'Transport to confirm',
-      transportOverweight: 'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
-      addToCart: 'Add to cart',
-      added: 'Added to cart',
-      viewCart: 'View cart',
-      imagePending: 'Image to be added by the client',
-      quantity: 'Quantity',
-    },
-    es: {
-      back: 'Volver a tienda',
-      category: 'Categoría',
-      variant: 'Medida / variante',
-      finish: 'Acabado',
-      dimensions: 'Dimensiones',
-      weight: 'Peso',
-      selectedPrice: 'Precio seleccionado',
-      productNet: 'Producto sin IVA',
-      transport: 'Transporte',
-      totalWithVat: 'Total',
-      ivaIncluded: 'IVA incluido',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Cambiar',
-      transportPending: 'Transporte por confirmar',
-      transportOverweight: 'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
-      addToCart: 'Añadir al carrito',
-      added: 'Añadido al carrito',
-      viewCart: 'Ver carrito',
-      imagePending: 'Imagen pendiente del cliente',
-      quantity: 'Cantidad',
-    },
-  }
-
   let selectedVariantIndex = $state(0)
   let selectedFinish = $state<StoreFinish>('natural')
   let quantity = $state(1)
@@ -132,7 +40,7 @@
   const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/loja', data.language, data.returnPage))
-  const labels = $derived(pageCopy[data.language])
+  const labels = $derived(content.storePage.detail)
   const selectedVariant = $derived(
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
   )
@@ -143,7 +51,7 @@
     effectiveFinish === 'natural' ? 'priceNatural' : 'priceDark',
   )
   const storeProductDataAttribute = $derived(
-    data.preview && data.studioUrl && data.storeProduct.studioDocumentId
+    (data.preview || data.builderPreview) && data.studioUrl && data.storeProduct.studioDocumentId
       ? createDataAttribute({
           baseUrl: data.studioUrl,
           id: data.storeProduct.studioDocumentId,
@@ -327,10 +235,25 @@
       <Reveal class="store-detail-copy" variant="hero" priority>
         <p class="store-detail-category">
           <span>{labels.category}</span>
-          {content.storePage.categoryLabels[data.storeProduct.category]}
+          <strong data-sanity={storeProductDataAttribute?.('category')}>
+            {storeCategoryLabel(content.storePage, data.storeProduct.category)}
+          </strong>
         </p>
-        <h1 use:lineReveal>{data.storeProduct.title}</h1>
-        <p class="article-lead">{data.storeProduct.summary}</p>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(data.storeProduct.textAppearance?.title)}
+          use:lineReveal
+          data-sanity={storeProductDataAttribute?.('title.pt')}
+        >
+          {data.storeProduct.title}
+        </h1>
+        <p
+          class="article-lead cms-styled-text"
+          style={textAppearanceStyle(data.storeProduct.textAppearance?.summary)}
+          data-sanity={storeProductDataAttribute?.('summary.pt')}
+        >
+          {data.storeProduct.summary}
+        </p>
       </Reveal>
 
       <Reveal class="store-detail-visual-reveal" delay={120} variant="media">
@@ -429,23 +352,27 @@
         </section>
 
         {#if selectedVariant.weightKg}
-          <section
-            class="store-spec-weight"
-            data-sanity={selectedWeightDataAttribute}
-            data-df4y-editor-field={selectedWeightDataAttribute ? true : undefined}
-          >
+          <section class="store-spec-weight">
             <h2>{labels.weight}</h2>
-            <p class="store-spec-weight-value">{selectedVariant.weightKg} kg</p>
+            <p
+              class="store-spec-weight-value"
+              data-sanity={selectedWeightDataAttribute}
+              data-df4y-editor-field={selectedWeightDataAttribute ? true : undefined}
+              data-df4y-editor-kind={selectedWeightDataAttribute ? 'number' : undefined}
+              data-df4y-editor-label={selectedWeightDataAttribute ? labels.weight : undefined}
+            >{selectedVariant.weightKg} kg</p>
           </section>
         {/if}
 
-        <section
-          class="store-spec-price"
-          data-sanity={selectedPriceDataAttribute}
-          data-df4y-editor-field={selectedPriceDataAttribute ? true : undefined}
-        >
+        <section class="store-spec-price">
           <h2>{labels.productNet}</h2>
-          <p class="store-spec-price-value">{formatPrice(selectedEstimate.productNet)}</p>
+          <p
+            class="store-spec-price-value"
+            data-sanity={selectedPriceDataAttribute}
+            data-df4y-editor-field={selectedPriceDataAttribute ? true : undefined}
+            data-df4y-editor-kind={selectedPriceDataAttribute ? 'number' : undefined}
+            data-df4y-editor-label={selectedPriceDataAttribute ? labels.productNet : undefined}
+          >{formatPrice(selectedEstimate.productNet)}</p>
         </section>
 
         <section class="store-spec-transport">
@@ -483,7 +410,7 @@
     {#if deliveryModalOpen}
       <div class="store-gate-layer" role="presentation">
         <StorePostalGate
-          language={data.language}
+          labels={content.storePage.postalGate}
           initialPostalCode={deliveryPostalCode}
           closable
           onclose={() => {
@@ -499,7 +426,7 @@
   {:else}
     <section class="section store-section store-section-gated">
       <StorePostalGate
-        language={data.language}
+        labels={content.storePage.postalGate}
         onconfirm={(postalCode) => {
           deliveryPostalCode = postalCode
         }}

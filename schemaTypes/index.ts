@@ -8,6 +8,7 @@ import {localizedText} from './objects/localizedText'
 import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
 import {storeProduct} from './storeProduct'
+import {storeCategory} from './storeCategory'
 import {sitePage} from './sitePage'
 import {clientProfile} from './crm/clientProfile'
 import {formSubmission} from './crm/formSubmission'
@@ -21,6 +22,7 @@ import {builderSiteSettings} from './builder/builderSiteSettings'
 export const websiteSchemaTypes = [
   siteLanding,
   productCategory,
+  storeCategory,
   storeProduct,
   caseStudy,
   blogPost,

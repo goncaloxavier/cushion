@@ -7,6 +7,7 @@
     type SanityStegaNode,
   } from '@sanity/visual-editing'
   import {decodeSanityNodeData, encodeSanityNodeData} from '@sanity/visual-editing-csm'
+  import {afterNavigate, invalidateAll} from '$app/navigation'
   import {onMount} from 'svelte'
 
   type Rect = {x: number; y: number; width: number; height: number}
@@ -27,7 +28,7 @@
   }
   type Appearance = Record<string, string | number | undefined>
   type Viewport = 'desktop' | 'tablet' | 'mobile'
-  type ElementKind = 'text' | 'link' | 'button' | 'image' | 'video'
+  type ElementKind = 'text' | 'link' | 'button' | 'image' | 'video' | 'number'
   type SelectionIdentity = {documentId: string; path: string}
 
   let overlayHost: HTMLDivElement
@@ -56,6 +57,12 @@
   const post = (message: Record<string, unknown>) =>
     window.parent.postMessage(message, window.location.origin)
 
+  const currentRoute = () => `${window.location.pathname}${window.location.search}`
+
+  afterNavigate(() => {
+    post({type: 'df4y:site-editor:route-change', route: currentRoute()})
+  })
+
   const normalizeRect = (rect: {x: number; y: number; w: number; h: number}): Rect => ({
     x: rect.x,
     y: rect.y,
@@ -71,6 +78,8 @@
 
   const normalizeDocumentId = (value: string) => value.replace(/^drafts\./, '')
 
+  const languagePath = (path: string) => /\.(pt|en|es)$/.test(path)
+
   const matchesSelection = (node: SanityNode | undefined, selection = activeSelection) =>
     Boolean(
       node &&
@@ -80,6 +89,12 @@
     )
 
   const kindFor = (element: HTMLElement | SVGElement): ElementKind => {
+    const explicitKind = element
+      .closest<HTMLElement>('[data-df4y-editor-kind]')
+      ?.dataset.df4yEditorKind
+    if (['text', 'link', 'button', 'image', 'video', 'number'].includes(explicitKind || '')) {
+      return explicitKind as ElementKind
+    }
     if (element instanceof HTMLImageElement || element.closest('picture')) return 'image'
     if (element instanceof HTMLVideoElement || element.closest('video')) return 'video'
     if (element.closest('button')) return 'button'
@@ -92,7 +107,27 @@
     if (kind === 'button') return 'Botão'
     if (kind === 'image') return 'Imagem'
     if (kind === 'video') return 'Vídeo'
+    if (kind === 'number') return 'Valor'
     return 'Texto'
+  }
+
+  const hoverLabelFor = (
+    element: HTMLElement | SVGElement,
+    kind: ElementKind,
+    inline: boolean,
+  ) => {
+    const explicitLabel = element
+      .closest<HTMLElement>('[data-df4y-editor-label]')
+      ?.dataset.df4yEditorLabel?.trim()
+    if (inline) {
+      if (kind === 'link') return 'Editar ligação'
+      if (kind === 'button') return 'Editar botão'
+      return 'Editar texto'
+    }
+    if (kind === 'image') return explicitLabel || 'Editar imagem'
+    if (kind === 'video') return explicitLabel || 'Editar vídeo'
+    if (explicitLabel) return `Editar campo: ${explicitLabel}`
+    return 'Editar campo'
   }
 
   const labelFor = (node: SanityNode | undefined) => {
@@ -108,6 +143,7 @@
     node: SanityNode | undefined,
   ): element is HTMLElement => {
     if (!(element instanceof HTMLElement) || !node?.path) return false
+    if (/(^|\.)article\.(pt|en|es)$/.test(node.path)) return false
     if (element.hasAttribute('data-df4y-editor-field')) return false
     if (
       ['AUDIO', 'CANVAS', 'IFRAME', 'IMG', 'INPUT', 'PICTURE', 'SELECT', 'SVG', 'TEXTAREA', 'VIDEO']
@@ -135,6 +171,19 @@
     rect.y + rect.height > 0 &&
     rect.x < window.innerWidth &&
     rect.y < window.innerHeight
+
+  const hasRenderableRect = (rect: Rect) => rect.width > 0 && rect.height > 0
+
+  const isRenderableElement = (
+    element: HTMLElement | SVGElement | undefined,
+  ): element is HTMLElement | SVGElement => {
+    if (!element?.isConnected || element.getClientRects().length === 0) return false
+    if (getComputedStyle(element).visibility === 'hidden') return false
+    return hasRenderableRect(rectFor(element))
+  }
+
+  const isVisibleElement = (element: HTMLElement | SVGElement | undefined) =>
+    Boolean(isRenderableElement(element) && isVisibleRect(rectFor(element)))
 
   const releaseEditing = (commit: boolean) => {
     const session = editing
@@ -255,11 +304,76 @@
     normal: '1.5',
     relaxed: '1.8',
   }
+  const cssColor: Record<string, string> = {
+    text: 'var(--ink, #10231f)',
+    muted: 'var(--muted, #49605a)',
+    white: '#ffffff',
+    green: 'var(--green, #2f8b69)',
+    blue: 'var(--blue, #17657a)',
+    yellow: 'var(--yellow, #d7bd35)',
+  }
+
+  const reconnectSelectedElement = () => {
+    if (!activeSelection) return undefined
+
+    if (isRenderableElement(selectedElement)) return selectedElement
+
+    const candidates = new Map<HTMLElement | SVGElement, {
+      id: string
+      current: RegisteredElement
+      node: SanityNode
+    }>()
+
+    for (const [id, current] of elements) {
+      const node = resolveNode(current.sanity)
+      if (!matchesSelection(node) || !node) continue
+      candidates.set(current.element, {id, current, node})
+    }
+
+    for (const candidate of document.querySelectorAll('[data-sanity]')) {
+      if (!(candidate instanceof HTMLElement) && !(candidate instanceof SVGElement)) continue
+      if (overlayHost?.contains(candidate)) continue
+      const sanity = candidate.getAttribute('data-sanity') as SanityStegaNode | null
+      const node = sanity ? resolveNode(sanity) : undefined
+      if (!sanity || !matchesSelection(node)) continue
+
+      let id = directIds.get(candidate)
+      if (!id) {
+        directId += 1
+        id = `direct-${directId}`
+        directIds.set(candidate, id)
+      }
+      const current = {rect: rectFor(candidate), sanity, element: candidate}
+      elements.set(id, current)
+      candidates.set(candidate, {id, current, node: node!})
+    }
+
+    const next = [...candidates.values()]
+      .filter(({current}) => isRenderableElement(current.element))
+      .sort((left, right) =>
+        Number(isVisibleElement(right.current.element)) -
+        Number(isVisibleElement(left.current.element)),
+      )[0]
+
+    if (next) {
+      activeId = next.id
+      selectedElement = next.current.element
+      activeLabel = labelFor(next.node)
+      activeKind = kindFor(next.current.element)
+      activeInline = canEditInline(next.current.element, next.node)
+      return next.current.element
+    }
+
+    activeId = undefined
+    selectedElement = undefined
+    return undefined
+  }
 
   const activeElement = () => {
     if (editing?.element?.isConnected) return editing.element
-    if (selectedElement?.isConnected) return selectedElement
-    return activeId ? elements.get(activeId)?.element : undefined
+    if (isRenderableElement(selectedElement)) return selectedElement
+    const registered = activeId ? elements.get(activeId)?.element : undefined
+    return isRenderableElement(registered) ? registered : reconnectSelectedElement()
   }
 
   const updateToolbarPosition = () => {
@@ -368,20 +482,70 @@
     if (notifyParent) post({type: 'df4y:site-editor:clear-selection'})
   }
 
+  const applyAppearanceToElement = (
+    element: HTMLElement,
+    value: Appearance,
+    targetViewport: Viewport,
+  ) => {
+    const sizeField =
+      targetViewport === 'mobile'
+        ? 'fontSizeMobile'
+        : targetViewport === 'tablet'
+          ? 'fontSizeTablet'
+          : 'fontSize'
+    const size = Number(value[sizeField] || value.fontSize || 0)
+    element.style.fontFamily = cssFontFamily[String(value.fontFamily || '')] || ''
+    element.style.fontSize = size >= 10 && size <= 120 ? `${size}px` : ''
+    element.style.fontWeight = cssWeight[String(value.fontWeight || '')] || ''
+    element.style.fontStyle = value.fontStyle === 'italic' ? 'italic' : ''
+    element.style.textAlign = ['left', 'center', 'right'].includes(String(value.textAlign || ''))
+      ? String(value.textAlign)
+      : ''
+    element.style.lineHeight = cssLineHeight[String(value.lineHeight || '')] || ''
+    const color = typeof value.color === 'string' ? value.color : ''
+    element.style.color = cssColor[color] || (/^#[0-9a-f]{6}$/i.test(color) ? color : '')
+  }
+
   const applyAppearance = () => {
     const element = activeElement()
     if (!(element instanceof HTMLElement)) return
-    const sizeField = viewport === 'mobile' ? 'fontSizeMobile' : viewport === 'tablet' ? 'fontSizeTablet' : 'fontSize'
-    const size = Number(appearance[sizeField] || appearance.fontSize || 0)
-    element.style.fontFamily = cssFontFamily[String(appearance.fontFamily || '')] || ''
-    element.style.fontSize = size >= 10 && size <= 120 ? `${size}px` : ''
-    element.style.fontWeight = cssWeight[String(appearance.fontWeight || '')] || ''
-    element.style.fontStyle = appearance.fontStyle === 'italic' ? 'italic' : ''
-    element.style.textAlign = ['left', 'center', 'right'].includes(String(appearance.textAlign || ''))
-      ? String(appearance.textAlign)
-      : ''
-    element.style.lineHeight = cssLineHeight[String(appearance.lineHeight || '')] || ''
+    applyAppearanceToElement(element, appearance, viewport)
     updateActiveRect()
+  }
+
+  const patchPreview = (documentId: string, path: string, value: unknown) => {
+    const normalizedId = normalizeDocumentId(documentId)
+    const localizedValue =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined
+    const candidates = new Set<HTMLElement | SVGElement>()
+    for (const current of elements.values()) candidates.add(current.element)
+    for (const element of document.querySelectorAll<HTMLElement | SVGElement>('[data-sanity]')) {
+      if (!overlayHost.contains(element)) candidates.add(element)
+    }
+
+    for (const element of candidates) {
+      if (!element.isConnected) continue
+      const direct = ensureDirectElement(element)
+      const node = direct?.node
+      if (!node || normalizeDocumentId(node.id) !== normalizedId) continue
+      const exact = node.path === path
+      const localized = localizedValue && node.path.startsWith(`${path}.`) && languagePath(node.path)
+      if (!exact && !localized) continue
+
+      if (element instanceof HTMLElement && localizedValue) {
+        const language = localized ? node.path.split('.').at(-1) : 'pt'
+        const textValue = language ? localizedValue[language] : undefined
+        if (typeof textValue === 'string' && editing?.element !== element) {
+          element.textContent = textValue
+        }
+        applyAppearanceToElement(element, localizedValue as Appearance, viewport)
+      } else if (element instanceof HTMLElement && typeof value === 'string' && editing?.element !== element) {
+        element.textContent = value
+      }
+    }
+    syncRects()
   }
 
   const changeAppearance = (field: string, value: string | number | undefined) => {
@@ -426,7 +590,10 @@
       }
       elements.set(message.id, current)
       const node = resolveNode(message.sanity)
-      if (matchesSelection(node)) activateElement(message.id, current, node!, true)
+      if (
+        matchesSelection(node) &&
+        (selectedElement === current.element || !isRenderableElement(selectedElement))
+      ) activateElement(message.id, current, node!, true)
       return
     }
     if (message.type === 'element/update') {
@@ -439,7 +606,11 @@
         })
         const next = elements.get(message.id)
         const node = resolveNode(message.sanity)
-        if (next && matchesSelection(node)) activateElement(message.id, next, node!, true)
+        if (
+          next &&
+          matchesSelection(node) &&
+          (selectedElement === next.element || !isRenderableElement(selectedElement))
+        ) activateElement(message.id, next, node!, true)
       }
       return
     }
@@ -455,19 +626,17 @@
     }
     if (message.type === 'element/unregister') {
       if (editing?.id === message.id) releaseEditing(true)
+      const removed = elements.get(message.id)
       elements.delete(message.id)
       if (hoveredId === message.id) {
         hoveredId = undefined
         hoveredRect = null
       }
-      if (activeId === message.id) {
-        if (!selectedElement?.isConnected) {
-          activeId = undefined
-          selectedElement = undefined
-          activeRect = null
-        } else {
-          updateActiveRect()
-        }
+      if (activeId === message.id || selectedElement === removed?.element) {
+        activeId = undefined
+        selectedElement = undefined
+        reconnectSelectedElement()
+        updateActiveRect()
       }
       return
     }
@@ -475,21 +644,16 @@
       const current = elements.get(message.id)
       if (!current) return
       const node = resolveNode(current.sanity)
+      if (
+        matchesSelection(node) &&
+        selectedElement !== current.element &&
+        !isVisibleElement(selectedElement)
+      ) activateElement(message.id, current, node!, true)
       hoveredId = message.id
       hoveredRect = rectFor(current.element)
       const kind = kindFor(current.element)
       hoveredInline = canEditInline(current.element, node)
-      hoveredLabel = hoveredInline
-        ? kind === 'link'
-          ? 'Editar ligação'
-          : kind === 'button'
-            ? 'Editar botão'
-            : 'Clique e escreva'
-        : kind === 'image'
-          ? 'Editar imagem'
-          : kind === 'video'
-            ? 'Editar vídeo'
-            : labelFor(node)
+      hoveredLabel = hoverLabelFor(current.element, kind, hoveredInline)
       return
     }
     if (message.type === 'element/mouseleave' || message.type === 'overlay/blur') {
@@ -513,10 +677,51 @@
       inPopUp: false,
       optimisticActorReady: false,
     })
+    let refreshPromise: Promise<void> | undefined
+    let queuedRefresh = false
+    const refreshPreview = () => {
+      if (refreshPromise) {
+        queuedRefresh = true
+        return
+      }
+      const scrollX = window.scrollX
+      const scrollY = window.scrollY
+      refreshPromise = invalidateAll()
+        .then(
+          () =>
+            new Promise<void>((resolve) =>
+              window.requestAnimationFrame(() => {
+                window.scrollTo(scrollX, scrollY)
+                syncRects()
+                post({type: 'df4y:site-editor:preview-refreshed'})
+                resolve()
+              }),
+            ),
+        )
+        .finally(() => {
+          refreshPromise = undefined
+          if (queuedRefresh) {
+            queuedRefresh = false
+            refreshPreview()
+          }
+        })
+    }
     const handleParentMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== window.parent) return
       if (event.data?.type === 'df4y:site-editor:clear-selection') {
         clearActiveSelection(false)
+        return
+      }
+      if (event.data?.type === 'df4y:site-editor:preview-patch') {
+        patchPreview(
+          String(event.data.documentId || ''),
+          String(event.data.path || ''),
+          event.data.value,
+        )
+        return
+      }
+      if (event.data?.type === 'df4y:site-editor:refresh-preview') {
+        refreshPreview()
         return
       }
       if (event.data?.type !== 'df4y:site-editor:field-state') return
@@ -568,22 +773,18 @@
       const element = directElementFor(event.target)
       if (!element || (event.relatedTarget instanceof Node && element.contains(event.relatedTarget))) return
       const direct = ensureDirectElement(element)
-      if (!direct?.node || matchesSelection(direct.node)) return
+      if (!direct?.node) return
+      if (matchesSelection(direct.node)) {
+        if (selectedElement !== element && !isVisibleElement(selectedElement)) {
+          activateElement(direct.id, direct.current, direct.node, true)
+        }
+        return
+      }
       hoveredId = direct.id
       hoveredRect = rectFor(element)
       const kind = kindFor(element)
       hoveredInline = canEditInline(element, direct.node)
-      hoveredLabel = hoveredInline
-        ? kind === 'link'
-          ? 'Editar ligação'
-          : kind === 'button'
-            ? 'Editar botão'
-            : 'Clique e escreva'
-        : kind === 'image'
-          ? 'Editar imagem'
-          : kind === 'video'
-            ? 'Editar vídeo'
-            : labelFor(direct.node)
+      hoveredLabel = hoverLabelFor(element, kind, hoveredInline)
     }
     const handleDirectPointerOut = (event: PointerEvent) => {
       const element = directElementFor(event.target)
@@ -600,10 +801,18 @@
     document.addEventListener('click', handleDirectClick, true)
     document.addEventListener('pointerover', handleDirectPointerOver, true)
     document.addEventListener('pointerout', handleDirectPointerOut, true)
-    post({type: 'df4y:site-editor:ready'})
+    const mutationObserver = new MutationObserver(scheduleRectSync)
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-sanity'],
+    })
+    post({type: 'df4y:site-editor:ready', route: currentRoute()})
     return () => {
       releaseEditing(true)
       if (rectFrame) window.cancelAnimationFrame(rectFrame)
+      mutationObserver.disconnect()
       window.removeEventListener('message', handleParentMessage)
       window.removeEventListener('scroll', scheduleRectSync, true)
       window.removeEventListener('resize', scheduleRectSync)

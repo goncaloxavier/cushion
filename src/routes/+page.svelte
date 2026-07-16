@@ -6,6 +6,7 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {youtubeEmbedUrl} from '$lib/media'
   import {prefersReducedMotion} from '$lib/motion'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {absoluteUrl, organizationSchema} from '$lib/seo'
   import {
     caseStudyImageFallback,
@@ -35,9 +36,9 @@
 
   const featuredSolutions = $derived(content.products.slice(0, 4))
   const viewAllLabel: Record<LanguageCode, string> = {
-    pt: 'Ver todas as soluções',
-    en: 'View all solutions',
-    es: 'Ver todas las soluciones',
+    pt: 'Ver todos os produtos',
+    en: 'View all products',
+    es: 'Ver todos los productos',
   }
   const selectedWorkLabel: Record<LanguageCode, string> = {
     pt: 'Casos em uso real',
@@ -137,7 +138,11 @@
 
     <div class="home-hero-copy">
       <Reveal variant="hero" priority>
-        <h1 use:lineReveal>{content.home.hero.title}</h1>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(content.home.hero.textAppearance?.title)}
+          use:lineReveal
+        >{content.home.hero.title}</h1>
       </Reveal>
     </div>
 
@@ -193,7 +198,10 @@
   <section class="section home-solutions">
     <Reveal class="home-section-head" variant="panel">
       <p class="kicker">{content.nav.products}</p>
-      <h2>{content.productsPage.hero.title}</h2>
+      <h2
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.productsPage.hero.textAppearance?.title)}
+      >{content.productsPage.hero.title}</h2>
     </Reveal>
 
     <div class="home-solutions-grid">
@@ -216,9 +224,15 @@
               />
             </div>
             <div class="home-solution-copy">
-              <h3>{product.title}</h3>
+              <h3
+                class="cms-styled-text"
+                style={textAppearanceStyle(product.textAppearance?.title)}
+              >{product.title}</h3>
               {#if product.summary}
-                <p>{product.summary}</p>
+                <p
+                  class="cms-styled-text"
+                  style={textAppearanceStyle(product.textAppearance?.summary)}
+                >{product.summary}</p>
               {/if}
             </div>
           </a>
@@ -236,15 +250,24 @@
 
   <section class="section home-impact-ledger">
     <Reveal class="impact-copy" variant="panel">
-      <h2>{content.home.impact.title}</h2>
+      <h2
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.home.impact.textAppearance?.title)}
+      >{content.home.impact.title}</h2>
     </Reveal>
 
     <div class="impact-ledger">
       {#each content.home.impact.stats as stat, index}
         <Reveal delay={index * 60} variant="list">
           <article>
-            <strong>{stat.title}</strong>
-            <p>{stat.text}</p>
+            <strong
+              class="cms-styled-text"
+              style={textAppearanceStyle(stat.textAppearance?.title)}
+            >{stat.title}</strong>
+            <p
+              class="cms-styled-text"
+              style={textAppearanceStyle(stat.textAppearance?.text)}
+            >{stat.text}</p>
           </article>
         </Reveal>
       {/each}
@@ -255,7 +278,10 @@
     <section class="section home-work">
       <Reveal class="home-section-head" variant="panel">
         <p class="kicker">{selectedWorkLabel[data.language]}</p>
-        <h2>{content.casesPage.hero.title}</h2>
+        <h2
+          class="cms-styled-text"
+          style={textAppearanceStyle(content.casesPage.hero.textAppearance?.title)}
+        >{content.casesPage.hero.title}</h2>
       </Reveal>
 
       <div class="home-work-grid">
@@ -278,7 +304,10 @@
                 />
                 <span class="card-meta">{item.location}</span>
               </div>
-              <h3>{item.title}</h3>
+              <h3
+                class="cms-styled-text"
+                style={textAppearanceStyle(item.textAppearance?.title)}
+              >{item.title}</h3>
             </a>
           </Reveal>
         {/each}
@@ -296,9 +325,18 @@
   <section class="section home-partners-section">
     <Reveal class="partner-panel" variant="panel">
       <div class="partner-copy">
-        <p class="kicker">{content.home.partners.kicker}</p>
-        <h2>{content.home.partners.title}</h2>
-        <p>{content.home.partners.lead}</p>
+        <p
+          class="kicker cms-styled-text"
+          style={textAppearanceStyle(content.home.partners.textAppearance?.kicker)}
+        >{content.home.partners.kicker}</p>
+        <h2
+          class="cms-styled-text"
+          style={textAppearanceStyle(content.home.partners.textAppearance?.title)}
+        >{content.home.partners.title}</h2>
+        <p
+          class="cms-styled-text"
+          style={textAppearanceStyle(content.home.partners.textAppearance?.lead)}
+        >{content.home.partners.lead}</p>
       </div>
 
       <div class="partner-grid" aria-label={content.home.partners.title}>

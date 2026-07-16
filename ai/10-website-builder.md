@@ -41,10 +41,24 @@ and Spanish. Editors should never have to maintain three parallel copies by hand
   document form.
 - Text may be edited inline when the field is truly textual. Numbers, galleries, navigation, media,
   and structured values open purpose-built controls so their Sanity types cannot be corrupted.
+- Blog bodies appear as one continuous document editor, never as a technical list of Portable Text
+  blocks. The compact toolbar controls headings, emphasis, lists, links, images, videos, and tables;
+  media settings open only for the selected item. Portable Text remains the stored structure.
+- Loja categories are first-class documents. Their manager shows assigned-product counts and product
+  names, offers contextual creation, keeps the category slug stable when the display name changes,
+  and blocks deletion until every associated product has been moved.
 - The page tree, canvas, and inspector own independent scroll containers. Mouse wheel, trackpad,
   touch, and keyboard scrolling stay within the active panel until that panel reaches its boundary.
 - Autosave updates editor state without reloading the builder or canvas. Selection and viewport state
   remain stable after a successful save.
+- Simple field and typography changes patch every matching visible element immediately. A successful
+  autosave then performs a server-backed soft invalidation so structured content, media, totals, and
+  other derived presentation are authoritative without a hard iframe reload or scroll reset.
+- Text appearance lives with the localized Sanity value and must survive the public `site-content`
+  adapter. Published routes apply the same font family, responsive size, weight, style, alignment,
+  line height, and color that the editor previews.
+- Structured article paths never enter plain-text inline editing. They open the article editor, and
+  the server rejects malformed article payloads before they can replace Portable Text arrays.
 
 ## Source Of Truth
 
@@ -100,6 +114,9 @@ layouts, and content that cannot be migrated later.
 - Builder mutations require the staff session, same-origin validation, and the backoffice CSRF token.
 - Draft preview uses a signed, short-lived, httpOnly cookie and only activates inside a same-origin
   iframe carrying the builder query flag.
+- Preview typography strips Sanity's invisible source metadata before resolving font tokens. Publish
+  clears the server's public content cache so a standalone local page reads the new published value
+  immediately instead of waiting for the normal cache window.
 
 ## Public Renderer Rollout
 
@@ -139,6 +156,9 @@ No builder schema deployment by itself changes the live website.
 - `tests/site-editor.spec.ts` covers focused editing, autosave without iframe reload, selection
   persistence across scroll, panel-wheel ownership, closing behavior, typed numeric fields, gallery
   upload/removal, navigation changes, responsive containment, and CSRF rejection on desktop/mobile.
+- Typography tests cover desktop and mobile overrides, publish the edited fixture, then leave the
+  editor and assert the saved text and appearance on a standalone page. Structured-article tests
+  assert the persisted Portable Text shape and the soft preview refresh.
 - Its fixture is request-scoped and guarded by non-production mode, an explicit environment switch,
   and a matching request key. It cannot read or mutate the live Sanity dataset.
 - Public renderer tests cover routes and responsive behavior without depending on mutable live Sanity

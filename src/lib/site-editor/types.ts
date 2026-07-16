@@ -4,6 +4,7 @@ import type {BuilderSection} from '$lib/builder/types'
 export type SiteEditorDocumentType =
   | 'siteLanding'
   | 'productCategory'
+  | 'storeCategory'
   | 'storeProduct'
   | 'caseStudy'
   | 'blogPost'
@@ -35,6 +36,9 @@ export type SiteEditorNode = {
   active?: boolean
   count?: number
   thumbnailUrl?: string
+  slug?: string
+  category?: string
+  publishedCategory?: string
 }
 
 export type SiteEditorDocument = SanityDocument &
@@ -44,6 +48,7 @@ export type SiteEditorDocument = SanityDocument &
 
 export type SiteEditorManifest = {
   nodes: SiteEditorNode[]
+  optionSources: Record<string, SiteEditorOption[]>
   capabilities: {
     canRead: boolean
     canWrite: boolean
@@ -86,6 +91,7 @@ export type SiteEditorField = {
   fields?: SiteEditorField[]
   item?: SiteEditorField
   options?: SiteEditorOption[]
+  optionsSource?: string
   min?: number
   max?: number
   step?: number

@@ -1044,7 +1044,7 @@ function SectionInspector({
                     })
                   }
                 >
-                  <option value="productCategory">Soluções</option>
+                  <option value="productCategory">Produtos</option>
                   <option value="storeProduct">Produtos da loja</option>
                   <option value="caseStudy">Casos de estudo</option>
                   <option value="blogPost">Artigos do blog</option>

@@ -6121,6 +6121,10 @@ body.lightbox-open {
   padding-left: 1.35rem;
 }
 
+.blog-body .article-rich-list {
+  max-width: calc(100% - 1.35rem);
+}
+
 .blog-body ul li {
   position: relative;
   padding-left: 1.45rem;
@@ -6213,7 +6217,7 @@ body.lightbox-open {
 
 .blog-body table {
   width: 100%;
-  min-width: 42rem;
+  min-width: max(100%, calc(var(--article-table-columns, 3) * 10rem));
   border-collapse: collapse;
   background: #ffffff;
 }
@@ -6776,6 +6780,20 @@ body.lightbox-open {
   font-weight: 850;
   text-decoration: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.footer-legal > a {
+  color: rgba(255, 255, 255, 0.86);
+  border-bottom-color: rgba(255, 255, 255, 0.38);
+}
+
+.footer-legal > a:hover,
+.footer-legal > a:focus-visible {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.72);
 }
 
 .footer-legal p {
@@ -6801,7 +6819,8 @@ body.lightbox-open {
   border-bottom-color: rgba(255, 255, 255, 0.38);
 }
 
-.footer-policy-links a:hover {
+.footer-policy-links a:hover,
+.footer-policy-links a:focus-visible {
   color: #ffffff;
   border-bottom-color: rgba(255, 255, 255, 0.72);
 }
@@ -8391,21 +8410,24 @@ html.reduce-motion .is-magnetic {
 }
 /* CMS text overrides use fixed breakpoints so typography remains predictable. */
 .cms-styled-text {
-  font-size: var(--cms-text-size-desktop, inherit);
   white-space: pre-line;
 }
 
+.cms-styled-text[style*='--cms-text-size-desktop'] {
+  font-size: var(--cms-text-size-desktop) !important;
+}
+
 @media (max-width: 900px) {
-  .cms-styled-text {
-    font-size: var(--cms-text-size-tablet, var(--cms-text-size-desktop, inherit));
+  .cms-styled-text[style*='--cms-text-size-desktop'] {
+    font-size: var(--cms-text-size-tablet, var(--cms-text-size-desktop)) !important;
   }
 }
 
 @media (max-width: 640px) {
-  .cms-styled-text {
+  .cms-styled-text[style*='--cms-text-size-desktop'] {
     font-size: var(
       --cms-text-size-mobile,
-      var(--cms-text-size-tablet, var(--cms-text-size-desktop, inherit))
-    );
+      var(--cms-text-size-tablet, var(--cms-text-size-desktop))
+    ) !important;
   }
 }

@@ -1,14 +1,5 @@
 import {defineField, defineType} from 'sanity'
 
-const categoryOptions = [
-  {title: 'Bancos', value: 'bancos'},
-  {title: 'Mesas e conjuntos', value: 'mesas'},
-  {title: 'Cadeiras', value: 'cadeiras'},
-  {title: 'Decking', value: 'decking'},
-  {title: 'Resíduos', value: 'residuos'},
-  {title: 'Cultivo', value: 'cultivo'},
-]
-
 export const storeProduct = defineType({
   name: 'storeProduct',
   title: 'Produto da loja',
@@ -40,10 +31,9 @@ export const storeProduct = defineType({
     defineField({
       name: 'category',
       title: 'Categoria',
-      description: 'Usada nos filtros da Loja.',
+      description: 'Escolha o identificador definido em “Categorias da Loja”.',
       type: 'string',
       group: 'conteudo',
-      options: {list: categoryOptions, layout: 'radio'},
       validation: (Rule) => Rule.required(),
     }),
     defineField({

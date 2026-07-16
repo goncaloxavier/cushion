@@ -58,7 +58,25 @@ type SiteDoc = {
   }
   about?: {hero?: {lead?: unknown}; principles?: unknown}
   productsPage?: {hero?: {lead?: unknown}; lead?: unknown}
-  storePage?: {hero?: {lead?: unknown}; lead?: unknown}
+  storePage?: {
+    hero?: {lead?: unknown}
+    lead?: unknown
+    categoryLabels?: unknown
+    searchLabel?: unknown
+    categoryLabel?: unknown
+    finishLabel?: unknown
+    sortLabel?: unknown
+    allCategoriesLabel?: unknown
+    sortOptions?: unknown
+    finishLabels?: unknown
+    priceFromLabel?: unknown
+    requestLabel?: unknown
+    noResults?: unknown
+    vatNote?: unknown
+    delivery?: unknown
+    postalGate?: unknown
+    detail?: unknown
+  }
   catalogue?: {hero?: {lead?: unknown}; quoteFlow?: unknown; estimate?: {cards?: unknown}}
   casesPage?: {hero?: {lead?: unknown}}
   blogPage?: {hero?: {lead?: unknown}; newsletter?: unknown}
@@ -77,6 +95,11 @@ type ProductDoc = {
   toolLabel?: unknown
 }
 
+type StoreCategoryDoc = {
+  _id: string
+  active?: unknown
+}
+
 const siteDocs = await client.fetch<SiteDoc[]>(
   `*[_type == "siteLanding" || _id in ["siteContent", "drafts.siteContent"]]{
     _id,
@@ -85,7 +108,25 @@ const siteDocs = await client.fetch<SiteDoc[]>(
     home{manifesto, hero{kicker, lead}, heroImage, intro, impact{lead}},
     about{hero{lead}, principles},
     productsPage{hero{lead}, lead},
-    storePage{hero{lead}, lead},
+    storePage{
+      hero{lead},
+      lead,
+      categoryLabels,
+      searchLabel,
+      categoryLabel,
+      finishLabel,
+      sortLabel,
+      allCategoriesLabel,
+      sortOptions,
+      finishLabels,
+      priceFromLabel,
+      requestLabel,
+      noResults,
+      vatNote,
+      delivery,
+      postalGate,
+      detail
+    },
     catalogue{hero{lead}, quoteFlow, estimate{cards}},
     casesPage{hero{lead}},
     blogPage{hero{lead}, newsletter},
@@ -116,6 +157,10 @@ const productDocs = await client.fetch<ProductDoc[]>(
   }`,
 )
 
+const storeCategoryDocs = await client.fetch<StoreCategoryDoc[]>(
+  `*[_type == "storeCategory" && defined(active)]{_id, active}`,
+)
+
 const patches: {id: string; unset: string[]}[] = []
 const isPresent = (value: unknown) => value !== undefined && value !== null
 
@@ -135,6 +180,21 @@ for (const doc of siteDocs) {
     isPresent(doc.productsPage?.lead) ? 'productsPage.lead' : '',
     isPresent(doc.storePage?.hero?.lead) ? 'storePage.hero.lead' : '',
     isPresent(doc.storePage?.lead) ? 'storePage.lead' : '',
+    isPresent(doc.storePage?.categoryLabels) ? 'storePage.categoryLabels' : '',
+    isPresent(doc.storePage?.searchLabel) ? 'storePage.searchLabel' : '',
+    isPresent(doc.storePage?.categoryLabel) ? 'storePage.categoryLabel' : '',
+    isPresent(doc.storePage?.finishLabel) ? 'storePage.finishLabel' : '',
+    isPresent(doc.storePage?.sortLabel) ? 'storePage.sortLabel' : '',
+    isPresent(doc.storePage?.allCategoriesLabel) ? 'storePage.allCategoriesLabel' : '',
+    isPresent(doc.storePage?.sortOptions) ? 'storePage.sortOptions' : '',
+    isPresent(doc.storePage?.finishLabels) ? 'storePage.finishLabels' : '',
+    isPresent(doc.storePage?.priceFromLabel) ? 'storePage.priceFromLabel' : '',
+    isPresent(doc.storePage?.requestLabel) ? 'storePage.requestLabel' : '',
+    isPresent(doc.storePage?.noResults) ? 'storePage.noResults' : '',
+    isPresent(doc.storePage?.vatNote) ? 'storePage.vatNote' : '',
+    isPresent(doc.storePage?.delivery) ? 'storePage.delivery' : '',
+    isPresent(doc.storePage?.postalGate) ? 'storePage.postalGate' : '',
+    isPresent(doc.storePage?.detail) ? 'storePage.detail' : '',
     isPresent(doc.catalogue?.hero?.lead) ? 'catalogue.hero.lead' : '',
     isPresent(doc.catalogue?.quoteFlow) ? 'catalogue.quoteFlow' : '',
     isPresent(doc.catalogue?.estimate?.cards) ? 'catalogue.estimate.cards' : '',
@@ -161,6 +221,10 @@ for (const doc of productDocs) {
   ].filter(Boolean)
 
   if (unset.length) patches.push({id: doc._id, unset})
+}
+
+for (const doc of storeCategoryDocs) {
+  if (isPresent(doc.active)) patches.push({id: doc._id, unset: ['active']})
 }
 
 if (!patches.length) {

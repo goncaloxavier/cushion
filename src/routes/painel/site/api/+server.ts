@@ -12,6 +12,11 @@ import {
 } from '$lib/server/site-editor'
 import type {SiteEditorDocument} from '$lib/site-editor/types'
 import {siteEditorE2eScope} from '$lib/server/site-editor-e2e'
+import {
+  SiteEditorCategoryInUseError,
+  SiteEditorDuplicateError,
+  SiteEditorValidationError,
+} from '$lib/server/site-editor-errors'
 import type {RequestHandler} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -49,6 +54,9 @@ const runMutation = async <T>(operation: () => Promise<T>) => {
     return await operation()
   } catch (cause) {
     if (cause instanceof SiteEditorConflictError) error(409, cause.message)
+    if (cause instanceof SiteEditorDuplicateError) error(409, cause.message)
+    if (cause instanceof SiteEditorCategoryInUseError) error(409, cause.message)
+    if (cause instanceof SiteEditorValidationError) error(400, cause.message)
     throw cause
   }
 }

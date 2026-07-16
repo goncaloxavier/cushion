@@ -3,6 +3,7 @@ import type {StructureResolver} from 'sanity/structure'
 export const managedTypes = [
   'siteLanding',
   'productCategory',
+  'storeCategory',
   'storeProduct',
   'caseStudy',
   'blogPost',
@@ -11,15 +12,6 @@ export const managedTypes = [
   'builderSiteSettings',
 ]
 const crmManagedTypes = ['formSubmission', 'clientProfile', 'staffUser', 'staffSession']
-
-const storeCategories = [
-  {title: 'Bancos', value: 'bancos'},
-  {title: 'Mesas e conjuntos', value: 'mesas'},
-  {title: 'Cadeiras', value: 'cadeiras'},
-  {title: 'Decking', value: 'decking'},
-  {title: 'Resíduos', value: 'residuos'},
-  {title: 'Cultivo', value: 'cultivo'},
-]
 
 const storeOrdering = [
   {field: 'orderRank', direction: 'asc' as const},
@@ -61,13 +53,9 @@ export const websiteStructure: StructureResolver = (S) => {
             .title('Conteúdo do site'),
         ),
       S.divider(),
+      S.documentTypeListItem('storeCategory').title('Categorias'),
       storeListItem('Todos os produtos'),
       storeListItem('Produtos visíveis', '_type == "storeProduct" && coalesce(active, true)'),
-      ...storeCategories.map((category) =>
-        storeListItem(`${category.title}`, '_type == "storeProduct" && category == $category', {
-          category: category.value,
-        }),
-      ),
       S.divider(),
       storeListItem('Sem imagem principal', '_type == "storeProduct" && !defined(image.asset)'),
       storeListItem(

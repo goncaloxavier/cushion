@@ -1,9 +1,10 @@
 <script lang="ts">
-  import {afterNavigate, goto, onNavigate} from '$app/navigation'
+  import {afterNavigate, beforeNavigate, goto, onNavigate} from '$app/navigation'
+  import {stegaClean} from '@sanity/client/stega'
   import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
   import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
-  import CookieNotice, {type CookieNoticeStrings} from '$lib/components/CookieNotice.svelte'
+  import CookieNotice from '$lib/components/CookieNotice.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
@@ -67,6 +68,7 @@
   const showCartAction = $derived(!configuredNavigation || Boolean(configuredCartItem))
   const desktopHref = (href: string) =>
     href.startsWith('/') ? withLanguage(href, data.language) : href
+  const plainNavigationLabel = (value: string) => stegaClean(value)
 
   const catalogueLabel = $derived(content.nav.catalogue)
 
@@ -158,11 +160,11 @@
     pt: {
       openLabel: 'Pesquisar',
       closeLabel: 'Fechar pesquisa',
-      placeholder: 'Pesquisar soluções, loja, casos e blog…',
+      placeholder: 'Pesquisar produtos, loja, casos e blog…',
       noResults: 'Sem resultados.',
       hint: {navigate: '↑↓ navegar', select: '↵ selecionar', close: 'Esc fechar'},
       categories: {
-        products: 'Soluções',
+        products: 'Produtos',
         storeProducts: 'Loja',
         caseStudies: 'Casos de estudo',
         blogPosts: 'Blog',
@@ -171,11 +173,11 @@
     en: {
       openLabel: 'Search',
       closeLabel: 'Close search',
-      placeholder: 'Search solutions, store, cases and blog…',
+      placeholder: 'Search products, store, cases and blog…',
       noResults: 'No results.',
       hint: {navigate: '↑↓ navigate', select: '↵ select', close: 'Esc close'},
       categories: {
-        products: 'Solutions',
+        products: 'Products',
         storeProducts: 'Store',
         caseStudies: 'Case studies',
         blogPosts: 'Blog',
@@ -184,11 +186,11 @@
     es: {
       openLabel: 'Buscar',
       closeLabel: 'Cerrar búsqueda',
-      placeholder: 'Buscar soluciones, tienda, casos y blog…',
+      placeholder: 'Buscar productos, tienda, casos y blog…',
       noResults: 'Sin resultados.',
       hint: {navigate: '↑↓ navegar', select: '↵ seleccionar', close: 'Esc cerrar'},
       categories: {
-        products: 'Soluciones',
+        products: 'Productos',
         storeProducts: 'Tienda',
         caseStudies: 'Casos de estudio',
         blogPosts: 'Blog',
@@ -198,26 +200,11 @@
   const searchStrings = $derived(searchStringsByLanguage[data.language] ?? searchStringsByLanguage.pt)
   let searchOpen = $state(false)
 
-  const cookieNoticeStringsByLanguage: Record<string, CookieNoticeStrings> = {
-    pt: {
-      message: 'O nosso website utiliza cookies para melhorar e personalizar a sua experiência de navegação.',
-      learnMore: 'Saiba mais',
-      accept: 'Entendi',
-    },
-    en: {
-      message: 'Our website uses cookies to improve and personalise your browsing experience.',
-      learnMore: 'Learn more',
-      accept: 'Got it',
-    },
-    es: {
-      message: 'Nuestro sitio web utiliza cookies para mejorar y personalizar su experiencia de navegación.',
-      learnMore: 'Saber más',
-      accept: 'Entendido',
-    },
-  }
-  const cookieNoticeStrings = $derived(
-    cookieNoticeStringsByLanguage[data.language] ?? cookieNoticeStringsByLanguage.pt,
-  )
+  const cookieNoticeStrings = $derived({
+    message: content.common.cookieNoticeMessage,
+    learnMore: content.common.cookieNoticeLearnMore,
+    accept: content.common.cookieNoticeAccept,
+  })
 
   const openMenu = () => {
     if (menuCloseTimer) clearTimeout(menuCloseTimer)
@@ -308,6 +295,27 @@
   )
 
   let smooth: SmoothScroll | null = null
+
+  beforeNavigate((navigation) => {
+    if (!data.builderPreview) return
+
+    const destination = navigation.to?.url
+    if (
+      !destination ||
+      destination.origin !== window.location.origin ||
+      destination.searchParams.get('__builder') === '1'
+    ) return
+
+    navigation.cancel()
+    const next = new URL(destination)
+    next.searchParams.set('__builder', '1')
+
+    window.setTimeout(() => {
+      void goto(`${next.pathname}${next.search}${next.hash}`, {
+        replaceState: navigation.type === 'popstate',
+      })
+    })
+  })
 
   const detailRoute = /^\/(produtos|casos-de-estudo|blog)\/[^/]+$/
   const transitionKind = (from: string, to: string) => {
@@ -438,7 +446,7 @@
   <a class="skip-link" href="#main-content">{skipLinkLabel}</a>
 
 <header class="site-header">
-  <a class="brand" href={withLanguage('/', data.language)} aria-label={content.nav.home}>
+  <a class="brand" href={withLanguage('/', data.language)} aria-label={plainNavigationLabel(content.nav.home)}>
     <img src="/logo/brand_mark.png" alt="DaFábrica4You" decoding="async" fetchpriority="high" />
   </a>
 
@@ -451,7 +459,7 @@
         target={item.newTab ? '_blank' : undefined}
         rel={item.newTab ? 'noreferrer' : undefined}
       >
-        {item.label}
+        {plainNavigationLabel(item.label)}
       </a>
     {/each}
     <button
@@ -476,7 +484,7 @@
         aria-current={accountActive ? 'page' : undefined}
         href={withLanguage(accountHref, data.language)}
       >
-        <span class="account-label">{configuredAccountItem?.label || accountLabel}</span>
+        <span class="account-label">{plainNavigationLabel(configuredAccountItem?.label || accountLabel)}</span>
       </a>
     {/if}
     {#if showCartAction}
@@ -484,10 +492,10 @@
         class="cart-link"
         class:active={currentNavKey === 'cart'}
         aria-current={currentNavKey === 'cart' ? 'page' : undefined}
-        aria-label={`${configuredCartItem?.label || content.nav.cart} (${cartCount})`}
+        aria-label={`${plainNavigationLabel(configuredCartItem?.label || content.nav.cart)} (${cartCount})`}
         href={withLanguage('/carrinho', data.language)}
       >
-        <span class="cart-label">{configuredCartItem?.label || content.nav.cart}</span>
+        <span class="cart-label">{plainNavigationLabel(configuredCartItem?.label || content.nav.cart)}</span>
         {#if cartCount > 0}
           <span class="cart-count">{cartCount}</span>
         {/if}
@@ -503,7 +511,7 @@
           target={item.newTab ? '_blank' : undefined}
           rel={item.newTab ? 'noreferrer' : undefined}
         >
-          {item.label}
+          {plainNavigationLabel(item.label)}
         </a>
       {/each}
     {:else}
@@ -513,7 +521,7 @@
         aria-current={currentNavKey === 'catalogue' ? 'page' : undefined}
         href={withLanguage('/catalogo', data.language)}
       >
-        {catalogueLabel}
+        {plainNavigationLabel(catalogueLabel)}
       </a>
       <a
         class="contact-link"
@@ -521,7 +529,7 @@
         aria-current={currentNavKey === 'contact' ? 'page' : undefined}
         href={withLanguage('/contacto', data.language)}
       >
-        {content.nav.contact}
+        {plainNavigationLabel(content.nav.contact)}
       </a>
     {/if}
     <select
@@ -595,7 +603,7 @@
           style={`--menu-index: ${index}`}
           onclick={closeMenu}
         >
-          <span class="mobile-menu-label">{item.label}</span>
+          <span class="mobile-menu-label">{plainNavigationLabel(item.label)}</span>
         </a>
       {/each}
     </nav>
@@ -611,7 +619,7 @@
           onclick={closeMenu}
         >
           <span class="account-label">
-            {configuredMobileAccount?.label || accountLabel}
+            {plainNavigationLabel(configuredMobileAccount?.label || accountLabel)}
           </span>
         </a>
       {/if}
@@ -621,10 +629,10 @@
           class:active={currentNavKey === 'cart'}
           aria-current={currentNavKey === 'cart' ? 'page' : undefined}
           href={withLanguage('/carrinho', data.language)}
-          aria-label={`${configuredMobileCart?.label || content.nav.cart} (${cartCount})`}
+          aria-label={`${plainNavigationLabel(configuredMobileCart?.label || content.nav.cart)} (${cartCount})`}
           onclick={closeMenu}
         >
-          <span class="cart-label">{configuredMobileCart?.label || content.nav.cart}</span>
+          <span class="cart-label">{plainNavigationLabel(configuredMobileCart?.label || content.nav.cart)}</span>
           {#if cartCount > 0}
             <span class="cart-count">{cartCount}</span>
           {/if}

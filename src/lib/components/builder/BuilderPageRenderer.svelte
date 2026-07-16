@@ -18,7 +18,7 @@
     BuilderStat,
   } from '$lib/builder/types'
   import type {SitePageDocument} from '$lib/site-editor/types'
-  import type {LanguageCode, SiteContent} from '$lib/site-content'
+  import {storeCategoryLabel, type LanguageCode, type SiteContent} from '$lib/site-content'
   import {sizedImage} from '$lib/image'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import '$lib/styles/builder-renderer.css'
@@ -110,7 +110,7 @@
     if (section.source === 'storeProduct') {
       return content.storeProducts.slice(0, limit).map((item) => ({
         title: item.title,
-        meta: content.storePage.categoryLabels[item.category] || '',
+        meta: storeCategoryLabel(content.storePage, item.category),
         image: item.image,
         href: `/loja/${item.slug}?lang=${language}`,
       }))

@@ -830,7 +830,7 @@ test.describe('global search', () => {
       expect(response.ok()).toBe(true)
 
       const groupLabels = await page.locator('.search-group-label').allTextContents()
-      expect(groupLabels).toContain('Soluções')
+      expect(groupLabels).toContain('Produtos')
       expect(groupLabels).toContain('Casos de estudo')
     })
 

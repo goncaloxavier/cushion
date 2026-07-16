@@ -10,6 +10,7 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
+  import {textAppearanceStyle} from '$lib/text-appearance'
 
   let {data} = $props()
   const content = $derived(data.site)
@@ -97,8 +98,15 @@
 <main class="cases-page">
   <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
-      <p class="kicker">{content.casesPage.hero.kicker}</p>
-      <h1 use:lineReveal>{content.casesPage.hero.title}</h1>
+      <p
+        class="kicker cms-styled-text"
+        style={textAppearanceStyle(content.casesPage.hero.textAppearance?.kicker)}
+      >{content.casesPage.hero.kicker}</p>
+      <h1
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.casesPage.hero.textAppearance?.title)}
+        use:lineReveal
+      >{content.casesPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="case-index-media" delay={120} variant="media" priority>
@@ -155,7 +163,10 @@
             <span class="card-meta">{item.location}</span>
           </div>
           <div class="case-card-copy">
-            <h2>{item.title}</h2>
+            <h2
+              class="cms-styled-text"
+              style={textAppearanceStyle(item.textAppearance?.title)}
+            >{item.title}</h2>
           </div>
         </a>
       {/each}

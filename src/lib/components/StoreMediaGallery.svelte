@@ -46,6 +46,7 @@
     transitionName = undefined,
     sizes = '(max-width: 900px) 92vw, (max-width: 1400px) calc(100vw - 2.5rem), 1210px',
     dataAttribute = undefined,
+    fallbackEditPath = 'image',
   } = $props<{
     media: StoreProductMedia[]
     label: string
@@ -54,12 +55,13 @@
     transitionName?: string
     sizes?: string
     dataAttribute?: (path: string) => string | undefined
+    fallbackEditPath?: string
   }>()
 
   // Each media item carries its own Sanity field path so click-to-edit maps to
   // the exact image / gallery item, regardless of order or a missing main image.
   const attrFor = (entry: StoreProductMedia | undefined) =>
-    entry?.editPath && dataAttribute ? dataAttribute(entry.editPath) : undefined
+    dataAttribute ? dataAttribute(entry?.editPath || fallbackEditPath) : undefined
 
   let selectedIndex = $state(0)
   let zoomOpen = $state(false)
@@ -136,6 +138,7 @@
       onfocus={() => preloadFull(item)}
       onclick={openLightbox}
       data-sanity={activeDataAttribute}
+      data-df4y-editor-kind={item.type}
     >
       {#if item.type === 'image'}
         <img
@@ -186,6 +189,7 @@
             class:is-video={mediaItem.type === 'video'}
             aria-label={`${mediaItem.type === 'video' ? mediaItem.title || label : label} ${index + 1}`}
             data-sanity={thumbAttr}
+            data-df4y-editor-kind={mediaItem.type}
             onclick={() => {
               selectItem(index)
             }}

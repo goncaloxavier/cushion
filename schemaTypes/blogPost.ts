@@ -47,7 +47,7 @@ export const blogPost = defineType({
     defineField({
       name: 'gallery',
       title: 'Galeria',
-      description: 'Imagens adicionais. O site mostra-as sem corte.',
+      description: 'Imagens e vídeos adicionais. O site mostra-os sem corte.',
       type: 'array',
       group: 'imagem',
       of: [
@@ -64,6 +64,35 @@ export const blogPost = defineType({
             }),
           ],
         },
+        defineField({
+          name: 'galleryVideo',
+          title: 'Vídeo carregado',
+          description: 'Ficheiro de vídeo apresentado na galeria do artigo.',
+          type: 'file',
+          options: {accept: 'video/mp4,video/webm,video/quicktime'},
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Título do vídeo',
+              description: 'Identifica o vídeo no player e para leitores de ecrã.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa',
+              description: 'Opcional. Aparece antes da reprodução.',
+              type: 'image',
+              options: {hotspot: true},
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  type: 'localizedString',
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     defineField({

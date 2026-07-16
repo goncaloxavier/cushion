@@ -10,9 +10,24 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
+  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {textAppearanceStyle} from '$lib/text-appearance'
 
   let {data} = $props()
   const content = $derived(data.site)
+  const siteContentDataAttribute = $derived(
+    (data.preview || data.builderPreview) && data.studioUrl
+      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      : null,
+  )
+  const productDataAttribute = (documentId: string | undefined, path: string) =>
+    (data.preview || data.builderPreview) && data.studioUrl && documentId
+      ? createDataAttribute({
+          baseUrl: data.studioUrl,
+          id: documentId,
+          type: 'productCategory',
+        })(path)
+      : undefined
   let query = $state('')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
@@ -89,12 +104,22 @@
 <main class="products-page">
   <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
-      <p class="kicker">{content.productsPage.hero.kicker}</p>
-      <h1 use:lineReveal>{content.productsPage.hero.title}</h1>
+      <p
+        class="kicker cms-styled-text"
+        style={textAppearanceStyle(content.productsPage.hero.textAppearance?.kicker)}
+        data-sanity={siteContentDataAttribute?.('productsPage.hero.kicker.pt')}
+      >{content.productsPage.hero.kicker}</p>
+      <h1
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.productsPage.hero.textAppearance?.title)}
+        use:lineReveal
+        data-sanity={siteContentDataAttribute?.('productsPage.hero.title.pt')}
+      >{content.productsPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>
       <img
+        data-sanity={siteContentDataAttribute?.('productsPage.heroImage')}
         src={sizedImage(content.productsPage.heroImage.url, 1100)}
         srcset={imageSrcset(content.productsPage.heroImage.url, [600, 900, 1200, 1600])}
         sizes="(max-width: 900px) 92vw, 600px"
@@ -133,6 +158,7 @@
         >
           <div class="product-panel-media">
             <img
+              data-sanity={productDataAttribute(product.studioDocumentId, image.editPath || 'image')}
               src={sizedImage(image.url, 640)}
               srcset={imageSrcset(image.url, [360, 480, 640, 800])}
               sizes="(max-width: 700px) 92vw, 360px"
@@ -146,7 +172,11 @@
             />
           </div>
           <div class="product-panel-copy">
-            <h2>{product.title}</h2>
+            <h2
+              class="cms-styled-text"
+              style={textAppearanceStyle(product.textAppearance?.title)}
+              data-sanity={productDataAttribute(product.studioDocumentId, 'title.pt')}
+            >{product.title}</h2>
           </div>
         </a>
       {/each}

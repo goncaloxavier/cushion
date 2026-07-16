@@ -1,9 +1,11 @@
 import React, {useEffect, useMemo, useState} from 'react'
-import {ChevronDownIcon} from '@sanity/icons/ChevronDown'
+import {ArrowLeftIcon} from '@sanity/icons/ArrowLeft'
+import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {CogIcon} from '@sanity/icons/Cog'
 import {DocumentIcon} from '@sanity/icons/Document'
 import {TrashIcon} from '@sanity/icons/Trash'
 import {panelsForEditorNode} from '../model'
+import {getEditorValue} from '../path'
 import type {
   SiteEditorDocument,
   SiteEditorField,
@@ -14,6 +16,7 @@ import type {
 } from '../types'
 import {SiteEditorFieldInput} from './SiteEditorField'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
+import {StoreCategoryManager} from './StoreCategoryManager'
 import type {BuilderViewport} from '$lib/builder/types'
 
 type Asset = {id: string; url: string}
@@ -30,12 +33,15 @@ type Props = {
   viewport: BuilderViewport
   canDelete: boolean
   mode: 'focused' | 'all'
+  nodes: SiteEditorNode[]
+  optionSources: Record<string, Array<{label: string; value: string}>>
   onChange: (path: string, value: unknown) => void
   onReplace: (document: SiteEditorDocument) => void
   onSelectSection: (key?: string) => void
   onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
   onDelete: () => void
   onShowAll: () => void
+  onOpenNode: (node: SiteEditorNode, path?: string) => void
 }
 
 const saveLabels: Record<SiteEditorSaveState, string> = {
@@ -92,6 +98,86 @@ const focusedFieldFor = (
   return match
 }
 
+const resolveFieldOptions = (
+  field: SiteEditorField,
+  optionSources: Props['optionSources'],
+): SiteEditorField => ({
+  ...field,
+  options: field.optionsSource
+    ? (optionSources[field.optionsSource] ?? field.options)
+    : field.options,
+  fields: field.fields?.map((child) => resolveFieldOptions(child, optionSources)),
+  item: field.item ? resolveFieldOptions(field.item, optionSources) : undefined,
+})
+
+const itemCountLabel = (count: number, singular: string, plural: string) =>
+  `${count} ${count === 1 ? singular : plural}`
+
+const emptyFieldSummary = (field: SiteEditorField) =>
+  field.required ? 'Preenchimento obrigatório' : 'Opcional'
+
+const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
+  if (field.type === 'localizedString' || field.type === 'localizedText') {
+    const text =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? String((value as Record<string, unknown>).pt || '').trim()
+        : ''
+    return text || emptyFieldSummary(field)
+  }
+  if (field.type === 'boolean') return value === true ? 'Ativado' : 'Desativado'
+  if (field.type === 'number')
+    return typeof value === 'number' ? String(value) : emptyFieldSummary(field)
+  if (field.type === 'slug') {
+    const slug =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? String((value as Record<string, unknown>).current || '').trim()
+        : ''
+    return slug || emptyFieldSummary(field)
+  }
+  if (field.type === 'select') {
+    return (
+      field.options?.find((option) => option.value === value)?.label ||
+      String(value || emptyFieldSummary(field))
+    )
+  }
+  if (field.type === 'image') {
+    const asset =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>).asset
+        : undefined
+    return asset ? 'Imagem adicionada' : 'Sem imagem'
+  }
+  if (field.type === 'gallery') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ficheiro', 'ficheiros')
+  }
+  if (field.type === 'navigation') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ligação', 'ligações')
+  }
+  if (field.type === 'sections') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'secção', 'secções')
+  }
+  if (field.type === 'article') {
+    const article =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined
+    return Array.isArray(article?.pt) && article.pt.length ? 'Artigo com conteúdo' : 'Ainda vazio'
+  }
+  if (field.type === 'array') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'item', 'itens')
+  }
+  if (field.type === 'object') {
+    const count =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.values(value as Record<string, unknown>).filter(
+            (item) => item !== undefined && item !== null && item !== '',
+          ).length
+        : 0
+    return count ? 'Configurado' : emptyFieldSummary(field)
+  }
+  return String(value || '').trim() || emptyFieldSummary(field)
+}
+
 const scrollPanelWithWheel = (event: React.WheelEvent<HTMLDivElement>) => {
   const element = event.currentTarget
   if (!event.deltaY || element.scrollHeight <= element.clientHeight) return
@@ -116,37 +202,101 @@ export function SiteEditorInspector({
   viewport,
   canDelete,
   mode,
+  nodes,
+  optionSources,
   onChange,
   onReplace,
   onSelectSection,
   onUpload,
   onDelete,
   onShowAll,
+  onOpenNode,
 }: Props) {
   const panels = useMemo(
-    () => panelsForEditorNode(node?.documentType, node?.rootPath),
-    [node?.documentType, node?.rootPath],
+    () =>
+      panelsForEditorNode(node?.documentType, node?.rootPath).map((panel) => ({
+        ...panel,
+        fields: panel.fields.map((field) => resolveFieldOptions(field, optionSources)),
+      })),
+    [node?.documentType, node?.rootPath, optionSources],
   )
-  const [openPanels, setOpenPanels] = useState<Set<string>>(() => new Set())
+  const [activePanelId, setActivePanelId] = useState<string>()
+  const [activeFieldName, setActiveFieldName] = useState<string>()
+  const activePanel = panels.find((panel) => panel.id === activePanelId)
+  const activeField = activePanel?.fields.find((field) => field.name === activeFieldName)
   const focusedField = useMemo(
     () => (mode === 'focused' ? focusedFieldFor(panels, node?.rootPath, selectedPath) : undefined),
     [mode, node?.rootPath, panels, selectedPath],
   )
   const focusedSection = mode === 'focused' && document?._type === 'sitePage' && selectedSectionKey
   const focusedUnavailable = mode === 'focused' && !focusedField && !focusedSection
+  const categoryProducts = useMemo(
+    () =>
+      document?._type === 'storeCategory' && node?.slug
+        ? nodes
+            .filter(
+              (candidate) =>
+                candidate.documentType === 'storeProduct' && candidate.category === node.slug,
+            )
+            .sort((left, right) => left.title.localeCompare(right.title, 'pt'))
+        : [],
+    [document?._type, node?.slug, nodes],
+  )
+  const categoryPendingProducts = useMemo(
+    () =>
+      document?._type === 'storeCategory' && node?.slug
+        ? nodes
+            .filter(
+              (candidate) =>
+                candidate.documentType === 'storeProduct' &&
+                candidate.publishedCategory === node.slug &&
+                candidate.category !== node.slug,
+            )
+            .sort((left, right) => left.title.localeCompare(right.title, 'pt'))
+        : [],
+    [document?._type, node?.slug, nodes],
+  )
 
   useEffect(() => {
-    setOpenPanels(new Set(panels.map((panel) => panel.id)))
-  }, [node?.id, panels])
+    setActivePanelId(undefined)
+    setActiveFieldName(undefined)
+  }, [node?.id])
 
-  const togglePanel = (panel: SiteEditorPanel) => {
-    setOpenPanels((current) => {
-      const next = new Set(current)
-      if (next.has(panel.id)) next.delete(panel.id)
-      else next.add(panel.id)
-      return next
-    })
+  const showAllDefinitions = (panelId?: string, fieldName?: string) => {
+    setActivePanelId(panelId)
+    setActiveFieldName(fieldName)
+    onShowAll()
   }
+
+  const renderField = (field: SiteEditorField) =>
+    field.type === 'sections' && document?._type === 'sitePage' ? (
+      <SitePageSectionsEditor
+        key={field.name}
+        page={document as SitePageDocument}
+        selectedSectionKey={selectedSectionKey}
+        onSelectSection={onSelectSection}
+        onChange={(next) => onReplace(next)}
+        onUpload={onUpload}
+      />
+    ) : (
+      <SiteEditorFieldInput
+        key={field.name}
+        field={field}
+        path={fieldPath(node?.rootPath, field.name)}
+        source={document!}
+        documentType={document!._type}
+        selectedPath={selectedPath}
+        projectId={projectId}
+        dataset={dataset}
+        viewport={viewport}
+        onChange={onChange}
+        onUpload={onUpload}
+      />
+    )
+
+  const focusedRootField = focusedField?.panel.fields.find((field) =>
+    selectedPath ? pathContains(selectedPath, fieldPath(node?.rootPath, field.name)) : false,
+  )
 
   return (
     <aside className="site-editor-inspector" aria-label="Propriedades do conteúdo">
@@ -154,7 +304,9 @@ export function SiteEditorInspector({
         <div className="site-editor-inspector-title">
           <DocumentIcon />
           <span>
-            <small>{node?.kind === 'global' ? 'Global' : node?.kind === 'page' ? 'Página' : 'Conteúdo'}</small>
+            <small>
+              {node?.kind === 'global' ? 'Global' : node?.kind === 'page' ? 'Página' : 'Conteúdo'}
+            </small>
             <strong>{node?.title || 'Selecione conteúdo'}</strong>
           </span>
         </div>
@@ -164,7 +316,9 @@ export function SiteEditorInspector({
       </div>
 
       {loading ? (
-        <div className="site-editor-inspector-loading"><span /> A abrir conteúdo…</div>
+        <div className="site-editor-inspector-loading">
+          <span /> A abrir conteúdo…
+        </div>
       ) : !document || !node ? (
         <div className="site-editor-inspector-empty">
           Clique numa página ou num elemento da pré-visualização para o editar.
@@ -180,7 +334,10 @@ export function SiteEditorInspector({
                     (focusedSection ? 'Secção selecionada' : 'Elemento selecionado')}
                 </strong>
               </span>
-              <button type="button" onClick={onShowAll}>
+              <button
+                type="button"
+                onClick={() => showAllDefinitions(focusedField?.panel.id, focusedRootField?.name)}
+              >
                 <CogIcon /> Todas as definições
               </button>
             </div>
@@ -193,7 +350,20 @@ export function SiteEditorInspector({
             </div>
           ) : null}
 
-          {focusedSection ? (
+          {document._type === 'storeCategory' && mode === 'all' ? (
+            <StoreCategoryManager
+              document={document}
+              products={categoryProducts}
+              pendingProducts={categoryPendingProducts}
+              selectedPath={selectedPath}
+              projectId={projectId}
+              dataset={dataset}
+              viewport={viewport}
+              onChange={onChange}
+              onUpload={onUpload}
+              onOpenProduct={(product) => onOpenNode(product, 'category')}
+            />
+          ) : focusedSection ? (
             <SitePageSectionsEditor
               page={document as SitePageDocument}
               selectedSectionKey={selectedSectionKey}
@@ -219,68 +389,116 @@ export function SiteEditorInspector({
           ) : focusedUnavailable ? (
             <div className="site-editor-focused-unavailable">
               <strong>Este elemento não tem um campo isolado.</strong>
-              <p>
-                Abra todas as definições para editar o grupo onde este elemento está incluído.
-              </p>
-              <button type="button" onClick={onShowAll}>
+              <p>Abra todas as definições para editar o grupo onde este elemento está incluído.</p>
+              <button type="button" onClick={() => showAllDefinitions()}>
                 <CogIcon /> Abrir todas as definições
               </button>
             </div>
           ) : (
             <div className="site-editor-panels">
-              {panels.map((panel) => {
-                const open = openPanels.has(panel.id)
-                return (
-                  <section key={panel.id} className={open ? 'is-open' : ''}>
-                    <button type="button" className="site-editor-panel-toggle" onClick={() => togglePanel(panel)} aria-expanded={open}>
-                      <span><strong>{panel.label}</strong>{panel.description ? <small>{panel.description}</small> : null}</span>
-                      <ChevronDownIcon />
+              {activePanel ? (
+                <section className="site-editor-panel-workspace">
+                  <header className="site-editor-panel-workspace-head">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeField) setActiveFieldName(undefined)
+                        else setActivePanelId(undefined)
+                      }}
+                    >
+                      <ArrowLeftIcon /> {activeField ? activePanel.label : 'Todas as áreas'}
                     </button>
-                    {open ? (
-                      <div className="site-editor-panel-fields">
-                        {panel.fields.map((field) =>
-                          field.type === 'sections' && document._type === 'sitePage' ? (
-                            <SitePageSectionsEditor
-                              key={field.name}
-                              page={document as SitePageDocument}
-                              selectedSectionKey={selectedSectionKey}
-                              onSelectSection={onSelectSection}
-                              onChange={(next) => onReplace(next)}
-                              onUpload={onUpload}
-                            />
-                          ) : (
-                            <SiteEditorFieldInput
-                              key={field.name}
-                              field={field}
-                              path={fieldPath(node.rootPath, field.name)}
-                              source={document}
-                              documentType={document._type}
-                              selectedPath={selectedPath}
-                              projectId={projectId}
-                              dataset={dataset}
-                              viewport={viewport}
-                              onChange={onChange}
-                              onUpload={onUpload}
-                            />
-                          ),
-                        )}
-                      </div>
-                    ) : null}
-                  </section>
-                )
-              })}
-              {!panels.length ? (
+                    <span>
+                      <strong>{activeField?.label || activePanel.label}</strong>
+                      {activeField?.description || activePanel.description ? (
+                        <small>{activeField?.description || activePanel.description}</small>
+                      ) : null}
+                    </span>
+                  </header>
+                  {activeField ? (
+                    <div className="site-editor-panel-fields">{renderField(activeField)}</div>
+                  ) : (
+                    <div className="site-editor-field-index">
+                      {activePanel.fields.map((field) => (
+                        <button
+                          key={field.name}
+                          type="button"
+                          onClick={() => setActiveFieldName(field.name)}
+                        >
+                          <span>
+                            <strong>{field.label}</strong>
+                            <small>
+                              {fieldValueSummary(
+                                field,
+                                getEditorValue(document, fieldPath(node.rootPath, field.name)),
+                              )}
+                            </small>
+                          </span>
+                          <ChevronRightIcon />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ) : panels.length ? (
+                <div className="site-editor-panel-overview">
+                  <header>
+                    <small>Definições desta página</small>
+                    <strong>O que quer editar?</strong>
+                    <p>Abra uma área para ver apenas os campos relacionados.</p>
+                  </header>
+                  <div className="site-editor-panel-index">
+                    {panels.map((panel) => (
+                      <button
+                        key={panel.id}
+                        type="button"
+                        onClick={() => {
+                          setActivePanelId(panel.id)
+                          setActiveFieldName(
+                            panel.fields.length === 1 ? panel.fields[0]?.name : undefined,
+                          )
+                        }}
+                      >
+                        <span>
+                          <strong>{panel.label}</strong>
+                          <small>{panel.description || `${panel.fields.length} campos`}</small>
+                        </span>
+                        <i>{panel.fields.length}</i>
+                        <ChevronRightIcon />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
                 <div className="site-editor-inspector-empty">
                   Este tipo de conteúdo ainda não tem campos no editor simplificado.
                 </div>
-              ) : null}
+              )}
             </div>
           )}
 
-          {mode === 'all' && canDelete && document._type !== 'siteLanding' ? (
-            <div className="site-editor-danger-zone">
-              <button type="button" onClick={onDelete}><TrashIcon /> Eliminar conteúdo</button>
-            </div>
+          {mode === 'all' && !activePanel && canDelete && document._type !== 'siteLanding' ? (
+            document._type === 'storeCategory' &&
+            (categoryProducts.length || categoryPendingProducts.length) ? (
+              <div className="site-editor-category-delete-guard">
+                <strong>
+                  {categoryProducts.length
+                    ? 'Esta categoria está em uso'
+                    : 'Existem mudanças por publicar'}
+                </strong>
+                <p>
+                  {categoryProducts.length
+                    ? 'Mova os produtos acima para outra categoria antes de a eliminar. Assim nenhum produto fica sem organização na Loja.'
+                    : 'Abra os produtos assinalados acima e publique a mudança. Depois poderá eliminar esta categoria em segurança.'}
+                </p>
+              </div>
+            ) : (
+              <div className="site-editor-danger-zone">
+                <button type="button" onClick={onDelete}>
+                  <TrashIcon /> Eliminar conteúdo
+                </button>
+              </div>
+            )
           ) : null}
         </div>
       )}

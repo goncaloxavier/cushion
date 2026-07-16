@@ -6,6 +6,7 @@
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
   import {absoluteUrl, breadcrumbListSchema, productSchema} from '$lib/seo'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {
     cleanProductMaterialCopy,
     productImageFallback,
@@ -51,7 +52,7 @@
   const images = $derived(productImagesFor(data.product, productImageFallback))
   const media = $derived(productMediaFor(data.product, productImageFallback))
   const productDataAttribute = $derived(
-    data.preview && data.studioUrl && data.product.studioDocumentId
+    (data.preview || data.builderPreview) && data.studioUrl && data.product.studioDocumentId
       ? createDataAttribute({
           baseUrl: data.studioUrl,
           id: data.product.studioDocumentId,
@@ -63,6 +64,7 @@
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
   const copy = $derived(productDetailCopy(data.product.summary, data.product.description))
+  const copyFieldPath = $derived(data.product.description ? 'description.pt' : 'summary.pt')
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
@@ -99,12 +101,32 @@
 
     <section class="product-editorial-intro">
       <div class="product-editorial-title">
-        <h1>{data.product.title}</h1>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(data.product.textAppearance?.title)}
+          data-sanity={productDataAttribute?.('title.pt')}
+        >{data.product.title}</h1>
       </div>
       <div class="product-editorial-copy">
-        <p class="article-lead">{copy.intro}</p>
+        <p
+          class="article-lead cms-styled-text"
+          style={textAppearanceStyle(
+            data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
+          )}
+          data-df4y-editor-field="true"
+          data-df4y-editor-label="Descrição do produto"
+          data-sanity={productDataAttribute?.(copyFieldPath)}
+        >{copy.intro}</p>
         {#if copy.resistance}
-          <p class="product-editorial-proof">{copy.resistance}</p>
+          <p
+            class="product-editorial-proof cms-styled-text"
+            style={textAppearanceStyle(
+              data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
+            )}
+            data-df4y-editor-field="true"
+            data-df4y-editor-label="Descrição do produto"
+            data-sanity={productDataAttribute?.(copyFieldPath)}
+          >{copy.resistance}</p>
         {/if}
       </div>
     </section>
@@ -121,6 +143,7 @@
         className="product-stage-gallery"
         transitionName={`vt-${data.product.slug}`}
         dataAttribute={imageDataAttribute}
+        fallbackEditPath="image"
       />
       {#if !hasProductSupport}
         <div class="product-stage-cta">

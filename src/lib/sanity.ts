@@ -1,4 +1,5 @@
 import {createClient} from '@sanity/client'
+import {dev} from '$app/environment'
 import {env} from '$env/dynamic/private'
 
 const projectId = 'u4uyfix8'
@@ -19,6 +20,12 @@ export const sanityClient = createClient({
   // queries ~13x faster. Published Studio changes propagate within a few seconds.
   useCdn: true,
 })
+
+const freshPublishedClient = sanityClient.withConfig({useCdn: false})
+let preferFreshPublishedUntil = 0
+
+const publishedClient = () =>
+  dev || Date.now() < preferFreshPublishedUntil ? freshPublishedClient : sanityClient
 
 // Preview client for Visual Editing (Presentation tool): reads draft content and
 // embeds Content Source Map metadata (stega) in the returned strings so the
@@ -47,12 +54,12 @@ const siteEditorSettingsQuery = `coalesce(
 )`
 
 export const getSitePage = async (route: string, preview = false) => {
-  const client = preview && previewEnabled() ? previewClient : sanityClient
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(sitePageQuery, {route, includeInactive: preview})
 }
 
 export const getSiteEditorSettings = async (preview = false) => {
-  const client = preview && previewEnabled() ? previewClient : sanityClient
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(siteEditorSettingsQuery)
 }
 
@@ -115,6 +122,9 @@ const collectionsQuery = `{
       privacyPolicyUrl,
       cookiePolicyLabel,
       cookiePolicyUrl,
+      cookieNoticeMessage,
+      cookieNoticeLearnMore,
+      cookieNoticeAccept,
       marketingConsent,
       privacyConsentPrefix
     },
@@ -160,6 +170,10 @@ const collectionsQuery = `{
         kicker,
         title
       },
+      statement {
+        kicker,
+        title
+      },
       timeline[] {
         title,
         text
@@ -192,13 +206,46 @@ const collectionsQuery = `{
       finishLabel,
       sortLabel,
       allCategoriesLabel,
+      sortOptions,
       categoryLabels,
       finishLabels,
       priceFromLabel,
       requestLabel,
       noResults,
       vatNote,
+      delivery,
+      postalGate,
+      detail,
       transportMultiplier
+    },
+    cartPage {
+      hero {
+        kicker,
+        title
+      },
+      cartItems,
+      empty,
+      continueShopping,
+      clear,
+      clearConfirm,
+      request,
+      quantity,
+      remove,
+      removed,
+      finish,
+      unitPrice,
+      total,
+      productSubtotal,
+      transport,
+      iva,
+      finalTotal,
+      deliveryPostcode,
+      changePostcode,
+      totalWeight,
+      transportPending,
+      transportOverweight,
+      summary,
+      product
     },
     returnsPolicy,
     catalogue {
@@ -207,6 +254,7 @@ const collectionsQuery = `{
         title
       },
       ctaLabel,
+      formLabels,
       estimate {
         kicker,
         title,
@@ -322,7 +370,17 @@ const collectionsQuery = `{
     summary,
     description
   },
-  "storeProducts": *[_type == "storeProduct" && defined(slug.current) && coalesce(active, true)] | order(orderRank asc, title.pt asc) {
+  "storeCategories": *[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+    _id,
+    title,
+    slug,
+    orderRank
+  },
+  "storeProducts": *[
+    _type == "storeProduct" &&
+    defined(slug.current) &&
+    ($includeInactive || coalesce(active, true))
+  ] | order(orderRank asc, title.pt asc) {
     _id,
     title,
     slug,
@@ -418,15 +476,52 @@ const collectionsQuery = `{
     },
     gallery[] {
       _key,
-      asset -> {
-        url,
-        metadata {
-          dimensions {
-            aspectRatio
+      _type,
+      _type == "galleryImage" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
           }
+        },
+        alt
+      },
+      _type == "galleryVideo" => {
+        asset -> {
+          url,
+          originalFilename,
+          mimeType,
+          size
+        },
+        title,
+        poster {
+          asset -> {
+            url,
+            originalFilename,
+            metadata {
+              dimensions {
+                aspectRatio
+              }
+            }
+          },
+          alt
         }
       },
-      alt
+      _type == "image" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      }
     },
     location,
     summary,
@@ -452,15 +547,52 @@ const collectionsQuery = `{
     },
     gallery[] {
       _key,
-      asset -> {
-        url,
-        metadata {
-          dimensions {
-            aspectRatio
+      _type,
+      _type == "galleryImage" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
           }
+        },
+        alt
+      },
+      _type == "galleryVideo" => {
+        asset -> {
+          url,
+          originalFilename,
+          mimeType,
+          size
+        },
+        title,
+        poster {
+          asset -> {
+            url,
+            originalFilename,
+            metadata {
+              dimensions {
+                aspectRatio
+              }
+            }
+          },
+          alt
         }
       },
-      alt
+      _type == "image" => {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      }
     },
     excerpt,
     publishedAt,
@@ -543,6 +675,11 @@ let collectionCache: {
   value: unknown
 } | null = null
 
+export const invalidateSanityCollectionsCache = () => {
+  collectionCache = null
+  preferFreshPublishedUntil = Date.now() + 30_000
+}
+
 export const getSanityCollections = async (preview = false) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
@@ -550,9 +687,9 @@ export const getSanityCollections = async (preview = false) => {
     return collectionCache.value
   }
 
-  const client = preview && previewEnabled() ? previewClient : sanityClient
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
-    const value = await client.fetch(collectionsQuery)
+    const value = await client.fetch(collectionsQuery, {includeInactive: preview})
     if (!preview && collectionCacheTtlMs > 0) {
       collectionCache = {value, expiresAt: Date.now() + collectionCacheTtlMs}
     }
@@ -565,7 +702,7 @@ export const getSanityCollections = async (preview = false) => {
 export const getBlogPostDetail = async (slug: string, preview = false) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
-  const client = preview && previewEnabled() ? previewClient : sanityClient
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
     return await client.fetch(blogPostDetailQuery, {slug})
   } catch {

@@ -6,7 +6,7 @@ export const caseStudy = defineType({
   type: 'document',
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
-    {name: 'imagens', title: 'Imagens'},
+    {name: 'imagens', title: 'Imagens e vídeos'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -47,7 +47,7 @@ export const caseStudy = defineType({
     defineField({
       name: 'gallery',
       title: 'Galeria',
-      description: 'Imagens adicionais do projeto.',
+      description: 'Imagens e vídeos adicionais do projeto.',
       type: 'array',
       group: 'imagens',
       of: [
@@ -64,6 +64,35 @@ export const caseStudy = defineType({
             }),
           ],
         },
+        defineField({
+          name: 'galleryVideo',
+          title: 'Vídeo carregado',
+          description: 'Ficheiro de vídeo apresentado na galeria do caso.',
+          type: 'file',
+          options: {accept: 'video/mp4,video/webm,video/quicktime'},
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Título do vídeo',
+              description: 'Identifica o vídeo no player e para leitores de ecrã.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa',
+              description: 'Opcional. Aparece antes da reprodução.',
+              type: 'image',
+              options: {hotspot: true},
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  type: 'localizedString',
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     defineField({
