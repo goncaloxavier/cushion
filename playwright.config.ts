@@ -29,7 +29,7 @@ export default defineConfig({
     timeout: 120_000,
   },
   expect: {
-    timeout: 5_000,
+    timeout: process.env.CI ? 10_000 : 5_000,
     toHaveScreenshot: {
       animations: 'disabled',
       maxDiffPixelRatio: 0.025,

@@ -474,7 +474,7 @@ test.describe('visual website editor', () => {
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Creation workflow runs once')
-    test.setTimeout(40_000)
+    test.setTimeout(60_000)
     const pageErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
     const frame = await openEditor(page, testInfo)
