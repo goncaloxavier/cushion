@@ -13,6 +13,7 @@ import {
 import {databaseConfigured, query} from '../src/lib/server/db'
 import {appendOrderNote, getOrderDetail, setOrderStatus} from '../src/lib/server/orders'
 import {authenticate as authenticateStaff, createSession as createStaffSession} from '../src/lib/server/staff-auth'
+import {syncPreviewAdminPolicy} from '../src/lib/server/preview-admin'
 import {storeContactSubmission} from '../src/lib/server/crm'
 
 const uniqueSuffix = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
@@ -119,6 +120,38 @@ test.describe('server foundations', () => {
         await query('delete from staff_sessions where staff_id = $1', [staffId])
         await query('delete from staff_users where id = $1', [staffId])
       }
+    }
+  })
+
+  test('the opt-in preview administrator is created and disabled as one disposable account', async ({
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    const marker = `preview-bootstrap-admin.${suffix}`
+    const username = `preview-admin-${suffix}`
+    const password = 'Preview-password-123!'
+
+    try {
+      expect(
+        await syncPreviewAdminPolicy(
+          {enabled: true, name: 'Preview Admin', username, password},
+          marker,
+        ),
+      ).toBe('ready')
+      expect(await authenticateStaff(username, password)).toMatchObject({username, role: 'admin'})
+
+      expect(
+        await syncPreviewAdminPolicy(
+          {enabled: false, name: 'Preview Admin', username, password: ''},
+          marker,
+        ),
+      ).toBe('disabled')
+      expect(await authenticateStaff(username, password)).toBeNull()
+    } finally {
+      await query('delete from staff_users where legacy_sanity_id = $1', [marker])
     }
   })
 

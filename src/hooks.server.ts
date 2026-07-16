@@ -1,6 +1,7 @@
 import {redirect, type Handle} from '@sveltejs/kit'
 import {sessionCookieName, validateSession} from '$lib/server/staff-auth'
 import {customerSessionCookieName, validateCustomerSession} from '$lib/server/customer-auth'
+import {applyPreviewAdminPolicy} from '$lib/server/preview-admin'
 import {siteEditorE2eRequestStaff} from '$lib/server/site-editor-e2e'
 
 export const handle: Handle = async ({event, resolve}) => {
@@ -13,6 +14,7 @@ export const handle: Handle = async ({event, resolve}) => {
   // Guard the private CRM backend. Validate the session for every /painel
   // request and expose the staff member on locals; redirect otherwise.
   if (pathname === '/painel' || pathname.startsWith('/painel/')) {
+    await applyPreviewAdminPolicy()
     const fixtureStaff = pathname.startsWith('/painel/site')
       ? siteEditorE2eRequestStaff(event.request.headers)
       : null
