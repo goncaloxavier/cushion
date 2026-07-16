@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {ArrowLeftIcon} from '@sanity/icons/ArrowLeft'
 import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {CogIcon} from '@sanity/icons/Cog'
@@ -15,6 +15,7 @@ import type {
   SitePageDocument,
 } from '../types'
 import {SiteEditorFieldInput} from './SiteEditorField'
+import {ArticleWorkspace} from './ArticleWorkspace'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
 import {StoreCategoryManager} from './StoreCategoryManager'
 import type {BuilderViewport} from '$lib/builder/types'
@@ -222,6 +223,12 @@ export function SiteEditorInspector({
   )
   const [activePanelId, setActivePanelId] = useState<string>()
   const [activeFieldName, setActiveFieldName] = useState<string>()
+  const [articleWorkspace, setArticleWorkspace] = useState<{
+    field: SiteEditorField
+    path: string
+    returnFocus: HTMLButtonElement
+  }>()
+  const closeArticleWorkspace = useCallback(() => setArticleWorkspace(undefined), [])
   const activePanel = panels.find((panel) => panel.id === activePanelId)
   const activeField = activePanel?.fields.find((field) => field.name === activeFieldName)
   const focusedField = useMemo(
@@ -260,6 +267,7 @@ export function SiteEditorInspector({
   useEffect(() => {
     setActivePanelId(undefined)
     setActiveFieldName(undefined)
+    setArticleWorkspace(undefined)
   }, [node?.id])
 
   const showAllDefinitions = (panelId?: string, fieldName?: string) => {
@@ -291,6 +299,9 @@ export function SiteEditorInspector({
         viewport={viewport}
         onChange={onChange}
         onUpload={onUpload}
+        onOpenArticle={(field, path, returnFocus) =>
+          setArticleWorkspace({field, path, returnFocus})
+        }
       />
     )
 
@@ -384,6 +395,9 @@ export function SiteEditorInspector({
                 viewport={viewport}
                 onChange={onChange}
                 onUpload={onUpload}
+                onOpenArticle={(field, path, returnFocus) =>
+                  setArticleWorkspace({field, path, returnFocus})
+                }
               />
             </div>
           ) : focusedUnavailable ? (
@@ -502,6 +516,21 @@ export function SiteEditorInspector({
           ) : null}
         </div>
       )}
+      {articleWorkspace && document && node ? (
+        <ArticleWorkspace
+          document={document}
+          documentTitle={node.title}
+          fieldLabel={articleWorkspace.field.label}
+          path={articleWorkspace.path}
+          projectId={projectId}
+          dataset={dataset}
+          saveState={saveState}
+          returnFocus={articleWorkspace.returnFocus}
+          onChange={onChange}
+          onUpload={onUpload}
+          onClose={closeArticleWorkspace}
+        />
+      ) : null}
     </aside>
   )
 }

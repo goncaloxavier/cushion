@@ -141,7 +141,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [inspectorMode, setInspectorMode] = useState<'focused' | 'all'>('all')
-  const [showCanvasHint, setShowCanvasHint] = useState(false)
   const inlineEditing = useRef(false)
   const fieldStateRef = useRef<Record<string, unknown>>()
   const noticeId = useRef(0)
@@ -266,10 +265,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       )
       .finally(() => setLoading(false))
   }, [loadManifest])
-
-  useEffect(() => {
-    setShowCanvasHint(window.localStorage.getItem('df4y-site-editor-hint') !== 'seen')
-  }, [])
 
   const saveNow = useCallback(async () => {
     const current = documentRef.current
@@ -592,8 +587,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
       if (event.data.type === 'df4y:site-editor:select') {
         setInspectorMode('focused')
-        setShowCanvasHint(false)
-        window.localStorage.setItem('df4y-site-editor-hint', 'seen')
         if (!event.data.inlineEditable) setSettingsOpen(true)
         return
       }
@@ -940,14 +933,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           onFrame={setFrame}
           onRouteChange={(route) => void syncPreviewRoute(route)}
         />
-        {showCanvasHint ? (
-          <div className="site-editor-canvas-hint">
-            <strong>Edite diretamente na página</strong>
-            <span>
-              Passe o rato sobre um texto, clique e escreva. Use Shift + Enter para mudar de linha.
-            </span>
-          </div>
-        ) : null}
       </section>
 
       <div

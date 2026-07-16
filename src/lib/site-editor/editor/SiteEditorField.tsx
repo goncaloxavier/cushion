@@ -7,6 +7,7 @@ import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {BoldIcon} from '@sanity/icons/Bold'
 import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DesktopIcon} from '@sanity/icons/Desktop'
+import {EditIcon} from '@sanity/icons/Edit'
 import {ImageIcon} from '@sanity/icons/Image'
 import {ImagesIcon} from '@sanity/icons/Images'
 import {ItalicIcon} from '@sanity/icons/Italic'
@@ -21,7 +22,6 @@ import {getEditorValue} from '../path'
 import type {SiteEditorDocumentType, SiteEditorField} from '../types'
 import type {BuilderViewport} from '$lib/builder/types'
 import {textAppearanceFields, type TextAppearance} from '$lib/text-appearance'
-import {ArticleEditor} from './ArticleEditor'
 import {editorKey, sanityAssetUrl, slugify} from './asset'
 
 type Asset = {id: string; url: string}
@@ -37,6 +37,7 @@ type Props = {
   viewport: BuilderViewport
   onChange: (path: string, value: unknown) => void
   onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onOpenArticle?: (field: SiteEditorField, path: string, trigger: HTMLButtonElement) => void
 }
 
 const fontOptions = [
@@ -795,8 +796,10 @@ export function SiteEditorFieldInput({
   viewport,
   onChange,
   onUpload,
+  onOpenArticle,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
+  const articleLauncher = useRef<HTMLButtonElement>(null)
   const value = getEditorValue(source, path)
   const [activeArrayKey, setActiveArrayKey] = useState<string>()
   const selected = Boolean(
@@ -842,6 +845,7 @@ export function SiteEditorFieldInput({
                 viewport,
                 onChange,
                 onUpload,
+                onOpenArticle,
               }}
             />
           ))}
@@ -951,6 +955,7 @@ export function SiteEditorFieldInput({
             viewport={viewport}
             onChange={onChange}
             onUpload={onUpload}
+            onOpenArticle={onOpenArticle}
           />
         </div>
       )
@@ -1055,6 +1060,7 @@ export function SiteEditorFieldInput({
                     viewport={viewport}
                     onChange={onChange}
                     onUpload={onUpload}
+                    onOpenArticle={onOpenArticle}
                   />
                 ) : null}
               </div>
@@ -1108,24 +1114,53 @@ export function SiteEditorFieldInput({
   }
 
   if (field.type === 'article') {
+    const article =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined
+    const blocks = Array.isArray(article?.pt) ? article.pt : []
+    const text = blocks
+      .flatMap((block) =>
+        block &&
+        typeof block === 'object' &&
+        Array.isArray((block as {children?: unknown[]}).children)
+          ? ((block as {children: unknown[]}).children ?? [])
+          : [],
+      )
+      .map((child) =>
+        child && typeof child === 'object' && typeof (child as {text?: unknown}).text === 'string'
+          ? String((child as {text: string}).text)
+          : '',
+      )
+      .join(' ')
+      .trim()
+
     return (
       <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
         <div className="site-editor-field-head">
           <strong>{field.label}</strong>
           {field.description ? <small>{field.description}</small> : null}
         </div>
-        <ArticleEditor
-          value={value}
-          documentKey={
-            source && typeof source === 'object' && '_id' in source
-              ? String(source._id)
-              : `${documentType}:${path}`
-          }
-          projectId={projectId}
-          dataset={dataset}
-          onChange={(next) => onChange(path, next)}
-          onUpload={onUpload}
-        />
+        <div className="site-editor-article-launcher">
+          <span>
+            <EditIcon />
+            <i>{blocks.length}</i>
+          </span>
+          <div>
+            <strong>{blocks.length ? 'Conteúdo estruturado' : 'Artigo vazio'}</strong>
+            <small>{text || 'Abra o editor para começar a escrever.'}</small>
+          </div>
+          <button
+            ref={articleLauncher}
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() =>
+              articleLauncher.current && onOpenArticle?.(field, path, articleLauncher.current)
+            }
+          >
+            <EditIcon /> Editar artigo
+          </button>
+        </div>
       </div>
     )
   }
