@@ -1,16 +1,17 @@
 import type {StructureResolver} from 'sanity/structure'
 
-const managedTypes = ['siteLanding', 'productCategory', 'storeProduct', 'caseStudy', 'blogPost']
-const crmManagedTypes = ['formSubmission', 'clientProfile', 'staffUser', 'staffSession']
-
-const storeCategories = [
-  {title: 'Bancos', value: 'bancos'},
-  {title: 'Mesas e conjuntos', value: 'mesas'},
-  {title: 'Cadeiras', value: 'cadeiras'},
-  {title: 'Decking', value: 'decking'},
-  {title: 'Resíduos', value: 'residuos'},
-  {title: 'Cultivo', value: 'cultivo'},
+export const managedTypes = [
+  'siteLanding',
+  'productCategory',
+  'storeCategory',
+  'storeProduct',
+  'caseStudy',
+  'blogPost',
+  'sitePage',
+  'builderPage',
+  'builderSiteSettings',
 ]
+const crmManagedTypes = ['formSubmission', 'clientProfile', 'staffUser', 'staffSession']
 
 const storeOrdering = [
   {field: 'orderRank', direction: 'asc' as const},
@@ -52,13 +53,9 @@ export const websiteStructure: StructureResolver = (S) => {
             .title('Conteúdo do site'),
         ),
       S.divider(),
+      S.documentTypeListItem('storeCategory').title('Categorias'),
       storeListItem('Todos os produtos'),
       storeListItem('Produtos visíveis', '_type == "storeProduct" && coalesce(active, true)'),
-      ...storeCategories.map((category) =>
-        storeListItem(`${category.title}`, '_type == "storeProduct" && category == $category', {
-          category: category.value,
-        }),
-      ),
       S.divider(),
       storeListItem('Sem imagem principal', '_type == "storeProduct" && !defined(image.asset)'),
       storeListItem(
@@ -74,12 +71,18 @@ export const websiteStructure: StructureResolver = (S) => {
       S.listItem()
         .title('Conteúdo do site')
         .schemaType('siteLanding')
-        .child(S.document().schemaType('siteLanding').documentId('siteContent').title('Conteúdo do site')),
+        .child(
+          S.document()
+            .schemaType('siteLanding')
+            .documentId('siteContent')
+            .title('Conteúdo do site'),
+        ),
       S.divider(),
       S.documentTypeListItem('productCategory').title('Produtos'),
       S.listItem().title('Loja').schemaType('storeProduct').child(storeStructure),
       S.documentTypeListItem('caseStudy').title('Casos de estudo'),
       S.documentTypeListItem('blogPost').title('Artigos do blog'),
+      S.documentTypeListItem('sitePage').title('Páginas livres'),
       S.divider(),
       ...S.documentTypeListItems().filter((item) => !managedTypes.includes(item.getId() ?? '')),
     ])

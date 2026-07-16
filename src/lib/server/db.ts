@@ -1,8 +1,12 @@
 import pg from 'pg'
 import type {QueryResultRow} from 'pg'
-import {env} from '$env/dynamic/private'
 
 const {Pool} = pg
+
+// This module runs only under the Node/Railway adapter. Reading process.env
+// keeps the database layer usable by Node-side integration tests as well as
+// SvelteKit request handlers.
+const databaseUrl = () => process.env.DATABASE_URL
 
 let pool: pg.Pool | null | undefined
 
@@ -11,15 +15,16 @@ const sslFor = (databaseUrl: string) =>
     ? {rejectUnauthorized: false}
     : undefined
 
-export const databaseConfigured = () => Boolean(env.DATABASE_URL)
+export const databaseConfigured = () => Boolean(databaseUrl())
 
 export const getPool = () => {
-  if (!env.DATABASE_URL) return null
+  const connectionString = databaseUrl()
+  if (!connectionString) return null
   if (pool !== undefined) return pool
 
   pool = new Pool({
-    connectionString: env.DATABASE_URL,
-    ssl: sslFor(env.DATABASE_URL),
+    connectionString,
+    ssl: sslFor(connectionString),
     max: 8,
     idleTimeoutMillis: 30_000,
   })

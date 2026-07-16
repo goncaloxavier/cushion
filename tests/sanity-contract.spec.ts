@@ -1,7 +1,9 @@
 import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
+import {vercelStegaCombine} from '@vercel/stega'
 import {
   calculateStoreEstimate,
+  maxStoreTransportWeightKg,
   normalizePostalCode,
   normalizeStorePostalCode,
   storeDispatchZone,
@@ -11,6 +13,19 @@ import {
   transportEstimateFor,
 } from '../src/lib/store-shipping'
 import {sameOriginOk} from '../src/lib/server/form-guard'
+import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
+import {
+  createBuilderPage,
+  createBuilderSection,
+  createBuilderSiteSettings,
+} from '../src/lib/builder/defaults'
+import {validateBuilderPage, validateBuilderSettings} from '../src/lib/builder/validation'
+import {siteScopePanels} from '../src/lib/site-editor/model'
+import {
+  contentFromSanity,
+  type SanityCollections,
+} from '../src/lib/site-content'
+import {textAppearanceStyle} from '../src/lib/text-appearance'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -22,6 +37,16 @@ test.describe('Sanity Studio content contract', () => {
     )
   })
 
+  test('in-process rate limiting enforces a boundary and resets by window', () => {
+    const key = rateLimitKey('audit-boundary', `visitor-${Date.now()}-${Math.random()}`)
+
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(false)
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(false)
+    expect(rateLimit(key, 2, 1_000, 100)).toBe(true)
+    expect(rateLimit(key, 2, 1_000, 1_100)).toBe(false)
+    expect(rateLimitKey('checkout', 'visitor')).not.toBe(rateLimitKey('register', 'visitor'))
+  })
+
   test('collection documents are registered in Studio', () => {
     const schemaIndex = read('schemaTypes/index.ts')
 
@@ -29,6 +54,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).toContain('crmSchemaTypes')
     expect(schemaIndex).toContain('siteLanding')
     expect(schemaIndex).toContain('productCategory')
+    expect(schemaIndex).toContain('storeCategory')
     expect(schemaIndex).toContain('storeProduct')
     expect(schemaIndex).toContain('caseStudy')
     expect(schemaIndex).toContain('blogPost')
@@ -37,10 +63,136 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).toContain('formSubmission')
   })
 
+  test('Loja settings expose only clear, used groups in the site editor', () => {
+    const panels = siteScopePanels.storePage
+    const fieldNames = panels.flatMap((panel) => panel.fields.map((field) => field.name))
+
+    expect(panels.map((panel) => panel.label)).toEqual(['Topo da Loja', 'Cálculo do transporte'])
+    expect(fieldNames).toEqual(['hero', 'transportMultiplier'])
+  })
+
+  test('typography survives the Sanity adapter used by public pages', () => {
+    const stegaFontFamily = vercelStegaCombine('georgia', {
+      origin: 'sanity.io',
+      href: 'http://localhost:3333/intent/edit/id=siteContent;path=home.hero.title.fontFamily',
+    })
+    const collections = {
+      siteContent: {
+        home: {
+          hero: {
+            title: {
+              _type: 'localizedString',
+              pt: 'Título com estilo',
+              fontFamily: stegaFontFamily,
+              fontSize: 64,
+              fontSizeMobile: 38,
+              fontWeight: 'bold',
+            },
+          },
+        },
+      },
+      products: [
+        {
+          _id: 'product.styled',
+          slug: {current: 'produto-com-estilo'},
+          title: {
+            _type: 'localizedString',
+            pt: 'Produto com estilo',
+            fontFamily: 'inter',
+            fontSize: 42,
+          },
+        },
+      ],
+    } as unknown as SanityCollections
+
+    const content = contentFromSanity(collections).pt
+    expect(content.home.hero.title).toBe('Título com estilo')
+    expect(content.home.hero.textAppearance?.title).toEqual(
+      expect.objectContaining({fontFamily: 'georgia', fontSize: 64, fontSizeMobile: 38}),
+    )
+    expect(content.products[0].textAppearance?.title).toEqual(
+      expect.objectContaining({fontFamily: 'inter', fontSize: 42}),
+    )
+    expect(textAppearanceStyle(content.home.hero.textAppearance?.title)).toContain(
+      '--cms-text-size-desktop:64px',
+    )
+    expect(textAppearanceStyle(content.home.hero.textAppearance?.title)).toContain(
+      'font-family:Georgia, serif',
+    )
+  })
+
+  test('standalone builder keeps Sanity credentials and publishing behind the staff server', () => {
+    const studioConfig = read('sanity.config.ts')
+    const studioStructure = read('sanity.structure.ts')
+    const builderPage = read('src/routes/painel/site/+page.svelte')
+    const builderApi = read('src/routes/painel/site/api/+server.ts')
+    const builderServer = read('src/lib/server/site-editor.ts')
+    const builderPreview = read('src/lib/server/builder-preview.ts')
+    const editorFixture = read('src/lib/server/site-editor-e2e.ts')
+
+    expect(studioConfig).not.toContain('websiteBuilderPlugin')
+    expect(studioStructure).not.toContain(".title('Páginas do construtor')")
+    expect(builderPage).toContain("import('$lib/site-editor/editor/SiteEditorApp')")
+    expect(builderApi).toContain('sameOriginOk')
+    expect(builderApi).toContain('csrfOk')
+    expect(builderApi).toContain('canManageStaff')
+    expect(builderApi).toContain('SiteEditorConflictError')
+    expect(builderServer).toContain("from '$env/dynamic/private'")
+    expect(builderServer).toContain('SANITY_WRITE_TOKEN')
+    expect(editorFixture).toContain("process.env.NODE_ENV !== 'production'")
+    expect(editorFixture).toContain('SITE_EDITOR_E2E_KEY')
+    expect(builderPreview).toContain('httpOnly: true')
+    expect(builderPreview).toContain("sameSite: 'lax'")
+    expect(builderPreview).toContain("headers.get('sec-fetch-dest') !== 'document'")
+  })
+
+  test('builder validation blocks unsafe routes, duplicate pages, links, video, and low contrast', () => {
+    const page = createBuilderPage()
+    expect(validateBuilderPage(page, [page])).toEqual([])
+
+    const duplicate = {...createBuilderPage(2), route: page.route}
+    expect(validateBuilderPage(page, [page, duplicate])).toContainEqual(
+      expect.objectContaining({level: 'error', field: 'route'}),
+    )
+
+    const unsafeHero = createBuilderSection('builderHeroSection')
+    unsafeHero.actions = [
+      {
+        _type: 'builderLink',
+        _key: 'unsafe-link',
+        label: {_type: 'localizedString', pt: 'Abrir'},
+        href: 'javascript:alert(1)',
+      },
+    ]
+    unsafeHero.media = {...unsafeHero.media, kind: 'video', autoplay: true, muted: false}
+    const unsafePage = {...page, sections: [unsafeHero]}
+    const unsafeIssues = validateBuilderPage(unsafePage, [unsafePage])
+    expect(unsafeIssues).toContainEqual(expect.objectContaining({field: 'actions', level: 'error'}))
+    expect(unsafeIssues).toContainEqual(
+      expect.objectContaining({field: 'media.muted', level: 'error'}),
+    )
+
+    const settings = createBuilderSiteSettings()
+    expect(validateBuilderSettings(settings)).toEqual([])
+    settings.theme = {...settings.theme, textColor: '#ffffff', fogColor: '#ffffff'}
+    expect(validateBuilderSettings(settings)).toContainEqual(
+      expect.objectContaining({field: 'theme', level: 'error'}),
+    )
+  })
+
   test('public page copy is managed through the website Studio workspace', () => {
     const studioConfig = read('sanity.config.ts')
     const studioStructure = read('sanity.structure.ts')
     const siteSchema = read('schemaTypes/siteLanding.ts')
+    const contentModel = read('src/lib/site-content.ts')
+    const cartRoute = read('src/routes/carrinho/+page.svelte')
+    const storeRoute = read('src/routes/loja/+page.svelte')
+    const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
+    const catalogueRoute = read('src/routes/catalogo/+page.svelte')
+    const aboutRoute = read('src/routes/sobre-nos/+page.svelte')
+    const pageHero = read('src/lib/components/PageHero.svelte')
+    const layout = read('src/routes/+layout.svelte')
+    const globalStyles = read('src/app.css')
 
     expect(studioConfig).toContain("name: 'website'")
     expect(studioConfig).toContain("basePath: '/website'")
@@ -52,6 +204,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(studioStructure).toContain("'Conteúdo do site'")
     expect(studioStructure).toContain("'Produtos'")
     expect(studioStructure).toContain("'Loja'")
+    expect(studioStructure).toContain("S.documentTypeListItem('storeCategory').title('Categorias')")
     expect(studioStructure).toContain("'Textos da página Loja'")
     expect(studioStructure).toContain("'Todos os produtos'")
     expect(studioStructure).toContain("'Produtos visíveis'")
@@ -64,32 +217,129 @@ test.describe('Sanity Studio content contract', () => {
     expect(siteSchema).toContain("'Página inicial'")
     expect(siteSchema).toContain("'Página Produtos'")
     expect(siteSchema).toContain("'Página Loja'")
+    expect(siteSchema).toContain("'Página Carrinho'")
+    expect(siteSchema).toContain("localizedStringField('cartItems', 'Produtos no carrinho')")
     expect(siteSchema).toContain("'Multiplicador de transporte'")
     expect(siteSchema).toContain("'Página Catálogo'")
     expect(siteSchema).toContain("'Página Contacto'")
-    expect(siteSchema).toContain("'Vídeo do topo (YouTube)'")
+    expect(siteSchema).toContain("'Vídeo do topo'")
     expect(siteSchema).toContain("'Parceiros e projetos'")
+    expect(siteSchema).not.toContain("'Apresentação da empresa'")
     expect(siteSchema).toContain("'Link do WhatsApp'")
-    expect(siteSchema).toContain("'Link Livro de Reclamações'")
-    expect(siteSchema).toContain("'Texto legal junto ao Livro de Reclamações'")
-    expect(siteSchema).toContain("'Link Política de Privacidade'")
-    expect(siteSchema).toContain("'Link Política de Cookies'")
-    expect(siteSchema).toContain("'Consentimento de dados/marketing'")
-    expect(siteSchema).toContain("'Labels visíveis do formulário'")
+    expect(siteSchema).toContain("'Link do Livro de Reclamações'")
+    expect(siteSchema).toContain("'Nota legal do Livro de Reclamações'")
+    expect(siteSchema).toContain("'Link da Política de Privacidade'")
+    expect(siteSchema).toContain("'Link da Política de Cookies'")
+    expect(siteSchema).toContain("'Botão do aviso de cookies'")
+    expect(siteSchema).toContain("'Consentimento de contacto'")
+    expect(siteSchema).toContain("'Nomes dos campos'")
     expect(siteSchema).toContain("'Primeiro nome'")
     expect(siteSchema).toContain("'Apelido'")
     expect(siteSchema).toContain("'Morada'")
-    expect(siteSchema).toContain("'Nome antigo'")
-    expect(siteSchema).toContain("'Labels antigos do formulário'")
-    expect(siteSchema).toContain('Este texto já não é apresentado no website')
-    expect(siteSchema).toContain("copyBlockField('hero', 'Primeira secção', undefined, {includeLead: false})")
-    expect(siteSchema).toContain("copyBlockField('hero', 'Primeira secção', undefined, {hiddenLead: true})")
+    expect(siteSchema).toContain(
+      "copyBlockField('hero', 'Topo da página', undefined, {includeLead: false})",
+    )
+    expect(siteSchema).not.toContain("'Nome antigo'")
+    expect(siteSchema).not.toContain("'Labels antigos do formulário'")
+    expect(siteSchema).not.toContain("'Título interno'")
+    expect(siteSchema).not.toContain('Este texto já não é apresentado no website')
+    expect(siteSchema).not.toContain('hiddenLead')
     expect(siteSchema).not.toContain("'Navigation labels'")
     expect(siteSchema).not.toContain("'Shared labels and contact'")
     expect(siteSchema).not.toContain("'Nota de posicionamento'")
     expect(siteSchema).not.toContain("'Cartões de princípios'")
     expect(siteSchema).not.toContain("'Secção newsletter'")
     expect(siteSchema).not.toContain("title: 'Rodapé'")
+    expect(contentModel).toContain("cookieNoticeAccept: 'Aceito'")
+    expect(contentModel).toContain("cartItems: 'Carrinho'")
+    expect(cartRoute).toContain('content.cartPage')
+    expect(cartRoute).not.toContain('labelsByLanguage')
+    expect(pageHero).toContain("dataAttribute?.('kicker')")
+    expect(pageHero).toContain("dataAttribute?.('title')")
+    expect(storeRoute).toContain('dataAttribute={storeHeroDataAttribute}')
+    expect(cartRoute).toContain('dataAttribute={cartHeroDataAttribute}')
+    expect(cartRoute).toContain("cartPageDataAttribute('summary.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('cartItems.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('productSubtotal.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('totalWeight.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('transport.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('iva.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('finalTotal.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('request.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('continueShopping.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('clear.pt')")
+    expect(cartRoute).toContain("cartPageDataAttribute('empty.pt')")
+    expect(storeRoute).toContain('content.storePage.sortOptions')
+    expect(storeRoute).toContain('content.storePage.delivery')
+    expect(storeDetailRoute).toContain('content.storePage.detail')
+    expect(catalogueRoute).toContain('content.catalogue.formLabels')
+    expect(aboutRoute).toContain('content.about.statement')
+    expect(aboutRoute).toContain("siteContentDataAttribute?.('about.statement.kicker.pt')")
+    expect(aboutRoute).toContain("siteContentDataAttribute?.('about.statement.title.pt')")
+    expect(layout).toContain('content.common.cookieNoticeAccept')
+    expect(globalStyles).toContain('.footer-legal > a:hover')
+    expect(globalStyles).toContain('.footer-legal > a:focus-visible')
+  })
+
+  test('client-facing text fields provide useful writing space without legacy clutter', () => {
+    const schemaIndex = read('schemaTypes/index.ts')
+    const siteSchema = read('schemaTypes/siteLanding.ts')
+    const productSchema = read('schemaTypes/productCategory.ts')
+    const storeSchema = read('schemaTypes/storeProduct.ts')
+    const caseSchema = read('schemaTypes/caseStudy.ts')
+    const blogSchema = read('schemaTypes/blogPost.ts')
+    const shortTextSchema = read('schemaTypes/objects/localizedString.ts')
+    const longTextSchema = read('schemaTypes/objects/localizedText.ts')
+
+    expect(shortTextSchema).toContain("type: 'text'")
+    expect(shortTextSchema).toContain('rows: 2')
+    expect(longTextSchema).toContain('rows: 4')
+
+    for (const schema of [siteSchema, productSchema, storeSchema, caseSchema, blogSchema]) {
+      expect(schema).toContain("type: 'localizedString'")
+    }
+
+    expect(schemaIndex).not.toContain('impactStat')
+    expect(siteSchema).not.toContain("name: 'fields'")
+    expect(siteSchema).not.toContain("name: 'name',\n        title: 'Nome antigo'")
+  })
+
+  test('Loja categories are editable, dynamic, and safe in visual preview', () => {
+    const categorySchema = read('schemaTypes/storeCategory.ts')
+    const storeSchema = read('schemaTypes/storeProduct.ts')
+    const sanityClient = read('src/lib/sanity.ts')
+    const contentModel = read('src/lib/site-content.ts')
+    const editorModel = read('src/lib/site-editor/model.ts')
+    const editorServer = read('src/lib/server/site-editor.ts')
+    const editorErrors = read('src/lib/server/site-editor-errors.ts')
+    const storeListRoute = read('src/routes/loja/+page.svelte')
+    const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
+    const cleanupScript = read('scripts/cleanup-removed-website-fields.ts')
+
+    expect(categorySchema).toContain("name: 'storeCategory'")
+    expect(categorySchema).toContain("title: 'Nome da categoria'")
+    expect(categorySchema).toContain("name: 'slug'")
+    expect(categorySchema).toContain("name: 'orderRank'")
+    expect(categorySchema).not.toContain("name: 'active'")
+    expect(storeSchema).toContain("name: 'category'")
+    expect(storeSchema).not.toContain("value: 'bancos'")
+    expect(sanityClient).toContain('"storeCategories": *[_type == "storeCategory"')
+    expect(contentModel).toContain('export const cleanStoreCategory =')
+    expect(contentModel).toContain('category: cleanStoreCategory(')
+    expect(contentModel).toContain('export const storeCategoryLabel =')
+    expect(editorModel).toContain("optionsSource: 'storeCategories'")
+    expect(editorServer).toContain("type: 'storeCategory'")
+    expect(editorServer).toContain('optionSources: {storeCategories:')
+    expect(editorServer).toContain("if (type === 'storeCategory')")
+    expect(editorServer).toContain("document._type === 'storeCategory'")
+    expect(editorServer).toContain('category == $category')
+    expect(editorServer).toContain('SiteEditorCategoryInUseError')
+    expect(editorErrors).toContain('Mova-os para outra categoria antes de eliminar')
+    expect(storeListRoute).toContain('storeCategoryLabel(content.storePage, product.category)')
+    expect(storeDetailRoute).toContain(
+      'storeCategoryLabel(content.storePage, data.storeProduct.category)',
+    )
+    expect(cleanupScript).toContain('_type == "storeCategory" && defined(active)')
   })
 
   test('private CRM content is isolated from the public website workspace', () => {
@@ -107,12 +357,14 @@ test.describe('Sanity Studio content contract', () => {
     expect(studioStructure).toContain("'Novos pedidos'")
     expect(studioStructure).toContain("'Pedidos em acompanhamento'")
     expect(studioStructure).toContain("'Perfis de clientes'")
-    expect(crmServer).toContain("env.SANITY_CRM_DATASET || 'crm'")
-    expect(crmServer).toContain('SANITY_CRM_WRITE_TOKEN')
-    expect(crmServer).toContain('CRM_HASH_SECRET')
-    expect(crmServer).toContain("createIfNotExists({")
-    expect(crmServer).toContain("_type: 'clientProfile'")
-    expect(crmServer).toContain("_type: 'formSubmission'")
+    // Leads/profiles themselves moved to Postgres (crm.ts) — only the legacy
+    // Studio workspace for already-migrated Sanity CRM docs stays isolated
+    // here until the deferred Sanity cleanup.
+    expect(crmServer).toContain('databaseConfigured')
+    expect(crmServer).toContain('withTransaction')
+    expect(crmServer).toContain('insert into crm_client_profiles')
+    expect(crmServer).toContain('insert into crm_form_submissions')
+    expect(crmServer).toContain('on conflict (email_normalized)')
     expect(contactAction).toContain('csrfCookieName')
     expect(contactAction).toContain('csrfOk')
     expect(formGuard).toContain('timingSafeEqual')
@@ -140,6 +392,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('_id == "siteContent"')
     expect(sanityClient).toContain('_type == "siteLanding"')
     expect(sanityClient).toContain('_type == "productCategory"')
+    expect(sanityClient).toContain('_type == "storeCategory"')
     expect(sanityClient).toContain('_type == "storeProduct"')
     expect(sanityClient).toContain('_type == "caseStudy"')
     expect(sanityClient).toContain('_type == "blogPost"')
@@ -151,12 +404,14 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('complaintsNote')
     expect(sanityClient).toContain('privacyPolicyUrl')
     expect(sanityClient).toContain('cookiePolicyUrl')
+    expect(sanityClient).toContain('cookieNoticeAccept')
     expect(sanityClient).toContain('marketingConsent')
     expect(sanityClient).toContain('formLabels')
     expect(sanityClient).toContain('heroVideoUrl')
-    expect(sanityClient).toContain('videoUrl')
-    expect(sanityClient).toContain('toolUrl')
+    expect(sanityClient).not.toContain('videoUrl')
+    expect(sanityClient).not.toContain('toolUrl')
     expect(sanityClient).toContain('storePage')
+    expect(sanityClient).toContain('cartPage')
     expect(sanityClient).toContain('transportMultiplier')
     expect(sanityClient).toContain('_key')
     expect(sanityClient).toContain('priceNatural')
@@ -198,16 +453,26 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).not.toContain('customers')
     expect(sanityClient).not.toContain('orders')
     expect(sanityClient).not.toContain('payment_attempts')
-    expect(contentModel).toContain('lead: \'\',')
+    expect(contentModel).toContain("lead: '',")
     expect(seedScript).toContain('copyBlockWithoutLead')
-    expect(seedScript).toContain('hero: copyBlockWithoutLead((content) => content.productsPage.hero)')
+    expect(seedScript).toContain(
+      'hero: copyBlockWithoutLead((content) => content.productsPage.hero)',
+    )
     expect(seedScript).toContain('hero: copyBlockWithoutLead((content) => content.storePage.hero)')
-    expect(seedScript).toContain('transportMultiplier: fallbackContent.pt.storePage.transportMultiplier')
+    expect(seedScript).toContain(
+      'transportMultiplier: fallbackContent.pt.storePage.transportMultiplier',
+    )
     expect(seedScript).toContain('hero: copyBlockWithoutLead((content) => content.catalogue.hero)')
     expect(seedScript).toContain('hero: copyBlockWithoutLead((content) => content.casesPage.hero)')
     expect(seedScript).toContain('hero: copyBlockWithoutLead((content) => content.blogPage.hero)')
     expect(seedScript).not.toContain('content.productsPage.lead')
     expect(seedScript).not.toContain('content.storePage.lead')
+    expect(seedScript).not.toContain('content.contactPage.fields')
+    expect(seedScript).not.toContain('content.home.heroImage')
+    expect(seedScript).not.toContain('content.home.intro')
+    expect(seedScript).not.toContain('content.home.impact.lead')
+    expect(seedScript).not.toContain('copyBlock((content) => content.about.hero)')
+    expect(sanityClient).not.toContain('fields[]')
     expect(cleanupScript).toContain('productsPage.hero.lead')
     expect(cleanupScript).toContain('productsPage.lead')
     expect(cleanupScript).toContain('storePage.hero.lead')
@@ -215,6 +480,14 @@ test.describe('Sanity Studio content contract', () => {
     expect(cleanupScript).toContain('catalogue.hero.lead')
     expect(cleanupScript).toContain('casesPage.hero.lead')
     expect(cleanupScript).toContain('blogPage.hero.lead')
+    expect(cleanupScript).toContain('contactPage.fields')
+    expect(cleanupScript).toContain('contactPage.formLabels.name')
+    expect(cleanupScript).toContain("perspective: 'raw'")
+    expect(cleanupScript).toContain('home.hero.kicker')
+    expect(cleanupScript).toContain('home.heroImage')
+    expect(cleanupScript).toContain('home.intro')
+    expect(cleanupScript).toContain('home.impact.lead')
+    expect(cleanupScript).toContain('about.hero.lead')
   })
 
   test('visual editing preview is wired through Studio and draft rendering', () => {
@@ -224,11 +497,14 @@ test.describe('Sanity Studio content contract', () => {
     const storeListRoute = read('src/routes/loja/+page.svelte')
     const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
     const storeMediaGallery = read('src/lib/components/StoreMediaGallery.svelte')
+    const siteEditorOverlay = read('src/lib/components/SiteEditorOverlay.svelte')
     const imageGallery = read('src/lib/components/ImageGallery.svelte')
+    const productListRoute = read('src/routes/produtos/+page.svelte')
     const productDetailRoute = read('src/routes/produtos/[slug]/+page.svelte')
     const caseDetailRoute = read('src/routes/casos-de-estudo/[slug]/+page.svelte')
     const blogDetailRoute = read('src/routes/blog/[slug]/+page.svelte')
     const contentModel = read('src/lib/site-content.ts')
+    const siteEditorModel = read('src/lib/site-editor/model.ts')
     const sanityClient = read('src/lib/sanity.ts')
     const previewHelpers = read('src/lib/server/preview.ts')
     const previewEnable = read('src/routes/preview/enable/+server.ts')
@@ -242,16 +518,18 @@ test.describe('Sanity Studio content contract', () => {
     expect(studioConfig).toContain('locations: {')
     expect(studioConfig).toContain("productCategory: collectionLocation('/produtos', 'Produto')")
     expect(studioConfig).toContain("storeProduct: collectionLocation('/loja', 'Produto da loja')")
-    expect(studioConfig).toContain("caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo')")
+    expect(studioConfig).toContain(
+      "caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo')",
+    )
     expect(studioConfig).toContain("blogPost: collectionLocation('/blog', 'Artigo do blog')")
     expect(layoutServer).toContain('isPreview(cookies, request.headers)')
-    expect(layoutServer).toContain('getSanityCollections(preview)')
-    expect(layoutServer).toContain('studioUrl: preview ? sanityStudioUrl :')
+    expect(layoutServer).toContain('getSanityCollections(preview || builderPreview)')
+    expect(layoutServer).toContain('studioUrl: preview || builderPreview ? sanityStudioUrl :')
     // The preview cookie persists for an hour across any request from that
     // browser, so a plain top-level visit outside Studio must not inherit
     // draft content/the click-to-edit overlay just because the cookie is
     // still set from an earlier Presentation session.
-    expect(previewHelpers).toContain("sec-fetch-dest")
+    expect(previewHelpers).toContain('sec-fetch-dest')
     expect(previewHelpers).toContain("=== 'document'")
     // Sec-Fetch-Dest only distinguishes real vs. embedded on the first
     // request; SvelteKit's own client-side navigation re-runs load() via a
@@ -265,6 +543,10 @@ test.describe('Sanity Studio content contract', () => {
     expect(layout).toContain('@sanity/visual-editing/svelte')
     expect(layout).toContain("import('@sanity/visual-editing/svelte')")
     expect(layout).toContain('<VisualEditingComponent />')
+    expect(layout).toContain("import {stegaClean} from '@sanity/client/stega'")
+    expect(layout).toContain('const plainNavigationLabel =')
+    expect(layout).toContain('{plainNavigationLabel(item.label)}')
+    expect(siteEditorModel).toContain("type: 'navigation'")
     expect(storeListRoute).toContain('@sanity/visual-editing/create-data-attribute')
     expect(storeListRoute).toContain("storeProductFieldDataAttribute(product, 'image')")
     expect(storeListRoute).toContain('data-sanity={cardImageDataAttribute}')
@@ -273,10 +555,15 @@ test.describe('Sanity Studio content contract', () => {
     expect(storeDetailRoute).toContain("storeProductDataAttribute('image')")
     expect(storeDetailRoute).toContain('imageDataAttribute = $derived')
     expect(storeDetailRoute).toContain('dataAttribute={mediaDataAttribute}')
+    expect(storeDetailRoute).toContain('data.preview || data.builderPreview')
     expect(storeMediaGallery).toContain('dataAttribute?: (path: string) => string | undefined')
-    expect(storeMediaGallery).toContain('entry?.editPath && dataAttribute')
+    expect(storeMediaGallery).toContain('entry?.editPath || fallbackEditPath')
     expect(storeMediaGallery).toContain('data-sanity={activeDataAttribute}')
     expect(storeMediaGallery).toContain('data-sanity={thumbAttr}')
+    expect(storeMediaGallery).toContain('data-df4y-editor-kind={item.type}')
+    expect(storeMediaGallery).toContain('data-df4y-editor-kind={mediaItem.type}')
+    expect(siteEditorOverlay).toContain("closest<HTMLElement>('[data-df4y-editor-kind]')")
+    expect(siteEditorOverlay).toContain("kind === 'video'")
     expect(contentModel).toContain('editPath?: string')
     expect(contentModel).toContain("imageFromSanity(mainImage, language, fallback, 'image')")
     expect(contentModel).toContain('gallery[_key==')
@@ -286,14 +573,31 @@ test.describe('Sanity Studio content contract', () => {
     expect(imageGallery).toContain('data-sanity={thumbAttr}')
     expect(productDetailRoute).toContain('@sanity/visual-editing/create-data-attribute')
     expect(productDetailRoute).toContain("type: 'productCategory'")
+    expect(productDetailRoute).toContain('data.preview || data.builderPreview')
+    expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
+    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(copyFieldPath)}')
     expect(productDetailRoute).toContain('dataAttribute={imageDataAttribute}')
+    expect(productListRoute).toContain("siteContentDataAttribute?.('productsPage.heroImage')")
+    expect(productListRoute).toContain('data.preview || data.builderPreview')
+    expect(productListRoute).toContain('productDataAttribute(product.studioDocumentId')
     expect(caseDetailRoute).toContain("type: 'caseStudy'")
+    expect(caseDetailRoute).toContain('StoreMediaGallery')
     expect(caseDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(blogDetailRoute).toContain("type: 'blogPost'")
+    expect(blogDetailRoute).toContain('StoreMediaGallery')
     expect(blogDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(storeDetailRoute).toContain('data-sanity={selectedPriceDataAttribute}')
     expect(storeDetailRoute).toContain('data-sanity={selectedWeightDataAttribute}')
-    expect(storeDetailRoute).toContain("effectiveFinish === 'natural' ? 'priceNatural' : 'priceDark'")
+    expect(storeDetailRoute).toContain("data-df4y-editor-kind={selectedPriceDataAttribute ? 'number'")
+    expect(storeDetailRoute).toContain("data-df4y-editor-kind={selectedWeightDataAttribute ? 'number'")
+    expect(storeDetailRoute).toContain('? labels.productNet : undefined')
+    expect(storeDetailRoute).toContain('? labels.weight : undefined')
+    expect(siteEditorOverlay).toContain("return 'Editar texto'")
+    expect(siteEditorOverlay).toContain('`Editar campo: ${explicitLabel}`')
+    expect(siteEditorOverlay).not.toContain('Clique e escreva')
+    expect(storeDetailRoute).toContain(
+      "effectiveFinish === 'natural' ? 'priceNatural' : 'priceDark'",
+    )
     expect(storeDetailRoute).toContain('{#if hasFinishChoice}')
     expect(storeDetailRoute).toContain('.weightKg')
     expect(sanityClient).toContain('previewClient')
@@ -307,7 +611,9 @@ test.describe('Sanity Studio content contract', () => {
     expect(previewEnable).toContain('validatePreviewUrl(previewSecretClient')
     expect(previewEnable).toContain('setPreviewCookie(cookies, url)')
     expect(previewDisable).toContain('clearPreviewCookie(cookies, url)')
-    expect(blogDetailServer).toContain('getBlogPostDetail(params.slug, preview)')
+    expect(blogDetailServer).toContain(
+      'getBlogPostDetail(params.slug, preview || builderPreview)',
+    )
     expect(envExample).toContain('SANITY_VIEWER_TOKEN')
     expect(envExample).toContain('SANITY_STUDIO_PREVIEW_ORIGIN')
     expect(envExample).toContain('SANITY_STUDIO_URL')
@@ -331,10 +637,10 @@ test.describe('Sanity Studio content contract', () => {
 
     expect(productSchema).not.toContain("name: 'features'")
     expect(productSchema).not.toContain("name: 'applications'")
-    expect(productSchema).toContain("name: 'videoUrl'")
-    expect(productSchema).toContain("'Vídeo do produto (YouTube)'")
-    expect(productSchema).toContain("name: 'toolUrl'")
-    expect(productSchema).toContain("'Link da ferramenta externa'")
+    expect(productSchema).not.toContain("name: 'videoUrl'")
+    expect(productSchema).not.toContain("'Vídeo do produto'")
+    expect(productSchema).not.toContain("name: 'toolUrl'")
+    expect(productSchema).not.toContain("'Link da ferramenta'")
 
     for (const schema of [productSchema, storeSchema, caseSchema, blogSchema]) {
       expect(schema).toContain("title: 'Conteúdo'")
@@ -346,13 +652,22 @@ test.describe('Sanity Studio content contract', () => {
     }
 
     expect(storeSchema).toContain("name: 'gallery'")
-    expect(storeSchema).toContain("'Galeria do produto'")
+    expect(storeSchema).toContain("title: 'Galeria'")
     expect(storeSchema).toContain("name: 'galleryVideo'")
     expect(storeSchema).toContain("type: 'file'")
-    expect(productSchema).not.toContain("name: 'galleryVideo'")
-    expect(storeSchema).toContain("'Variantes, pesos e preços'")
-    expect(storeSchema).toContain("'Preço Natural/Cinza sem IVA'")
-    expect(storeSchema).toContain("'Preço Castanho/Preto sem IVA'")
+    // Produtos (outside the Loja) share the same mixed image/video gallery
+    // Loja products use named image/video members; existing Blog and Case images
+    // keep their legacy `image` type while gaining the uploaded video member.
+    expect(productSchema).toContain("name: 'galleryImage'")
+    expect(productSchema).toContain("name: 'galleryVideo'")
+    expect(productSchema).toContain("type: 'file'")
+    expect(caseSchema).toContain("name: 'galleryVideo'")
+    expect(caseSchema).toContain("type: 'file'")
+    expect(blogSchema).toContain("name: 'galleryVideo'")
+    expect(blogSchema).toContain("type: 'file'")
+    expect(storeSchema).toContain("'Opções, pesos e preços'")
+    expect(storeSchema).toContain("'Natural/Cinza (sem IVA)'")
+    expect(storeSchema).toContain("'Castanho/Preto (sem IVA)'")
     expect(storeSchema).toContain('Rule.required().min(0.01).precision(2)')
     expect(storeSchema).toContain("name: 'flatTransportPrice'")
   })
@@ -395,19 +710,26 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('https://www.iubenda.com/privacy-policy/56295339/cookie-policy')
     expect(contentModel).toContain('https://www.youtube.com/watch?v=h1wVIZRj0Hc')
     expect(contentModel).toContain('https://www.youtube.com/watch?v=VIUVlk51iN0')
-    expect(contentModel).toContain('https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m')
+    expect(contentModel).toContain(
+      'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
+    )
     expect(contentModel).toContain('/images/partners/abaae.png')
     expect(contentModel).toContain('partnersFromSanity')
     expect(contentModel).toContain('localizedArticle')
     expect(contentModel).toContain('article: localizedArticle')
     expect(contentModel).toContain('products: productCategories.pt')
     expect(contentModel).toContain('storeProductsForLanguage')
-    expect(contentModel).toContain('fallback.find((item) => item.slug === slug) ?? fallback[index]')
+    expect(contentModel).toContain('fallback.find((item) => item.slug === slug)')
+    expect(contentModel).not.toContain(
+      'fallback.find((item) => item.slug === slug) ?? fallback[index]',
+    )
     expect(contentModel).toContain(
       'const sanityMedia = storeProductMediaFromSanity(product.image, product.gallery, language)',
     )
     expect(contentModel).toContain('const fallbackStoreImages =')
-    expect(contentModel).toContain('fallbackStoreImages.map((image) => storeProductMediaImage(image))')
+    expect(contentModel).toContain(
+      'fallbackStoreImages.map((image) => storeProductMediaImage(image))',
+    )
     expect(contentModel).toContain('const images = imagesFromMedia')
     expect(contentModel).not.toContain('[storeProductMediaImage(fallbackImages.product)]')
     expect(contentModel).not.toContain('fallbackMedia')
@@ -452,12 +774,13 @@ test.describe('Sanity Studio content contract', () => {
     const importScript = read('scripts/write-case-study-import.ts')
 
     expect(caseSchema).toContain("name: 'description'")
-    expect(caseSchema).toContain("'Descrição do caso'")
+    expect(caseSchema).toContain("title: 'Descrição'")
     expect(sanityClient).toContain('description')
     expect(contentModel).toContain('description?: string')
     expect(contentModel).toContain('description: localized(item.description')
     expect(route).toContain('data.caseStudy.description || data.caseStudy.summary')
-    expect(route).toContain('<p class="article-lead">{lead}</p>')
+    expect(route).toContain('data-sanity={caseDataAttribute?.(leadFieldPath)}')
+    expect(route).toContain('>{lead}</p>')
     expect(route).not.toContain('case-detail-description')
     expect(importScript).toContain('caseStudy-')
     expect(importScript).toContain('case-study-import.ndjson')
@@ -497,15 +820,15 @@ test.describe('Sanity Studio content contract', () => {
       transportNet: 39.79,
     })
 
-    expect(calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 52}], '7000-000')).toMatchObject(
-      {
-        productNet: 185,
-        totalWeightKg: 52,
-        subtotalNet: 224.79,
-        vat: 51.7,
-        totalGross: 276.49,
-      },
-    )
+    expect(
+      calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 52}], '7000-000'),
+    ).toMatchObject({
+      productNet: 185,
+      totalWeightKg: 52,
+      subtotalNet: 224.79,
+      vat: 51.7,
+      totalGross: 276.49,
+    })
 
     expect(transportEstimateFor('7000-000', 52, {transportMultiplier: 3})).toMatchObject({
       transportNet: 47.75,
@@ -532,7 +855,10 @@ test.describe('Sanity Studio content contract', () => {
     // Mixed cart: the flat fee is additive on top of the normal weight-based
     // transport for the OTHER line, and the flat item's own weight must not
     // leak into that weight-based calculation.
-    const baseline = calculateStoreEstimate([{unitPrice: 185, quantity: 1, weightKg: 25}], '1000-000')
+    const baseline = calculateStoreEstimate(
+      [{unitPrice: 185, quantity: 1, weightKg: 25}],
+      '1000-000',
+    )
     expect(baseline.transport).toMatchObject({transportNet: 31.02})
 
     const mixed = calculateStoreEstimate(
@@ -544,6 +870,30 @@ test.describe('Sanity Studio content contract', () => {
     )
     expect(mixed.totalWeightKg).toBe(25)
     expect(mixed.transport).toMatchObject({transportNet: 33.02})
+
+    const overweight = calculateStoreEstimate(
+      [{unitPrice: 185, quantity: 1, weightKg: maxStoreTransportWeightKg + 1}],
+      '7000-000',
+    )
+    expect(overweight.transport).toBeNull()
+    expect(overweight.transportIssue).toBe('overweight')
+  })
+
+  test('store carts use stable Sanity variant keys and retain a legacy fallback', () => {
+    const cart = read('src/lib/cart.ts')
+    const storeContent = read('src/lib/site-content.ts')
+    const storeDetail = read('src/routes/loja/[slug]/+page.svelte')
+    const checkout = read('src/routes/finalizar-compra/+page.server.ts')
+    const orders = read('src/lib/server/orders.ts')
+
+    expect(storeContent).toContain('key: string')
+    expect(storeContent).toContain('key: variant._key')
+    expect(cart).toContain('variantKey?: string')
+    expect(cart).toContain('storeVariantForCartItem')
+    expect(cart).toContain('item.variantKey || `legacy-')
+    expect(storeDetail).toContain('variantKey: selectedVariant.key')
+    expect(checkout).toContain('raw.variantKey')
+    expect(orders).toContain('candidate.key === item.variantKey')
   })
 
   test('private ecommerce data uses Postgres, not the public Sanity catalogue', () => {
@@ -552,6 +902,7 @@ test.describe('Sanity Studio content contract', () => {
     const migration = read('migrations/0001_commerce_foundation.sql')
     const db = read('src/lib/server/db.ts')
     const auth = read('src/lib/server/customer-auth.ts')
+    const passwordAuth = read('src/lib/server/password-auth.ts')
     const orders = read('src/lib/server/orders.ts')
     const checkout = read('src/routes/finalizar-compra/+page.server.ts')
     const payment = read('src/lib/server/payment.ts')
@@ -570,7 +921,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(migration).toContain('create table if not exists order_items')
     expect(migration).toContain('create table if not exists payment_attempts')
     expect(db).toContain('DATABASE_URL')
-    expect(auth).toContain('scrypt')
+    expect(passwordAuth).toContain('scrypt')
     expect(auth).toContain('httpOnly: true')
     expect(auth).toContain('sameSite')
     expect(auth).toContain('tokenHashOf')
@@ -616,6 +967,15 @@ test.describe('Sanity Studio content contract', () => {
     const orders = read('src/lib/server/orders.ts')
     const formGuard = read('src/lib/server/form-guard.ts')
     const hooks = read('src/hooks.server.ts')
+    const previewEnable = read('src/routes/preview/enable/+server.ts')
+    const painelActions = read('src/lib/server/painel-actions.ts')
+    const painelOrder = read('src/routes/painel/encomendas/[id]/+page.server.ts')
+    const staffAuth = read('src/lib/server/staff-auth.ts')
+    const migration = read('migrations/0004_customer_address_identity.sql')
+    const addresses = read('src/routes/conta/(area)/moradas/+page.server.ts')
+    const addressPage = read('src/routes/conta/(area)/moradas/+page.svelte')
+    const config = read('svelte.config.js')
+    const appHtml = read('src/app.html')
 
     expect(packageJson).toContain('tests/commerce.spec.ts')
     expect(auth).toContain('delete from email_verification_tokens')
@@ -623,17 +983,126 @@ test.describe('Sanity Studio content contract', () => {
     expect(rateLimit).toContain('const maxBuckets = 5_000')
     expect(rateLimit).toContain('export const rateLimitKey')
     expect(checkout).toContain("rateLimitKey('checkout', getClientAddress())")
-    expect(crm).toContain("rateLimit(`crm:ip:${ipHash}`")
-    expect(crm).toContain("rateLimit(`crm:email:${emailHash}`")
+    expect(crm).toContain("rateLimitKey('crm-ip', input.ipAddress)")
+    expect(orders).toContain('order by address_type asc, created_at asc, id asc')
+    expect(orders).not.toContain('order by address_type asc, is_default desc')
+    expect(crm).toContain("rateLimitKey('crm-email', emailNormalized)")
     expect(checkout).toContain('submissionToken.length < 20')
     expect(checkout).toContain('isValidEmail(values.email)')
-    expect(orders).toContain("throw new OrderInputError('Atualize a página antes de finalizar o pedido.')")
-    expect(orders).toContain('never creates a second copy of the same saved address')
+    expect(orders).toContain(
+      "throw new OrderInputError('Atualize a página antes de finalizar o pedido.')",
+    )
+    expect(orders).toContain('unique address identity added in migration 0004')
+    expect(migration).toContain('customer_addresses_identity_idx')
+    expect(migration).toContain('ranked_addresses')
+    expect(addresses).toContain('isSupportedStorePostalCode')
+    expect(addressPage).toContain('afterDefaultAction')
+    expect(addressPage).toContain(
+      'preferredAddressIds = {...preferredAddressIds, [addressType]: addressId}',
+    )
+    expect(addressPage).not.toContain('afterAddressAction(t.defaultSaved)')
     expect(formGuard).toContain('if (referer) return referer.startsWith(`${expectedOrigin}/`)')
     expect(sameOriginOk(null, null, 'https://example.com')).toBe(false)
     expect(sameOriginOk('https://example.com', null, 'https://example.com')).toBe(true)
     expect(sameOriginOk(null, 'https://example.com/contacto', 'https://example.com')).toBe(true)
     expect(hooks).toContain("headers.set('x-content-type-options', 'nosniff')")
-    expect(hooks).toContain("headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')")
+    expect(hooks).toContain(
+      "headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')",
+    )
+    expect(previewEnable).toContain("rateLimitKey('preview-enable', getClientAddress())")
+    expect(staffAuth).toContain("staff?.role === 'admin'")
+    expect(painelActions).toContain('canManageStaff(event.locals.staff)')
+    expect(painelOrder).toContain('if (!locals.staff) error(401')
+    expect(config).toContain("mode: 'auto'")
+    expect(config).toContain("'frame-ancestors'")
+    expect(appHtml).toContain('nonce="%sveltekit.nonce%"')
+  })
+
+  test('private route styles do not ship through the global stylesheet', () => {
+    const globalStyles = read('src/app.css')
+    const accountStyles = read('src/lib/styles/account-checkout.css')
+    const accountDashboardStyles = read('src/lib/styles/account.css')
+    const painelStyles = read('src/lib/styles/painel.css')
+    const accountLayout = read('src/lib/components/AccountLayout.svelte')
+    const authLayout = read('src/lib/components/AccountAuthLayout.svelte')
+    const checkout = read('src/routes/finalizar-compra/+page.svelte')
+    const painelLayout = read('src/routes/painel/+layout.svelte')
+
+    expect(globalStyles).not.toContain('/* ---- Customer account + checkout ---- */')
+    expect(globalStyles).not.toContain('/* ---- Backoffice (/painel) ---- */')
+    expect(accountStyles).toContain('.checkout-page')
+    expect(accountDashboardStyles).toContain('.auth-simple')
+    expect(painelStyles).toContain('.painel {')
+    expect(accountLayout).toContain('$lib/styles/account-checkout.css')
+    expect(authLayout).toContain('$lib/styles/account.css')
+    expect(checkout).toContain('$lib/styles/account-checkout.css')
+    expect(painelLayout).toContain('$lib/styles/painel.css')
+  })
+
+  test('auto-translation pipeline: schema hides EN/ES and tracks a translation hash', () => {
+    const localizedString = read('schemaTypes/objects/localizedString.ts')
+    const localizedText = read('schemaTypes/objects/localizedText.ts')
+    const localizedArticle = read('schemaTypes/objects/localizedArticle.ts')
+    const translateContent = read('src/lib/server/translate-content.ts')
+    const translateEndpoint = read('src/routes/api/sanity/translate/+server.ts')
+    const translateDocument = read('src/lib/server/translate-document.ts')
+    const structure = read('sanity.structure.ts')
+    const config = read('sanity.config.ts')
+    const backfillScript = read('scripts/seed-translation-hashes.ts')
+    const envExample = read('.env.example')
+
+    // EN/ES must be hidden (client only ever fills PT), and every shared
+    // localized type must carry a translationHash the pipeline can diff
+    // against, so republishing unchanged content never re-burns DeepL quota.
+    for (const schema of [localizedString, localizedText, localizedArticle]) {
+      expect(schema).toContain('translationHash')
+    }
+    expect(localizedString).toContain('hidden: true')
+    expect(localizedString).toContain('rows: 2')
+    expect(localizedText).toContain('hidden: true')
+    expect(localizedArticle).toContain('opts.hidden')
+
+    // The tree-walker must be shape-based (works for any localized field,
+    // present or future) and never mutate the input it collects/reinserts.
+    expect(translateContent).toContain('detectLocalizedKind')
+    expect(translateContent).toContain('findLocalizedFields')
+    expect(translateContent).toContain('structuredClone')
+    expect(translateContent).toContain('_key==')
+
+    // Both the automatic (Sanity webhook) and manual (Studio button) trigger
+    // paths must converge on the same orchestrator, and the manual path
+    // needs CORS since it's a genuine cross-origin browser request from the
+    // Studio's own origin.
+    expect(translateEndpoint).toContain('isValidSignature')
+    expect(translateEndpoint).toContain('x-sanity-translate-secret')
+    expect(translateEndpoint).toContain('access-control-allow-origin')
+    expect(translateEndpoint).toContain('translateDocument(')
+
+    // The manual-trigger secret is baked into a public Studio JS bundle, so
+    // it can't be treated as a real secret the way the signed webhook can —
+    // it gets its own, much tighter rate-limit bucket so a copied-out secret
+    // can't be hammered to exhaust DeepL quota.
+    expect(translateEndpoint).toContain('sanity-translate-manual')
+    expect(translateEndpoint).toContain('viaStudioButton &&')
+    expect(translateDocument).toContain('translationHash')
+
+    // A field's hash must only be stamped once BOTH languages succeed, so a
+    // partial DeepL failure stays "dirty" and gets retried later rather than
+    // being silently marked done.
+    expect(translateDocument).toContain('enSlice && esSlice')
+
+    // The manual Studio action and the one-off backfill script must both
+    // exist and reuse the same managed-types list / tree-walker rather than
+    // duplicating detection logic.
+    expect(structure).toContain('export const managedTypes')
+    expect(config).toContain('RetranslateAction')
+    expect(backfillScript).toContain('findLocalizedFields')
+    expect(backfillScript).toContain('!task.currentHash')
+    expect(backfillScript).not.toContain('patchPath}.en')
+    expect(backfillScript).not.toContain('patchPath}.es')
+
+    expect(envExample).toContain('DEEPL_API_KEY')
+    expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
+    expect(envExample).toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })
 })

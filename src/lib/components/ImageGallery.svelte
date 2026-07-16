@@ -40,6 +40,7 @@
   let previouslyFocused: HTMLElement | null = null
 
   const image = $derived(images[selectedImageIndex] ?? images[0])
+  const altFor = (candidate: ContentImage) => candidate.alt?.trim() || label
   const hasMultiple = $derived(images.length > 1)
   const position = $derived(`${selectedImageIndex + 1} / ${images.length}`)
   const activeDataAttribute = $derived(
@@ -111,13 +112,12 @@
       onfocus={() => preloadFull(image)}
       onclick={openLightbox}
       data-sanity={activeDataAttribute}
-      data-sanity-edit-target={activeDataAttribute ? true : undefined}
     >
       <img
         src={sizedImage(image.url, 1600, 76)}
         srcset={imageSrcset(image.url, [640, 900, 1200, 1600, 2000], 76)}
         {sizes}
-        alt={image.alt}
+        alt={altFor(image)}
         decoding="async"
         fetchpriority="high"
         style:background={lqipBackground(image)}
@@ -138,7 +138,6 @@
             class:active={selectedImageIndex === index}
             aria-label={`${label} ${index + 1}`}
             data-sanity={thumbAttr}
-            data-sanity-edit-target={thumbAttr ? true : undefined}
             onclick={() => {
               selectImage(index)
             }}
@@ -147,7 +146,7 @@
               src={sizedImage(galleryImage.url, 220)}
               srcset={imageSrcset(galleryImage.url, [120, 180, 240, 320])}
               sizes="6rem"
-              alt={galleryImage.alt}
+              alt={altFor(galleryImage)}
               loading="lazy"
               decoding="async"
               style:background={lqipBackground(galleryImage)}
@@ -183,7 +182,7 @@
         src={sizedImage(image.url, lightboxWidth)}
         srcset={imageSrcset(image.url, [800, 1200, 1600])}
         sizes="94vw"
-        alt={image.alt}
+        alt={altFor(image)}
         decoding="async"
         style:background={lqipBackground(image)}
       />

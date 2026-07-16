@@ -1,11 +1,15 @@
+import {stegaClean} from '@sanity/client/stega'
 import type {RichArticleBlock} from './article-structure'
+import {defaultStoreCategories, humanizeStoreCategory} from './store-categories'
 import {storeProductsForLanguage} from './store-fallback'
 import {storeTransportMultiplier} from './store-shipping'
+import {textAppearanceFields, type TextAppearance} from './text-appearance'
 
 export type LanguageCode = 'pt' | 'en' | 'es'
 
-export type LocalizedValue = Partial<Record<LanguageCode, string>>
+export type LocalizedValue = Partial<Record<LanguageCode, string>> & TextAppearance
 export type LocalizedArticleValue = Partial<Record<LanguageCode, RichArticleBlock[]>>
+export type TextAppearanceMap = Partial<Record<string, TextAppearance>>
 
 export type LanguageOption = {
   code: LanguageCode
@@ -18,15 +22,25 @@ export type LinkItem = {
   label: string
 }
 
+export type SiteNavigationItem = LinkItem & {
+  key: string
+  placement: 'primary' | 'utility'
+  visibleDesktop: boolean
+  visibleMobile: boolean
+  newTab: boolean
+}
+
 export type CopyBlock = {
   kicker: string
   title: string
   lead: string
+  textAppearance?: TextAppearanceMap
 }
 
 export type ContentCard = {
   title: string
   text: string
+  textAppearance?: TextAppearanceMap
 }
 
 export type ContactFieldKey =
@@ -96,14 +110,14 @@ export type ProductItem = {
   description: string
   image?: ContentImage
   images?: ContentImage[]
+  media?: StoreProductMedia[]
   videoUrl?: string
   videoTitle?: string
   toolUrl?: string
   toolTitle?: string
   toolText?: string
   toolLabel?: string
-  features: string[]
-  applications: string[]
+  textAppearance?: TextAppearanceMap
 }
 
 export type CaseStudy = {
@@ -115,9 +129,11 @@ export type CaseStudy = {
   description?: string
   image?: ContentImage
   images?: ContentImage[]
+  media?: StoreProductMedia[]
   challenge: string
   solution: string
   result: string
+  textAppearance?: TextAppearanceMap
 }
 
 export type BlogPost = {
@@ -129,15 +145,63 @@ export type BlogPost = {
   category: string
   image?: ContentImage
   images?: ContentImage[]
+  media?: StoreProductMedia[]
   body: string
   article?: RichArticleBlock[]
+  textAppearance?: TextAppearanceMap
 }
 
-export type StoreCategory = 'bancos' | 'mesas' | 'cadeiras' | 'decking' | 'residuos' | 'cultivo'
+export type StoreCategory = string
+
+export type StoreCategoryDefinition = {
+  slug: StoreCategory
+  label: string
+}
 
 export type StoreFinish = 'natural' | 'dark'
 
+export type StoreSortKey = 'featured' | 'priceAsc' | 'priceDesc' | 'name'
+
+export type StorePostalGateLabels = {
+  kicker: string
+  title: string
+  lead: string
+  field: string
+  placeholder: string
+  submit: string
+  update: string
+  close: string
+  incomplete: string
+  unsupported: string
+}
+
+export type StoreDetailLabels = {
+  back: string
+  category: string
+  variant: string
+  finish: string
+  dimensions: string
+  weight: string
+  selectedPrice: string
+  productNet: string
+  transport: string
+  totalWithVat: string
+  ivaIncluded: string
+  deliveryPostcode: string
+  changePostcode: string
+  transportPending: string
+  transportOverweight: string
+  addToCart: string
+  added: string
+  viewCart: string
+  imagePending: string
+  quantity: string
+}
+
 export type StoreProductVariant = {
+  // Stable Sanity array key. Store cart entries use this instead of an array
+  // position so reordering variants in Studio cannot change a saved cart.
+  key: string
   sourceKey?: string
   label: string
   dimensions: string[]
@@ -161,9 +225,12 @@ export type StoreProduct = {
   // this fixed fee per cart line regardless of zone/weight instead of going
   // through the normal weight/zone carrier calculation — see calculateStoreEstimate.
   flatTransportPrice?: number
+  textAppearance?: TextAppearanceMap
 }
 
 export type SiteContent = {
+  textAppearance?: Record<string, TextAppearance>
+  navigation?: SiteNavigationItem[]
   nav: {
     home: string
     about: string
@@ -187,8 +254,6 @@ export type SiteContent = {
     result: string
     emailLabel: string
     phoneLabel: string
-    featuresLabel: string
-    applicationsLabel: string
     backToProducts: string
     backToCases: string
     backToBlog: string
@@ -217,7 +282,11 @@ export type SiteContent = {
     privacyPolicyUrl: string
     cookiePolicyLabel: string
     cookiePolicyUrl: string
+    cookieNoticeMessage: string
+    cookieNoticeLearnMore: string
+    cookieNoticeAccept: string
     marketingConsent: string
+    privacyConsentPrefix: string
   }
   home: {
     hero: CopyBlock
@@ -230,6 +299,7 @@ export type SiteContent = {
       title: string
       lead: string
       stats: ContentCard[]
+      textAppearance?: TextAppearanceMap
     }
     partners: CopyBlock & {
       items: PartnerItem[]
@@ -237,6 +307,7 @@ export type SiteContent = {
   }
   about: {
     hero: CopyBlock
+    statement: CopyBlock
     timeline: ContentCard[]
   }
   productsPage: {
@@ -253,24 +324,66 @@ export type SiteContent = {
     finishLabel: string
     sortLabel: string
     allCategoriesLabel: string
+    sortOptions: Record<StoreSortKey, string>
+    categories: StoreCategoryDefinition[]
     categoryLabels: Record<StoreCategory, string>
     finishLabels: Record<StoreFinish, string>
     priceFromLabel: string
     requestLabel: string
     noResults: string
     vatNote: string
+    delivery: {
+      postcode: string
+      change: string
+      cardPriceWithDelivery: string
+      cardPriceWithoutDelivery: string
+    }
+    postalGate: StorePostalGateLabels
+    detail: StoreDetailLabels
+  }
+  cartPage: {
+    hero: CopyBlock
+    cartItems: string
+    empty: string
+    continueShopping: string
+    clear: string
+    clearConfirm: string
+    request: string
+    quantity: string
+    remove: string
+    removed: string
+    finish: string
+    unitPrice: string
+    total: string
+    productSubtotal: string
+    transport: string
+    iva: string
+    finalTotal: string
+    deliveryPostcode: string
+    changePostcode: string
+    totalWeight: string
+    transportPending: string
+    transportOverweight: string
+    summary: string
+    product: string
   }
   catalogue: {
     hero: CopyBlock
     ctaLabel: string
+    formLabels: ContactFormLabels
     estimate: {
       kicker: string
       title: string
       lead: string
-      cards: ContentCard[]
       checklistTitle: string
       checklist: string[]
     }
+  }
+  returnsPolicy: {
+    kicker: string
+    title: string
+    lead: string
+    conditions: string[]
   }
   casesPage: {
     hero: CopyBlock
@@ -296,17 +409,9 @@ type SanityProduct = {
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
-  gallery?: SanityImage[]
+  gallery?: SanityStoreProductGalleryItem[]
   summary?: LocalizedValue
   description?: LocalizedValue
-  videoUrl?: string
-  videoTitle?: LocalizedValue
-  toolUrl?: string
-  toolTitle?: LocalizedValue
-  toolText?: LocalizedValue
-  toolLabel?: LocalizedValue
-  features?: LocalizedValue[]
-  applications?: LocalizedValue[]
 }
 
 type SanityCaseStudy = {
@@ -314,7 +419,7 @@ type SanityCaseStudy = {
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
-  gallery?: SanityImage[]
+  gallery?: SanityStoreProductGalleryItem[]
   location?: string
   summary?: LocalizedValue
   description?: LocalizedValue
@@ -328,7 +433,7 @@ type SanityBlogPost = {
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
-  gallery?: SanityImage[]
+  gallery?: SanityStoreProductGalleryItem[]
   excerpt?: LocalizedValue
   publishedAt?: string
   category?: LocalizedValue
@@ -350,13 +455,20 @@ type SanityStoreProduct = {
   _id?: string
   title?: LocalizedValue
   slug?: {current?: string}
-  category?: StoreCategory
+  category?: string
   summary?: LocalizedValue
   hasFinishChoice?: boolean
   flatTransportPrice?: number
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   variants?: SanityStoreProductVariant[]
+}
+
+type SanityStoreCategory = {
+  _id?: string
+  title?: LocalizedValue
+  slug?: {current?: string}
+  orderRank?: number
 }
 
 type SanityContentCard = {
@@ -395,16 +507,24 @@ type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], Com
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
 
 type SanitySiteContent = {
+  navigation?: Array<{
+    _key?: string
+    label?: LocalizedValue
+    href?: string
+    placement?: 'primary' | 'utility'
+    visibleDesktop?: boolean
+    visibleMobile?: boolean
+    newTab?: boolean
+  }>
   nav?: SanityLocalizedRecord<SiteContent['nav']>
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
-    heroImage?: SanityImage
     heroVideoUrl?: string
-    intro?: SanityCopyBlock
+    heroVideoLabel?: LocalizedValue
+    heroVideoCloseLabel?: LocalizedValue
     impact?: {
       title?: LocalizedValue
-      lead?: LocalizedValue
       stats?: SanityContentCard[]
     }
     partners?: {
@@ -416,6 +536,7 @@ type SanitySiteContent = {
   }
   about?: {
     hero?: SanityCopyBlock
+    statement?: SanityCopyBlock
     timeline?: SanityContentCard[]
   }
   productsPage?: {
@@ -427,19 +548,70 @@ type SanitySiteContent = {
     hero?: SanityCopyBlock
     lead?: LocalizedValue
     transportMultiplier?: number
+    searchLabel?: LocalizedValue
+    categoryLabel?: LocalizedValue
+    finishLabel?: LocalizedValue
+    sortLabel?: LocalizedValue
+    allCategoriesLabel?: LocalizedValue
+    sortOptions?: Partial<Record<StoreSortKey, LocalizedValue>>
+    categoryLabels?: Record<string, LocalizedValue>
+    finishLabels?: Partial<Record<StoreFinish, LocalizedValue>>
+    priceFromLabel?: LocalizedValue
+    requestLabel?: LocalizedValue
+    noResults?: LocalizedValue
+    vatNote?: LocalizedValue
+    delivery?: {
+      postcode?: LocalizedValue
+      change?: LocalizedValue
+      cardPriceWithDelivery?: LocalizedValue
+      cardPriceWithoutDelivery?: LocalizedValue
+    }
+    postalGate?: Partial<Record<keyof StorePostalGateLabels, LocalizedValue>>
+    detail?: Partial<Record<keyof StoreDetailLabels, LocalizedValue>>
+  }
+  cartPage?: {
+    hero?: SanityCopyBlock
+    cartItems?: LocalizedValue
+    empty?: LocalizedValue
+    continueShopping?: LocalizedValue
+    clear?: LocalizedValue
+    clearConfirm?: LocalizedValue
+    request?: LocalizedValue
+    quantity?: LocalizedValue
+    remove?: LocalizedValue
+    removed?: LocalizedValue
+    finish?: LocalizedValue
+    unitPrice?: LocalizedValue
+    total?: LocalizedValue
+    productSubtotal?: LocalizedValue
+    transport?: LocalizedValue
+    iva?: LocalizedValue
+    finalTotal?: LocalizedValue
+    deliveryPostcode?: LocalizedValue
+    changePostcode?: LocalizedValue
+    totalWeight?: LocalizedValue
+    transportPending?: LocalizedValue
+    transportOverweight?: LocalizedValue
+    summary?: LocalizedValue
+    product?: LocalizedValue
+  }
+  returnsPolicy?: {
+    kicker?: LocalizedValue
+    title?: LocalizedValue
+    lead?: LocalizedValue
+    conditions?: LocalizedValue[]
   }
   catalogue?: {
     hero?: SanityCopyBlock
     ctaLabel?: LocalizedValue
+    formLabels?: Partial<Record<ContactFieldKey, LocalizedValue>>
     estimate?: {
       kicker?: LocalizedValue
       title?: LocalizedValue
       lead?: LocalizedValue
-      cards?: SanityContentCard[]
       checklistTitle?: LocalizedValue
       checklist?: LocalizedValue[]
     }
-    note?: LocalizedValue
   }
   casesPage?: {
     hero?: SanityCopyBlock
@@ -451,7 +623,6 @@ type SanitySiteContent = {
   }
   contactPage?: {
     hero?: SanityCopyBlock
-    fields?: LocalizedValue[]
     formLabels?: Partial<Record<ContactFieldKey, LocalizedValue>>
   }
 }
@@ -490,6 +661,7 @@ type SanityStoreProductGalleryItem = SanityImage | SanityVideoFile
 export type SanityCollections = {
   siteContent?: SanitySiteContent
   products?: SanityProduct[]
+  storeCategories?: SanityStoreCategory[]
   storeProducts?: SanityStoreProduct[]
   caseStudies?: SanityCaseStudy[]
   blogPosts?: SanityBlogPost[]
@@ -502,6 +674,22 @@ export const languages: LanguageOption[] = [
   {code: 'en', label: 'EN', name: 'English'},
   {code: 'es', label: 'ES', name: 'Español'},
 ]
+
+const fallbackStoreCategoriesFor = (language: LanguageCode): StoreCategoryDefinition[] =>
+  defaultStoreCategories.map((category) => ({
+    slug: category.slug,
+    label: category.labels[language],
+  }))
+
+export const cleanStoreCategory = (value: string) => stegaClean(value).trim()
+
+export const storeCategoryLabel = (
+  storePage: Pick<SiteContent['storePage'], 'categoryLabels'>,
+  category: string,
+) => {
+  const key = cleanStoreCategory(category)
+  return storePage.categoryLabels[key] || humanizeStoreCategory(key)
+}
 
 export const withLanguage = (href: string, language: string) => `${href}?lang=${language}`
 
@@ -523,6 +711,10 @@ const contact = {
   facebook: 'https://www.facebook.com/dafabrica4you',
   instagram: 'https://www.instagram.com/dafabrica4you',
 }
+
+// The account auth pages (conta/registar, etc.) use fully hardcoded per-language
+// copy rather than data.site, so this is exported for their privacy-consent link.
+export const privacyPolicyUrl = contact.privacyPolicy
 
 const fallbackImages = {
   home: {
@@ -577,15 +769,6 @@ const productCategories = {
         'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
         'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking aplicado em exterior',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Planeie o seu deck',
-      toolText:
-        'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
-      toolLabel: 'Construir o meu deck',
-      features: ['Resistente à humidade', 'Sem farpas', 'Baixa manutenção'],
-      applications: ['Jardins privados', 'Piscinas', 'Parques', 'Frentes ribeirinhas'],
     },
     {
       title: 'Vedações, divisórias e resguardos',
@@ -594,8 +777,6 @@ const productCategories = {
         'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável.',
       description:
         'Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
-      features: ['Não apodrece', 'Não exige pintura recorrente', 'Adequado a uso exterior'],
-      applications: ['Condomínios', 'Autarquias', 'Quintas', 'Zonas técnicas'],
     },
     {
       title: 'Mobiliário urbano e jardim',
@@ -604,8 +785,6 @@ const productCategories = {
         'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados.',
       description:
         'Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
-      features: ['Uso intensivo', 'Limpeza simples', 'Aspeto cuidado'],
-      applications: ['Escolas', 'Jardins', 'Municípios', 'Empresas'],
     },
     {
       title: 'Abrigos, telheiros e pérgolas',
@@ -614,8 +793,6 @@ const productCategories = {
         'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado.',
       description:
         'Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
-      features: ['Estrutura personalizável', 'Boa resposta ao clima', 'Aplicação à medida'],
-      applications: ['Pátios', 'Entradas', 'Parques', 'Equipamentos públicos'],
     },
     {
       title: 'Compostores, caixas de cultivo e bordaduras',
@@ -624,8 +801,6 @@ const productCategories = {
         'Soluções para agricultura, compostagem e organização de canteiros em material reciclado.',
       description:
         'Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
-      features: ['Contacto exterior prolongado', 'Fácil lavagem', 'Material reciclado'],
-      applications: ['Hortas urbanas', 'Escolas', 'Municípios', 'Jardins domésticos'],
     },
   ],
   en: [
@@ -635,15 +810,6 @@ const productCategories = {
       summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
         'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking installed outdoors',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Plan your deck',
-      toolText:
-        'Open the simulator to prepare measurements and options before moving to a quote request.',
-      toolLabel: 'Build my deck',
-      features: ['Moisture resistant', 'No splinters', 'Low maintenance'],
-      applications: ['Private gardens', 'Pools', 'Parks', 'Riverfront areas'],
     },
     {
       title: 'Fencing, dividers and screens',
@@ -651,8 +817,6 @@ const productCategories = {
       summary: 'Profiles to define, protect and organize outdoor spaces with a durable material.',
       description:
         'Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
-      features: ['Does not rot', 'No recurring painting', 'Suitable for outdoor use'],
-      applications: ['Condominiums', 'Municipalities', 'Farms', 'Technical zones'],
     },
     {
       title: 'Urban and garden furniture',
@@ -661,8 +825,6 @@ const productCategories = {
         'Benches, tables, planters and pieces for intensive use in public or private spaces.',
       description:
         'Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
-      features: ['Intensive use', 'Simple cleaning', 'Considered appearance'],
-      applications: ['Schools', 'Gardens', 'Municipalities', 'Companies'],
     },
     {
       title: 'Shelters, canopies and pergolas',
@@ -671,8 +833,6 @@ const productCategories = {
         'Outdoor structures for shade, protection and organization using recycled-plastic profiles.',
       description:
         'Products that create support and stay areas without the maintenance routine of traditional timber.',
-      features: ['Customizable structure', 'Weather responsive', 'Made-to-measure application'],
-      applications: ['Patios', 'Entrances', 'Parks', 'Public facilities'],
     },
     {
       title: 'Composters, grow boxes and borders',
@@ -681,8 +841,6 @@ const productCategories = {
         'Solutions for agriculture, composting and garden organization in recycled material.',
       description:
         'Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
-      features: ['Long outdoor contact', 'Easy washing', 'Recycled material'],
-      applications: ['Urban gardens', 'Schools', 'Municipalities', 'Home gardens'],
     },
   ],
   es: [
@@ -693,15 +851,6 @@ const productCategories = {
         'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
         'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
-      videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-      videoTitle: 'Decking instalado en exterior',
-      toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      toolTitle: 'Planifica tu deck',
-      toolText:
-        'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
-      toolLabel: 'Construir mi deck',
-      features: ['Resistente a la humedad', 'Sin astillas', 'Bajo mantenimiento'],
-      applications: ['Jardines privados', 'Piscinas', 'Parques', 'Frentes fluviales'],
     },
     {
       title: 'Vallas, divisorias y resguardos',
@@ -710,8 +859,6 @@ const productCategories = {
         'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero.',
       description:
         'Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
-      features: ['No se pudre', 'Sin pintura recurrente', 'Adecuado para exterior'],
-      applications: ['Condominios', 'Municipios', 'Fincas', 'Zonas técnicas'],
     },
     {
       title: 'Mobiliario urbano y jardín',
@@ -720,8 +867,6 @@ const productCategories = {
         'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados.',
       description:
         'Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
-      features: ['Uso intensivo', 'Limpieza sencilla', 'Aspecto cuidado'],
-      applications: ['Escuelas', 'Jardines', 'Municipios', 'Empresas'],
     },
     {
       title: 'Refugios, cubiertas y pérgolas',
@@ -730,8 +875,6 @@ const productCategories = {
         'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado.',
       description:
         'Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
-      features: ['Estructura personalizable', 'Buena respuesta al clima', 'Aplicación a medida'],
-      applications: ['Patios', 'Entradas', 'Parques', 'Equipamientos públicos'],
     },
     {
       title: 'Compostadores, cajas de cultivo y borduras',
@@ -740,8 +883,6 @@ const productCategories = {
         'Soluciones para agricultura, compostaje y organización de canteros en material reciclado.',
       description:
         'Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
-      features: ['Contacto exterior prolongado', 'Lavado fácil', 'Material reciclado'],
-      applications: ['Huertos urbanos', 'Escuelas', 'Municipios', 'Jardines domésticos'],
     },
   ],
 } satisfies Record<LanguageCode, ProductItem[]>
@@ -944,6 +1085,45 @@ const blogPosts = {
   ],
 } satisfies Record<LanguageCode, BlogPost[]>
 
+const returnsPolicyDefaults: Record<LanguageCode, SiteContent['returnsPolicy']> = {
+  pt: {
+    kicker: 'Política',
+    title: 'Política de devoluções',
+    lead: 'Aceitamos devoluções, nas condições:',
+    conditions: [
+      'Produto tem que ser entregue à empresa de logística ao nível da rua',
+      'Recolha entre as 9.00 e 18:00 horas',
+      'Produto ser devolvido não danificado',
+      'Devolução no máximo de 14 dias de calendário, da data de entrega',
+      'Restituição integral do dinheiro na data de receção na nossa fábrica em Ponte Sor',
+    ],
+  },
+  en: {
+    kicker: 'Policy',
+    title: 'Returns policy',
+    lead: 'We accept returns under the following conditions:',
+    conditions: [
+      'The product must be handed over to the logistics company at street level',
+      'Collection between 9:00 AM and 6:00 PM',
+      'The product must be returned undamaged',
+      'Returns within a maximum of 14 calendar days from the delivery date',
+      'Full refund on the date the product is received at our factory in Ponte Sor',
+    ],
+  },
+  es: {
+    kicker: 'Política',
+    title: 'Política de devoluciones',
+    lead: 'Aceptamos devoluciones en las siguientes condiciones:',
+    conditions: [
+      'El producto debe entregarse a la empresa de logística a nivel de calle',
+      'Recogida entre las 9:00 y las 18:00 horas',
+      'El producto debe devolverse sin daños',
+      'Devolución en un máximo de 14 días naturales desde la fecha de entrega',
+      'Reembolso íntegro en la fecha de recepción en nuestra fábrica en Ponte Sor',
+    ],
+  },
+}
+
 export const fallbackContent: Record<LanguageCode, SiteContent> = {
   pt: {
     nav: {
@@ -969,8 +1149,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Resultado',
       emailLabel: 'Email',
       phoneLabel: 'Telefone',
-      featuresLabel: 'Características',
-      applicationsLabel: 'Aplicações',
       backToProducts: 'Voltar aos produtos',
       backToCases: 'Voltar aos casos',
       backToBlog: 'Voltar ao blog',
@@ -999,8 +1177,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyPolicyUrl: contact.privacyPolicy,
       cookiePolicyLabel: 'Política de cookies',
       cookiePolicyUrl: contact.cookiePolicy,
+      cookieNoticeMessage:
+        'O nosso website utiliza cookies para melhorar e personalizar a sua experiência de navegação.',
+      cookieNoticeLearnMore: 'Saiba mais',
+      cookieNoticeAccept: 'Aceito',
       marketingConsent:
         'Aceito que os meus dados sejam utilizados para contacto comercial e comunicações de marketing relacionadas com este pedido.',
+      privacyConsentPrefix: 'Eu concordo com a',
     },
     home: {
       hero: {
@@ -1075,6 +1258,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         title: 'Do ecoponto amarelo a produtos que duram',
         lead: 'A marca nasce da vontade de valorizar resíduos de embalagem, Tetra Pak e latas, substituindo parte do uso de madeira por produtos reciclados.',
       },
+      statement: {
+        kicker: 'Da preocupação à peça instalada',
+        title: 'O material certo quando a madeira pede manutenção',
+        lead: '',
+      },
       timeline: [
         {
           title: '2011',
@@ -1112,6 +1300,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       finishLabel: 'Acabamento',
       sortLabel: 'Ordenar',
       allCategoriesLabel: 'Todas',
+      sortOptions: {
+        featured: 'Destaque',
+        priceAsc: 'Preço crescente',
+        priceDesc: 'Preço decrescente',
+        name: 'Nome',
+      },
+      categories: fallbackStoreCategoriesFor('pt'),
       categoryLabels: {
         bancos: 'Bancos',
         mesas: 'Mesas e conjuntos',
@@ -1128,6 +1323,79 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       requestLabel: 'Pedir proposta',
       noResults: 'Sem produtos para estes filtros.',
       vatNote: '',
+      delivery: {
+        postcode: 'Zona',
+        change: 'Alterar',
+        cardPriceWithDelivery: 'Desde c/ transporte e IVA',
+        cardPriceWithoutDelivery: 'Desde s/ transporte',
+      },
+      postalGate: {
+        kicker: 'Código postal',
+        title: 'Preços certos desde o início',
+        lead: 'Calculamos transporte e IVA para a sua zona e mostramos logo os valores completos, sem surpresas mais à frente.',
+        field: 'Código postal',
+        placeholder: '7000',
+        submit: 'Entrar na loja',
+        update: 'Atualizar código postal',
+        close: 'Fechar',
+        incomplete: 'Indique os quatro dígitos do código postal.',
+        unsupported:
+          'Neste momento a loja calcula transporte apenas para Portugal continental entre 1000 e 8999.',
+      },
+      detail: {
+        back: 'Voltar à loja',
+        category: 'Categoria',
+        variant: 'Medida / variante',
+        finish: 'Acabamento',
+        dimensions: 'Dimensões',
+        weight: 'Peso',
+        selectedPrice: 'Preço selecionado',
+        productNet: 'Produto s/ IVA',
+        transport: 'Transporte',
+        totalWithVat: 'Total',
+        ivaIncluded: 'IVA incluído',
+        deliveryPostcode: 'Zona',
+        changePostcode: 'Alterar',
+        transportPending: 'Transporte a confirmar',
+        transportOverweight:
+          'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
+        addToCart: 'Adicionar ao carrinho',
+        added: 'Adicionado ao carrinho',
+        viewCart: 'Ver carrinho',
+        imagePending: 'Imagem a adicionar pelo cliente',
+        quantity: 'Quantidade',
+      },
+    },
+    cartPage: {
+      hero: {
+        kicker: 'Carrinho',
+        title: 'Reveja os produtos antes de pedir orçamento',
+        lead: '',
+      },
+      cartItems: 'Carrinho',
+      empty: 'O carrinho ainda está vazio.',
+      continueShopping: 'Continuar na loja',
+      clear: 'Limpar carrinho',
+      clearConfirm: 'Quer mesmo remover todos os produtos do carrinho?',
+      request: 'Finalizar pedido',
+      quantity: 'Quantidade',
+      remove: 'Remover',
+      removed: 'Produto removido do carrinho',
+      finish: 'Acabamento',
+      unitPrice: 'Preço unitário',
+      total: 'Total estimado',
+      productSubtotal: 'Produtos s/ IVA',
+      transport: 'Transporte',
+      iva: 'IVA 23%',
+      finalTotal: 'Total c/ IVA',
+      deliveryPostcode: 'Zona',
+      changePostcode: 'Alterar',
+      totalWeight: 'Peso total',
+      transportPending: 'A confirmar',
+      transportOverweight:
+        'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
+      summary: 'Resumo',
+      product: 'Produto',
     },
     catalogue: {
       hero: {
@@ -1136,21 +1404,20 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Para receber o catálogo DaFábrica4You, faça o pedido através do formulário. Assim a equipa consegue responder com a informação certa para o seu caso.',
       },
       ctaLabel: 'Pedir catálogo',
+      formLabels: {
+        firstName: 'Nome',
+        lastName: 'Apelido',
+        email: 'Email',
+        phone: 'Telefone',
+        address: 'Morada',
+        postalCode: 'Código postal',
+        locality: 'Localidade',
+        message: 'Mensagem',
+      },
       estimate: {
         kicker: 'Pedido de catálogo',
         title: 'Como receber o catálogo',
         lead: 'Se pretende consultar o catálogo, envie o pedido através do formulário.\nO contacto fica registado para que a equipa possa enviar a informação e acompanhar a resposta.',
-        cards: [
-          {
-            title: 'Contacto',
-            text: 'Nome, email e telefone para resposta.',
-          },
-          {title: 'Localização', text: 'Código postal e localidade para enquadrar o pedido.'},
-          {
-            title: 'Mensagem',
-            text: 'Explique se procura catálogo geral, produto específico ou apoio para projeto.',
-          },
-        ],
         checklistTitle: 'No formulário, indique',
         checklist: [
           'Nome e contacto',
@@ -1160,6 +1427,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.pt,
     casesPage: {
       hero: {
         kicker: 'Casos de estudo',
@@ -1223,8 +1491,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Result',
       emailLabel: 'Email',
       phoneLabel: 'Phone',
-      featuresLabel: 'Features',
-      applicationsLabel: 'Applications',
       backToProducts: 'Back to products',
       backToCases: 'Back to cases',
       backToBlog: 'Back to blog',
@@ -1254,8 +1520,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyPolicyUrl: contact.privacyPolicy,
       cookiePolicyLabel: 'Cookie policy',
       cookiePolicyUrl: contact.cookiePolicy,
+      cookieNoticeMessage:
+        'Our website uses cookies to improve and personalise your browsing experience.',
+      cookieNoticeLearnMore: 'Learn more',
+      cookieNoticeAccept: 'Accept',
       marketingConsent:
         'I agree that my data may be used for commercial contact and marketing communications related to this request.',
+      privacyConsentPrefix: 'I agree with the',
     },
     home: {
       hero: {
@@ -1330,6 +1601,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         title: 'From yellow-bin waste to durable products',
         lead: 'The brand begins with the wish to value packaging waste, Tetra Pak and cans, replacing part of timber use with recycled products.',
       },
+      statement: {
+        kicker: 'From concern to installed product',
+        title: 'The right material when timber asks for maintenance',
+        lead: '',
+      },
       timeline: [
         {
           title: '2011',
@@ -1367,6 +1643,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       finishLabel: 'Finish',
       sortLabel: 'Sort',
       allCategoriesLabel: 'All',
+      sortOptions: {
+        featured: 'Featured',
+        priceAsc: 'Price low to high',
+        priceDesc: 'Price high to low',
+        name: 'Name',
+      },
+      categories: fallbackStoreCategoriesFor('en'),
       categoryLabels: {
         bancos: 'Benches',
         mesas: 'Tables and sets',
@@ -1383,6 +1666,79 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       requestLabel: 'Request proposal',
       noResults: 'No products for these filters.',
       vatNote: '',
+      delivery: {
+        postcode: 'Zone',
+        change: 'Change',
+        cardPriceWithDelivery: 'From incl. transport and VAT',
+        cardPriceWithoutDelivery: 'From excl. transport',
+      },
+      postalGate: {
+        kicker: 'Postcode',
+        title: 'The right prices from the start',
+        lead: 'We calculate delivery and VAT for your area so you see complete prices straight away, with no surprises later.',
+        field: 'Postcode',
+        placeholder: '7000',
+        submit: 'Enter store',
+        update: 'Update postcode',
+        close: 'Close',
+        incomplete: 'Enter the four postcode digits.',
+        unsupported:
+          'The store currently estimates transport only for mainland Portugal between 1000 and 8999.',
+      },
+      detail: {
+        back: 'Back to store',
+        category: 'Category',
+        variant: 'Size / variant',
+        finish: 'Finish',
+        dimensions: 'Dimensions',
+        weight: 'Weight',
+        selectedPrice: 'Selected price',
+        productNet: 'Product excl. VAT',
+        transport: 'Transport',
+        totalWithVat: 'Total',
+        ivaIncluded: 'VAT included',
+        deliveryPostcode: 'Zone',
+        changePostcode: 'Change',
+        transportPending: 'Transport to confirm',
+        transportOverweight:
+          'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
+        addToCart: 'Add to cart',
+        added: 'Added to cart',
+        viewCart: 'View cart',
+        imagePending: 'Image to be added by the client',
+        quantity: 'Quantity',
+      },
+    },
+    cartPage: {
+      hero: {
+        kicker: 'Cart',
+        title: 'Review the products before requesting a quote',
+        lead: '',
+      },
+      cartItems: 'Cart',
+      empty: 'Your cart is still empty.',
+      continueShopping: 'Continue shopping',
+      clear: 'Clear cart',
+      clearConfirm: 'Remove every item from the cart?',
+      request: 'Checkout',
+      quantity: 'Quantity',
+      remove: 'Remove',
+      removed: 'Item removed from cart',
+      finish: 'Finish',
+      unitPrice: 'Unit price',
+      total: 'Estimated total',
+      productSubtotal: 'Products excl. VAT',
+      transport: 'Transport',
+      iva: 'VAT 23%',
+      finalTotal: 'Total incl. VAT',
+      deliveryPostcode: 'Zone',
+      changePostcode: 'Change',
+      totalWeight: 'Total weight',
+      transportPending: 'To confirm',
+      transportOverweight:
+        'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
+      summary: 'Summary',
+      product: 'Product',
     },
     catalogue: {
       hero: {
@@ -1391,24 +1747,20 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'To receive the DaFábrica4You catalogue, send the request through the form. This helps the team answer with the right information for your case.',
       },
       ctaLabel: 'Request catalogue',
+      formLabels: {
+        firstName: 'First name',
+        lastName: 'Last name',
+        email: 'Email',
+        phone: 'Phone',
+        address: 'Address',
+        postalCode: 'Postcode',
+        locality: 'Location',
+        message: 'Message',
+      },
       estimate: {
         kicker: 'Catalogue request',
         title: 'How to receive the catalogue',
         lead: 'If you want to consult the catalogue, send the request through the form.\nThe contact is saved so the team can send the information and follow up.',
-        cards: [
-          {
-            title: 'Contact',
-            text: 'Name, email and phone for the reply.',
-          },
-          {
-            title: 'Location',
-            text: 'Postcode and locality to frame the request.',
-          },
-          {
-            title: 'Message',
-            text: 'Explain whether you want the general catalogue, a specific product or project support.',
-          },
-        ],
         checklistTitle: 'In the form, include',
         checklist: [
           'Name and contact details',
@@ -1418,6 +1770,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.en,
     casesPage: {
       hero: {
         kicker: 'Case studies',
@@ -1481,8 +1834,6 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       result: 'Resultado',
       emailLabel: 'Email',
       phoneLabel: 'Teléfono',
-      featuresLabel: 'Características',
-      applicationsLabel: 'Aplicaciones',
       backToProducts: 'Volver a productos',
       backToCases: 'Volver a casos',
       backToBlog: 'Volver al blog',
@@ -1512,8 +1863,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyPolicyUrl: contact.privacyPolicy,
       cookiePolicyLabel: 'Política de cookies',
       cookiePolicyUrl: contact.cookiePolicy,
+      cookieNoticeMessage:
+        'Nuestro sitio web utiliza cookies para mejorar y personalizar su experiencia de navegación.',
+      cookieNoticeLearnMore: 'Saber más',
+      cookieNoticeAccept: 'Acepto',
       marketingConsent:
         'Acepto que mis datos se utilicen para contacto comercial y comunicaciones de marketing relacionadas con esta solicitud.',
+      privacyConsentPrefix: 'Estoy de acuerdo con la',
     },
     home: {
       hero: {
@@ -1588,6 +1944,11 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         title: 'Del contenedor amarillo a productos duraderos',
         lead: 'La marca nace del deseo de valorizar residuos de envases, Tetra Pak y latas, sustituyendo parte del uso de madera por productos reciclados.',
       },
+      statement: {
+        kicker: 'De la preocupación a la pieza instalada',
+        title: 'El material correcto cuando la madera pide mantenimiento',
+        lead: '',
+      },
       timeline: [
         {
           title: '2011',
@@ -1625,6 +1986,13 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       finishLabel: 'Acabado',
       sortLabel: 'Ordenar',
       allCategoriesLabel: 'Todas',
+      sortOptions: {
+        featured: 'Destacado',
+        priceAsc: 'Precio ascendente',
+        priceDesc: 'Precio descendente',
+        name: 'Nombre',
+      },
+      categories: fallbackStoreCategoriesFor('es'),
       categoryLabels: {
         bancos: 'Bancos',
         mesas: 'Mesas y conjuntos',
@@ -1641,6 +2009,79 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       requestLabel: 'Solicitar propuesta',
       noResults: 'No hay productos para estos filtros.',
       vatNote: '',
+      delivery: {
+        postcode: 'Zona',
+        change: 'Cambiar',
+        cardPriceWithDelivery: 'Desde con transporte e IVA',
+        cardPriceWithoutDelivery: 'Desde sin transporte',
+      },
+      postalGate: {
+        kicker: 'Código postal',
+        title: 'Precios correctos desde el inicio',
+        lead: 'Calculamos transporte e IVA para tu zona y mostramos los valores completos desde el principio, sin sorpresas después.',
+        field: 'Código postal',
+        placeholder: '7000',
+        submit: 'Entrar en la tienda',
+        update: 'Actualizar código postal',
+        close: 'Cerrar',
+        incomplete: 'Indica los cuatro dígitos del código postal.',
+        unsupported:
+          'La tienda calcula transporte solo para Portugal continental entre 1000 y 8999.',
+      },
+      detail: {
+        back: 'Volver a tienda',
+        category: 'Categoría',
+        variant: 'Medida / variante',
+        finish: 'Acabado',
+        dimensions: 'Dimensiones',
+        weight: 'Peso',
+        selectedPrice: 'Precio seleccionado',
+        productNet: 'Producto sin IVA',
+        transport: 'Transporte',
+        totalWithVat: 'Total',
+        ivaIncluded: 'IVA incluido',
+        deliveryPostcode: 'Zona',
+        changePostcode: 'Cambiar',
+        transportPending: 'Transporte por confirmar',
+        transportOverweight:
+          'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
+        addToCart: 'Añadir al carrito',
+        added: 'Añadido al carrito',
+        viewCart: 'Ver carrito',
+        imagePending: 'Imagen pendiente del cliente',
+        quantity: 'Cantidad',
+      },
+    },
+    cartPage: {
+      hero: {
+        kicker: 'Carrito',
+        title: 'Revisa los productos antes de pedir presupuesto',
+        lead: '',
+      },
+      cartItems: 'Carrito',
+      empty: 'El carrito todavía está vacío.',
+      continueShopping: 'Seguir en tienda',
+      clear: 'Vaciar carrito',
+      clearConfirm: '¿Quieres eliminar todos los productos del carrito?',
+      request: 'Finalizar pedido',
+      quantity: 'Cantidad',
+      remove: 'Eliminar',
+      removed: 'Producto eliminado del carrito',
+      finish: 'Acabado',
+      unitPrice: 'Precio unitario',
+      total: 'Total estimado',
+      productSubtotal: 'Productos sin IVA',
+      transport: 'Transporte',
+      iva: 'IVA 23%',
+      finalTotal: 'Total con IVA',
+      deliveryPostcode: 'Zona',
+      changePostcode: 'Cambiar',
+      totalWeight: 'Peso total',
+      transportPending: 'Por confirmar',
+      transportOverweight:
+        'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
+      summary: 'Resumen',
+      product: 'Producto',
     },
     catalogue: {
       hero: {
@@ -1649,21 +2090,20 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Para recibir el catálogo de DaFábrica4You, realiza el pedido a través del formulario. Así el equipo puede responder con la información adecuada para tu caso.',
       },
       ctaLabel: 'Solicitar catálogo',
+      formLabels: {
+        firstName: 'Nombre',
+        lastName: 'Apellidos',
+        email: 'Email',
+        phone: 'Teléfono',
+        address: 'Dirección',
+        postalCode: 'Código postal',
+        locality: 'Localidad',
+        message: 'Mensaje',
+      },
       estimate: {
         kicker: 'Solicitud de catálogo',
         title: 'Cómo recibir el catálogo',
         lead: 'Si quieres consultar el catálogo, envía la solicitud a través del formulario.\nEl contacto queda registrado para que el equipo pueda enviar la información y hacer seguimiento.',
-        cards: [
-          {
-            title: 'Contacto',
-            text: 'Nombre, email y teléfono para la respuesta.',
-          },
-          {title: 'Ubicación', text: 'Código postal y localidad para contextualizar la solicitud.'},
-          {
-            title: 'Mensaje',
-            text: 'Explica si buscas catálogo general, producto específico o apoyo para un proyecto.',
-          },
-        ],
         checklistTitle: 'En el formulario, indica',
         checklist: [
           'Nombre y datos de contacto',
@@ -1673,6 +2113,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         ],
       },
     },
+    returnsPolicy: returnsPolicyDefaults.es,
     casesPage: {
       hero: {
         kicker: 'Casos de estudio',
@@ -1720,6 +2161,28 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
   value?.[language]?.trim() || value?.pt?.trim() || fallback
 
+const appearanceFrom = (value: LocalizedValue | undefined): TextAppearance | undefined => {
+  if (!value) return undefined
+  const appearance = Object.fromEntries(
+    textAppearanceFields.flatMap((field) => {
+      const raw = value[field]
+      if (raw === undefined) return []
+      return [[field, typeof raw === 'string' ? stegaClean(raw).trim() : raw]]
+    }),
+  ) as TextAppearance
+  return Object.keys(appearance).length ? appearance : undefined
+}
+
+const appearanceMap = (
+  values: Record<string, LocalizedValue | undefined>,
+): TextAppearanceMap | undefined => {
+  const entries = Object.entries(values).flatMap(([key, value]) => {
+    const appearance = appearanceFrom(value)
+    return appearance ? [[key, appearance] as const] : []
+  })
+  return entries.length ? Object.fromEntries(entries) : undefined
+}
+
 const localizedArticle = (
   value: LocalizedArticleValue | undefined,
   language: LanguageCode,
@@ -1756,6 +2219,11 @@ const copyBlockFromSanity = (
   kicker: localized(source?.kicker, language, fallback.kicker),
   title: localized(source?.title, language, fallback.title),
   lead: localized(source?.lead, language, fallback.lead),
+  textAppearance: appearanceMap({
+    kicker: source?.kicker,
+    title: source?.title,
+    lead: source?.lead,
+  }),
 })
 
 const contentCardsFromSanity = (
@@ -1768,6 +2236,7 @@ const contentCardsFromSanity = (
   return items.map((item, index) => ({
     title: localized(item.title, language, fallback[index]?.title ?? ''),
     text: localized(item.text, language, fallback[index]?.text ?? ''),
+    textAppearance: appearanceMap({title: item.title, text: item.text}),
   }))
 }
 
@@ -1891,16 +2360,33 @@ export const productImagesFor = (item: ProductItem, fallback: ContentImage) => {
   return [fallback]
 }
 
+// For the interactive gallery only (thumbnails/SEO keep using productImagesFor,
+// unaffected). Falls back to plain images when a product has no uploaded video.
+export const productMediaFor = (item: ProductItem, fallback: ContentImage) => {
+  if (item.media?.length) return item.media
+  return productImagesFor(item, fallback).map((image) => storeProductMediaImage(image))
+}
+
 export const caseStudyImagesFor = (item: CaseStudy, fallback: ContentImage) => {
   if (item.images?.length) return item.images
   if (item.image) return [item.image]
   return [fallback]
 }
 
+export const caseStudyMediaFor = (item: CaseStudy, fallback: ContentImage) => {
+  if (item.media?.length) return item.media
+  return caseStudyImagesFor(item, fallback).map((image) => storeProductMediaImage(image))
+}
+
 export const blogImagesFor = (item: BlogPost, fallback: ContentImage) => {
   if (item.images?.length) return item.images
   if (item.image) return [item.image]
   return [fallback]
+}
+
+export const blogMediaFor = (item: BlogPost, fallback: ContentImage) => {
+  if (item.media?.length) return item.media
+  return blogImagesFor(item, fallback).map((image) => storeProductMediaImage(image))
 }
 
 export const storeProductMediaFor = (item: StoreProduct) => {
@@ -1938,7 +2424,7 @@ const optionalImageFromSanity = (
         aspectRatio: image.asset.metadata?.dimensions?.aspectRatio,
         sourceName: image.asset.originalFilename,
         lqip: image.asset.metadata?.lqip,
-    }
+      }
     : undefined
 
 const storeProductMediaImage = (image: ContentImage, editPath?: string): StoreProductMedia => ({
@@ -1949,8 +2435,7 @@ const storeProductMediaImage = (image: ContentImage, editPath?: string): StorePr
 
 const isSanityVideoFile = (
   item: SanityStoreProductGalleryItem | undefined,
-): item is SanityVideoFile =>
-  item?._type === 'galleryVideo'
+): item is SanityVideoFile => item?._type === 'galleryVideo'
 
 const videoFromSanity = (
   item: SanityStoreProductGalleryItem | undefined,
@@ -1980,9 +2465,7 @@ const storeProductMediaFromSanity = (
   if (primaryImage) media.push(storeProductMediaImage(primaryImage, 'image'))
 
   for (const item of gallery ?? []) {
-    const editPath = item?._key
-      ? `gallery[_key=="${item._key.replace(/"/g, '\\"')}"]`
-      : 'gallery'
+    const editPath = item?._key ? `gallery[_key=="${item._key.replace(/"/g, '\\"')}"]` : 'gallery'
 
     if (isSanityVideoFile(item)) {
       const video = videoFromSanity(item, language, editPath)
@@ -1995,6 +2478,24 @@ const storeProductMediaFromSanity = (
   }
 
   return media
+}
+
+const contentMediaFromSanity = (
+  mainImage: SanityImage | undefined,
+  gallery: SanityStoreProductGalleryItem[] | undefined,
+  language: LanguageCode,
+  fallback: ContentImage,
+) => {
+  const uploadedMedia = storeProductMediaFromSanity(mainImage, gallery, language)
+  const media = uploadedMedia.length ? uploadedMedia : [storeProductMediaImage(fallback)]
+  const images = media.flatMap((item) =>
+    item.type === 'image' ? [item] : item.poster ? [item.poster] : [],
+  )
+
+  return {
+    media,
+    images: images.length ? images : [fallback],
+  }
 }
 
 const partnersFromSanity = (
@@ -2092,32 +2593,43 @@ const productFallbackForSlug = (
   slug: string,
   language: LanguageCode,
   fallback: ProductItem[],
-): Partial<ProductItem> | undefined =>
-  fallback.find((item) => item.slug === slug) ??
-  (slug === 'decking' || slug === 'decking-pavimentos-passadicos'
+): Partial<ProductItem> | undefined => fallback.find((item) => item.slug === slug)
+
+const exclusiveProductExtrasForSlug = (
+  slug: string,
+  language: LanguageCode,
+): Partial<ProductItem> =>
+  slug === 'decking' || slug === 'decking-pavimentos-passadicos'
     ? deckingProductExtras[language]
-    : undefined)
+    : {}
 
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
   fallback: ProductItem[],
 ) => {
-  if (!products?.length) return fallback
+  if (!products?.length) {
+    return fallback.map((product) => ({
+      ...product,
+      ...exclusiveProductExtrasForSlug(product.slug, language),
+    }))
+  }
 
   return products
     .filter((product) => product.slug?.current)
     .map((product, index) => {
       const slug = product.slug?.current ?? ''
       const fallbackProduct = productFallbackForSlug(slug, language, fallback)
+      const exclusiveExtras = exclusiveProductExtrasForSlug(slug, language)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
-          product.gallery,
+          (product.gallery ?? []).filter((item): item is SanityImage => !isSanityVideoFile(item)),
           language,
           fallbackProduct?.image ?? fallbackImages.product,
         ),
       )
+      const productMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
@@ -2125,22 +2637,61 @@ const productsFromSanity = (
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
         images: productImages,
+        media: productMedia,
         summary: cleanProductMaterialCopy(
           localized(product.summary, language, fallbackProduct?.summary ?? ''),
         ),
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
-        videoUrl: product.videoUrl?.trim() || fallbackProduct?.videoUrl || '',
-        videoTitle: localized(product.videoTitle, language, fallbackProduct?.videoTitle ?? ''),
-        toolUrl: product.toolUrl?.trim() || fallbackProduct?.toolUrl || '',
-        toolTitle: localized(product.toolTitle, language, fallbackProduct?.toolTitle ?? ''),
-        toolText: localized(product.toolText, language, fallbackProduct?.toolText ?? ''),
-        toolLabel: localized(product.toolLabel, language, fallbackProduct?.toolLabel ?? ''),
-        features: [],
-        applications: [],
+        textAppearance: appearanceMap({
+          title: product.title,
+          summary: product.summary,
+          description: product.description,
+        }),
+        ...exclusiveExtras,
       }
     })
+}
+
+const applyStoreCategoriesFromSanity = (
+  target: SiteContent,
+  categories: SanityStoreCategory[] | undefined,
+  language: LanguageCode,
+) => {
+  const definitions = new Map<string, StoreCategoryDefinition & {orderRank: number}>()
+
+  target.storePage.categories.forEach((category, index) => {
+    definitions.set(category.slug, {
+      ...category,
+      orderRank: index * 10,
+    })
+  })
+
+  for (const category of categories ?? []) {
+    const slug = cleanStoreCategory(category.slug?.current ?? '')
+    if (!slug) continue
+    const current = definitions.get(slug)
+    definitions.set(slug, {
+      slug,
+      label: localized(
+        category.title,
+        language,
+        current?.label ?? target.storePage.categoryLabels[slug] ?? humanizeStoreCategory(slug),
+      ),
+      orderRank: category.orderRank ?? current?.orderRank ?? 100,
+    })
+  }
+
+  const ordered = [...definitions.values()].sort(
+    (left, right) =>
+      left.orderRank - right.orderRank || left.label.localeCompare(right.label, language),
+  )
+
+  target.storePage.categoryLabels = Object.fromEntries(
+    ordered.map((category) => [category.slug, category.label]),
+  )
+  target.storePage.categories = ordered.map(({slug, label}) => ({slug, label}))
 }
 
 const storeProductsFromSanity = (
@@ -2154,7 +2705,7 @@ const storeProductsFromSanity = (
     .filter((product) => product.slug?.current)
     .map((product, index) => {
       const slug = product.slug?.current ?? ''
-      const fallbackProduct = fallback.find((item) => item.slug === slug) ?? fallback[index]
+      const fallbackProduct = fallback.find((item) => item.slug === slug)
       const variants = (product.variants ?? [])
         .map<StoreProductVariant | null>((variant, variantIndex) => {
           const fallbackVariant = fallbackProduct?.variants[variantIndex]
@@ -2164,6 +2715,7 @@ const storeProductsFromSanity = (
           if (typeof natural !== 'number' || typeof dark !== 'number') return null
 
           const nextVariant: StoreProductVariant = {
+            key: variant._key ?? fallbackVariant?.key ?? `variant-${variantIndex}`,
             sourceKey: variant._key,
             label: localized(variant.label, language, fallbackVariant?.label ?? 'Variante'),
             dimensions: localizedList(
@@ -2174,7 +2726,7 @@ const storeProductsFromSanity = (
             prices: {natural, dark},
           }
           const weightKg = variant.weightKg ?? fallbackVariant?.weightKg
-      const note = localized(variant.note, language, fallbackVariant?.note ?? '')
+          const note = localized(variant.note, language, fallbackVariant?.note ?? '')
 
           if (typeof weightKg === 'number') nextVariant.weightKg = weightKg
           if (note) nextVariant.note = note
@@ -2198,7 +2750,7 @@ const storeProductsFromSanity = (
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
         slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
-        category: product.category ?? fallbackProduct?.category ?? 'bancos',
+        category: cleanStoreCategory(product.category ?? fallbackProduct?.category ?? 'bancos'),
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
         hasFinishChoice: product.hasFinishChoice ?? fallbackProduct?.hasFinishChoice ?? true,
         flatTransportPrice: product.flatTransportPrice ?? fallbackProduct?.flatTransportPrice,
@@ -2206,6 +2758,7 @@ const storeProductsFromSanity = (
         images,
         media,
         variants,
+        textAppearance: appearanceMap({title: product.title, summary: product.summary}),
       } satisfies StoreProduct
     })
     .filter((product) => product.variants.length)
@@ -2223,25 +2776,36 @@ const casesFromSanity = (
   return cases
     .filter((item) => item.slug?.current)
     .map((item, index) => {
-      const images = imagesFromSanity(
+      const slug = item.slug?.current ?? ''
+      const fallbackCase = fallback.find((entry) => entry.slug === slug)
+      const {images, media} = contentMediaFromSanity(
         item.image,
         item.gallery,
         language,
-        fallback[index]?.image ?? fallbackImages.caseStudy,
+        fallbackCase?.image ?? fallbackImages.caseStudy,
       )
 
       return {
         studioDocumentId: item._id?.replace(/^drafts\./, ''),
-        title: localized(item.title, language, fallback[index]?.title ?? 'Case study'),
-        slug: item.slug?.current ?? fallback[index]?.slug ?? `case-${index + 1}`,
+        title: localized(item.title, language, fallbackCase?.title ?? 'Case study'),
+        slug: slug || fallbackCase?.slug || `case-${index + 1}`,
         image: images[0],
         images,
-        location: item.location?.trim() || fallback[index]?.location || '',
+        media,
+        location: item.location?.trim() || fallbackCase?.location || '',
         summary: localized(item.summary, language, ''),
         description: localized(item.description, language, ''),
         challenge: localized(item.challenge, language, ''),
         solution: localized(item.solution, language, ''),
         result: localized(item.result, language, ''),
+        textAppearance: appearanceMap({
+          title: item.title,
+          summary: item.summary,
+          description: item.description,
+          challenge: item.challenge,
+          solution: item.solution,
+          result: item.result,
+        }),
       }
     })
 }
@@ -2256,24 +2820,33 @@ const postsFromSanity = (
   return posts
     .filter((post) => post.slug?.current)
     .map((post, index) => {
-      const images = imagesFromSanity(
+      const slug = post.slug?.current ?? ''
+      const fallbackPost = fallback.find((entry) => entry.slug === slug)
+      const {images, media} = contentMediaFromSanity(
         post.image,
         post.gallery,
         language,
-        fallback[index]?.image ?? fallbackImages.blog,
+        fallbackPost?.image ?? fallbackImages.blog,
       )
 
       return {
         studioDocumentId: post._id?.replace(/^drafts\./, ''),
-        title: localized(post.title, language, fallback[index]?.title ?? 'Blog post'),
-        slug: post.slug?.current ?? fallback[index]?.slug ?? `post-${index + 1}`,
+        title: localized(post.title, language, fallbackPost?.title ?? 'Blog post'),
+        slug: slug || fallbackPost?.slug || `post-${index + 1}`,
         image: images[0],
         images,
-        excerpt: localized(post.excerpt, language, fallback[index]?.excerpt ?? ''),
-        publishedAt: post.publishedAt?.trim() || fallback[index]?.publishedAt || '',
-        category: localized(post.category, language, fallback[index]?.category ?? ''),
-        body: localized(post.body, language, fallback[index]?.body ?? ''),
-        article: localizedArticle(post.article, language, fallback[index]?.article),
+        media,
+        excerpt: localized(post.excerpt, language, fallbackPost?.excerpt ?? ''),
+        publishedAt: post.publishedAt?.trim() || fallbackPost?.publishedAt || '',
+        category: localized(post.category, language, fallbackPost?.category ?? ''),
+        body: localized(post.body, language, fallbackPost?.body ?? ''),
+        article: localizedArticle(post.article, language, fallbackPost?.article),
+        textAppearance: appearanceMap({
+          title: post.title,
+          excerpt: post.excerpt,
+          category: post.category,
+          body: post.body,
+        }),
       }
     })
 }
@@ -2296,18 +2869,38 @@ const applySiteContentFromSanity = (
 ) => {
   if (!source) return
 
+  target.navigation = (source.navigation ?? [])
+    .map((item, index) => {
+      const href = stegaClean(item.href?.trim() || '')
+      const placement = stegaClean(item.placement || '')
+      return {
+        key: item._key || `navigation-${index}`,
+        label: localized(item.label, language, ''),
+        href,
+        placement: placement === 'utility' ? ('utility' as const) : ('primary' as const),
+        visibleDesktop: item.visibleDesktop !== false,
+        visibleMobile: item.visibleMobile !== false,
+        newTab: item.newTab === true,
+      }
+    })
+    .filter((item) => item.label && item.href)
   target.nav = localizedRecord(source.nav, language, fallback.nav)
   target.common = commonFromSanity(source.common, language, fallback.common)
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
-    heroImage: imageFromSanity(source.home?.heroImage, language, fallback.home.heroImage),
+    heroImage: fallback.home.heroImage,
     heroVideoUrl: source.home?.heroVideoUrl?.trim() || fallback.home.heroVideoUrl,
-    heroVideoLabel: fallback.home.heroVideoLabel,
-    heroVideoCloseLabel: fallback.home.heroVideoCloseLabel,
-    intro: copyBlockFromSanity(source.home?.intro, language, fallback.home.intro),
+    heroVideoLabel: localized(source.home?.heroVideoLabel, language, fallback.home.heroVideoLabel),
+    heroVideoCloseLabel: localized(
+      source.home?.heroVideoCloseLabel,
+      language,
+      fallback.home.heroVideoCloseLabel,
+    ),
+    intro: fallback.home.intro,
     impact: {
       title: localized(source.home?.impact?.title, language, fallback.home.impact.title),
-      lead: localized(source.home?.impact?.lead, language, fallback.home.impact.lead),
+      lead: fallback.home.impact.lead,
+      textAppearance: appearanceMap({title: source.home?.impact?.title}),
       stats: contentCardsFromSanity(
         source.home?.impact?.stats,
         language,
@@ -2326,11 +2919,15 @@ const applySiteContentFromSanity = (
 
   target.about = {
     hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
+    statement: copyBlockFromSanity(source.about?.statement, language, fallback.about.statement),
     timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
   }
 
   target.productsPage = {
-    hero: {...copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.productsPage?.hero, language, fallback.productsPage.hero),
+      lead: '',
+    },
     heroImage: imageFromSanity(
       source.productsPage?.heroImage,
       language,
@@ -2341,8 +2938,68 @@ const applySiteContentFromSanity = (
 
   target.storePage = {
     ...fallback.storePage,
-    hero: {...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero),
+      lead: '',
+    },
     lead: '',
+    searchLabel: localized(source.storePage?.searchLabel, language, fallback.storePage.searchLabel),
+    categoryLabel: localized(
+      source.storePage?.categoryLabel,
+      language,
+      fallback.storePage.categoryLabel,
+    ),
+    finishLabel: localized(source.storePage?.finishLabel, language, fallback.storePage.finishLabel),
+    sortLabel: localized(source.storePage?.sortLabel, language, fallback.storePage.sortLabel),
+    allCategoriesLabel: localized(
+      source.storePage?.allCategoriesLabel,
+      language,
+      fallback.storePage.allCategoriesLabel,
+    ),
+    categoryLabels: Object.fromEntries(
+      Object.keys(fallback.storePage.categoryLabels).map((key) => [
+        key,
+        localized(
+          source.storePage?.categoryLabels?.[key],
+          language,
+          fallback.storePage.categoryLabels[key],
+        ),
+      ]),
+    ) as Record<string, string>,
+    finishLabels: Object.fromEntries(
+      (Object.keys(fallback.storePage.finishLabels) as StoreFinish[]).map((key) => [
+        key,
+        localized(
+          source.storePage?.finishLabels?.[key],
+          language,
+          fallback.storePage.finishLabels[key],
+        ),
+      ]),
+    ) as Record<StoreFinish, string>,
+    priceFromLabel: localized(
+      source.storePage?.priceFromLabel,
+      language,
+      fallback.storePage.priceFromLabel,
+    ),
+    requestLabel: localized(
+      source.storePage?.requestLabel,
+      language,
+      fallback.storePage.requestLabel,
+    ),
+    noResults: localized(source.storePage?.noResults, language, fallback.storePage.noResults),
+    vatNote: localized(source.storePage?.vatNote, language, fallback.storePage.vatNote),
+    sortOptions: localizedRecord(
+      source.storePage?.sortOptions,
+      language,
+      fallback.storePage.sortOptions,
+    ),
+    delivery: localizedRecord(source.storePage?.delivery, language, fallback.storePage.delivery),
+    postalGate: localizedRecord(
+      source.storePage?.postalGate,
+      language,
+      fallback.storePage.postalGate,
+    ),
+    detail: localizedRecord(source.storePage?.detail, language, fallback.storePage.detail),
     transportMultiplier:
       Number.isFinite(source.storePage?.transportMultiplier) &&
       (source.storePage?.transportMultiplier ?? 0) > 0
@@ -2350,9 +3007,21 @@ const applySiteContentFromSanity = (
         : fallback.storePage.transportMultiplier,
   }
 
+  const {hero: fallbackCartHero, ...fallbackCartLabels} = fallback.cartPage
+  const {hero: sourceCartHero, ...sourceCartLabels} = source.cartPage ?? {}
+  target.cartPage = {
+    hero: copyBlockFromSanity(sourceCartHero, language, fallbackCartHero),
+    ...localizedRecord(sourceCartLabels, language, fallbackCartLabels),
+  }
+
   target.catalogue = {
     hero: copyBlockFromSanity(source.catalogue?.hero, language, fallback.catalogue.hero),
     ctaLabel: localized(source.catalogue?.ctaLabel, language, fallback.catalogue.ctaLabel),
+    formLabels: localizedRecord(
+      source.catalogue?.formLabels,
+      language,
+      fallback.catalogue.formLabels,
+    ),
     estimate: {
       kicker: localized(
         source.catalogue?.estimate?.kicker,
@@ -2365,7 +3034,6 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.title,
       ),
       lead: localized(source.catalogue?.estimate?.lead, language, fallback.catalogue.estimate.lead),
-      cards: fallback.catalogue.estimate.cards,
       checklistTitle: localized(
         source.catalogue?.estimate?.checklistTitle,
         language,
@@ -2379,8 +3047,22 @@ const applySiteContentFromSanity = (
     },
   }
 
+  target.returnsPolicy = {
+    kicker: localized(source.returnsPolicy?.kicker, language, fallback.returnsPolicy.kicker),
+    title: localized(source.returnsPolicy?.title, language, fallback.returnsPolicy.title),
+    lead: localized(source.returnsPolicy?.lead, language, fallback.returnsPolicy.lead),
+    conditions: localizedListFromSanity(
+      source.returnsPolicy?.conditions,
+      language,
+      fallback.returnsPolicy.conditions,
+    ),
+  }
+
   target.casesPage = {
-    hero: {...copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero), lead: ''},
+    hero: {
+      ...copyBlockFromSanity(source.casesPage?.hero, language, fallback.casesPage.hero),
+      lead: '',
+    },
     heroImage: imageFromSanity(source.casesPage?.heroImage, language, fallback.casesPage.heroImage),
   }
 
@@ -2389,22 +3071,16 @@ const applySiteContentFromSanity = (
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
   }
 
-  const legacyContactFields = localizedListFromSanity(
-    source.contactPage?.fields,
-    language,
-    fallback.contactPage.fields,
-  )
-
   target.contactPage = {
     hero: copyBlockFromSanity(source.contactPage?.hero, language, fallback.contactPage.hero),
-    fields: legacyContactFields,
+    fields: fallback.contactPage.fields,
     formLabels: Object.fromEntries(
       contactFieldKeys.map((key, index) => [
         key,
         localized(
           source.contactPage?.formLabels?.[key],
           language,
-          fallback.contactPage.formLabels[key] || legacyContactFields[index] || key,
+          fallback.contactPage.formLabels[key] || fallback.contactPage.fields[index] || key,
         ),
       ]),
     ) as ContactFormLabels,
@@ -2414,7 +3090,19 @@ const applySiteContentFromSanity = (
 export const contentFromSanity = (
   collections: SanityCollections | null,
 ): Record<LanguageCode, SiteContent> => {
-  if (!collections) return fallbackContent
+  if (!collections) {
+    const next = structuredClone(fallbackContent)
+
+    for (const language of Object.keys(next) as LanguageCode[]) {
+      next[language].products = productsFromSanity(
+        undefined,
+        language,
+        fallbackContent[language].products,
+      )
+    }
+
+    return next
+  }
 
   const next = structuredClone(fallbackContent)
 
@@ -2425,6 +3113,7 @@ export const contentFromSanity = (
       language,
       fallbackContent[language],
     )
+    applyStoreCategoriesFromSanity(next[language], collections.storeCategories, language)
     next[language].products = productsFromSanity(
       collections.products,
       language,

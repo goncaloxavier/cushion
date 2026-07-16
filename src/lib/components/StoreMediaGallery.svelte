@@ -46,6 +46,7 @@
     transitionName = undefined,
     sizes = '(max-width: 900px) 92vw, (max-width: 1400px) calc(100vw - 2.5rem), 1210px',
     dataAttribute = undefined,
+    fallbackEditPath = 'image',
   } = $props<{
     media: StoreProductMedia[]
     label: string
@@ -54,12 +55,13 @@
     transitionName?: string
     sizes?: string
     dataAttribute?: (path: string) => string | undefined
+    fallbackEditPath?: string
   }>()
 
   // Each media item carries its own Sanity field path so click-to-edit maps to
   // the exact image / gallery item, regardless of order or a missing main image.
   const attrFor = (entry: StoreProductMedia | undefined) =>
-    entry?.editPath && dataAttribute ? dataAttribute(entry.editPath) : undefined
+    dataAttribute ? dataAttribute(entry?.editPath || fallbackEditPath) : undefined
 
   let selectedIndex = $state(0)
   let zoomOpen = $state(false)
@@ -79,6 +81,7 @@
       : undefined,
   )
   const itemLabel = $derived(item?.type === 'video' ? item.title || label : label)
+  const altFor = (candidate: ContentImage) => candidate.alt?.trim() || label
 
   const selectItem = (index: number) => {
     selectedIndex = Math.min(media.length - 1, Math.max(0, index))
@@ -135,14 +138,14 @@
       onfocus={() => preloadFull(item)}
       onclick={openLightbox}
       data-sanity={activeDataAttribute}
-      data-sanity-edit-target={activeDataAttribute ? true : undefined}
+      data-df4y-editor-kind={item.type}
     >
       {#if item.type === 'image'}
         <img
           src={sizedImage(item.url, 1600, 76)}
           srcset={imageSrcset(item.url, [640, 900, 1200, 1600, 2000], 76)}
           {sizes}
-          alt={item.alt}
+          alt={altFor(item)}
           decoding="async"
           fetchpriority="high"
           style:background={lqipBackground(item)}
@@ -186,7 +189,7 @@
             class:is-video={mediaItem.type === 'video'}
             aria-label={`${mediaItem.type === 'video' ? mediaItem.title || label : label} ${index + 1}`}
             data-sanity={thumbAttr}
-            data-sanity-edit-target={thumbAttr ? true : undefined}
+            data-df4y-editor-kind={mediaItem.type}
             onclick={() => {
               selectItem(index)
             }}
@@ -196,7 +199,7 @@
                 src={sizedImage(thumb.url, 220)}
                 srcset={imageSrcset(thumb.url, [120, 180, 240, 320])}
                 sizes="6rem"
-                alt={thumb.alt}
+                alt={altFor(thumb)}
                 loading="lazy"
                 decoding="async"
                 style:background={lqipBackground(thumb)}
@@ -243,7 +246,7 @@
           src={sizedImage(item.url, lightboxWidth)}
           srcset={imageSrcset(item.url, [800, 1200, 1600])}
           sizes="94vw"
-          alt={item.alt}
+          alt={altFor(item)}
           decoding="async"
           style:background={lqipBackground(item)}
         />

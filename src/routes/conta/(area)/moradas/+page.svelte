@@ -25,8 +25,8 @@
     deleted: string
     defaultSaved: string
     label: string
+    nif: string
     address: string
-    address2: string
     postalCode: string
     locality: string
     country: string
@@ -51,9 +51,9 @@
       saved: 'Morada guardada.',
       deleted: 'Morada removida.',
       defaultSaved: 'Preferência atualizada.',
-      label: 'Nome da morada',
+      label: 'Nome',
+      nif: 'NIF',
       address: 'Morada',
-      address2: 'Complemento',
       postalCode: 'Código postal',
       locality: 'Localidade',
       country: 'País',
@@ -76,9 +76,9 @@
       saved: 'Address saved.',
       deleted: 'Address removed.',
       defaultSaved: 'Preference updated.',
-      label: 'Address name',
+      label: 'Name',
+      nif: 'Tax number',
       address: 'Address',
-      address2: 'Address line 2',
       postalCode: 'Postal code',
       locality: 'Locality',
       country: 'Country',
@@ -101,9 +101,9 @@
       saved: 'Dirección guardada.',
       deleted: 'Dirección eliminada.',
       defaultSaved: 'Preferencia actualizada.',
-      label: 'Nombre de la dirección',
+      label: 'Nombre',
+      nif: 'NIF',
       address: 'Dirección',
-      address2: 'Complemento',
       postalCode: 'Código postal',
       locality: 'Localidad',
       country: 'País',
@@ -116,8 +116,8 @@
   const t = $derived(copyByLanguage[data.language] ?? copyByLanguage.pt)
   const editorLabels = $derived({
     label: t.label,
+    nif: t.nif,
     address: t.address,
-    address2: t.address2,
     postalCode: t.postalCode,
     locality: t.locality,
     country: t.country,
@@ -125,8 +125,15 @@
     save: t.save,
     cancel: t.cancel,
   })
-  const billingAddresses = $derived(data.addresses.filter((address) => address.addressType === 'billing'))
-  const deliveryAddresses = $derived(data.addresses.filter((address) => address.addressType === 'delivery'))
+  let preferredAddressIds = $state<Partial<Record<AddressType, string>>>({})
+  const addresses = $derived(
+    data.addresses.map((address) => {
+      const preferredId = preferredAddressIds[address.addressType as AddressType]
+      return preferredId ? {...address, isDefault: address.id === preferredId} : address
+    }),
+  )
+  const billingAddresses = $derived(addresses.filter((address) => address.addressType === 'billing'))
+  const deliveryAddresses = $derived(addresses.filter((address) => address.addressType === 'delivery'))
   let creatingType = $state<AddressType | ''>('')
   let editingId = $state('')
 
@@ -143,6 +150,7 @@
   // invalidateAll() — keeps the shell mounted, no page remount.
   const onAddressSaved = async () => {
     closeEditor()
+    preferredAddressIds = {}
     await invalidate('account:addresses')
     showToast(t.saved)
   }
@@ -154,8 +162,22 @@
     () =>
     async ({result}) => {
       if (result.type === 'success') {
+        preferredAddressIds = {}
         await invalidate('account:addresses')
         showToast(successMessage)
+      } else if (result.type === 'failure') {
+        const message = (result.data as {message?: string} | undefined)?.message
+        if (message) showToast(message, 'error')
+      }
+    }
+
+  const afterDefaultAction =
+    (addressId: string, addressType: AddressType): SubmitFunction =>
+    () =>
+    async ({result}) => {
+      if (result.type === 'success') {
+        preferredAddressIds = {...preferredAddressIds, [addressType]: addressId}
+        showToast(t.defaultSaved)
       } else if (result.type === 'failure') {
         const message = (result.data as {message?: string} | undefined)?.message
         if (message) showToast(message, 'error')
@@ -168,7 +190,7 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<Reveal class="account-card account-address-page-card" variant="card">
+<Reveal class="account-card account-address-page-card" variant="card" priority>
     <div class="account-card-head">
       <h2>{t.title}</h2>
     </div>
@@ -195,7 +217,7 @@
 
         <div class="account-address-list">
           {#if billingAddresses.length}
-            {#each billingAddresses as address (address.id)}
+            {#each billingAddresses as address, index (address.id)}
               {#if editingId === address.id}
                 <div class="account-inline-form">
                   <AccountAddressEditor
@@ -204,18 +226,25 @@
                     addressType="billing"
                     labels={editorLabels}
                     onCancel={closeEditor}
-              onSuccess={onAddressSaved}
-              onError={onAddressError}
+                    onSuccess={onAddressSaved}
+                    onError={onAddressError}
                   />
                 </div>
               {:else}
-                <article class="account-address-block" class:is-default={address.isDefault}>
+                <article
+                  class="account-address-block"
+                  class:is-default={address.isDefault}
+                  style={`--item-index: ${index}`}
+                >
                   <div class="account-address-block-head">
                     <span>{address.name || t.billing}</span>
                     {#if address.isDefault}
                       <span class="account-chip is-verified">{t.defaultLabel}</span>
                     {/if}
                   </div>
+                  {#if address.nif}
+                    <p class="account-address-nif">{t.nif}: {address.nif}</p>
+                  {/if}
                   <p class="account-address">
                     {address.addressLine1}
                     {#if address.addressLine2}<br />{address.addressLine2}{/if}
@@ -227,7 +256,11 @@
                       {t.edit}
                     </button>
                     {#if !address.isDefault}
-                      <form method="POST" action="?/setDefault" use:enhance={afterAddressAction(t.defaultSaved)}>
+                      <form
+                        method="POST"
+                        action="?/setDefault"
+                        use:enhance={afterDefaultAction(address.id, 'billing')}
+                      >
                         <input type="hidden" name="csrfToken" value={data.csrfToken} />
                         <input type="hidden" name="addressId" value={address.id} />
                         <button class="account-edit-btn" type="submit">{t.makeDefault}</button>
@@ -269,7 +302,7 @@
 
         <div class="account-address-list">
           {#if deliveryAddresses.length}
-            {#each deliveryAddresses as address (address.id)}
+            {#each deliveryAddresses as address, index (address.id)}
               {#if editingId === address.id}
                 <div class="account-inline-form">
                   <AccountAddressEditor
@@ -278,12 +311,16 @@
                     addressType="delivery"
                     labels={editorLabels}
                     onCancel={closeEditor}
-              onSuccess={onAddressSaved}
-              onError={onAddressError}
+                    onSuccess={onAddressSaved}
+                    onError={onAddressError}
                   />
                 </div>
               {:else}
-                <article class="account-address-block" class:is-default={address.isDefault}>
+                <article
+                  class="account-address-block"
+                  class:is-default={address.isDefault}
+                  style={`--item-index: ${index}`}
+                >
                   <div class="account-address-block-head">
                     <span>{address.name || t.delivery}</span>
                     {#if address.isDefault}
@@ -301,7 +338,11 @@
                       {t.edit}
                     </button>
                     {#if !address.isDefault}
-                      <form method="POST" action="?/setDefault" use:enhance={afterAddressAction(t.defaultSaved)}>
+                      <form
+                        method="POST"
+                        action="?/setDefault"
+                        use:enhance={afterDefaultAction(address.id, 'delivery')}
+                      >
                         <input type="hidden" name="csrfToken" value={data.csrfToken} />
                         <input type="hidden" name="addressId" value={address.id} />
                         <button class="account-edit-btn" type="submit">{t.makeDefault}</button>

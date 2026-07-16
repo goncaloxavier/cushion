@@ -6,6 +6,7 @@ const csrfCookieName = 'df4y_painel_csrf'
 export const load: LayoutServerLoad = async ({cookies, locals, url}) => {
   return {
     staff: locals.staff,
+    currentPath: url.pathname,
     painelCsrfToken: locals.staff
       ? issueCsrfToken(cookies, csrfCookieName, '/painel', url.protocol === 'https:')
       : '',

@@ -1,32 +1,10 @@
-import {
-  createHash,
-  randomBytes,
-  scrypt as scryptCb,
-  timingSafeEqual,
-  type ScryptOptions,
-} from 'node:crypto'
 import type {Cookies} from '@sveltejs/kit'
 import {databaseConfigured, query, withTransaction} from './db'
 import {rateLimit} from './rate-limit'
+import {dummyHash, hashPassword, randomToken, tokenHashOf, verifyPassword} from './password-auth'
 
-const scrypt = (
-  password: string,
-  salt: Buffer,
-  keylen: number,
-  options: ScryptOptions,
-): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    scryptCb(password, salt, keylen, {maxmem: 64 * 1024 * 1024, ...options}, (err, derivedKey) => {
-      if (err) reject(err)
-      else resolve(derivedKey)
-    })
-  })
+export {tokenHashOf} from './password-auth'
 
-const SCRYPT_N = 2 ** 15
-const SCRYPT_R = 8
-const SCRYPT_P = 1
-const SALT_LEN = 16
-const KEY_LEN = 64
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const EMAIL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000
@@ -41,6 +19,7 @@ export type CustomerUser = {
   nif: string
   purchaseType: string
   emailVerifiedAt: string | null
+  privacyConsentAt: string | null
 }
 
 type CustomerRow = {
@@ -51,6 +30,7 @@ type CustomerRow = {
   nif: string
   purchase_type: string
   email_verified_at: string | null
+  privacy_consent_at: string | null
 }
 
 const mapCustomer = (row: CustomerRow): CustomerUser => ({
@@ -61,6 +41,7 @@ const mapCustomer = (row: CustomerRow): CustomerUser => ({
   nif: row.nif ?? '',
   purchaseType: row.purchase_type ?? 'individual',
   emailVerifiedAt: row.email_verified_at,
+  privacyConsentAt: row.privacy_consent_at,
 })
 
 export const customerRateLimit = rateLimit
@@ -72,38 +53,10 @@ export const isValidEmail = (value: string) =>
 
 export const normalizePhoneForCustomer = (value: string) => value.replace(/[^\d+]/g, '').slice(0, 32)
 
-export const hashPassword = async (password: string): Promise<string> => {
-  const salt = randomBytes(SALT_LEN)
-  const derived = await scrypt(password, salt, KEY_LEN, {N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P})
-  return ['scrypt', `${SCRYPT_N}.${SCRYPT_R}.${SCRYPT_P}`, salt.toString('base64'), derived.toString('base64')].join(
-    '$',
-  )
-}
-
-export const verifyPassword = async (password: string, stored: string): Promise<boolean> => {
-  const parts = stored.split('$')
-  if (parts.length !== 4 || parts[0] !== 'scrypt') return false
-  const [n, r, p] = parts[1].split('.').map(Number)
-  if (!n || !r || !p) return false
-
-  const salt = Buffer.from(parts[2], 'base64')
-  const expected = Buffer.from(parts[3], 'base64')
-  const derived = await scrypt(password, salt, expected.length, {N: n, r, p})
-  return derived.length === expected.length && timingSafeEqual(derived, expected)
-}
-
-const dummyHash = `scrypt$${SCRYPT_N}.${SCRYPT_R}.${SCRYPT_P}$${Buffer.alloc(SALT_LEN).toString(
-  'base64',
-)}$${Buffer.alloc(KEY_LEN).toString('base64')}`
-
-export const tokenHashOf = (token: string) => createHash('sha256').update(token).digest('hex')
-
-const randomToken = () => randomBytes(32).toString('base64url')
-
 export const findCustomerByEmail = async (email: string) => {
   if (!databaseConfigured()) return null
   const result = await query<(CustomerRow & {password_hash: string | null})>(
-    `select id, email, name, phone, nif, purchase_type, email_verified_at, password_hash
+    `select id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at, password_hash
      from customers
      where email_normalized = $1
      limit 1`,
@@ -125,9 +78,9 @@ export const createCustomer = async (input: {
   const passwordHash = await hashPassword(input.password)
 
   const result = await query<CustomerRow>(
-    `insert into customers (email, email_normalized, password_hash, name, phone, nif, purchase_type)
-     values ($1, $2, $3, $4, $5, $6, $7)
-     returning id, email, name, phone, nif, purchase_type, email_verified_at`,
+    `insert into customers (email, email_normalized, password_hash, name, phone, nif, purchase_type, privacy_consent_at)
+     values ($1, $2, $3, $4, $5, $6, $7, now())
+     returning id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at`,
     [
       email,
       emailNormalized,
@@ -150,7 +103,7 @@ export const updateCustomerProfile = async (
     `update customers
      set name = $2, phone = $3, nif = $4, purchase_type = $5, updated_at = now()
      where id = $1
-     returning id, email, name, phone, nif, purchase_type, email_verified_at`,
+     returning id, email, name, phone, nif, purchase_type, email_verified_at, privacy_consent_at`,
     [
       customerId,
       input.name.trim().slice(0, 160),
@@ -235,7 +188,8 @@ export const validateCustomerSession = async (token: string | undefined) => {
          c.phone,
          c.nif,
          c.purchase_type,
-         c.email_verified_at
+         c.email_verified_at,
+         c.privacy_consent_at
        from customer_sessions s
        join customers c on c.id = s.customer_id
        where s.token_hash = $1

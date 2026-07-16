@@ -1,4 +1,4 @@
-import type {StaffUser} from '$lib/server/auth'
+import type {StaffUser} from '$lib/server/staff-auth'
 import type {CustomerUser} from '$lib/server/customer-auth'
 
 declare global {

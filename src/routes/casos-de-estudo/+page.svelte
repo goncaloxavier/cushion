@@ -2,6 +2,7 @@
   import Pagination from '$lib/components/Pagination.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {seoDescription} from '$lib/seo'
   import {browser} from '$app/environment'
   import {collectionDetailHref} from '$lib/collection-page'
   import {caseStudyImageFallback, imageFor} from '$lib/site-content'
@@ -9,6 +10,7 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
+  import {textAppearanceStyle} from '$lib/text-appearance'
 
   let {data} = $props()
   const content = $derived(data.site)
@@ -85,15 +87,26 @@
 
 <SeoHead
   title={content.nav.cases}
-  description={content.casesPage.hero.title}
+  description={seoDescription(
+    data.language,
+    content.casesPage.hero.lead,
+    content.caseStudies.map((item) => item.summary || item.description).join(' '),
+  )}
   image={content.casesPage.heroImage}
 />
 
 <main class="cases-page">
   <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
-      <p class="kicker">{content.casesPage.hero.kicker}</p>
-      <h1 use:lineReveal>{content.casesPage.hero.title}</h1>
+      <p
+        class="kicker cms-styled-text"
+        style={textAppearanceStyle(content.casesPage.hero.textAppearance?.kicker)}
+      >{content.casesPage.hero.kicker}</p>
+      <h1
+        class="cms-styled-text"
+        style={textAppearanceStyle(content.casesPage.hero.textAppearance?.title)}
+        use:lineReveal
+      >{content.casesPage.hero.title}</h1>
     </Reveal>
 
     <Reveal class="case-index-media" delay={120} variant="media" priority>
@@ -101,7 +114,7 @@
         src={sizedImage(content.casesPage.heroImage.url, 1100)}
         srcset={imageSrcset(content.casesPage.heroImage.url, [600, 900, 1200, 1600])}
         sizes="(max-width: 900px) 92vw, 600px"
-        alt={content.casesPage.heroImage.alt}
+        alt={content.casesPage.heroImage.alt || content.casesPage.hero.title}
         loading="eager"
         fetchpriority="high"
         decoding="async"
@@ -120,7 +133,6 @@
           <input
             bind:value={query}
             type="search"
-            aria-label={content.common.searchCases}
             placeholder={content.common.searchPlaceholder}
           />
         </label>
@@ -140,7 +152,7 @@
               src={sizedImage(image.url, 640)}
               srcset={imageSrcset(image.url, [360, 480, 640, 800])}
               sizes="(max-width: 700px) 92vw, 360px"
-              alt={image.alt}
+              alt={image.alt || item.title}
               loading="lazy"
               decoding="async"
               style:background={image.lqip
@@ -151,7 +163,10 @@
             <span class="card-meta">{item.location}</span>
           </div>
           <div class="case-card-copy">
-            <h2>{item.title}</h2>
+            <h2
+              class="cms-styled-text"
+              style={textAppearanceStyle(item.textAppearance?.title)}
+            >{item.title}</h2>
           </div>
         </a>
       {/each}

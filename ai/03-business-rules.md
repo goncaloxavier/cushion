@@ -32,7 +32,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Public text content should meet comfortable low-vision readability expectations: strong contrast, body copy at readable sizes, generous line-height, and support for OS high-contrast preferences.
 - Product detail pages should not render the product summary and description as two competing text blocks; use one focused detail description, optionally followed by a separated resistance/maintenance paragraph.
 - Product detail pages should not render generic `Características`/`Aplicações` chip or list bands when they duplicate obvious sales points already present in the detail copy.
-- Product detail pages may show optional Studio-managed support content: a YouTube product video and an external tool/simulator CTA. Decking currently uses `https://www.youtube.com/watch?v=VIUVlk51iN0` and the temporary deck calculator URL `https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m`.
+- The Decking detail page has an exclusive, code-managed support section using `https://www.youtube.com/watch?v=VIUVlk51iN0` and the temporary deck calculator URL `https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m`. These are not generic product fields in Sanity and must not appear on other product details.
 - Case-study detail pages should fold the description into the hero lead and should not render a separate standalone description band below the hero.
 - Product list cards and product detail copy should avoid repeating generic material-origin badges such as "100% plástico reciclado" when that claim already appears in the surrounding product/site copy.
 - Product-category pricing is not confirmed. Present catalogue/request guidance there instead of pretending to have final product prices.
@@ -43,11 +43,14 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Historical Webnode blog posts are migrated through `scripts/old-blog-posts.ts` as reviewed PT/EN/ES content, with Portuguese bodies extracted from the raw Webnode HTML and EN/ES full-body translations generated for review, then imported with public-read-safe deterministic `blogPost-<slug>` IDs, hash-shortened only when a slug would exceed Sanity's document ID length. Imports keep the legacy full-text `body` and also populate the rich `article` field so Studio editors can preserve headings, lists, simple tables, links, images, and YouTube embeds.
 - Automated browser/visual tests intentionally use fallback fixtures so editorial changes in Studio do not invalidate local visual review output.
 - Sanity Presentation/Visual Editing should let editors preview draft website content and click through to Studio fields without changing the public visitor content until publishing.
+- The standalone `/painel/site` builder is the future page-authoring surface. It stores versioned page/settings drafts and assets in Sanity through protected server endpoints, while staff identity and roles continue to come from Postgres.
+- Builder migration is page-by-page: `Site atual` and `Construtor` must be compared for the same route, and the existing public renderer stays active until every route has content, design, accessibility, SEO, and desktop/tablet/mobile parity.
+- The builder may expose bounded content/design/layout controls but never arbitrary HTML, JavaScript, CSS, iframe markup, or browser-visible Sanity credentials.
 - Pagination on list pages should return the visitor to the top of the changed collection, and a browser refresh should start at the top of the page.
 - Primary quote CTAs should go directly to contact/request action, with catalogue guidance linked only where it helps.
 - The floating WhatsApp shortcut is useful on public browsing routes, but it should not obstruct the contact form.
 - The contact form includes a marketing/personal-data consent checkbox and should not allow submission until every field is filled and consent is checked.
-- Valid contact/catalogue form submissions create a private `formSubmission` document and update/create a private `clientProfile` document in the Sanity `crm` dataset. These records are for business follow-up and must not be rendered on the public website.
+- Valid contact/catalogue form submissions create a `crm_form_submissions` row and update/create a `crm_client_profiles` row in Postgres, deduped by normalized email. These records are for business follow-up and must not be rendered on the public website.
 - The contact form backend must keep stable internal field names even when Studio editors change the visible labels.
 
 ## Inputs
@@ -66,7 +69,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 - Public SvelteKit routed website.
 - Sanity Studio website workspace for editing multilingual page copy, contact/footer content, product categories, Loja products/prices, case studies, and blog posts.
-- Sanity Studio CRM workspace for reviewing form submissions, changing request status, adding internal notes, and maintaining client profiles.
+- Standalone Postgres-authenticated `/painel/site` builder backed by Sanity page/settings drafts, media, and publishing.
+- Postgres-backed `/painel/pedidos` and `/painel/perfis` for reviewing form submissions, changing request status, adding internal notes, and maintaining client profiles.
 - Local Carrinho page that summarizes selected Loja products and estimated transport/IVA for the stored postal code.
 - Postgres-backed checkout orders with staff review in `/painel/encomendas`.
 
@@ -89,9 +93,10 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 - Sanity website editing access is handled by Sanity project permissions and login.
 - Sanity Presentation/Visual Editing requires server-only preview credentials that can read drafts and preview-secret documents; public visitors must never receive those credentials.
-- CRM access is handled by Sanity project permissions plus the private `crm` dataset.
-- The public SvelteKit app uses a server-side write token for CRM writes only; no Sanity write token should ever be bundled into client-side code.
-- Required private runtime variables for live CRM writes: `SANITY_CRM_WRITE_TOKEN` and `CRM_HASH_SECRET`; optional override: `SANITY_CRM_DATASET`.
+- `/painel/site` requires a valid staff session. Builder writes additionally require same-origin and CSRF validation; global theme/publish/delete operations are admin-only. Its signed draft-preview cookie is short-lived, httpOnly, same-origin, and iframe-only.
+- CRM and backoffice-staff access is handled by Postgres row data (`crm_form_submissions`/`crm_client_profiles`/`staff_users`) plus `/painel` session auth; staff roles (`admin`/`staff`) gate write actions via `canManageStaff`.
+- The public SvelteKit app writes CRM data only through server-side Postgres code (`DATABASE_URL`); no database credential should ever be bundled into client-side code.
+- Required private runtime variable for live CRM writes and the backoffice: `DATABASE_URL` (same Postgres database as ecommerce). `SANITY_CRM_WRITE_TOKEN` (optionally with `SANITY_CRM_DATASET`) is only needed to run the one-off `scripts/migrate-crm-to-postgres.ts` against the legacy Sanity `crm` dataset.
 - Required private/runtime variables for Visual Editing preview: `SANITY_VIEWER_TOKEN`, `SANITY_STUDIO_PREVIEW_ORIGIN`, and `SANITY_STUDIO_URL`.
 - Required private/runtime variables for ecommerce orders/accounts: `DATABASE_URL`; run `npm run db:migrate` after provisioning.
 - Required private/runtime variables for production ecommerce email: `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.

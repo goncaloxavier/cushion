@@ -13,7 +13,7 @@ export const blogPost = defineType({
     defineField({
       name: 'title',
       title: 'Título do artigo',
-      description: 'Título público do artigo.',
+      description: 'Título público no Blog.',
       type: 'localizedString',
       group: 'conteudo',
       validation: (Rule) => Rule.required(),
@@ -21,8 +21,7 @@ export const blogPost = defineType({
     defineField({
       name: 'slug',
       title: 'Endereço da página',
-      description:
-        'Parte final do URL. Gere a partir do título em Português e evite alterar depois de publicado.',
+      description: 'Gere a partir do título e evite alterar depois de publicar.',
       type: 'slug',
       group: 'conteudo',
       options: {source: 'title.pt', maxLength: 96},
@@ -31,7 +30,7 @@ export const blogPost = defineType({
     defineField({
       name: 'image',
       title: 'Imagem de capa',
-      description: 'Imagem usada na listagem do blog e na página do artigo.',
+      description: 'Usada na listagem e na página do artigo.',
       type: 'image',
       group: 'imagem',
       options: {hotspot: true},
@@ -39,15 +38,16 @@ export const blogPost = defineType({
         defineField({
           name: 'alt',
           title: 'Descrição da imagem',
-          description: 'Texto simples para acessibilidade. Diga o que se vê na imagem.',
+          description: 'Para acessibilidade. Diga o que se vê.',
           type: 'localizedString',
+          validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
         }),
       ],
     }),
     defineField({
       name: 'gallery',
-      title: 'Galeria do artigo',
-      description: 'Imagens extra para a página do artigo. O site mostra-as inteiras, sem corte.',
+      title: 'Galeria',
+      description: 'Imagens e vídeos adicionais. O site mostra-os sem corte.',
       type: 'array',
       group: 'imagem',
       of: [
@@ -58,17 +58,47 @@ export const blogPost = defineType({
             defineField({
               name: 'alt',
               title: 'Descrição da imagem',
-              description: 'Texto simples para acessibilidade.',
+              description: 'Para acessibilidade. Diga o que se vê.',
               type: 'localizedString',
+              validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
             }),
           ],
         },
+        defineField({
+          name: 'galleryVideo',
+          title: 'Vídeo carregado',
+          description: 'Ficheiro de vídeo apresentado na galeria do artigo.',
+          type: 'file',
+          options: {accept: 'video/mp4,video/webm,video/quicktime'},
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Título do vídeo',
+              description: 'Identifica o vídeo no player e para leitores de ecrã.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa',
+              description: 'Opcional. Aparece antes da reprodução.',
+              type: 'image',
+              options: {hotspot: true},
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  type: 'localizedString',
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     defineField({
       name: 'publishedAt',
       title: 'Data de publicação',
-      description: 'Data visível no artigo e usada para ordenar a listagem.',
+      description: 'Visível no artigo e usada na ordenação.',
       type: 'date',
       group: 'publicacao',
       initialValue: () => new Date().toISOString().slice(0, 10),
@@ -76,30 +106,28 @@ export const blogPost = defineType({
     defineField({
       name: 'category',
       title: 'Tema',
-      description: 'Categoria curta do artigo. Exemplo: Ambiente, Projetos, Materiais.',
+      description: 'Exemplo: Ambiente, Projetos ou Materiais.',
       type: 'localizedString',
       group: 'publicacao',
     }),
     defineField({
       name: 'excerpt',
-      title: 'Resumo curto',
-      description: 'Texto curto para a listagem. Deve explicar porque vale a pena abrir o artigo.',
+      title: 'Resumo',
+      description: 'Texto curto apresentado na listagem.',
       type: 'localizedText',
       group: 'conteudo',
     }),
     defineField({
       name: 'article',
-      title: 'Artigo estruturado',
-      description:
-        'Campo principal para editar artigos como no site: secções, subtítulos, listas, links, imagens, vídeos e tabelas.',
+      title: 'Conteúdo do artigo',
+      description: 'Use títulos, listas, links, imagens, vídeos e tabelas.',
       type: 'localizedArticle',
       group: 'conteudo',
     }),
     defineField({
       name: 'body',
-      title: 'Texto legado do artigo',
-      description:
-        'Fallback em texto simples usado pela importação antiga. Para artigos novos ou revisões, use o campo estruturado acima.',
+      title: 'Texto simples (artigos antigos)',
+      description: 'Use apenas quando o conteúdo estruturado estiver vazio.',
       type: 'localizedText',
       group: 'conteudo',
     }),

@@ -1,0 +1,955 @@
+import React, {useEffect, useMemo, useState} from 'react'
+import {
+  defineSchema,
+  EditorProvider,
+  PortableTextEditable,
+  useEditor,
+  useEditorSelector,
+  type BlockListItemRenderProps,
+  type BlockRenderProps,
+  type Path,
+  type PortableTextBlock,
+  type PortableTextObject,
+  type RenderAnnotationFunction,
+  type RenderDecoratorFunction,
+  type RenderStyleFunction,
+} from '@portabletext/editor'
+import {EventListenerPlugin} from '@portabletext/editor/plugins'
+import * as selectors from '@portabletext/editor/selectors'
+import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
+import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
+import {BoldIcon} from '@sanity/icons/Bold'
+import {CloseIcon} from '@sanity/icons/Close'
+import {EditIcon} from '@sanity/icons/Edit'
+import {ImageIcon} from '@sanity/icons/Image'
+import {ItalicIcon} from '@sanity/icons/Italic'
+import {LinkIcon} from '@sanity/icons/Link'
+import {OlistIcon} from '@sanity/icons/Olist'
+import {RedoIcon} from '@sanity/icons/Redo'
+import {ThListIcon} from '@sanity/icons/ThList'
+import {TrashIcon} from '@sanity/icons/Trash'
+import {UlistIcon} from '@sanity/icons/Ulist'
+import {UndoIcon} from '@sanity/icons/Undo'
+import {VideoIcon} from '@sanity/icons/Video'
+import {editorKey, sanityAssetUrl} from './asset'
+
+type ArticleObject = PortableTextObject & {
+  asset?: {_ref?: string}
+  alt?: string
+  caption?: string
+  title?: string
+  url?: string
+  columns?: unknown[]
+  rows?: Array<{_key?: string; _type?: string; cells?: unknown[]}>
+}
+
+type SelectedObject = {
+  node: ArticleObject
+  path: Path
+}
+
+type Props = {
+  value: unknown
+  documentKey: string
+  projectId: string
+  dataset: string
+  onChange: (value: unknown) => void
+  onUpload: (file: File, kind: 'image' | 'video') => Promise<{id: string; url: string}>
+}
+
+const schemaDefinition = defineSchema({
+  styles: [
+    {name: 'normal', title: 'Parágrafo'},
+    {name: 'h2', title: 'Título de secção'},
+    {name: 'h3', title: 'Subtítulo'},
+    {name: 'blockquote', title: 'Citação'},
+  ],
+  lists: [
+    {name: 'bullet', title: 'Marcadores'},
+    {name: 'number', title: 'Numerada'},
+  ],
+  decorators: [
+    {name: 'strong', title: 'Negrito'},
+    {name: 'em', title: 'Itálico'},
+  ],
+  annotations: [
+    {
+      name: 'link',
+      title: 'Ligação',
+      fields: [{name: 'href', title: 'Destino', type: 'string'}],
+    },
+  ],
+  inlineObjects: [],
+  blockObjects: [
+    {
+      name: 'image',
+      title: 'Imagem',
+      fields: [
+        {name: 'asset', title: 'Ficheiro', type: 'object'},
+        {name: 'alt', title: 'Descrição', type: 'string'},
+        {name: 'caption', title: 'Legenda', type: 'string'},
+      ],
+    },
+    {
+      name: 'youtubeEmbed',
+      title: 'Vídeo',
+      fields: [
+        {name: 'url', title: 'Link', type: 'string'},
+        {name: 'title', title: 'Título', type: 'string'},
+        {name: 'caption', title: 'Legenda', type: 'string'},
+      ],
+    },
+    {
+      name: 'articleTable',
+      title: 'Tabela',
+      fields: [
+        {name: 'columns', title: 'Cabeçalhos', type: 'array', of: [{type: 'string'}]},
+        {
+          name: 'rows',
+          title: 'Linhas',
+          type: 'array',
+          of: [
+            {
+              name: 'articleTableRow',
+              title: 'Linha',
+              type: 'object',
+              fields: [
+                {name: 'cells', title: 'Células', type: 'array', of: [{type: 'string'}]},
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+})
+
+const renderStyle: RenderStyleFunction = ({children, schemaType}) => {
+  if (schemaType.value === 'h2') return <h2>{children}</h2>
+  if (schemaType.value === 'h3') return <h3>{children}</h3>
+  if (schemaType.value === 'blockquote') return <blockquote>{children}</blockquote>
+  return <p>{children}</p>
+}
+
+const renderDecorator: RenderDecoratorFunction = ({children, value}) => {
+  if (value === 'strong') return <strong>{children}</strong>
+  if (value === 'em') return <em>{children}</em>
+  return <>{children}</>
+}
+
+const renderAnnotation: RenderAnnotationFunction = ({children, value}) => (
+  <a href={String(value.href || '')} onClick={(event) => event.preventDefault()}>
+    {children}
+  </a>
+)
+
+function ArticleListItem(props: BlockListItemRenderProps) {
+  const editor = useEditor()
+  const blocks = useEditorSelector(editor, selectors.getValue)
+  const level = Math.max(1, Number(props.level) || 1)
+  const currentIndex = blocks.findIndex((block) => block._key === props.block._key)
+  let number = 1
+
+  if (props.value === 'number' && currentIndex > 0) {
+    for (let index = currentIndex - 1; index >= 0; index -= 1) {
+      const previous = blocks[index] as PortableTextBlock & {
+        listItem?: string
+        level?: number
+      }
+      if (
+        previous._type !== 'block' ||
+        previous.listItem !== 'number' ||
+        Math.max(1, Number(previous.level) || 1) !== level
+      ) {
+        break
+      }
+      number += 1
+    }
+  }
+
+  return (
+    <div
+      className={`site-editor-rich-list-item is-${props.value}`}
+      style={{marginInlineStart: `${(level - 1) * 18}px`}}
+      data-list-level={level}
+    >
+      <span className="site-editor-rich-list-marker" contentEditable={false} aria-hidden="true">
+        {props.value === 'number' ? `${number}.` : ''}
+      </span>
+      <div className="site-editor-rich-list-content">{props.children}</div>
+    </div>
+  )
+}
+
+const objectLabel = (node: ArticleObject) => {
+  if (node._type === 'image') return 'Imagem'
+  if (node._type === 'youtubeEmbed') return 'Vídeo'
+  if (node._type === 'articleTable') return 'Tabela'
+  return 'Conteúdo'
+}
+
+function ArticleObjectCard({
+  props,
+  projectId,
+  dataset,
+  onEdit,
+}: {
+  props: BlockRenderProps
+  projectId: string
+  dataset: string
+  onEdit: (selected: SelectedObject) => void
+}) {
+  const editor = useEditor()
+  const node = props.value as ArticleObject
+  const imageUrl = node._type === 'image' ? sanityAssetUrl(node.asset?._ref, projectId, dataset) : ''
+  const columns = Array.isArray(node.columns) ? node.columns.map((item) => String(item || '')) : []
+  const rows = Array.isArray(node.rows) ? node.rows : []
+
+  const keepEditorSelection = (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  return (
+    <div
+      className={`site-editor-rich-object${props.selected ? ' is-selected' : ''}`}
+      data-object-type={node._type}
+    >
+      <span className="site-editor-rich-object-spacer">{props.children}</span>
+      <div className="site-editor-rich-object-content" contentEditable={false}>
+        <header>
+          <span>
+            {node._type === 'image' ? (
+              <ImageIcon />
+            ) : node._type === 'youtubeEmbed' ? (
+              <VideoIcon />
+            ) : (
+              <ThListIcon />
+            )}
+            <strong>{objectLabel(node)}</strong>
+          </span>
+          <nav aria-label={`Ações da ${objectLabel(node).toLowerCase()}`}>
+            <button
+              type="button"
+              onMouseDown={keepEditorSelection}
+              onClick={() => onEdit({node, path: props.path})}
+              aria-label={`Editar ${objectLabel(node).toLowerCase()}`}
+              title={`Editar ${objectLabel(node).toLowerCase()}`}
+            >
+              <EditIcon />
+            </button>
+            <button
+              type="button"
+              onMouseDown={keepEditorSelection}
+              onClick={() => editor.send({type: 'move.block up', at: props.path})}
+              aria-label="Mover para cima"
+              title="Mover para cima"
+            >
+              <ArrowUpIcon />
+            </button>
+            <button
+              type="button"
+              onMouseDown={keepEditorSelection}
+              onClick={() => editor.send({type: 'move.block down', at: props.path})}
+              aria-label="Mover para baixo"
+              title="Mover para baixo"
+            >
+              <ArrowDownIcon />
+            </button>
+            <button
+              type="button"
+              onMouseDown={keepEditorSelection}
+              onClick={() => editor.send({type: 'delete.block', at: props.path})}
+              aria-label={`Eliminar ${objectLabel(node).toLowerCase()}`}
+              title={`Eliminar ${objectLabel(node).toLowerCase()}`}
+            >
+              <TrashIcon />
+            </button>
+          </nav>
+        </header>
+
+        {node._type === 'image' ? (
+          <figure>
+            {imageUrl ? <img src={imageUrl} alt={String(node.alt || '')} /> : <ImageIcon />}
+            {node.caption ? <figcaption>{String(node.caption)}</figcaption> : null}
+          </figure>
+        ) : node._type === 'youtubeEmbed' ? (
+          <div className="site-editor-rich-video-preview">
+            <VideoIcon />
+            <span>
+              <strong>{String(node.title || 'Vídeo do YouTube')}</strong>
+              <small>{String(node.url || 'Adicione o link do vídeo')}</small>
+            </span>
+          </div>
+        ) : node._type === 'articleTable' ? (
+          columns.length ? (
+            <div className="site-editor-rich-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {columns.map((column, index) => (
+                      <th key={`${index}-${column}`}>{column || `Coluna ${index + 1}`}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIndex) => (
+                    <tr key={row._key || String(rowIndex)}>
+                      {columns.map((_, columnIndex) => (
+                        <td key={columnIndex}>
+                          {String(Array.isArray(row.cells) ? row.cells[columnIndex] || '' : '')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="site-editor-rich-object-empty">Tabela sem colunas.</p>
+          )
+        ) : (
+          <p className="site-editor-rich-object-empty">Este conteúdo está preservado.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ArticleToolbar({
+  onUpload,
+  onObjectInserted,
+}: {
+  onUpload: Props['onUpload']
+  onObjectInserted: (selected: SelectedObject) => void
+}) {
+  const editor = useEditor()
+  const activeStyle = useEditorSelector(editor, selectors.getActiveStyle)
+  const bold = useEditorSelector(editor, selectors.isActiveDecorator('strong'))
+  const italic = useEditorSelector(editor, selectors.isActiveDecorator('em'))
+  const bullet = useEditorSelector(editor, selectors.isActiveListItem('bullet'))
+  const numbered = useEditorSelector(editor, selectors.isActiveListItem('number'))
+  const linked = useEditorSelector(editor, selectors.isActiveAnnotation('link'))
+  const [openForm, setOpenForm] = useState<'link' | 'video'>()
+  const [link, setLink] = useState('')
+  const [videoUrl, setVideoUrl] = useState('')
+  const [videoTitle, setVideoTitle] = useState('')
+
+  const preserveSelection = (event: React.MouseEvent) => event.preventDefault()
+  const refocus = () => editor.send({type: 'focus'})
+
+  const toggleDecorator = (decorator: 'strong' | 'em') => {
+    editor.send({type: 'decorator.toggle', decorator})
+    refocus()
+  }
+
+  const toggleList = (listItem: 'bullet' | 'number') => {
+    editor.send({type: 'list item.toggle', listItem})
+    refocus()
+  }
+
+  const insertObject = (
+    name: 'image' | 'youtubeEmbed' | 'articleTable',
+    value: Record<string, unknown>,
+  ) => {
+    const existingKeys = new Set(
+      editor.getSnapshot().context.value.map((block) => block._key).filter(Boolean),
+    )
+    refocus()
+    editor.send({
+      type: 'insert.block object',
+      placement: 'auto',
+      blockObject: {name, value},
+    })
+    window.requestAnimationFrame(() => {
+      const inserted = editor
+        .getSnapshot()
+        .context.value.find(
+          (block) => block._type === name && block._key && !existingKeys.has(block._key),
+        ) as ArticleObject | undefined
+      if (!inserted?._key) return
+      onObjectInserted({node: inserted, path: [{_key: inserted._key}]})
+    })
+  }
+
+  return (
+    <div className="site-editor-rich-toolbar">
+      <div className="site-editor-rich-toolbar-main">
+        <div className="site-editor-rich-toolbar-row is-formatting">
+          <select
+            aria-label="Formato do texto"
+            value={activeStyle || 'normal'}
+            onChange={(event) => {
+              editor.send({type: 'style.toggle', style: event.currentTarget.value})
+              refocus()
+            }}
+          >
+            <option value="normal">Parágrafo</option>
+            <option value="h2">Título de secção</option>
+            <option value="h3">Subtítulo</option>
+            <option value="blockquote">Citação</option>
+          </select>
+
+          <span className="site-editor-rich-toolbar-group is-formatting" aria-label="Formatação">
+            <button
+              type="button"
+              className={bold ? 'is-active' : ''}
+              onMouseDown={preserveSelection}
+              onClick={() => toggleDecorator('strong')}
+              aria-label="Negrito"
+              title="Negrito"
+            >
+              <BoldIcon />
+            </button>
+            <button
+              type="button"
+              className={italic ? 'is-active' : ''}
+              onMouseDown={preserveSelection}
+              onClick={() => toggleDecorator('em')}
+              aria-label="Itálico"
+              title="Itálico"
+            >
+              <ItalicIcon />
+            </button>
+            <button
+              type="button"
+              className={linked ? 'is-active' : ''}
+              onMouseDown={preserveSelection}
+              onClick={() => {
+                if (linked) {
+                  editor.send({type: 'annotation.remove', annotation: {name: 'link'}})
+                  refocus()
+                } else {
+                  setOpenForm((current) => (current === 'link' ? undefined : 'link'))
+                }
+              }}
+              aria-label={linked ? 'Remover ligação' : 'Adicionar ligação'}
+              title={linked ? 'Remover ligação' : 'Adicionar ligação'}
+            >
+              <LinkIcon />
+            </button>
+          </span>
+
+          <span className="site-editor-rich-toolbar-group is-history" aria-label="Histórico">
+            <button
+              type="button"
+              onMouseDown={preserveSelection}
+              onClick={() => editor.send({type: 'history.undo'})}
+              aria-label="Desfazer"
+              title="Desfazer"
+            >
+              <UndoIcon />
+            </button>
+            <button
+              type="button"
+              onMouseDown={preserveSelection}
+              onClick={() => editor.send({type: 'history.redo'})}
+              aria-label="Refazer"
+              title="Refazer"
+            >
+              <RedoIcon />
+            </button>
+          </span>
+        </div>
+
+        <div className="site-editor-rich-toolbar-row is-content">
+          <span className="site-editor-rich-toolbar-group is-lists" aria-label="Listas">
+            <button
+              type="button"
+              className={bullet ? 'is-active' : ''}
+              onMouseDown={preserveSelection}
+              onClick={() => toggleList('bullet')}
+              aria-label="Lista com marcadores"
+              title="Lista com marcadores"
+            >
+              <UlistIcon /> <span>Lista</span>
+            </button>
+            <button
+              type="button"
+              className={numbered ? 'is-active' : ''}
+              onMouseDown={preserveSelection}
+              onClick={() => toggleList('number')}
+              aria-label="Lista numerada"
+              title="Lista numerada"
+            >
+              <OlistIcon /> <span>Numerada</span>
+            </button>
+          </span>
+
+          <span className="site-editor-rich-toolbar-group is-media" aria-label="Inserir conteúdo">
+            <label aria-label="Adicionar imagem" title="Adicionar imagem">
+              <ImageIcon /> <span>Imagem</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0]
+                  if (file) {
+                    void onUpload(file, 'image').then((asset) => {
+                      insertObject('image', {
+                        asset: {_type: 'reference', _ref: asset.id},
+                        alt: '',
+                        caption: '',
+                      })
+                    })
+                  }
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              onMouseDown={preserveSelection}
+              onClick={() => setOpenForm((current) => (current === 'video' ? undefined : 'video'))}
+              aria-label="Adicionar vídeo"
+              title="Adicionar vídeo"
+            >
+              <VideoIcon /> <span>Vídeo</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={preserveSelection}
+              onClick={() =>
+                insertObject('articleTable', {
+                  columns: ['Coluna 1', 'Coluna 2'],
+                  rows: [
+                    {_key: editorKey(), _type: 'articleTableRow', cells: ['', '']},
+                    {_key: editorKey(), _type: 'articleTableRow', cells: ['', '']},
+                  ],
+                })
+              }
+              aria-label="Adicionar tabela"
+              title="Adicionar tabela"
+            >
+              <ThListIcon /> <span>Tabela</span>
+            </button>
+          </span>
+        </div>
+      </div>
+
+      {openForm === 'link' ? (
+        <form
+          className="site-editor-rich-toolbar-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!link.trim()) return
+            editor.send({
+              type: 'annotation.add',
+              annotation: {name: 'link', value: {href: link.trim()}},
+            })
+            setLink('')
+            setOpenForm(undefined)
+            refocus()
+          }}
+        >
+          <label>
+            <span>Destino da ligação</span>
+            <input
+              type="url"
+              value={link}
+              onChange={(event) => setLink(event.currentTarget.value)}
+              placeholder="https://…"
+              autoFocus
+            />
+          </label>
+          <button type="submit">Aplicar</button>
+          <button type="button" onClick={() => setOpenForm(undefined)} aria-label="Fechar">
+            <CloseIcon />
+          </button>
+        </form>
+      ) : openForm === 'video' ? (
+        <form
+          className="site-editor-rich-toolbar-form is-video"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!videoUrl.trim()) return
+            insertObject('youtubeEmbed', {
+              url: videoUrl.trim(),
+              title: videoTitle.trim(),
+              caption: '',
+            })
+            setVideoUrl('')
+            setVideoTitle('')
+            setOpenForm(undefined)
+          }}
+        >
+          <label>
+            <span>Link do YouTube</span>
+            <input
+              type="url"
+              value={videoUrl}
+              onChange={(event) => setVideoUrl(event.currentTarget.value)}
+              autoFocus
+            />
+          </label>
+          <label>
+            <span>Título</span>
+            <input
+              value={videoTitle}
+              onChange={(event) => setVideoTitle(event.currentTarget.value)}
+            />
+          </label>
+          <button type="submit">Adicionar</button>
+          <button type="button" onClick={() => setOpenForm(undefined)} aria-label="Fechar">
+            <CloseIcon />
+          </button>
+        </form>
+      ) : null}
+    </div>
+  )
+}
+
+function TableFields({
+  node,
+  onChange,
+}: {
+  node: ArticleObject
+  onChange: (props: Record<string, unknown>) => void
+}) {
+  const columns = Array.isArray(node.columns) ? node.columns.map((item) => String(item || '')) : []
+  const rows = Array.isArray(node.rows) ? node.rows : []
+
+  const setColumns = (nextColumns: string[]) => onChange({columns: nextColumns})
+  const addColumn = () => {
+    const nextColumns = [...columns, `Coluna ${columns.length + 1}`]
+    const nextRows = rows.map((row) => ({
+      ...row,
+      cells: [...(Array.isArray(row.cells) ? row.cells : []), ''],
+    }))
+    onChange({columns: nextColumns, rows: nextRows})
+  }
+  const removeColumn = (columnIndex: number) => {
+    if (columns.length <= 1) return
+    onChange({
+      columns: columns.filter((_, index) => index !== columnIndex),
+      rows: rows.map((row) => ({
+        ...row,
+        cells: (Array.isArray(row.cells) ? row.cells : []).filter(
+          (_, index) => index !== columnIndex,
+        ),
+      })),
+    })
+  }
+  const addRow = () =>
+    onChange({
+      rows: [
+        ...rows,
+        {
+          _key: editorKey(),
+          _type: 'articleTableRow',
+          cells: columns.map(() => ''),
+        },
+      ],
+    })
+  const updateCell = (rowIndex: number, columnIndex: number, text: string) => {
+    const nextRows = rows.map((row, index) => {
+      if (index !== rowIndex) return row
+      const cells = Array.from({length: columns.length}, (_, cellIndex) =>
+        cellIndex === columnIndex
+          ? text
+          : String(Array.isArray(row.cells) ? row.cells[cellIndex] || '' : ''),
+      )
+      return {...row, cells}
+    })
+    onChange({rows: nextRows})
+  }
+
+  return (
+    <div className="site-editor-rich-table-fields">
+      <header className="site-editor-rich-table-manager-head">
+        <span>
+          <strong>Conteúdo da tabela</strong>
+          <small>
+            {columns.length} {columns.length === 1 ? 'coluna' : 'colunas'} · {rows.length}{' '}
+            {rows.length === 1 ? 'linha' : 'linhas'}
+          </small>
+        </span>
+        <nav aria-label="Estrutura da tabela">
+          <button type="button" onClick={addColumn}>+ Coluna</button>
+          <button type="button" onClick={addRow} disabled={!columns.length}>+ Linha</button>
+        </nav>
+      </header>
+
+      {columns.length ? (
+        <div className="site-editor-rich-table-grid-shell">
+          <div
+            className="site-editor-rich-table-grid"
+            style={{gridTemplateColumns: `42px repeat(${columns.length}, minmax(150px, 1fr))`}}
+          >
+            <div className="site-editor-rich-table-corner" aria-hidden="true">Linha</div>
+            {columns.map((column, columnIndex) => (
+              <label
+                className="site-editor-rich-table-heading"
+                key={`heading-${columnIndex}`}
+              >
+                <span>Coluna {columnIndex + 1}</span>
+                <span>
+                  <input
+                    aria-label={`Nome da coluna ${columnIndex + 1}`}
+                    value={column}
+                    onChange={(event) => {
+                      const next = [...columns]
+                      next[columnIndex] = event.currentTarget.value
+                      setColumns(next)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeColumn(columnIndex)}
+                    disabled={columns.length <= 1}
+                    aria-label={`Eliminar coluna ${columnIndex + 1}`}
+                    title={columns.length <= 1 ? 'A tabela precisa de uma coluna' : 'Eliminar coluna'}
+                  >
+                    <TrashIcon />
+                  </button>
+                </span>
+              </label>
+            ))}
+
+            {rows.map((row, rowIndex) => (
+              <React.Fragment key={row._key || String(rowIndex)}>
+                <div className="site-editor-rich-table-row-control">
+                  <span>{rowIndex + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => onChange({rows: rows.filter((_, index) => index !== rowIndex)})}
+                    aria-label={`Eliminar linha ${rowIndex + 1}`}
+                    title="Eliminar linha"
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+                {columns.map((column, columnIndex) => (
+                  <label
+                    className="site-editor-rich-table-cell"
+                    key={`${row._key || rowIndex}-${columnIndex}`}
+                  >
+                    <span className="site-editor-visually-hidden">
+                      Linha {rowIndex + 1}, {column || `coluna ${columnIndex + 1}`}
+                    </span>
+                    <textarea
+                      rows={2}
+                      aria-label={`Linha ${rowIndex + 1}, ${column || `coluna ${columnIndex + 1}`}`}
+                      placeholder="Conteúdo"
+                      value={String(
+                        Array.isArray(row.cells) ? row.cells[columnIndex] || '' : '',
+                      )}
+                      onChange={(event) =>
+                        updateCell(rowIndex, columnIndex, event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {!rows.length && columns.length ? (
+        <button className="site-editor-rich-table-empty" type="button" onClick={addRow}>
+          A tabela ainda não tem linhas. Adicionar a primeira linha
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ArticleObjectEditor({
+  selected,
+  setSelected,
+  onUpload,
+}: {
+  selected?: SelectedObject
+  setSelected: React.Dispatch<React.SetStateAction<SelectedObject | undefined>>
+  onUpload: Props['onUpload']
+}) {
+  const editor = useEditor()
+
+  useEffect(() => {
+    if (!selected) return
+    const latest = editor.getSnapshot().context.value.find(
+      (block) => block._key === selected.node._key,
+    ) as ArticleObject | undefined
+    if (!latest) setSelected(undefined)
+  }, [editor, selected, setSelected])
+
+  if (!selected) return null
+
+  const patch = (props: Record<string, unknown>) => {
+    editor.send({type: 'block.set', at: selected.path, props})
+    setSelected((current) =>
+      current ? {...current, node: {...current.node, ...props}} : current,
+    )
+  }
+
+  return (
+    <section className="site-editor-rich-object-editor">
+      <header>
+        <span>
+          <small>A editar</small>
+          <strong>{objectLabel(selected.node)}</strong>
+        </span>
+        <button type="button" onClick={() => setSelected(undefined)} aria-label="Fechar edição">
+          <CloseIcon />
+        </button>
+      </header>
+      <div>
+        {selected.node._type === 'image' ? (
+          <div className="site-editor-form-stack">
+            <label className="site-editor-upload-button">
+              <ImageIcon /> Substituir imagem
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0]
+                  if (file) {
+                    void onUpload(file, 'image').then((asset) =>
+                      patch({asset: {_type: 'reference', _ref: asset.id}}),
+                    )
+                  }
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+            <label>
+              <span>Descrição da imagem</span>
+              <textarea
+                rows={3}
+                value={String(selected.node.alt || '')}
+                onChange={(event) => patch({alt: event.currentTarget.value})}
+              />
+            </label>
+            <label>
+              <span>Legenda</span>
+              <textarea
+                rows={3}
+                value={String(selected.node.caption || '')}
+                onChange={(event) => patch({caption: event.currentTarget.value})}
+              />
+            </label>
+          </div>
+        ) : selected.node._type === 'youtubeEmbed' ? (
+          <div className="site-editor-form-stack">
+            <label>
+              <span>Link do YouTube</span>
+              <input
+                type="url"
+                value={String(selected.node.url || '')}
+                onChange={(event) => patch({url: event.currentTarget.value})}
+              />
+            </label>
+            <label>
+              <span>Título do vídeo</span>
+              <input
+                value={String(selected.node.title || '')}
+                onChange={(event) => patch({title: event.currentTarget.value})}
+              />
+            </label>
+            <label>
+              <span>Legenda</span>
+              <textarea
+                rows={3}
+                value={String(selected.node.caption || '')}
+                onChange={(event) => patch({caption: event.currentTarget.value})}
+              />
+            </label>
+          </div>
+        ) : selected.node._type === 'articleTable' ? (
+          <TableFields node={selected.node} onChange={patch} />
+        ) : (
+          <p>Este conteúdo está preservado, mas ainda não pode ser alterado aqui.</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function ArticleSurface({
+  projectId,
+  dataset,
+  onUpload,
+}: {
+  projectId: string
+  dataset: string
+  onUpload: Props['onUpload']
+}) {
+  const [selected, setSelected] = useState<SelectedObject>()
+
+  const renderBlock = (props: BlockRenderProps) =>
+    props.value._type === 'block' ? (
+      <div>{props.children}</div>
+    ) : (
+      <ArticleObjectCard
+        props={props}
+        projectId={projectId}
+        dataset={dataset}
+        onEdit={setSelected}
+      />
+    )
+
+  return (
+    <>
+      <ArticleToolbar onUpload={onUpload} onObjectInserted={setSelected} />
+      <div className="site-editor-rich-canvas">
+        <PortableTextEditable
+          aria-label="Texto do artigo"
+          renderStyle={renderStyle}
+          renderDecorator={renderDecorator}
+          renderAnnotation={renderAnnotation}
+          renderBlock={renderBlock}
+          renderListItem={(props) => <ArticleListItem {...props} />}
+          renderPlaceholder={() => <span>Comece a escrever o artigo…</span>}
+        />
+      </div>
+      <ArticleObjectEditor
+        selected={selected}
+        setSelected={setSelected}
+        onUpload={onUpload}
+      />
+      <p className="site-editor-article-note">
+        Escreva em português. As traduções são tratadas automaticamente depois de guardar.
+      </p>
+    </>
+  )
+}
+
+export function ArticleEditor({
+  value,
+  documentKey,
+  projectId,
+  dataset,
+  onChange,
+  onUpload,
+}: Props) {
+  const article = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
+  const blocks = useMemo(
+    () => (Array.isArray(article.pt) ? (article.pt as PortableTextBlock[]) : []),
+    [article.pt],
+  )
+
+  return (
+    <div className="site-editor-article">
+      <EditorProvider
+        key={documentKey}
+        initialConfig={{
+          schemaDefinition,
+          initialValue: blocks,
+        }}
+      >
+        <EventListenerPlugin
+          on={(event) => {
+            if (event.type !== 'mutation') return
+            onChange({
+              ...article,
+              _type: 'localizedArticle',
+              pt: event.value || [],
+            })
+          }}
+        />
+        <ArticleSurface projectId={projectId} dataset={dataset} onUpload={onUpload} />
+      </EditorProvider>
+    </div>
+  )
+}

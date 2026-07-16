@@ -1,15 +1,17 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
-  import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import BlogArticleRail from '$lib/components/BlogArticleRail.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {absoluteUrl, blogPostingSchema, breadcrumbListSchema} from '$lib/seo'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {
     blogImageFallback,
     blogImagesFor,
+    blogMediaFor,
     defaultLanguage,
     withLanguage,
     type LanguageCode,
@@ -60,8 +62,9 @@
   const content = $derived(data.site)
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
+  const media = $derived(blogMediaFor(data.post, blogImageFallback))
   const postDataAttribute = $derived(
-    data.preview && data.studioUrl && data.post.studioDocumentId
+    (data.preview || data.builderPreview) && data.studioUrl && data.post.studioDocumentId
       ? createDataAttribute({
           baseUrl: data.studioUrl,
           id: data.post.studioDocumentId,
@@ -72,6 +75,7 @@
   const imageDataAttribute = $derived(
     postDataAttribute ? (path: string) => postDataAttribute(path) : undefined,
   )
+  const articleFieldPath = $derived(data.post.article?.length ? 'article.pt' : 'body.pt')
   const labels = $derived(railLabels[data.language])
   const languageQuery = $derived(`?lang=${data.language}`)
   const relatedBlogPosts = $derived.by(() => {
@@ -101,6 +105,7 @@
       description: data.post.excerpt || data.post.body,
       imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
       datePublished: data.post.publishedAt,
+      url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language)),
       logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
     }),
     breadcrumbListSchema([
@@ -127,22 +132,39 @@
           <span aria-hidden="true">←</span>
           {content.common.backToBlog}
         </a>
-        <h1>{data.post.title}</h1>
-        <time datetime={data.post.publishedAt}>{data.post.publishedAt}</time>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(data.post.textAppearance?.title)}
+          data-sanity={postDataAttribute?.('title.pt')}
+        >{data.post.title}</h1>
+        <time
+          datetime={data.post.publishedAt}
+          data-sanity={postDataAttribute?.('publishedAt')}
+        >{data.post.publishedAt}</time>
       </div>
-      <p class="article-lead">{data.post.excerpt}</p>
+      <p
+        class="article-lead cms-styled-text"
+        style={textAppearanceStyle(data.post.textAppearance?.excerpt)}
+        data-sanity={postDataAttribute?.('excerpt.pt')}
+      >{data.post.excerpt}</p>
     </header>
-    <ImageGallery
-      {images}
+    <StoreMediaGallery
+      {media}
       label={content.common.zoomImage}
       closeLabel={content.common.close}
       className="blog-detail-gallery"
       transitionName={`vt-${data.post.slug}`}
       dataAttribute={imageDataAttribute}
+      fallbackEditPath="image"
     />
     <section class="blog-detail-reading">
-      <div class="article-body blog-body">
-        <StructuredArticleBody body={data.post.body} article={data.post.article} />
+      <div class="article-body blog-body" data-sanity={postDataAttribute?.(articleFieldPath)}>
+        <StructuredArticleBody
+          body={data.post.body}
+          article={data.post.article}
+          previewDocumentId={data.post.studioDocumentId}
+          previewFieldPath="article"
+        />
       </div>
       <BlogArticleRail items={articleRailItems} {labels} {shareUrl} shareText={data.post.title} />
     </section>

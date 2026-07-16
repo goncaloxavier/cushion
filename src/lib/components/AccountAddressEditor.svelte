@@ -5,8 +5,8 @@
   type Address = {
     id: string
     name: string
+    nif: string
     addressLine1: string
-    addressLine2: string
     postalCode: string
     locality: string
     country: string
@@ -14,8 +14,8 @@
 
   type Labels = {
     label: string
+    nif: string
     address: string
-    address2: string
     postalCode: string
     locality: string
     country: string
@@ -50,8 +50,8 @@
 
   const fields = $state({
     name: '',
+    nif: '',
     addressLine1: '',
-    addressLine2: '',
     postalCode: '',
     locality: '',
     country: 'PT',
@@ -60,8 +60,8 @@
 
   $effect(() => {
     fields.name = address?.name ?? ''
+    fields.nif = address?.nif ?? ''
     fields.addressLine1 = address?.addressLine1 ?? ''
-    fields.addressLine2 = address?.addressLine2 ?? ''
     fields.postalCode = formatPostalCode(address?.postalCode ?? '')
     fields.locality = address?.locality ?? ''
     fields.country = address?.country ?? 'PT'
@@ -86,18 +86,20 @@
   {/if}
 
   <label>
-    <span>{labels.label} <em>({labels.optional})</em></span>
-    <input name="name" autocomplete="organization" bind:value={fields.name} />
+    <span>{labels.label}</span>
+    <input name="name" autocomplete="name" required bind:value={fields.name} />
   </label>
+
+  {#if addressType === 'billing'}
+    <label>
+      <span>{labels.nif}</span>
+      <input name="nif" inputmode="numeric" maxlength="16" required bind:value={fields.nif} />
+    </label>
+  {/if}
 
   <label>
     <span>{labels.address}</span>
     <input name="addressLine1" autocomplete={`${autocompleteScope} street-address`} required bind:value={fields.addressLine1} />
-  </label>
-
-  <label>
-    <span>{labels.address2} <em>({labels.optional})</em></span>
-    <input name="addressLine2" bind:value={fields.addressLine2} />
   </label>
 
   <div class="account-form-row">

@@ -1,6 +1,7 @@
 import {fail, redirect} from '@sveltejs/kit'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
 import {databaseConfigured} from '$lib/server/db'
+import {isSupportedStorePostalCode} from '$lib/store-shipping'
 import {
   createCustomerAddress,
   deleteCustomerAddress,
@@ -64,6 +65,7 @@ export const actions: Actions = {
     const addressType = addressTypeFrom(data.get('addressType'))
     const input: CustomerAddressInput = {
       name: clean(data.get('name'), 120),
+      nif: addressType === 'billing' ? clean(data.get('nif'), 16) : '',
       line1: clean(data.get('addressLine1'), 240),
       line2: clean(data.get('addressLine2'), 240),
       postalCode: clean(data.get('postalCode'), 32),
@@ -74,12 +76,32 @@ export const actions: Actions = {
 
     const guarded = await actionGuard(args, csrfToken, values)
     if (guarded) return guarded
-    if (!input.line1 || !input.postalCode || !input.locality) {
-      return fail(400, {address: 'error', message: 'Preencha a morada, código postal e localidade.', values})
+    if (!input.name || !input.line1 || !input.postalCode || !input.locality) {
+      return fail(400, {address: 'error', message: 'Preencha o nome, morada, código postal e localidade.', values})
+    }
+    if (addressType === 'billing' && !input.nif) {
+      return fail(400, {address: 'error', message: 'Preencha o NIF para a morada de faturação.', values})
+    }
+    if (addressType === 'delivery' && !isSupportedStorePostalCode(input.postalCode)) {
+      return fail(400, {
+        address: 'error',
+        message: 'Esta morada de entrega está fora das zonas atualmente servidas.',
+        values,
+      })
     }
 
     if (addressId) {
-      const updated = await updateCustomerAddress(locals.customer!.id, addressId, input)
+      let updated
+      try {
+        updated = await updateCustomerAddress(locals.customer!.id, addressId, input)
+      } catch (error) {
+        // The address identity index also protects concurrent edits. Turn its
+        // unique-constraint signal into an actionable account-form message.
+        if ((error as {code?: string}).code === '23505') {
+          return fail(409, {address: 'error', message: 'Já existe uma morada igual guardada.', values})
+        }
+        throw error
+      }
       if (!updated) {
         return fail(404, {address: 'error', message: 'Não foi possível encontrar essa morada.', values})
       }

@@ -1,15 +1,17 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
-  import ImageGallery from '$lib/components/ImageGallery.svelte'
+  import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
   import {youtubeEmbedUrl} from '$lib/media'
   import {absoluteUrl, breadcrumbListSchema, productSchema} from '$lib/seo'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {
     cleanProductMaterialCopy,
     productImageFallback,
     productImagesFor,
+    productMediaFor,
     withLanguage,
   } from '$lib/site-content'
 
@@ -48,8 +50,9 @@
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
   const images = $derived(productImagesFor(data.product, productImageFallback))
+  const media = $derived(productMediaFor(data.product, productImageFallback))
   const productDataAttribute = $derived(
-    data.preview && data.studioUrl && data.product.studioDocumentId
+    (data.preview || data.builderPreview) && data.studioUrl && data.product.studioDocumentId
       ? createDataAttribute({
           baseUrl: data.studioUrl,
           id: data.product.studioDocumentId,
@@ -61,6 +64,7 @@
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
   const copy = $derived(productDetailCopy(data.product.summary, data.product.description))
+  const copyFieldPath = $derived(data.product.description ? 'description.pt' : 'summary.pt')
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
@@ -97,12 +101,32 @@
 
     <section class="product-editorial-intro">
       <div class="product-editorial-title">
-        <h1>{data.product.title}</h1>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(data.product.textAppearance?.title)}
+          data-sanity={productDataAttribute?.('title.pt')}
+        >{data.product.title}</h1>
       </div>
       <div class="product-editorial-copy">
-        <p class="article-lead">{copy.intro}</p>
+        <p
+          class="article-lead cms-styled-text"
+          style={textAppearanceStyle(
+            data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
+          )}
+          data-df4y-editor-field="true"
+          data-df4y-editor-label="Descrição do produto"
+          data-sanity={productDataAttribute?.(copyFieldPath)}
+        >{copy.intro}</p>
         {#if copy.resistance}
-          <p class="product-editorial-proof">{copy.resistance}</p>
+          <p
+            class="product-editorial-proof cms-styled-text"
+            style={textAppearanceStyle(
+              data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
+            )}
+            data-df4y-editor-field="true"
+            data-df4y-editor-label="Descrição do produto"
+            data-sanity={productDataAttribute?.(copyFieldPath)}
+          >{copy.resistance}</p>
         {/if}
       </div>
     </section>
@@ -112,13 +136,14 @@
     {/snippet}
 
     <section class="product-editorial-stage">
-      <ImageGallery
-        {images}
+      <StoreMediaGallery
+        {media}
         label={content.common.zoomImage}
         closeLabel={content.common.close}
         className="product-stage-gallery"
         transitionName={`vt-${data.product.slug}`}
         dataAttribute={imageDataAttribute}
+        fallbackEditPath="image"
       />
       {#if !hasProductSupport}
         <div class="product-stage-cta">

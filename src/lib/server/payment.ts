@@ -1,5 +1,3 @@
-import {env} from '$env/dynamic/private'
-
 export type PaymentPreparation =
   | {
       ok: true
@@ -25,7 +23,7 @@ export type PaymentOrderInput = {
 }
 
 export const ifthenpayConfigured = () =>
-  Boolean(env.IFTHENPAY_BACKOFFICE_KEY && env.IFTHENPAY_PAYBYLINK_ENDPOINT)
+  Boolean(process.env.IFTHENPAY_BACKOFFICE_KEY && process.env.IFTHENPAY_PAYBYLINK_ENDPOINT)
 
 export const prepareIfthenpayPayByLink = async (
   order: PaymentOrderInput,
@@ -53,7 +51,7 @@ export const prepareIfthenpayPayByLink = async (
     status: 'not_configured',
     reason: 'Ifthenpay PayByLink adapter is present but intentionally disabled.',
     response: {
-      endpointPresent: Boolean(env.IFTHENPAY_PAYBYLINK_ENDPOINT),
+      endpointPresent: Boolean(process.env.IFTHENPAY_PAYBYLINK_ENDPOINT),
       orderNumber: order.orderNumber,
       failClosed: true,
     },

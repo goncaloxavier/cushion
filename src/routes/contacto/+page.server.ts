@@ -88,6 +88,7 @@ export const actions: Actions = {
     const language = getLanguage(cleanSingleLine(data.get('language'), 8))
     const values = formValuesFromData(data)
     const marketingConsent = data.get('marketingConsent') === 'on'
+    const privacyConsent = data.get('privacyConsent') === 'on'
     const source = sourceFromValue(data.get('source'))
     const honeypot = cleanSingleLine(data.get('companyWebsite'), 240)
     const csrfToken = cleanSingleLine(data.get('csrfToken'), 128)
@@ -109,6 +110,7 @@ export const actions: Actions = {
       ...values,
       phone: normalizePhone(values.phone),
       marketingConsent,
+      privacyConsent,
       consentText: cleanMessage(data.get('consentText'), 1000),
       language,
       source,

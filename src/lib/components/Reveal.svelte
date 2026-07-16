@@ -30,20 +30,6 @@
       })
     }
 
-    const isInView = () => {
-      const rect = node.getBoundingClientRect()
-      return rect.top < window.innerHeight * 0.92 && rect.bottom > window.innerHeight * -0.12
-    }
-
-    const check = () => {
-      if (isInView()) {
-        observer?.disconnect()
-        window.removeEventListener('scroll', check)
-        window.removeEventListener('resize', check)
-        show()
-      }
-    }
-
     if (priority) {
       visible = true
       return () => {
@@ -56,8 +42,6 @@
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.disconnect()
-          window.removeEventListener('scroll', check)
-          window.removeEventListener('resize', check)
           show()
         }
       },
@@ -65,14 +49,9 @@
     )
 
     observer.observe(node)
-    check()
-    window.addEventListener('scroll', check, {passive: true})
-    window.addEventListener('resize', check)
 
     return () => {
       observer?.disconnect()
-      window.removeEventListener('scroll', check)
-      window.removeEventListener('resize', check)
       cancelAnimationFrame(firstFrame)
       cancelAnimationFrame(secondFrame)
     }

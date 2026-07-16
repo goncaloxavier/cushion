@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {onMount} from 'svelte'
   import {
     parsePlainArticleBody,
     type PlainArticleBlock,
@@ -11,12 +12,29 @@
   type RichListBlock = {
     type: 'richList'
     listItem: 'bullet' | 'number'
+    level: number
     items: PortableTextBlock[]
   }
 
   type RenderBlock = PlainArticleBlock | RichArticleBlock | RichListBlock
 
-  let {body, article = []} = $props<{body: string; article?: RichArticleBlock[]}>()
+  let {
+    body,
+    article = [],
+    previewDocumentId,
+    previewFieldPath = 'article',
+  } = $props<{
+    body: string
+    article?: RichArticleBlock[]
+    previewDocumentId?: string
+    previewFieldPath?: string
+  }>()
+
+  let previewArticle = $state<RichArticleBlock[]>([])
+
+  $effect(() => {
+    previewArticle = article
+  })
 
   const isRichListBlock = (block: RenderBlock): block is RichListBlock =>
     'type' in block && block.type === 'richList'
@@ -32,13 +50,18 @@
 
     blocks.forEach((block) => {
       if (block._type === 'block' && block.listItem) {
+        const level = Math.max(1, Number(block.level) || 1)
         const previous = grouped[grouped.length - 1]
-        if (isRichListBlock(previous) && previous.listItem === block.listItem) {
+        if (
+          isRichListBlock(previous) &&
+          previous.listItem === block.listItem &&
+          previous.level === level
+        ) {
           previous.items.push(block)
           return
         }
 
-        grouped.push({type: 'richList', listItem: block.listItem, items: [block]})
+        grouped.push({type: 'richList', listItem: block.listItem, level, items: [block]})
         return
       }
 
@@ -92,7 +115,44 @@
   const imageStyle = (aspectRatio: number | undefined) =>
     aspectRatio && Number.isFinite(aspectRatio) ? `--media-aspect: ${aspectRatio}` : undefined
 
-  const blocks = $derived(article.length ? groupRichBlocks(article) : parsePlainArticleBody(body))
+  const normalizeDocumentId = (value: string) => value.replace(/^drafts\./, '')
+
+  onMount(() => {
+    if (!previewDocumentId) return
+
+    const handlePreviewPatch = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || !event.data || typeof event.data !== 'object') {
+        return
+      }
+
+      const message = event.data as {
+        type?: string
+        documentId?: string
+        path?: string
+        value?: unknown
+      }
+      if (
+        message.type !== 'df4y:site-editor:preview-patch' ||
+        !message.documentId ||
+        normalizeDocumentId(message.documentId) !== normalizeDocumentId(previewDocumentId) ||
+        message.path !== previewFieldPath ||
+        !message.value ||
+        typeof message.value !== 'object'
+      ) {
+        return
+      }
+
+      const pt = (message.value as {pt?: unknown}).pt
+      if (Array.isArray(pt)) previewArticle = pt as RichArticleBlock[]
+    }
+
+    window.addEventListener('message', handlePreviewPatch)
+    return () => window.removeEventListener('message', handlePreviewPatch)
+  })
+
+  const blocks = $derived(
+    previewArticle.length ? groupRichBlocks(previewArticle) : parsePlainArticleBody(body),
+  )
 </script>
 
 {#each blocks as block}
@@ -134,7 +194,12 @@
       </table>
     </div>
   {:else if isRichListBlock(block)}
-    <svelte:element this={block.listItem === 'number' ? 'ol' : 'ul'}>
+    <svelte:element
+      this={block.listItem === 'number' ? 'ol' : 'ul'}
+      class="article-rich-list"
+      data-list-level={block.level}
+      style:margin-inline-start={`${(block.level - 1) * 1.35}rem`}
+    >
       {#each block.items as item}
         <li>{@html renderPortableInline(item)}</li>
       {/each}
@@ -186,7 +251,10 @@
       </figure>
     {/if}
   {:else if '_type' in block && block._type === 'articleTable' && block.columns?.length}
-    <div class="article-table-wrap">
+    <div
+      class="article-table-wrap"
+      style={`--article-table-columns: ${block.columns.length}`}
+    >
       <table>
         <thead>
           <tr>

@@ -47,9 +47,11 @@ const articleBlocks = [
     fields: [
       defineField({
         name: 'alt',
-        title: 'Descrição alternativa',
-        description: 'Texto curto para acessibilidade. Diga o que aparece na imagem.',
-        type: 'string',
+        title: 'Descrição da imagem',
+        description: 'Para acessibilidade. Diga o que aparece na imagem.',
+        type: 'text',
+        rows: 2,
+        validation: (Rule) => Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
       }),
       defineField({
         name: 'caption',
@@ -72,9 +74,10 @@ const articleBlocks = [
       }),
       defineField({
         name: 'title',
-        title: 'Título acessível',
-        description: 'Usado por leitores de ecrã e no iframe.',
-        type: 'string',
+        title: 'Título do vídeo',
+        description: 'Identifica o vídeo para leitores de ecrã.',
+        type: 'text',
+        rows: 2,
       }),
       defineField({
         name: 'caption',
@@ -151,12 +154,13 @@ const articleBlocks = [
   }),
 ]
 
-const localizedArticleField = (name: 'pt' | 'en' | 'es', title: string) =>
+const localizedArticleField = (name: 'pt' | 'en' | 'es', title: string, opts: {hidden?: boolean} = {}) =>
   defineField({
     name,
     title,
     type: 'array',
     of: articleBlocks,
+    ...(opts.hidden ? {hidden: true, readOnly: true} : {}),
   })
 
 export const localizedArticle = defineType({
@@ -165,7 +169,15 @@ export const localizedArticle = defineType({
   type: 'object',
   fields: [
     localizedArticleField('pt', 'Português'),
-    localizedArticleField('en', 'Inglês'),
-    localizedArticleField('es', 'Espanhol'),
+    localizedArticleField('en', 'Inglês', {hidden: true}),
+    localizedArticleField('es', 'Espanhol', {hidden: true}),
+    defineField({
+      name: 'translationHash',
+      title: 'Hash de tradução (uso interno)',
+      description: 'Gerido automaticamente. Não editar.',
+      type: 'string',
+      hidden: true,
+      readOnly: true,
+    }),
   ],
 })

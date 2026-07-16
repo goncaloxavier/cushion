@@ -1,6 +1,7 @@
 import {fail, type Action, type RequestEvent} from '@sveltejs/kit'
+import {canManageStaff} from '$lib/server/staff-auth'
 import type {ProfileStatus, SubmissionStatus} from '$lib/painel'
-import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-admin'
+import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-postgres'
 import {csrfOk, sameOriginOk} from './form-guard'
 
 // Shared SvelteKit form actions for the /painel management pages. Every action
@@ -11,6 +12,9 @@ const csrfCookieName = 'df4y_painel_csrf'
 const painelFormData = async (event: RequestEvent) => {
   if (!event.locals.staff) {
     return {error: fail(401, {message: 'Sessão expirada.'})}
+  }
+  if (!canManageStaff(event.locals.staff)) {
+    return {error: fail(403, {message: 'A sua conta só tem acesso de consulta.'})}
   }
 
   const data = await event.request.formData()

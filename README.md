@@ -67,6 +67,18 @@ Published CMS documents replace the matching fallback content on the public site
 
 Sanity is only the public CMS/catalogue editor for website copy, products, store prices/images, case studies, blog posts, and public store settings such as the transport multiplier. Customer accounts, addresses, sessions, orders, payment attempts, and order history are stored in Postgres.
 
+## Temporary Preview Administrator
+
+An internet-accessible Railway preview can bootstrap a disposable `/painel` administrator without storing a password in git. Configure the website service with:
+
+```env
+PREVIEW_ADMIN_ENABLED=true
+PREVIEW_ADMIN_USERNAME=admin
+PREVIEW_ADMIN_PASSWORD=123
+```
+
+The first request to `/painel/login` creates or refreshes that marked Postgres account. Set `PREVIEW_ADMIN_ENABLED=false` before the real launch; the next `/painel` request deactivates the preview account and removes its sessions. A username already owned by a normal staff account is never overwritten.
+
 ## Ecommerce Foundation
 
 Railway Postgres is the private source of truth for store checkout. Configure `DATABASE_URL` and run:

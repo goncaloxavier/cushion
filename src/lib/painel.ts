@@ -37,6 +37,20 @@ export const orderStatusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
+export const paymentStatusLabels: Record<string, string> = {
+  pending: 'Pendente',
+  payment_link_created: 'Link de pagamento criado',
+  paid: 'Pago',
+  failed: 'Falhado',
+  cancelled: 'Cancelado',
+}
+
+export const paymentMethodLabels: Record<string, string> = {
+  mbway: 'MB WAY',
+  multibanco: 'Multibanco',
+  card: 'Cartão',
+}
+
 export const profileStatusLabels: Record<string, string> = {
   new: 'Novo',
   contacted: 'Contactado',
@@ -44,6 +58,35 @@ export const profileStatusLabels: Record<string, string> = {
   customer: 'Cliente',
   archived: 'Arquivado',
 }
+
+export type StatusTone = 'new' | 'progress' | 'done' | 'danger' | undefined
+
+const submissionTones: Record<string, StatusTone> = {
+  new: 'new',
+  inProgress: 'progress',
+  resolved: 'done',
+  spam: 'danger',
+}
+
+const profileTones: Record<string, StatusTone> = {
+  new: 'new',
+  qualified: 'progress',
+  customer: 'done',
+}
+
+const orderTones: Record<string, StatusTone> = {
+  pending_payment_link: 'new',
+  payment_link_sent: 'progress',
+  paid: 'progress',
+  in_preparation: 'progress',
+  shipped: 'progress',
+  completed: 'done',
+  cancelled: 'danger',
+}
+
+export const submissionStatusTone = (status: string): StatusTone => submissionTones[status]
+export const profileStatusTone = (status: string): StatusTone => profileTones[status]
+export const orderStatusTone = (status: string): StatusTone => orderTones[status]
 
 export const sourceLabel = (source: string) => {
   if (source === 'catalogue') return 'Catálogo'

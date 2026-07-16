@@ -14,6 +14,7 @@ export const contentCard = defineType({
     defineField({
       name: 'text',
       title: 'Texto',
+      description: 'Texto apresentado abaixo do título.',
       type: 'localizedText',
       validation: (Rule) => Rule.required(),
     }),

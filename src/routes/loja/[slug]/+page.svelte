@@ -2,6 +2,8 @@
   import {browser} from '$app/environment'
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {lineReveal} from '$lib/actions/line-reveal'
+  import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -9,10 +11,11 @@
   import {addCartItem} from '$lib/cart'
   import {collectionListHref} from '$lib/collection-page'
   import {showToast} from '$lib/toast'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {
+    storeCategoryLabel,
     storeProductMediaFor,
     withLanguage,
-    type LanguageCode,
     type StoreFinish,
   } from '$lib/site-content'
   import {
@@ -28,95 +31,6 @@
   let {data} = $props()
 
   const finishes: StoreFinish[] = ['natural', 'dark']
-  const pageCopy: Record<
-    LanguageCode,
-    {
-      back: string
-      category: string
-      variant: string
-      finish: string
-      dimensions: string
-      weight: string
-      selectedPrice: string
-      productNet: string
-      transport: string
-      totalWithVat: string
-      ivaIncluded: string
-      deliveryPostcode: string
-      changePostcode: string
-      transportPending: string
-      addToCart: string
-      added: string
-      viewCart: string
-      imagePending: string
-      quantity: string
-    }
-  > = {
-    pt: {
-      back: 'Voltar à loja',
-      category: 'Categoria',
-      variant: 'Medida / variante',
-      finish: 'Acabamento',
-      dimensions: 'Dimensões',
-      weight: 'Peso',
-      selectedPrice: 'Preço selecionado',
-      productNet: 'Produto s/ IVA',
-      transport: 'Transporte',
-      totalWithVat: 'Total',
-      ivaIncluded: 'IVA incluído',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Alterar',
-      transportPending: 'Transporte a confirmar',
-      addToCart: 'Adicionar ao carrinho',
-      added: 'Adicionado ao carrinho',
-      viewCart: 'Ver carrinho',
-      imagePending: 'Imagem a adicionar pelo cliente',
-      quantity: 'Quantidade',
-    },
-    en: {
-      back: 'Back to store',
-      category: 'Category',
-      variant: 'Size / variant',
-      finish: 'Finish',
-      dimensions: 'Dimensions',
-      weight: 'Weight',
-      selectedPrice: 'Selected price',
-      productNet: 'Product excl. VAT',
-      transport: 'Transport',
-      totalWithVat: 'Total',
-      ivaIncluded: 'VAT included',
-      deliveryPostcode: 'Zone',
-      changePostcode: 'Change',
-      transportPending: 'Transport to confirm',
-      addToCart: 'Add to cart',
-      added: 'Added to cart',
-      viewCart: 'View cart',
-      imagePending: 'Image to be added by the client',
-      quantity: 'Quantity',
-    },
-    es: {
-      back: 'Volver a tienda',
-      category: 'Categoría',
-      variant: 'Medida / variante',
-      finish: 'Acabado',
-      dimensions: 'Dimensiones',
-      weight: 'Peso',
-      selectedPrice: 'Precio seleccionado',
-      productNet: 'Producto sin IVA',
-      transport: 'Transporte',
-      totalWithVat: 'Total',
-      ivaIncluded: 'IVA incluido',
-      deliveryPostcode: 'Zona',
-      changePostcode: 'Cambiar',
-      transportPending: 'Transporte por confirmar',
-      addToCart: 'Añadir al carrito',
-      added: 'Añadido al carrito',
-      viewCart: 'Ver carrito',
-      imagePending: 'Imagen pendiente del cliente',
-      quantity: 'Cantidad',
-    },
-  }
-
   let selectedVariantIndex = $state(0)
   let selectedFinish = $state<StoreFinish>('natural')
   let quantity = $state(1)
@@ -126,7 +40,7 @@
   const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/loja', data.language, data.returnPage))
-  const labels = $derived(pageCopy[data.language])
+  const labels = $derived(content.storePage.detail)
   const selectedVariant = $derived(
     data.storeProduct.variants[selectedVariantIndex] ?? data.storeProduct.variants[0],
   )
@@ -137,7 +51,7 @@
     effectiveFinish === 'natural' ? 'priceNatural' : 'priceDark',
   )
   const storeProductDataAttribute = $derived(
-    data.preview && data.studioUrl && data.storeProduct.studioDocumentId
+    (data.preview || data.builderPreview) && data.studioUrl && data.storeProduct.studioDocumentId
       ? createDataAttribute({
           baseUrl: data.studioUrl,
           id: data.storeProduct.studioDocumentId,
@@ -175,6 +89,11 @@
       deliveryPostalCode,
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
+  )
+  const selectedTransportStatus = $derived(
+    selectedEstimate.transportIssue === 'overweight'
+      ? labels.transportOverweight
+      : labels.transportPending,
   )
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
@@ -219,6 +138,7 @@
   const addSelectedToCart = () => {
     addCartItem({
       slug: data.storeProduct.slug,
+      variantKey: selectedVariant.key,
       variantIndex: selectedVariantIndex,
       finish: effectiveFinish,
       quantity: normalizedQuantity,
@@ -279,70 +199,89 @@
       aria-hidden={deliveryModalOpen}
       inert={deliveryModalOpen}
     >
-    <div class="store-detail-head">
-      <a class="detail-back-link" href={backHref}>
-        <span aria-hidden="true">←</span>
-        {labels.back}
-      </a>
-      <div class="store-detail-delivery">
-        <div class="store-delivery-info">
-          <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
-            <circle cx="12" cy="10" r="2.6" />
-          </svg>
-          <span class="store-delivery-text">
-            <span>{labels.deliveryPostcode}</span>
-            <strong>{deliveryZonePrefix}</strong>
-            {#if deliveryZone}
-              <small>{deliveryZone.label}</small>
-            {/if}
-          </span>
+    <Reveal class="store-detail-head-reveal" variant="panel">
+      <div class="store-detail-head">
+        <a class="detail-back-link" href={backHref}>
+          <span aria-hidden="true">←</span>
+          {labels.back}
+        </a>
+        <div class="store-detail-delivery">
+          <div class="store-delivery-info">
+            <svg class="store-delivery-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 10c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="2.6" />
+            </svg>
+            <span class="store-delivery-text">
+              <span>{labels.deliveryPostcode}</span>
+              <strong>{deliveryZonePrefix}</strong>
+              {#if deliveryZone}
+                <small>{deliveryZone.label}</small>
+              {/if}
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick={() => {
+              deliveryModalOpen = true
+            }}
+          >
+            {labels.changePostcode}
+          </button>
         </div>
-        <button
-          type="button"
-          onclick={() => {
-            deliveryModalOpen = true
-          }}
-        >
-          {labels.changePostcode}
-        </button>
       </div>
-    </div>
+    </Reveal>
 
     <section class="store-detail-shell">
-      <div class="store-detail-copy">
+      <Reveal class="store-detail-copy" variant="hero" priority>
         <p class="store-detail-category">
           <span>{labels.category}</span>
-          {content.storePage.categoryLabels[data.storeProduct.category]}
+          <strong data-sanity={storeProductDataAttribute?.('category')}>
+            {storeCategoryLabel(content.storePage, data.storeProduct.category)}
+          </strong>
         </p>
-        <h1>{data.storeProduct.title}</h1>
-        <p class="article-lead">{data.storeProduct.summary}</p>
-      </div>
+        <h1
+          class="cms-styled-text"
+          style={textAppearanceStyle(data.storeProduct.textAppearance?.title)}
+          use:lineReveal
+          data-sanity={storeProductDataAttribute?.('title.pt')}
+        >
+          {data.storeProduct.title}
+        </h1>
+        <p
+          class="article-lead cms-styled-text"
+          style={textAppearanceStyle(data.storeProduct.textAppearance?.summary)}
+          data-sanity={storeProductDataAttribute?.('summary.pt')}
+        >
+          {data.storeProduct.summary}
+        </p>
+      </Reveal>
 
-      <div
-        class="store-detail-visual"
-        class:no-image={!hasStoreMedia}
-        data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
-        data-sanity-edit-target={!hasStoreMedia && imageDataAttribute ? true : undefined}
-      >
-        {#if hasStoreMedia}
-          <StoreMediaGallery
-            media={storeMedia}
-            label={content.common.zoomImage}
-            closeLabel={content.common.close}
-            className="store-detail-gallery"
-            sizes="(max-width: 900px) 92vw, 520px"
-            dataAttribute={mediaDataAttribute}
-          />
-        {:else}
-          <div aria-hidden="true">
-            <strong>{initials}</strong>
-            <span>{labels.imagePending}</span>
-          </div>
-        {/if}
-      </div>
+      <Reveal class="store-detail-visual-reveal" delay={120} variant="media">
+        <div
+          class="store-detail-visual"
+          class:no-image={!hasStoreMedia}
+          data-sanity={hasStoreMedia ? undefined : imageDataAttribute}
+        >
+          {#if hasStoreMedia}
+            <StoreMediaGallery
+              media={storeMedia}
+              label={content.common.zoomImage}
+              closeLabel={content.common.close}
+              className="store-detail-gallery"
+              sizes="(max-width: 900px) 92vw, 520px"
+              dataAttribute={mediaDataAttribute}
+            />
+          {:else}
+            <div aria-hidden="true">
+              <strong>{initials}</strong>
+              <span>{labels.imagePending}</span>
+            </div>
+          {/if}
+        </div>
+      </Reveal>
     </section>
 
+    <Reveal class="store-buy-panel-reveal" variant="panel">
     <section class="store-buy-panel" aria-label={`${data.storeProduct.title}: ${labels.selectedPrice}`}>
       <div class="store-option-grid">
         <fieldset class="store-detail-variants">
@@ -413,23 +352,27 @@
         </section>
 
         {#if selectedVariant.weightKg}
-          <section
-            class="store-spec-weight"
-            data-sanity={selectedWeightDataAttribute}
-            data-sanity-edit-target={selectedWeightDataAttribute ? true : undefined}
-          >
+          <section class="store-spec-weight">
             <h2>{labels.weight}</h2>
-            <p class="store-spec-weight-value">{selectedVariant.weightKg} kg</p>
+            <p
+              class="store-spec-weight-value"
+              data-sanity={selectedWeightDataAttribute}
+              data-df4y-editor-field={selectedWeightDataAttribute ? true : undefined}
+              data-df4y-editor-kind={selectedWeightDataAttribute ? 'number' : undefined}
+              data-df4y-editor-label={selectedWeightDataAttribute ? labels.weight : undefined}
+            >{selectedVariant.weightKg} kg</p>
           </section>
         {/if}
 
-        <section
-          class="store-spec-price"
-          data-sanity={selectedPriceDataAttribute}
-          data-sanity-edit-target={selectedPriceDataAttribute ? true : undefined}
-        >
+        <section class="store-spec-price">
           <h2>{labels.productNet}</h2>
-          <p class="store-spec-price-value">{formatPrice(selectedEstimate.productNet)}</p>
+          <p
+            class="store-spec-price-value"
+            data-sanity={selectedPriceDataAttribute}
+            data-df4y-editor-field={selectedPriceDataAttribute ? true : undefined}
+            data-df4y-editor-kind={selectedPriceDataAttribute ? 'number' : undefined}
+            data-df4y-editor-label={selectedPriceDataAttribute ? labels.productNet : undefined}
+          >{formatPrice(selectedEstimate.productNet)}</p>
         </section>
 
         <section class="store-spec-transport">
@@ -437,7 +380,7 @@
           {#if selectedEstimate.transport}
             <p class="store-spec-price-value">{formatPrice(selectedEstimate.transport.transportNet)}</p>
           {:else}
-            <p>{labels.transportPending}</p>
+            <p>{selectedTransportStatus}</p>
           {/if}
         </section>
 
@@ -446,7 +389,7 @@
           <p class="store-spec-price-value">
             {selectedEstimate.totalGross !== null
               ? formatPrice(selectedEstimate.totalGross)
-              : labels.transportPending}
+              : selectedTransportStatus}
           </p>
           {#if selectedEstimate.totalGross !== null}
             <small class="store-spec-iva">{labels.ivaIncluded}</small>
@@ -461,12 +404,13 @@
         <a class="text-link" href={`/carrinho${langQuery}`}>{labels.viewCart}</a>
       </div>
     </section>
+    </Reveal>
     </article>
 
     {#if deliveryModalOpen}
       <div class="store-gate-layer" role="presentation">
         <StorePostalGate
-          language={data.language}
+          labels={content.storePage.postalGate}
           initialPostalCode={deliveryPostalCode}
           closable
           onclose={() => {
@@ -482,7 +426,7 @@
   {:else}
     <section class="section store-section store-section-gated">
       <StorePostalGate
-        language={data.language}
+        labels={content.storePage.postalGate}
         onconfirm={(postalCode) => {
           deliveryPostalCode = postalCode
         }}

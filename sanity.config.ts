@@ -2,11 +2,13 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {defineLocations, presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
+import {RetranslateAction} from './sanity.actions'
 import {crmSchemaTypes, websiteSchemaTypes} from './schemaTypes'
-import {crmStructure, websiteStructure} from './sanity.structure'
+import {crmStructure, managedTypes, websiteStructure} from './sanity.structure'
 
 const projectId = 'u4uyfix8'
 const localPreviewOrigin = 'http://localhost:5173'
+const enableCrmWorkspace = process.env.SANITY_STUDIO_ENABLE_CRM === 'true'
 
 const collectionLocation = (basePath: string, fallbackTitle: string) =>
   defineLocations({
@@ -70,6 +72,9 @@ export default defineConfig([
               ],
             }),
             productCategory: collectionLocation('/produtos', 'Produto'),
+            storeCategory: defineLocations({
+              locations: [{title: 'Categorias da Loja', href: '/loja'}],
+            }),
             storeProduct: collectionLocation('/loja', 'Produto da loja'),
             caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo'),
             blogPost: collectionLocation('/blog', 'Artigo do blog'),
@@ -83,19 +88,28 @@ export default defineConfig([
     schema: {
       types: websiteSchemaTypes,
     },
-  },
-  {
-    name: 'crm',
-    basePath: '/crm',
-    title: 'DaFábrica4You - Pedidos',
 
-    projectId,
-    dataset: 'crm',
-
-    plugins: [structureTool({structure: crmStructure})],
-
-    schema: {
-      types: crmSchemaTypes,
+    document: {
+      actions: (prev, context) =>
+        managedTypes.includes(context.schemaType) ? [...prev, RetranslateAction] : prev,
     },
   },
+  ...(enableCrmWorkspace
+    ? [
+        {
+          name: 'crm',
+          basePath: '/crm',
+          title: 'DaFábrica4You - Pedidos',
+
+          projectId,
+          dataset: 'crm',
+
+          plugins: [structureTool({structure: crmStructure})],
+
+          schema: {
+            types: crmSchemaTypes,
+          },
+        },
+      ]
+    : []),
 ])

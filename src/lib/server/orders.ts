@@ -19,7 +19,8 @@ import {logEmailFailure, ordersRecipient, sendTransactionalEmail, type EmailSend
 
 export type CheckoutCartItem = {
   slug: string
-  variantIndex: number
+  variantKey?: string
+  variantIndex?: number
   finish: StoreFinish
   quantity: number
 }
@@ -31,9 +32,11 @@ export type CheckoutCustomerInput = {
   phone: string
   nif: string
   purchaseType: 'individual' | 'company'
+  billingName: string
   billingAddress: string
   billingPostalCode: string
   billingLocality: string
+  deliveryName: string
   deliveryAddress: string
   deliveryPostalCode: string
   deliveryLocality: string
@@ -87,9 +90,11 @@ export type OrderRow = {
   phone: string
   nif: string
   purchaseType: string
+  billingName: string
   billingAddress: string
   billingPostalCode: string
   billingLocality: string
+  deliveryName: string
   deliveryAddress: string
   deliveryPostalCode: string
   deliveryLocality: string
@@ -135,6 +140,9 @@ export type CustomerAddressRow = {
   id: string
   addressType: 'billing' | 'delivery'
   name: string
+  // Only meaningful for billing addresses — the NIF tied to that invoice
+  // name, distinct from the account holder's own customers.nif.
+  nif: string
   addressLine1: string
   addressLine2: string
   postalCode: string
@@ -193,9 +201,11 @@ const mapOrder = (row: Record<string, unknown>): OrderRow => ({
   phone: String(row.phone ?? ''),
   nif: String(row.nif ?? ''),
   purchaseType: String(row.purchase_type),
+  billingName: String(row.billing_name ?? ''),
   billingAddress: String(row.billing_address ?? ''),
   billingPostalCode: String(row.billing_postal_code ?? ''),
   billingLocality: String(row.billing_locality ?? ''),
+  deliveryName: String(row.delivery_name ?? ''),
   deliveryAddress: String(row.delivery_address ?? ''),
   deliveryPostalCode: String(row.delivery_postal_code ?? ''),
   deliveryLocality: String(row.delivery_locality ?? ''),
@@ -243,6 +253,7 @@ const mapAddress = (row: Record<string, unknown>): CustomerAddressRow => ({
   id: String(row.id),
   addressType: String(row.address_type) === 'billing' ? 'billing' : 'delivery',
   name: String(row.name ?? ''),
+  nif: String(row.nif ?? ''),
   addressLine1: String(row.address_line1 ?? ''),
   addressLine2: String(row.address_line2 ?? ''),
   postalCode: String(row.postal_code ?? ''),
@@ -271,7 +282,9 @@ export const buildOrderDraft = (
 
   const items = cartItems.map((item) => {
     const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-    const variant = product?.variants[Math.max(0, Math.floor(item.variantIndex || 0))]
+    const variant = item.variantKey
+      ? product?.variants.find((candidate) => candidate.key === item.variantKey)
+      : product?.variants[Math.max(0, Math.floor(item.variantIndex || 0))]
     if (!product || !variant || (item.finish !== 'natural' && item.finish !== 'dark')) {
       throw new OrderInputError('O carrinho tem produtos inválidos. Atualize a página e tente novamente.')
     }
@@ -295,7 +308,7 @@ export const buildOrderDraft = (
     return {
       product,
       variant,
-      variantIndex: Math.max(0, Math.floor(item.variantIndex || 0)),
+      variantIndex: product.variants.indexOf(variant),
       finish,
       finishLabel: product.hasFinishChoice ? content.storePage.finishLabels[finish] : '',
       quantity,
@@ -319,6 +332,9 @@ export const buildOrderDraft = (
   )
 
   if (!estimate.transport || estimate.totalGross === null || estimate.vat === null || estimate.subtotalNet === null) {
+    if (estimate.transportIssue === 'overweight') {
+      throw new OrderInputError('O peso total excede o limite de transporte automático. Contacte-nos para organizar a entrega.')
+    }
     throw new OrderInputError('Não foi possível calcular transporte para este carrinho.')
   }
 
@@ -349,17 +365,17 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
     const orderResult = await client.query(
       `insert into orders (
         order_number, customer_id, language, customer_name, email, phone, nif, purchase_type,
-        billing_address, billing_postal_code, billing_locality,
-        delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
+        billing_name, billing_address, billing_postal_code, billing_locality,
+        delivery_name, delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
         customer_notes, product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
-        payment_method, submission_token
+        payment_method, submission_token, privacy_consent_at
       )
       values (
         $1, $2, $3, $4, $5, $6, $7, $8,
-        $9, $10, $11,
-        $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22,
-        $23, $24
+        $9, $10, $11, $12,
+        $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $22, $23, $24,
+        $25, $26, now()
       )
       on conflict (submission_token) do nothing
       returning *`,
@@ -372,9 +388,11 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         cleanLine(input.phone, 40),
         cleanLine(input.nif, 16),
         input.purchaseType,
+        cleanLine(input.billingName, 160),
         cleanLine(input.billingAddress, 240),
         normalizePostalCode(input.billingPostalCode),
         cleanLine(input.billingLocality, 120),
+        cleanLine(input.deliveryName, 160),
         cleanLine(input.deliveryAddress, 240),
         normalizePostalCode(input.deliveryPostalCode),
         cleanLine(input.deliveryLocality, 120),
@@ -402,30 +420,40 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
     }
     const order = mapOrder(orderResult.rows[0])
 
-    for (const item of draft.items) {
-      await client.query(
-        `insert into order_items (
-          order_id, product_slug, product_title, variant_index, variant_label, variant_dimensions,
-          finish, finish_label, quantity, unit_price_net, line_total_net, unit_weight_kg, line_weight_kg
-        )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [
-          order.id,
-          item.product.slug,
-          item.product.title,
-          item.variantIndex,
-          item.variant.label,
-          item.variant.dimensions,
-          item.finish,
-          item.finishLabel,
-          item.quantity,
-          item.unitPriceNet,
-          item.lineTotalNet,
-          item.unitWeightKg,
-          item.lineWeightKg,
-        ],
+    // Insert every line item in one statement. The order still stays fully
+    // transactional, without making checkout latency grow by one round trip
+    // per cart line.
+    const itemColumnCount = 13
+    const itemValues = draft.items.flatMap((item) => [
+      order.id,
+      item.product.slug,
+      item.product.title,
+      item.variantIndex,
+      item.variant.label,
+      item.variant.dimensions,
+      item.finish,
+      item.finishLabel,
+      item.quantity,
+      item.unitPriceNet,
+      item.lineTotalNet,
+      item.unitWeightKg,
+      item.lineWeightKg,
+    ])
+    const itemPlaceholders = draft.items
+      .map((_, itemIndex) => {
+        const offset = itemIndex * itemColumnCount
+        return `(${Array.from({length: itemColumnCount}, (_, columnIndex) => `$${offset + columnIndex + 1}`).join(', ')})`
+      })
+      .join(', ')
+
+    await client.query(
+      `insert into order_items (
+        order_id, product_slug, product_title, variant_index, variant_label, variant_dimensions,
+        finish, finish_label, quantity, unit_price_net, line_total_net, unit_weight_kg, line_weight_kg
       )
-    }
+      values ${itemPlaceholders}`,
+      itemValues,
+    )
 
     await client.query(
       `insert into order_status_events (order_id, status, note, actor_type, actor_label)
@@ -457,16 +485,22 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         const address =
           addressType === 'billing'
             ? {
+                name: input.billingName,
+                nif: input.nif,
                 line1: input.billingAddress,
                 postalCode: input.billingPostalCode,
                 locality: input.billingLocality,
               }
             : {
+                name: input.deliveryName,
+                nif: '',
                 line1: input.deliveryAddress,
                 postalCode: input.deliveryPostalCode,
                 locality: input.deliveryLocality,
               }
 
+        const name = cleanLine(address.name, 160)
+        const nif = cleanLine(address.nif, 16)
         const line1 = cleanLine(address.line1, 240)
         const postalCode = normalizePostalCode(address.postalCode)
         const locality = cleanLine(address.locality, 120)
@@ -477,37 +511,18 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
            where customer_id = $1 and address_type = $2`,
           [input.customerId, addressType],
         )
-        const existing = await client.query<{id: string}>(
-          `select id
-           from customer_addresses
-           where customer_id = $1
-             and address_type = $2
-             and address_line1 = $3
-             and postal_code = $4
-             and locality = $5
-           order by updated_at desc
-           limit 1`,
-          [input.customerId, addressType, line1, postalCode, locality],
+        // The unique address identity added in migration 0004 makes this safe
+        // under concurrent checkout requests: the address is either reused or
+        // inserted exactly once, never duplicated by a select-then-insert race.
+        await client.query(
+          `insert into customer_addresses (
+            customer_id, address_type, name, nif, address_line1, address_line2, postal_code, locality, country, is_default
+          )
+          values ($1, $2, $3, $4, $5, '', $6, $7, 'PT', true)
+          on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
+          do update set name = excluded.name, nif = excluded.nif, is_default = true, updated_at = now()`,
+          [input.customerId, addressType, name, nif, line1, postalCode, locality],
         )
-
-        if (existing.rows[0]) {
-          // Reusing an address at checkout makes it the preference again but
-          // never creates a second copy of the same saved address.
-          await client.query(
-            `update customer_addresses
-             set is_default = true, updated_at = now()
-             where id = $1`,
-            [existing.rows[0].id],
-          )
-        } else {
-          await client.query(
-            `insert into customer_addresses (
-              customer_id, address_type, address_line1, postal_code, locality, is_default
-            )
-            values ($1, $2, $3, $4, $5, true)`,
-            [input.customerId, addressType, line1, postalCode, locality],
-          )
-        }
       }
     }
 
@@ -560,11 +575,20 @@ export const recordOutboundEmail = async (
 }
 
 export const sendOrderEmails = async (order: OrderRow) => {
+  const paymentMethod =
+    order.paymentMethod === 'mbway'
+      ? 'MB WAY'
+      : order.paymentMethod === 'multibanco'
+        ? 'Multibanco'
+        : order.paymentMethod === 'card'
+          ? 'Cartão'
+          : 'A confirmar'
   const customerSubject = `Encomenda ${order.orderNumber} recebida`
   const customerText = [
     `Recebemos a sua encomenda ${order.orderNumber}.`,
     '',
     `Total estimado com transporte e IVA: ${order.totalGross.toFixed(2)} EUR.`,
+    `Método de pagamento escolhido: ${paymentMethod}.`,
     'O pagamento por link ainda está pendente. A equipa enviará os dados de pagamento assim que confirmar a encomenda.',
   ].join('\n')
   const staffTo = ordersRecipient()
@@ -573,8 +597,11 @@ export const sendOrderEmails = async (order: OrderRow) => {
     `Nova encomenda ${order.orderNumber}`,
     `Cliente: ${order.customerName} <${order.email}>`,
     `Telefone: ${order.phone || '-'}`,
+    `Faturação: ${order.billingName || '-'}${order.nif ? ` · NIF ${order.nif}` : ''}`,
+    `Entrega: ${order.deliveryName || '-'}`,
     `Zona: ${order.deliveryZone} (${order.deliveryPostalCode})`,
     `Total: ${order.totalGross.toFixed(2)} EUR`,
+    `Método de pagamento: ${paymentMethod}`,
     'Estado: pendente de link de pagamento',
   ].join('\n')
 
@@ -630,7 +657,7 @@ export const listCustomerAddresses = async (customerId: string): Promise<Custome
     `select *
      from customer_addresses
      where customer_id = $1
-     order by address_type asc, is_default desc, updated_at desc`,
+     order by address_type asc, created_at asc, id asc`,
     [customerId],
   )
   return result.rows.map(mapAddress)
@@ -638,6 +665,7 @@ export const listCustomerAddresses = async (customerId: string): Promise<Custome
 
 export type CustomerAddressInput = {
   name: string
+  nif: string
   line1: string
   line2: string
   postalCode: string
@@ -665,13 +693,20 @@ export const createCustomerAddress = async (
     }
     const result = await client.query(
       `insert into customer_addresses (
-        customer_id, address_type, name, address_line1, address_line2, postal_code, locality, country, is_default
-      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        customer_id, address_type, name, nif, address_line1, address_line2, postal_code, locality, country, is_default
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      on conflict (customer_id, address_type, address_line1, address_line2, postal_code, locality, country)
+      do update set
+        name = excluded.name,
+        nif = excluded.nif,
+        is_default = customer_addresses.is_default or excluded.is_default,
+        updated_at = now()
       returning *`,
       [
         customerId,
         addressType,
         cleanLine(input.name, 120),
+        cleanLine(input.nif, 16),
         cleanLine(input.line1, 240),
         cleanLine(input.line2, 240),
         normalizePostalCode(input.postalCode),
@@ -693,7 +728,7 @@ export const saveCustomerAddress = async (
   createCustomerAddress(
     customerId,
     addressType,
-    {name: '', line1: input.line1, line2: '', postalCode: input.postalCode, locality: input.locality, country: 'PT'},
+    {name: '', nif: '', line1: input.line1, line2: '', postalCode: input.postalCode, locality: input.locality, country: 'PT'},
     true,
   )
 
@@ -710,14 +745,15 @@ export const updateCustomerAddress = async (
   if (!databaseConfigured()) return null
   const result = await query(
     `update customer_addresses
-     set name = $3, address_line1 = $4, address_line2 = $5, postal_code = $6,
-         locality = $7, country = $8, updated_at = now()
+     set name = $3, nif = $4, address_line1 = $5, address_line2 = $6, postal_code = $7,
+         locality = $8, country = $9, updated_at = now()
      where customer_id = $1 and id = $2
      returning *`,
     [
       customerId,
       addressId,
       cleanLine(input.name, 120),
+      cleanLine(input.nif, 16),
       cleanLine(input.line1, 240),
       cleanLine(input.line2, 240),
       normalizePostalCode(input.postalCode),
@@ -816,22 +852,6 @@ export const getOrderDetail = async (id: string, customerId?: string | null): Pr
   }
 }
 
-export const getPainelOrderStats = async () => {
-  if (!databaseConfigured()) return {orders: 0, pendingPaymentLink: 0}
-  const result = await query<{
-    orders: string
-    pending_payment_link: string
-  }>(`select
-      count(*)::text as orders,
-      count(*) filter (where status = 'pending_payment_link')::text as pending_payment_link
-    from orders`)
-  const row = result.rows[0]
-  return {
-    orders: Number(row?.orders ?? 0),
-    pendingPaymentLink: Number(row?.pending_payment_link ?? 0),
-  }
-}
-
 export const setOrderStatus = async (id: string, status: string, actorLabel: string) => {
   if (!databaseConfigured()) return
   const allowed = new Set([
@@ -862,7 +882,7 @@ export const appendOrderNote = async (id: string, note: string, actorLabel: stri
   const stamp = new Date().toLocaleString('pt-PT')
   await query(
     `update orders
-     set internal_notes = trim(both from concat_ws(E'\n', nullif(internal_notes, ''), $1)), updated_at = now()
+     set internal_notes = trim(both from concat_ws(E'\n', nullif(internal_notes, ''), $1::text)), updated_at = now()
      where id = $2`,
     [`[${stamp}${actorLabel ? ` · ${actorLabel}` : ''}] ${trimmed}`, id],
   )

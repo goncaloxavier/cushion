@@ -126,6 +126,8 @@ export const blogPostingSchema = (params: {
   description?: string
   imageUrl?: string
   datePublished?: string
+  dateModified?: string
+  url?: string
   logoUrl?: string
 }): JsonLd => ({
   '@context': 'https://schema.org',
@@ -134,6 +136,10 @@ export const blogPostingSchema = (params: {
   ...(params.description ? {description: cleanSeoText(params.description)} : {}),
   ...(params.imageUrl ? {image: params.imageUrl} : {}),
   ...(params.datePublished ? {datePublished: params.datePublished} : {}),
+  ...(params.dateModified || params.datePublished
+    ? {dateModified: params.dateModified ?? params.datePublished}
+    : {}),
+  ...(params.url ? {mainEntityOfPage: {'@type': 'WebPage', '@id': params.url}} : {}),
   author: {'@type': 'Organization', name: siteName},
   publisher: {
     '@type': 'Organization',

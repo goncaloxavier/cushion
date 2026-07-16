@@ -3,7 +3,7 @@
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
-  import {clearCart, readCart, type StoreCartItem} from '$lib/cart'
+  import {clearCart, readCart, storeVariantForCartItem, type StoreCartItem} from '$lib/cart'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
   import {calculateStoreEstimate, postalZoneFor, readStorePostalCode} from '$lib/store-shipping'
   import {onMount} from 'svelte'
@@ -100,6 +100,7 @@
     message: '',
   })
   let consentAccepted = $state(false)
+  let privacyConsentAccepted = $state(false)
   let lastFormValues = $state<ContactFormValues | undefined>(undefined)
 
   $effect(() => {
@@ -127,7 +128,9 @@
   })
 
   const formIsComplete = $derived(
-    contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) && consentAccepted,
+    contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) &&
+      consentAccepted &&
+      privacyConsentAccepted,
   )
   const contactFields = $derived(
     contactFieldKeys.map((key, index) => ({
@@ -168,7 +171,7 @@
 
   const cartItemToMessageLine = (item: StoreCartItem) => {
     const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-    const variant = product?.variants[item.variantIndex]
+    const variant = product ? storeVariantForCartItem(product, item) : undefined
     if (!product || !variant) return ''
 
     const finish = content.storePage.finishLabels[item.finish]
@@ -192,7 +195,7 @@
       items
         .map((item) => {
           const product = content.storeProducts.find((candidate) => candidate.slug === item.slug)
-          const variant = product?.variants[item.variantIndex]
+          const variant = product ? storeVariantForCartItem(product, item) : undefined
           if (!product || !variant) return null
 
           return {
@@ -339,6 +342,21 @@
             bind:checked={consentAccepted}
           />
           <span>{content.common.marketingConsent}</span>
+        </label>
+        <label class="consent-field">
+          <input
+            name="privacyConsent"
+            type="checkbox"
+            required
+            aria-required="true"
+            bind:checked={privacyConsentAccepted}
+          />
+          <span>
+            {content.common.privacyConsentPrefix}
+            <a href={content.common.privacyPolicyUrl} target="_blank" rel="noreferrer"
+              >{content.common.privacyPolicyLabel}</a
+            >
+          </span>
         </label>
         <button class="button primary" type="submit" disabled={!formIsComplete}>
           {content.common.requestQuote}

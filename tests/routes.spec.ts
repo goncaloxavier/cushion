@@ -11,14 +11,14 @@ type PublicRoute = {
 const publicRoutes: PublicRoute[] = [
   {path: '/?lang=pt', heading: 'não requerem manutenção', active: 'Início'},
   {path: '/sobre-nos?lang=pt', heading: 'Do ecoponto amarelo', active: 'Sobre'},
-  {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Soluções'},
+  {path: '/produtos?lang=pt', heading: 'Soluções para exterior', active: 'Produtos'},
   {path: '/loja?lang=pt', heading: 'Produtos com preço', active: 'Loja'},
   {path: '/loja/banco-gaviao?lang=pt', heading: 'Banco Gavião', active: 'Loja'},
   {path: '/carrinho?lang=pt', heading: 'Reveja os produtos', active: null},
   {
     path: '/produtos/decking-pavimentos-passadicos?lang=pt',
     heading: 'Decking, pavimentos e passadiços',
-    active: 'Soluções',
+    active: 'Produtos',
     mobile: false,
   },
   {path: '/catalogo?lang=en', heading: 'Request the catalogue through the form', active: 'Catalogue'},
@@ -40,15 +40,15 @@ const publicRoutes: PublicRoute[] = [
 ]
 
 const desktopNavLabels = {
-  pt: ['Sobre', 'Soluções', 'Loja', 'Casos', 'Blog'],
-  en: ['About', 'Solutions', 'Store', 'Cases', 'Blog'],
-  es: ['Sobre', 'Soluciones', 'Tienda', 'Casos', 'Blog'],
+  pt: ['Sobre', 'Produtos', 'Loja', 'Casos', 'Blog'],
+  en: ['About', 'Products', 'Store', 'Cases', 'Blog'],
+  es: ['Sobre', 'Productos', 'Tienda', 'Casos', 'Blog'],
 }
 
 const mobileNavLabels = {
-  pt: ['Início', 'Sobre', 'Soluções', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
-  en: ['Home', 'About', 'Solutions', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
-  es: ['Inicio', 'Sobre', 'Soluciones', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  pt: ['Início', 'Sobre', 'Produtos', 'Loja', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
+  en: ['Home', 'About', 'Products', 'Store', 'Catalogue', 'Cases', 'Blog', 'Contact'],
+  es: ['Inicio', 'Sobre', 'Productos', 'Tienda', 'Catálogo', 'Casos', 'Blog', 'Contacto'],
 }
 
 const phoneViewports = [
@@ -270,6 +270,21 @@ async function expectRouteToRender(route: PublicRoute, page: Page, testInfo: Tes
 }
 
 test.describe('public website routes', () => {
+  test('public documents expose security headers and a keyboard skip link', async ({page, request}, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), 'Header contract runs once on desktop')
+
+    const response = await request.get('/?lang=pt')
+    expect(response.headers()['content-security-policy']).toContain("default-src 'self'")
+    expect(response.headers()['x-content-type-options']).toBe('nosniff')
+    expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin')
+
+    await page.goto('/?lang=pt')
+    const skipLink = page.getByRole('link', {name: 'Saltar para o conteúdo'})
+    await expect(skipLink).toHaveAttribute('href', '#main-content')
+    await skipLink.focus()
+    await expect(skipLink).toBeFocused()
+  })
+
   test.describe('desktop route smoke', () => {
     test.skip(({isMobile}) => Boolean(isMobile), 'Desktop route smoke runs once')
 
@@ -292,6 +307,7 @@ test.describe('public website routes', () => {
 
   test('mobile layout holds across common phone viewports', async ({page}, testInfo) => {
     test.skip(!testInfo.project.name.includes('mobile'), 'Phone viewport audit runs once')
+    test.slow()
     await page.emulateMedia({reducedMotion: 'no-preference'})
 
     for (const viewport of phoneViewports) {
@@ -513,7 +529,9 @@ test.describe('public website routes', () => {
       await expect(page.locator('.checkout-summary')).toContainText('2450 mm')
       await expect(page.locator('.checkout-summary')).toContainText('Castanho / Preto')
       await expect(page.locator('.checkout-summary')).toContainText(/1.?588,21/)
-      await expect(page.getByLabel('Nome')).toBeVisible()
+      await expect(
+        page.getByRole('group', {name: 'Dados do cliente'}).getByLabel('Nome'),
+      ).toBeVisible()
       await expect(page.getByRole('button', {name: 'Submeter pedido'})).toBeVisible()
     })
 
@@ -550,7 +568,7 @@ test.describe('public website routes', () => {
         'Checkout requires a configured database in this environment',
       )
 
-      await page.getByLabel('Nome').fill('Maria Silva')
+      await page.getByRole('group', {name: 'Dados do cliente'}).getByLabel('Nome').fill('Maria Silva')
       await page.getByLabel('Email').fill('maria@example.com')
       await page.getByLabel('Telefone').fill('912345678')
       // Billing and delivery fieldsets share the same field labels — fill both.
@@ -732,13 +750,12 @@ test.describe('public website routes', () => {
     await expect(page.getByText('Teléfono')).toHaveCount(2)
     await expect(page.locator('textarea')).toHaveCount(1)
     await expect(page.locator('form')).toContainText('Mensaje')
-    await expect(page.locator('form input[type="checkbox"]')).toHaveCount(1)
+    await expect(page.locator('.contact-form input[type="checkbox"]')).toHaveCount(2)
     await expect(page.getByRole('link', {name: 'Instagram'})).toHaveCount(2)
     await expect(page.getByRole('link', {name: 'Libro de reclamaciones'})).toHaveCount(2)
-    await expect(page.getByRole('link', {name: 'Política de privacidad'})).toHaveAttribute(
-      'href',
-      'https://www.iubenda.com/privacy-policy/56295339',
-    )
+    await expect(
+      page.locator('.contact-form').getByRole('link', {name: 'Política de privacidad'}),
+    ).toHaveAttribute('href', 'https://www.iubenda.com/privacy-policy/56295339')
     await expect(page.getByRole('link', {name: 'Política de cookies'})).toHaveAttribute(
       'href',
       'https://www.iubenda.com/privacy-policy/56295339/cookie-policy',
@@ -769,13 +786,15 @@ test.describe('public website routes', () => {
 
     await expect(submit).toBeDisabled()
 
-    await form.locator('input[name="marketingConsent"]').evaluate((element) => {
-      const checkbox = element as HTMLInputElement
-      checkbox.checked = true
-      checkbox.dispatchEvent(new Event('input', {bubbles: true}))
-      checkbox.dispatchEvent(new Event('change', {bubbles: true}))
-    })
-    await expect(form.getByRole('checkbox')).toBeChecked()
+    const marketingConsent = form.locator('input[name="marketingConsent"]')
+    const privacyConsent = form.locator('input[name="privacyConsent"]')
+
+    await marketingConsent.check()
+    await expect(marketingConsent).toBeChecked()
+    await expect(submit).toBeDisabled()
+
+    await privacyConsent.check()
+    await expect(privacyConsent).toBeChecked()
     await expect(submit).toBeEnabled()
   })
 })
@@ -811,7 +830,7 @@ test.describe('global search', () => {
       expect(response.ok()).toBe(true)
 
       const groupLabels = await page.locator('.search-group-label').allTextContents()
-      expect(groupLabels).toContain('Soluções')
+      expect(groupLabels).toContain('Produtos')
       expect(groupLabels).toContain('Casos de estudo')
     })
 
@@ -951,7 +970,7 @@ test.describe('language switcher', () => {
       await expect(
         page.locator('.header-actions > .language-switcher'),
       ).toHaveValue('en')
-      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Solutions')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Products')
     })
 
     test('select round-trips through Spanish', async ({page}) => {
@@ -961,12 +980,12 @@ test.describe('language switcher', () => {
       await page.locator('.header-actions > .language-switcher').selectOption('es')
       await expect(page).toHaveURL(/\?lang=es/)
       await expect(page.locator('html')).toHaveAttribute('lang', 'es')
-      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Soluciones')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Productos')
 
       await page.locator('.header-actions > .language-switcher').selectOption('pt')
       await expect(page).toHaveURL(/\?lang=pt/)
       await expect(page.locator('html')).toHaveAttribute('lang', 'pt')
-      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Soluções')
+      await expect(page.getByRole('navigation', {name: 'Main navigation'})).toContainText('Produtos')
     })
   })
 
@@ -976,13 +995,16 @@ test.describe('language switcher', () => {
     test('mobile-menu-lang links switch language and close-and-reopen keeps the active state', async ({
       page,
     }) => {
+      await page.addInitScript(() => {
+        window.localStorage.setItem('df4y-cookie-notice-seen', 'true')
+      })
       await page.goto('/?lang=pt', {waitUntil: 'domcontentloaded'})
       await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true')
       await page.locator('.nav-toggle').click()
 
       const langMenu = page.locator('.mobile-menu-lang')
       await expect(langMenu).toBeVisible()
-      await expect(langMenu.getByRole('link', {name: 'PT'})).toHaveAttribute('aria-current', 'true')
+      await expect(langMenu.getByRole('link', {name: 'PT'})).toHaveAttribute('aria-current', 'page')
 
       await langMenu.getByRole('link', {name: 'EN', exact: true}).click()
       await expect(page).toHaveURL(/\?lang=en/)
@@ -991,7 +1013,7 @@ test.describe('language switcher', () => {
       await page.locator('.nav-toggle').click()
       await expect(page.locator('.mobile-menu-lang').getByRole('link', {name: 'EN'})).toHaveAttribute(
         'aria-current',
-        'true',
+        'page',
       )
     })
   })
@@ -1017,7 +1039,7 @@ test.describe('catalogue + private backoffice', () => {
   })
 
   test('backoffice subpages require login', async ({page}) => {
-    await page.goto('/painel/contactos')
+    await page.goto('/painel/pedidos')
     await expect(page).toHaveURL(/\/painel\/login/)
   })
 })

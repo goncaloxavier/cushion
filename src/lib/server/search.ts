@@ -1,5 +1,5 @@
 import {ROUTE_PREFIX, snippet, type SearchResults} from '$lib/search'
-import type {SiteContent} from '$lib/site-content'
+import {storeCategoryLabel, type SiteContent} from '$lib/site-content'
 
 const RESULTS_PER_CATEGORY = 5
 const MAX_TOKENS = 6
@@ -71,8 +71,6 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
     {text: item.title, weight: 5},
     {text: item.summary, weight: 3},
     {text: item.description, weight: 1},
-    {text: item.features.join(' '), weight: 1},
-    {text: item.applications.join(' '), weight: 1},
   ]).map(({item}) => ({
     category: 'products' as const,
     title: item.title,
@@ -84,7 +82,7 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
   const storeProducts = rank(content.storeProducts, tokens, (item) => [
     {text: item.title, weight: 5},
     {text: item.summary, weight: 3},
-    {text: content.storePage.categoryLabels[item.category], weight: 2},
+    {text: storeCategoryLabel(content.storePage, item.category), weight: 2},
   ]).map(({item}) => ({
     category: 'storeProducts' as const,
     title: item.title,

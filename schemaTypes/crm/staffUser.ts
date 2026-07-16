@@ -17,7 +17,7 @@ export const staffUser = defineType({
     defineField({
       name: 'username',
       title: 'Utilizador',
-      description: 'Nome de utilizador para iniciar sessão. Deve ser único (minúsculas).',
+      description: 'Único e em minúsculas.',
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),

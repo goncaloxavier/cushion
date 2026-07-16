@@ -3,13 +3,16 @@
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {seoDescription} from '$lib/seo'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
   import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
-  import type {LanguageCode, StoreCategory, StoreProduct} from '$lib/site-content'
+  import {storeCategoryLabel} from '$lib/site-content'
+  import {textAppearanceStyle} from '$lib/text-appearance'
+  import type {StoreCategory, StoreProduct, StoreSortKey} from '$lib/site-content'
   import {
     calculateStoreEstimate,
     postalZonePrefixFor,
@@ -23,58 +26,9 @@
   let {data} = $props()
 
   type CategoryFilter = 'all' | StoreCategory
-  type SortKey = 'featured' | 'priceAsc' | 'priceDesc' | 'name'
+  type SortKey = StoreSortKey
 
-  const categories: StoreCategory[] = ['bancos', 'mesas', 'cadeiras', 'decking', 'residuos', 'cultivo']
   const sortOptions: SortKey[] = ['featured', 'priceAsc', 'priceDesc', 'name']
-  const sortLabels: Record<LanguageCode, Record<SortKey, string>> = {
-    pt: {
-      featured: 'Destaque',
-      priceAsc: 'Preço crescente',
-      priceDesc: 'Preço decrescente',
-      name: 'Nome',
-    },
-    en: {
-      featured: 'Featured',
-      priceAsc: 'Price low to high',
-      priceDesc: 'Price high to low',
-      name: 'Name',
-    },
-    es: {
-      featured: 'Destacado',
-      priceAsc: 'Precio ascendente',
-      priceDesc: 'Precio descendente',
-      name: 'Nombre',
-    },
-  }
-  const deliveryLabels: Record<
-    LanguageCode,
-    {
-      postcode: string
-      change: string
-      cardPriceWithDelivery: string
-      cardPriceWithoutDelivery: string
-    }
-  > = {
-    pt: {
-      postcode: 'Zona',
-      change: 'Alterar',
-      cardPriceWithDelivery: 'Desde c/ transporte e IVA',
-      cardPriceWithoutDelivery: 'Desde s/ transporte',
-    },
-    en: {
-      postcode: 'Zone',
-      change: 'Change',
-      cardPriceWithDelivery: 'From incl. transport and VAT',
-      cardPriceWithoutDelivery: 'From excl. transport',
-    },
-    es: {
-      postcode: 'Zona',
-      change: 'Cambiar',
-      cardPriceWithDelivery: 'Desde con transporte e IVA',
-      cardPriceWithoutDelivery: 'Desde sin transporte',
-    },
-  }
   let query = $state('')
   let category = $state<CategoryFilter>('all')
   let sort = $state<SortKey>('featured')
@@ -87,11 +41,33 @@
   const pageSize = 9
 
   const content = $derived(data.site)
+  const siteContentDataAttribute = $derived(
+    (data.preview || data.builderPreview) && data.studioUrl
+      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      : null,
+  )
+  const storeHeroDataAttribute = (field: 'kicker' | 'title' | 'lead') =>
+    siteContentDataAttribute?.(`storePage.hero.${field}.pt`)
   const langQuery = $derived(`?lang=${data.language}`)
   const hero = $derived({...content.storePage.hero, lead: ''})
   const normalizedQuery = $derived(query.trim().toLocaleLowerCase(data.language))
-  const localizedSortLabels = $derived(sortLabels[data.language])
-  const localizedDeliveryLabels = $derived(deliveryLabels[data.language])
+  const localizedSortLabels = $derived(content.storePage.sortOptions)
+  const localizedDeliveryLabels = $derived(content.storePage.delivery)
+  const categories = $derived.by(() => {
+    const options = [...content.storePage.categories]
+    const known = new Set(options.map((option) => option.slug))
+
+    for (const product of content.storeProducts) {
+      if (known.has(product.category)) continue
+      known.add(product.category)
+      options.push({
+        slug: product.category,
+        label: storeCategoryLabel(content.storePage, product.category),
+      })
+    }
+
+    return options
+  })
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
   const priceFormatter = $derived(
@@ -163,7 +139,7 @@
     [
       product.title,
       product.summary,
-      content.storePage.categoryLabels[product.category],
+      storeCategoryLabel(content.storePage, product.category),
     ]
       .join(' ')
       .toLocaleLowerCase(data.language)
@@ -247,10 +223,17 @@
   })
 </script>
 
-<SeoHead title={content.nav.store} description={content.storePage.hero.title} />
+<SeoHead
+  title={content.nav.store}
+  description={seoDescription(
+    data.language,
+    content.storePage.hero.lead,
+    content.storeProducts.map((product) => product.summary).join(' '),
+  )}
+/>
 
 <main class="store-page">
-  <PageHero {...hero} />
+  <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
 
   <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}
@@ -300,7 +283,7 @@
           <select bind:value={category}>
             <option value="all">{content.storePage.allCategoriesLabel}</option>
             {#each categories as option}
-              <option value={option}>{content.storePage.categoryLabels[option]}</option>
+              <option value={option.slug}>{option.label}</option>
             {/each}
           </select>
         </label>
@@ -329,14 +312,13 @@
                 <div
                   class={`store-card-visual ${product.image ? '' : 'no-image'}`}
                   data-sanity={cardImageDataAttribute}
-                  data-sanity-edit-target={cardImageDataAttribute ? true : undefined}
                 >
                   {#if product.image}
                     <img
                       src={sizedImage(product.image.url, 640)}
                       srcset={imageSrcset(product.image.url, [360, 480, 640, 800])}
                       sizes="(max-width: 700px) 92vw, 360px"
-                      alt={product.image.alt}
+                      alt={product.image.alt || product.title}
                       loading="lazy"
                       decoding="async"
                       style:background={product.image.lqip
@@ -345,7 +327,7 @@
                     />
                   {:else}
                     <div aria-hidden="true">
-                      <span>{content.storePage.categoryLabels[product.category]}</span>
+                      <span>{storeCategoryLabel(content.storePage, product.category)}</span>
                       <strong>{initials(product.title)}</strong>
                     </div>
                   {/if}
@@ -353,10 +335,16 @@
 
                 <div class="store-card-body">
                   <div class="store-card-heading">
-                    <p>{content.storePage.categoryLabels[product.category]}</p>
-                    <h3>{product.title}</h3>
+                    <p>{storeCategoryLabel(content.storePage, product.category)}</p>
+                    <h3
+                      class="cms-styled-text"
+                      style={textAppearanceStyle(product.textAppearance?.title)}
+                    >{product.title}</h3>
                   </div>
-                  <p class="store-card-summary">{product.summary}</p>
+                  <p
+                    class="store-card-summary cms-styled-text"
+                    style={textAppearanceStyle(product.textAppearance?.summary)}
+                  >{product.summary}</p>
 
                   <div class="store-price-line">
                     <span>
@@ -389,7 +377,7 @@
     {#if !deliveryPostalCode || deliveryModalOpen}
       <div class="store-gate-layer" role="presentation">
         <StorePostalGate
-          language={data.language}
+          labels={content.storePage.postalGate}
           initialPostalCode={deliveryPostalCode}
           closable={Boolean(deliveryPostalCode)}
           onclose={() => {
