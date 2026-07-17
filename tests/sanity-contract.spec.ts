@@ -1039,6 +1039,27 @@ test.describe('Sanity Studio content contract', () => {
     expect(appHtml).toContain('nonce="%sveltekit.nonce%"')
   })
 
+  test('the DeepL key override route is admin-gated, CSRF-checked, and validated before persisting', () => {
+    const definicoesServer = read('src/routes/painel/definicoes/+page.server.ts')
+    const deeplSettings = read('src/lib/server/deepl-settings.ts')
+    const appSettings = read('src/lib/server/app-settings.ts')
+    const migration = read('migrations/0009_app_settings.sql')
+
+    expect(definicoesServer).toContain("if (!canManageStaff(locals.staff)) error(403")
+    expect(definicoesServer).toContain('canManageStaff(locals.staff)')
+    expect(definicoesServer.match(/canManageStaff\(locals\.staff\)/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(definicoesServer).toContain('sameOriginOk(')
+    expect(definicoesServer).toContain('csrfOk(')
+    expect(definicoesServer).toContain('await checkDeeplKey(key)')
+    expect(definicoesServer.indexOf('await checkDeeplKey(key)')).toBeLessThan(
+      definicoesServer.indexOf('await setDeeplApiKeyOverride('),
+    )
+    expect(deeplSettings).toContain("override || env.DEEPL_API_KEY || null")
+    expect(deeplSettings).toContain('export const maskDeeplKey')
+    expect(appSettings).toContain('on conflict (key) do update')
+    expect(migration).toContain('create table if not exists app_settings')
+  })
+
   test('private route styles do not ship through the global stylesheet', () => {
     const globalStyles = read('src/app.css')
     const accountStyles = read('src/lib/styles/account-checkout.css')

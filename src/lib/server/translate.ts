@@ -1,5 +1,6 @@
 import * as deepl from 'deepl-node'
 import {env} from '$env/dynamic/private'
+import {getEffectiveDeeplApiKey} from './deepl-settings'
 import {
   buildTranslationContext,
   prepareTranslationText,
@@ -14,15 +15,19 @@ import {
 const chunkSize = 50
 const maxBatchCharacters = 60_000
 
-let client: deepl.DeepLClient | null = null
+// Cached by the exact key string in use, so an admin rotating the key in
+// /painel/definicoes (see deepl-settings.ts) takes effect on the next call
+// instead of reusing a client bound to the old key.
+let cached: {key: string; client: deepl.DeepLClient} | null = null
 
-const getClient = () => {
-  if (!env.DEEPL_API_KEY) return null
-  client ??= new deepl.DeepLClient(env.DEEPL_API_KEY, {maxRetries: 3})
-  return client
+const getClient = async () => {
+  const key = await getEffectiveDeeplApiKey()
+  if (!key) return null
+  if (cached?.key !== key) cached = {key, client: new deepl.DeepLClient(key, {maxRetries: 3})}
+  return cached.client
 }
 
-export const deeplConfigured = () => Boolean(env.DEEPL_API_KEY)
+export const deeplConfigured = async () => Boolean(await getEffectiveDeeplApiKey())
 
 export type TranslationLanguage = 'en' | 'es'
 
@@ -70,7 +75,7 @@ export const translateBatch = async (
 ): Promise<TranslateBatchResult> => {
   if (!texts.length) return {ok: true, texts: []}
 
-  const cli = getClient()
+  const cli = await getClient()
   if (!cli) return {ok: false, error: 'DeepL not configured (missing DEEPL_API_KEY).'}
 
   const target = targetLangFor(language)

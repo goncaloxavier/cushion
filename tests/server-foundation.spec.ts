@@ -15,6 +15,7 @@ import {appendOrderNote, getOrderDetail, setOrderStatus} from '../src/lib/server
 import {authenticate as authenticateStaff, createSession as createStaffSession} from '../src/lib/server/staff-auth'
 import {syncPreviewAdminPolicy} from '../src/lib/server/preview-admin'
 import {storeContactSubmission} from '../src/lib/server/crm'
+import {deleteSetting, getSetting, getSettingMeta, setSetting} from '../src/lib/server/app-settings'
 
 const uniqueSuffix = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 test.describe('server foundations', () => {
@@ -201,6 +202,38 @@ test.describe('server foundations', () => {
     } finally {
       await query('delete from crm_form_submissions where email = $1', [email])
       await query('delete from crm_client_profiles where email_normalized = $1', [email.toLowerCase()])
+    }
+  })
+
+  test('app_settings stores and overwrites admin-editable values, keyed independently', async ({
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    const key = `audit-setting-${suffix}`
+
+    try {
+      expect(await getSetting(key)).toBeNull()
+      expect(await getSettingMeta(key)).toBeNull()
+
+      await setSetting(key, 'first-value', 'audit-admin')
+      expect(await getSetting(key)).toBe('first-value')
+      const meta = await getSettingMeta(key)
+      expect(meta?.updatedBy).toBe('audit-admin')
+
+      // Re-saving must upsert in place, not duplicate the row (on conflict (key) do update).
+      await setSetting(key, 'second-value', 'audit-admin-2')
+      expect(await getSetting(key)).toBe('second-value')
+      expect((await getSettingMeta(key))?.updatedBy).toBe('audit-admin-2')
+      const rows = await query('select count(*)::int as n from app_settings where key = $1', [key])
+      expect(rows.rows[0]!.n).toBe(1)
+
+      await deleteSetting(key)
+      expect(await getSetting(key)).toBeNull()
+    } finally {
+      await query('delete from app_settings where key = $1', [key])
     }
   })
 })
