@@ -1144,6 +1144,18 @@ test.describe('visual website editor', () => {
     await expect(confirmation).toBeVisible()
     await confirmation.getByRole('button', {name: 'Eliminar', exact: true}).click()
     await expect(navigation.getByRole('button', {name: /Bancos exteriores/})).toHaveCount(0)
+
+    // Deleting must close the inspector on an empty state, not silently reopen it
+    // on an unrelated node (e.g. the homepage), and must leave the navigation on
+    // whichever tab the user was already on instead of resetting to "Páginas".
+    await expect(
+      settings.getByText('Clique numa página ou num elemento da pré-visualização para o editar.'),
+    ).toBeVisible()
+    await expect(settings.getByText('Página inicial', {exact: true})).toHaveCount(0)
+    await expect(navigation.getByRole('tab', {name: 'Conteúdo'})).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
   })
 
   test('starts Content collapsed and keeps Loja categories in a clear two-panel flow', async ({

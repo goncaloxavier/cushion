@@ -1035,7 +1035,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       selectedNodeRef.current = undefined
       setDocument(undefined)
       setSelectedNode(undefined)
-      await loadManifest()
+      // refreshManifest (unlike loadManifest) has no page-home fallback, so with
+      // the selection already cleared above it just refreshes the list without
+      // reopening the inspector on an unrelated node or switching the left panel's
+      // active tab away from wherever the user was.
+      await refreshManifest()
       setDeleteState({open: false, busy: false})
       pushNotice({tone: 'success', title: 'Conteúdo eliminado'})
     } catch (error) {
@@ -1212,7 +1216,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
       <section className="site-editor-main">
         <SiteEditorCanvas
-          route={selectedNode?.route || '/'}
+          route={selectedNode?.route || previewRouteRef.current}
           viewport={viewport}
           refreshToken={refreshToken}
           previewReady={previewReady}
