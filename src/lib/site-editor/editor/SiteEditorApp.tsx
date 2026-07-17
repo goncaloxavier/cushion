@@ -220,6 +220,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const savedVersion = useRef(0)
   const saving = useRef<Promise<SiteEditorDocument> | null>(null)
   const publishing = useRef<Promise<SiteEditorDocument> | null>(null)
+  const saveNowRef = useRef<() => Promise<SiteEditorDocument>>()
   const previewNeedsRefresh = useRef(false)
   const canPublish = manifest?.capabilities.canPublish ?? initialCanPublish
   const canWrite = manifest?.capabilities.canWrite ?? false
@@ -310,6 +311,20 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const openDocument = useCallback(
     async (node: SiteEditorNode, path?: string) => {
       if (!node.documentId || !node.documentType) return
+
+      const switchingDocument =
+        !documentRef.current ||
+        normalizeEditorDocumentId(documentRef.current._id) !==
+          normalizeEditorDocumentId(node.documentId)
+
+      if (switchingDocument && dirtyVersion.current > savedVersion.current) {
+        // An edit is still sitting in the autosave debounce window on the document
+        // we're about to leave — flush it now, otherwise fetching the new document
+        // below overwrites documentRef.current and silently discards it.
+        await saveNowRef.current?.().catch(() => undefined)
+      }
+
+      const previousNode = selectedNodeRef.current
       selectedNodeRef.current = node
       setSelectedNode(node)
       setArea(node.area)
@@ -319,11 +334,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         normalizedSelectedPath ? sectionKeyFromPath(normalizedSelectedPath) : undefined,
       )
 
-      if (
-        documentRef.current &&
-        normalizeEditorDocumentId(documentRef.current._id) ===
-          normalizeEditorDocumentId(node.documentId)
-      ) {
+      if (!switchingDocument) {
         return
       }
 
@@ -340,6 +351,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         previewNeedsRefresh.current = false
         setSaveState('idle')
       } catch (error) {
+        selectedNodeRef.current = previousNode
+        setSelectedNode(previousNode)
         pushNotice({
           tone: 'error',
           title: 'Não foi possível abrir o conteúdo',
@@ -502,7 +515,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     } catch (error) {
       if (refreshPreview) previewNeedsRefresh.current = true
       const message = error instanceof Error ? error.message : 'Não foi possível guardar.'
-      const conflict = /conflito|alterado noutro|recarregue|revision/i.test(message)
+      const conflict = /conflito|alterado noutra|recarregue|revision/i.test(message)
       setSaveState(conflict ? 'conflict' : 'error')
       pushNotice({
         tone: conflict ? 'warning' : 'error',
@@ -514,6 +527,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       saving.current = null
     }
   }, [api, canWrite, frame, pushNotice])
+
+  useEffect(() => {
+    saveNowRef.current = saveNow
+  }, [saveNow])
 
   useEffect(() => {
     if (saveState !== 'dirty') return

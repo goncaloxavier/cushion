@@ -236,6 +236,39 @@ test.describe('visual website editor', () => {
     await expect(heading).toHaveText('Alteração mais recente preservada')
   })
 
+  test('flushes a pending edit instead of losing it when switching documents mid-debounce', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Autosave flush runs once')
+    await openEditor(page, testInfo)
+
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Categorias da Loja/)
+    await navigation.getByRole('button', {name: /Bancos.*1 produto/}).click()
+
+    await expect(settings).toHaveClass(/is-open/)
+    const manager = settings.locator('.site-editor-category-manager')
+    const nameField = manager.getByRole('textbox', {name: 'Nome da categoria'})
+    await nameField.fill('Bancos urgentes')
+
+    // Switch to a different document immediately — well inside the 650ms autosave
+    // debounce window — instead of waiting for "Guardado" like every other test.
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    await navigation.getByRole('tab', {name: 'Páginas'}).click()
+    await navigation.getByRole('button', {name: 'Página inicial'}).click()
+    await expect(settings.locator('.site-editor-inspector-title')).toContainText('Página inicial')
+
+    // Switch back and confirm the rename was flushed rather than silently discarded.
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Categorias da Loja/)
+    await navigation.getByRole('button', {name: /Bancos urgentes/}).click()
+    await expect(nameField).toHaveValue('Bancos urgentes')
+  })
+
   test('keeps the selection attached while scrolling and never falls back to the full form', async ({
     page,
   }, testInfo) => {
