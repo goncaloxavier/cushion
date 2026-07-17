@@ -17,4 +17,5 @@
   content={data.site}
   language={data.language}
   dataset={data.sanityDataset}
+  preview={data.preview}
 />

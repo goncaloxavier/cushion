@@ -23,6 +23,9 @@ import type {SiteEditorDocumentType, SiteEditorField} from '../types'
 import type {BuilderViewport} from '$lib/builder/types'
 import {textAppearanceFields, type TextAppearance} from '$lib/text-appearance'
 import {editorKey, sanityAssetUrl, slugify} from './asset'
+import type {SiteEditorUploadProgress} from './api'
+import {ConfirmDialog} from './ConfirmDialog'
+import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
 
 type Asset = {id: string; url: string}
 
@@ -36,7 +39,11 @@ type Props = {
   dataset: string
   viewport: BuilderViewport
   onChange: (path: string, value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<Asset>
   onOpenArticle?: (field: SiteEditorField, path: string, trigger: HTMLButtonElement) => void
 }
 
@@ -534,7 +541,9 @@ function GalleryEditor({
     [value],
   )
   const [busy, setBusy] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
   const [activeIndex, setActiveIndex] = useState(0)
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number>()
   const acceptsVideo = ['productCategory', 'storeProduct', 'caseStudy', 'blogPost'].includes(
     documentType,
   )
@@ -576,9 +585,34 @@ function GalleryEditor({
     onChange(next)
   }
 
-  const createMediaItem = async (file: File) => {
+  const uploadAsset = async (file: File, kind: 'image' | 'video', key: string) => {
+    setUploadStatus({key, phase: 'preparing', fileName: file.name, percent: 0})
+    try {
+      const asset = await onUpload(file, kind, (progress) =>
+        setUploadStatus({
+          key,
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus({key, phase: 'done', fileName: file.name, percent: 100})
+      return asset
+    } catch (error) {
+      setUploadStatus({
+        key,
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+      throw error
+    }
+  }
+
+  const createMediaItem = async (file: File, key: string) => {
     const kind = acceptsVideo && file.type.startsWith('video/') ? 'video' : 'image'
-    const asset = await onUpload(file, kind)
+    const asset = await uploadAsset(file, kind, key)
     const galleryImageType =
       documentType === 'productCategory' || documentType === 'storeProduct'
         ? 'galleryImage'
@@ -604,23 +638,57 @@ function GalleryEditor({
       if (replaceIndex !== undefined) {
         const file = files[0]
         if (!file) return
-        const replacement = await createMediaItem(file)
+        const replacement = await createMediaItem(file, `replace-${replaceIndex}`)
         const current = items[replaceIndex]
         const next = [...items]
         next[replaceIndex] = {
           ...replacement,
           _key: current._key || replacement._key,
           ...(replacement._type === 'galleryVideo'
-            ? {title: current.title || replacement.title}
+            ? {
+                title: current.title || replacement.title,
+                ...(current.poster ? {poster: current.poster} : {}),
+              }
             : {alt: current.alt || replacement.alt}),
         }
         onChange(next)
         return
       }
-      const uploaded: Array<Record<string, unknown>> = []
-      for (const file of Array.from(files).slice(0, 20)) uploaded.push(await createMediaItem(file))
-      onChange([...items, ...uploaded])
-      setActiveIndex(items.length)
+      let next = [...items]
+      const selectedFiles = Array.from(files).slice(0, 20)
+      for (const [index, file] of selectedFiles.entries()) {
+        const uploaded = await createMediaItem(file, `add-${index}`)
+        next = [...next, uploaded]
+        onChange(next)
+        setActiveIndex(next.length - 1)
+      }
+    } catch {
+      // The progress panel carries the actionable upload error.
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const uploadPoster = async (file: File) => {
+    if (!activeItem || !activeIsVideo) return
+    setBusy(true)
+    try {
+      const asset = await uploadAsset(file, 'image', `poster-${activeIndex}`)
+      const currentPoster = (activeItem.poster as Record<string, unknown> | undefined) ?? {}
+      commitItem(activeIndex, {
+        ...activeItem,
+        poster: {
+          ...currentPoster,
+          _type: 'image',
+          asset: {_type: 'reference', _ref: asset.id},
+          alt: currentPoster.alt || {
+            _type: 'localizedString',
+            pt: String(activeTitle.pt || 'Imagem de capa do vídeo'),
+          },
+        },
+      })
+    } catch {
+      // The progress panel carries the actionable upload error.
     } finally {
       setBusy(false)
     }
@@ -633,6 +701,9 @@ function GalleryEditor({
   const activeIsVideo = activeType === 'galleryVideo' || activeAsset?._ref?.startsWith('file-')
   const activeAlt = localized(activeItem?.alt, 'localizedString')
   const activeTitle = localized(activeItem?.title, 'localizedString')
+  const activePoster = activeItem?.poster as Record<string, unknown> | undefined
+  const activePosterAsset = activePoster?.asset as {_ref?: string} | undefined
+  const activePosterUrl = sanityAssetUrl(activePosterAsset?._ref, projectId, dataset)
 
   return (
     <div className="site-editor-gallery-field">
@@ -642,6 +713,8 @@ function GalleryEditor({
           const asset = item.asset as {_ref?: string} | undefined
           const url = sanityAssetUrl(asset?._ref, projectId, dataset)
           const isVideo = type === 'galleryVideo' || asset?._ref?.startsWith('file-')
+          const poster = item.poster as {asset?: {_ref?: string}} | undefined
+          const posterUrl = sanityAssetUrl(poster?.asset?._ref, projectId, dataset)
           return (
             <button
               type="button"
@@ -652,7 +725,9 @@ function GalleryEditor({
               aria-label={`${isVideo ? 'Vídeo' : 'Imagem'} ${index + 1}`}
             >
               <span className="site-editor-gallery-thumb">
-                {isVideo ? (
+                {isVideo && posterUrl ? (
+                  <img src={posterUrl} alt="" />
+                ) : isVideo ? (
                   <video src={url} muted playsInline preload="metadata" />
                 ) : url ? (
                   <img src={url} alt="" />
@@ -687,11 +762,22 @@ function GalleryEditor({
           />
         </label>
       </div>
+      <MediaUploadProgress status={uploadStatus} />
       {activeItem ? (
         <section className="site-editor-gallery-active">
           <div className="site-editor-gallery-stage">
             {activeIsVideo ? (
-              <video src={activeUrl} controls muted playsInline preload="metadata" />
+              <video
+                key={activeUrl}
+                src={activeUrl}
+                poster={activePosterUrl || undefined}
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+              />
             ) : activeUrl ? (
               <img src={activeUrl} alt="" />
             ) : (
@@ -749,6 +835,28 @@ function GalleryEditor({
               }
             />
           </label>
+          {activeIsVideo ? (
+            <div className="site-editor-gallery-poster">
+              <span>
+                <strong>Imagem de capa</strong>
+                <small>Aparece na miniatura e antes de o vídeo começar.</small>
+              </span>
+              {activePosterUrl ? <img src={activePosterUrl} alt="" /> : <VideoIcon />}
+              <label className="site-editor-upload-button">
+                <UploadIcon /> {activePosterUrl ? 'Substituir capa' : 'Adicionar capa'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={busy}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0]
+                    if (file) void uploadPoster(file)
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
           <div className="site-editor-media-actions">
             <label className="site-editor-upload-button">
               <UploadIcon /> {busy ? 'A carregar…' : 'Substituir'}
@@ -766,7 +874,7 @@ function GalleryEditor({
             <button
               type="button"
               className="is-danger"
-              onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== activeIndex))}
+              onClick={() => setPendingRemovalIndex(activeIndex)}
             >
               <TrashIcon /> Remover
             </button>
@@ -781,6 +889,19 @@ function GalleryEditor({
           </span>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingRemovalIndex !== undefined}
+        title={`Remover ${activeIsVideo ? 'este vídeo' : 'esta imagem'}?`}
+        description="O item deixa de aparecer nesta galeria. Pode cancelar e mantê-lo como está."
+        confirmLabel="Remover da galeria"
+        onCancel={() => setPendingRemovalIndex(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalIndex === undefined) return
+          onChange(items.filter((_, itemIndex) => itemIndex !== pendingRemovalIndex))
+          setActiveIndex(Math.max(0, Math.min(pendingRemovalIndex, items.length - 2)))
+          setPendingRemovalIndex(undefined)
+        }}
+      />
     </div>
   )
 }

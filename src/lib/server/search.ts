@@ -96,9 +96,6 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
     {text: item.summary, weight: 3},
     {text: item.location, weight: 2},
     {text: item.description ?? '', weight: 1},
-    {text: item.challenge, weight: 1},
-    {text: item.solution, weight: 1},
-    {text: item.result, weight: 1},
   ]).map(({item}) => ({
     category: 'caseStudies' as const,
     title: item.title,

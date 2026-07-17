@@ -321,6 +321,14 @@ export const builderMedia = defineType({
       hidden: ({parent}) => parent?.kind !== 'video',
     }),
     defineField({
+      name: 'poster',
+      title: 'Imagem de capa do vídeo',
+      description: 'Mostrada enquanto o vídeo carrega e nas miniaturas da galeria.',
+      type: 'image',
+      options: {hotspot: true},
+      hidden: ({parent}) => parent?.kind !== 'video',
+    }),
+    defineField({
       name: 'youtubeUrl',
       title: 'Link do YouTube',
       type: 'url',

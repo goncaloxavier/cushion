@@ -443,6 +443,39 @@
   background: var(--p-danger);
 }
 
+/* ---- progress bar ---- */
+
+.painel-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.painel-progress-track {
+  flex: 1;
+  min-width: 10rem;
+  height: 0.5rem;
+  overflow: hidden;
+  background: var(--p-neutral-bg);
+  border-radius: 999px;
+}
+
+.painel-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--p-accent);
+  border-radius: 999px;
+}
+
+.painel-progress-fill[data-tone='progress'] {
+  background: var(--p-warn);
+}
+
+.painel-progress-fill[data-tone='danger'] {
+  background: var(--p-danger);
+}
+
 /* ---- panels / records ---- */
 
 .painel-panel {

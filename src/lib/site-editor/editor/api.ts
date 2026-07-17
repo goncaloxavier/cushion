@@ -6,6 +6,12 @@ import type {
 
 type DocumentResponse = {document: SiteEditorDocument}
 
+export type SiteEditorUploadProgress = {
+  loaded: number
+  total: number
+  percent: number
+}
+
 const responseError = async (response: Response) => {
   const fallback = `O servidor respondeu com o estado ${response.status}.`
   try {
@@ -63,11 +69,15 @@ export const createSiteEditorApi = (csrfToken: string) => ({
       method: 'DELETE',
       headers: {'x-csrf-token': csrfToken},
     }),
-  uploadAsset: async (file: File, kind: 'image' | 'video') => {
+  uploadAsset: async (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => {
     const body = new FormData()
     body.set('file', file)
     body.set('kind', kind)
-    return request<{
+    type ResponsePayload = {
       asset: {
         id: string
         url: string
@@ -75,10 +85,46 @@ export const createSiteEditorApi = (csrfToken: string) => ({
         mimeType?: string
         size?: number
       }
-    }>('/painel/site/api/media', {
-      method: 'POST',
-      headers: {'x-csrf-token': csrfToken},
-      body,
+    }
+
+    return new Promise<ResponsePayload>((resolve, reject) => {
+      const upload = new XMLHttpRequest()
+      upload.open('POST', '/painel/site/api/media')
+      upload.withCredentials = true
+      upload.setRequestHeader('accept', 'application/json')
+      upload.setRequestHeader('x-csrf-token', csrfToken)
+      upload.upload.addEventListener('progress', (event) => {
+        if (!event.lengthComputable || event.total <= 0) return
+        onProgress?.({
+          loaded: event.loaded,
+          total: event.total,
+          percent: Math.min(100, Math.round((event.loaded / event.total) * 100)),
+        })
+      })
+      upload.addEventListener('load', () => {
+        let payload: ResponsePayload | {message?: string} | undefined
+        try {
+          payload = JSON.parse(upload.responseText) as ResponsePayload | {message?: string}
+        } catch {
+          payload = undefined
+        }
+        if (upload.status >= 200 && upload.status < 300 && payload && 'asset' in payload) {
+          onProgress?.({loaded: file.size, total: file.size, percent: 100})
+          resolve(payload)
+          return
+        }
+        reject(
+          new Error(
+            (payload && 'message' in payload && payload.message) ||
+              `O servidor respondeu com o estado ${upload.status || 0}.`,
+          ),
+        )
+      })
+      upload.addEventListener('error', () =>
+        reject(new Error('A ligação falhou durante o carregamento. Tente novamente.')),
+      )
+      upload.addEventListener('abort', () => reject(new Error('O carregamento foi cancelado.')))
+      upload.send(body)
     })
   },
 })

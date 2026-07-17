@@ -28,9 +28,6 @@
         item.location,
         item.summary,
         item.description,
-        item.challenge,
-        item.solution,
-        item.result,
       ]
         .join(' ')
         .toLowerCase()

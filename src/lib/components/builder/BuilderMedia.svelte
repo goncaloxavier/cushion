@@ -26,6 +26,7 @@
   )
   const imageUrl = $derived(builderAssetUrl(media?.image?.asset?._ref, dataset))
   const videoUrl = $derived(builderAssetUrl(media?.videoFile?.asset?._ref, dataset))
+  const posterUrl = $derived(builderAssetUrl(media?.poster?.asset?._ref, dataset))
   const youtubeUrl = $derived(builderYoutubeEmbedUrl(media?.youtubeUrl))
 </script>
 
@@ -33,6 +34,7 @@
   {#if media?.kind === 'video' && videoUrl}
     <video
       src={videoUrl}
+      poster={posterUrl || undefined}
       aria-label={alt || undefined}
       autoplay={media.autoplay ?? false}
       muted={media.muted ?? true}

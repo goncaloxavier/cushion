@@ -18,6 +18,7 @@ import {SiteEditorFieldInput} from './SiteEditorField'
 import {ArticleWorkspace} from './ArticleWorkspace'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
 import {StoreCategoryManager} from './StoreCategoryManager'
+import type {SiteEditorUploadProgress} from './api'
 import type {BuilderViewport} from '$lib/builder/types'
 
 type Asset = {id: string; url: string}
@@ -39,7 +40,11 @@ type Props = {
   onChange: (path: string, value: unknown) => void
   onReplace: (document: SiteEditorDocument) => void
   onSelectSection: (key?: string) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<Asset>
   onDelete: () => void
   onShowAll: () => void
   onOpenNode: (node: SiteEditorNode, path?: string) => void
@@ -276,15 +281,28 @@ export function SiteEditorInspector({
     onShowAll()
   }
 
+  const openSectionArticle = (path: string, returnFocus: HTMLButtonElement) =>
+    setArticleWorkspace({
+      field: {
+        name: 'body',
+        label: 'Texto editorial da secção',
+        type: 'article',
+      },
+      path,
+      returnFocus,
+    })
+
   const renderField = (field: SiteEditorField) =>
     field.type === 'sections' && document?._type === 'sitePage' ? (
       <SitePageSectionsEditor
         key={field.name}
         page={document as SitePageDocument}
         selectedSectionKey={selectedSectionKey}
+        dataset={dataset}
         onSelectSection={onSelectSection}
         onChange={(next) => onReplace(next)}
         onUpload={onUpload}
+        onOpenArticle={openSectionArticle}
       />
     ) : (
       <SiteEditorFieldInput
@@ -378,9 +396,11 @@ export function SiteEditorInspector({
             <SitePageSectionsEditor
               page={document as SitePageDocument}
               selectedSectionKey={selectedSectionKey}
+              dataset={dataset}
               onSelectSection={onSelectSection}
               onChange={(next) => onReplace(next)}
               onUpload={onUpload}
+              onOpenArticle={openSectionArticle}
             />
           ) : focusedField ? (
             <div className="site-editor-focused-field">

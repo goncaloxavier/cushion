@@ -97,6 +97,6 @@ export const POST: RequestHandler = async ({request, getClientAddress}) => {
     return json({error: 'missing_id'}, {status: 400, headers})
   }
 
-  const result = await translateDocument(documentId)
+  const result = await translateDocument(documentId, {force: Boolean(viaStudioButton)})
   return json(result, {status: result.ok ? 200 : 502, headers})
 }

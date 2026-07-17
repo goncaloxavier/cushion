@@ -14,5 +14,5 @@ export const load: PageServerLoad = async ({params, cookies, request, url}) => {
     getSiteEditorSettings(preview),
   ])
   if (!page) error(404, 'Página não encontrada.')
-  return {page, settings, sanityDataset}
+  return {page, settings, sanityDataset, preview}
 }

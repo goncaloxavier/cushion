@@ -139,6 +139,9 @@ test.describe('Sanity Studio content contract', () => {
     expect(builderApi).toContain('SiteEditorConflictError')
     expect(builderServer).toContain("from '$env/dynamic/private'")
     expect(builderServer).toContain('SANITY_WRITE_TOKEN')
+    expect(builderServer).toContain('const id = `${type}-${randomUUID()}`')
+    expect(builderServer).not.toContain('const id = `${type}.${randomUUID()}`')
+    expect(editorFixture).toContain('const id = `${type}-${randomUUID()}`')
     expect(editorFixture).toContain("process.env.NODE_ENV !== 'production'")
     expect(editorFixture).toContain('SITE_EDITOR_E2E_KEY')
     expect(builderPreview).toContain('httpOnly: true')
@@ -575,7 +578,11 @@ test.describe('Sanity Studio content contract', () => {
     expect(productDetailRoute).toContain("type: 'productCategory'")
     expect(productDetailRoute).toContain('data.preview || data.builderPreview')
     expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
-    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(copyFieldPath)}')
+    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(leadFieldPath)}')
+    expect(productDetailRoute).toContain("data-sanity={productDataAttribute?.('description.pt')}")
+    expect(productDetailRoute.indexOf('>{leadCopy}</p>')).toBeLessThan(
+      productDetailRoute.indexOf('>{descriptionCopy.intro}</p>'),
+    )
     expect(productDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(productListRoute).toContain("siteContentDataAttribute?.('productsPage.heroImage')")
     expect(productListRoute).toContain('data.preview || data.builderPreview')
@@ -583,6 +590,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(caseDetailRoute).toContain("type: 'caseStudy'")
     expect(caseDetailRoute).toContain('StoreMediaGallery')
     expect(caseDetailRoute).toContain('dataAttribute={imageDataAttribute}')
+    expect(caseDetailRoute).not.toContain('case-detail-list')
+    expect(caseDetailRoute).not.toContain("caseDataAttribute?.('challenge.pt')")
     expect(blogDetailRoute).toContain("type: 'blogPost'")
     expect(blogDetailRoute).toContain('StoreMediaGallery')
     expect(blogDetailRoute).toContain('dataAttribute={imageDataAttribute}')
@@ -770,6 +779,8 @@ test.describe('Sanity Studio content contract', () => {
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const sanityClient = read('src/lib/sanity.ts')
     const contentModel = read('src/lib/site-content.ts')
+    const editorModel = read('src/lib/site-editor/model.ts')
+    const editorStarters = read('src/lib/server/site-editor-starters.ts')
     const route = read('src/routes/casos-de-estudo/[slug]/+page.svelte')
     const importScript = read('scripts/write-case-study-import.ts')
 
@@ -782,6 +793,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(route).toContain('data-sanity={caseDataAttribute?.(leadFieldPath)}')
     expect(route).toContain('>{lead}</p>')
     expect(route).not.toContain('case-detail-description')
+    expect(route).not.toContain('case-detail-list')
+    expect(editorModel).not.toContain("localizedText('challenge', 'Desafio')")
+    expect(editorModel).not.toContain("localizedText('solution', 'Solução')")
+    expect(editorModel).not.toContain("localizedText('result', 'Resultado')")
+    expect(editorStarters).not.toContain("challenge: localizedText('')")
+    expect(caseSchema.match(/hidden: true/g)?.length ?? 0).toBeGreaterThanOrEqual(3)
     expect(importScript).toContain('caseStudy-')
     expect(importScript).toContain('case-study-import.ndjson')
   })
@@ -1022,6 +1039,27 @@ test.describe('Sanity Studio content contract', () => {
     expect(appHtml).toContain('nonce="%sveltekit.nonce%"')
   })
 
+  test('the DeepL key override route is admin-gated, CSRF-checked, and validated before persisting', () => {
+    const definicoesServer = read('src/routes/painel/definicoes/+page.server.ts')
+    const deeplSettings = read('src/lib/server/deepl-settings.ts')
+    const appSettings = read('src/lib/server/app-settings.ts')
+    const migration = read('migrations/0009_app_settings.sql')
+
+    expect(definicoesServer).toContain("if (!canManageStaff(locals.staff)) error(403")
+    expect(definicoesServer).toContain('canManageStaff(locals.staff)')
+    expect(definicoesServer.match(/canManageStaff\(locals\.staff\)/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(definicoesServer).toContain('sameOriginOk(')
+    expect(definicoesServer).toContain('csrfOk(')
+    expect(definicoesServer).toContain('await checkDeeplKey(key)')
+    expect(definicoesServer.indexOf('await checkDeeplKey(key)')).toBeLessThan(
+      definicoesServer.indexOf('await setDeeplApiKeyOverride('),
+    )
+    expect(deeplSettings).toContain("override || env.DEEPL_API_KEY || null")
+    expect(deeplSettings).toContain('export const maskDeeplKey')
+    expect(appSettings).toContain('on conflict (key) do update')
+    expect(migration).toContain('create table if not exists app_settings')
+  })
+
   test('private route styles do not ship through the global stylesheet', () => {
     const globalStyles = read('src/app.css')
     const accountStyles = read('src/lib/styles/account-checkout.css')
@@ -1081,6 +1119,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(translateEndpoint).toContain('x-sanity-translate-secret')
     expect(translateEndpoint).toContain('access-control-allow-origin')
     expect(translateEndpoint).toContain('translateDocument(')
+    expect(translateEndpoint).toContain('force: Boolean(viaStudioButton)')
 
     // The manual-trigger secret is baked into a public Studio JS bundle, so
     // it can't be treated as a real secret the way the signed webhook can —
@@ -1106,6 +1145,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(backfillScript).not.toContain('patchPath}.es')
 
     expect(envExample).toContain('DEEPL_API_KEY')
+    expect(envExample).toContain('DEEPL_GLOSSARY_EN')
+    expect(envExample).toContain('DEEPL_GLOSSARY_ES')
     expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
     expect(envExample).toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })

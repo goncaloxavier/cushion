@@ -145,6 +145,7 @@ export const load: PageServerLoad = ({url, request}) => {
       weightKg: typeof firstVariant?.weightKg === 'number' ? firstVariant.weightKg : null,
       priceNatural:
         typeof firstVariant?.priceNatural === 'number' ? firstVariant.priceNatural : null,
+      page: document._type === 'sitePage' ? document : null,
     },
   }
 }

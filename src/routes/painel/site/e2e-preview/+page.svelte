@@ -1,6 +1,7 @@
 <script lang="ts">
   import {encodeSanityNodeData} from '@sanity/visual-editing-csm'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
+  import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import {onMount} from 'svelte'
 
@@ -25,7 +26,18 @@
   <title>Pré-visualização do editor</title>
 </svelte:head>
 
-{#if data.fixture === 'created' && data.created}
+{#if data.fixture === 'created' && data.created?.type === 'sitePage' && data.created.page}
+  <div data-testid="fixture-created-page">
+    <BuilderPageRenderer
+      page={data.created.page}
+      settings={null}
+      content={data.site}
+      language={data.language}
+      dataset="site-editor-e2e"
+      preview
+    />
+  </div>
+{:else if data.fixture === 'created' && data.created}
   <main class="fixture-page fixture-created" data-testid="fixture-created-page">
     <section class="fixture-created-copy">
       <small>{data.created.type}</small>

@@ -11,7 +11,12 @@
     {href: '/painel/pedidos', label: 'Pedidos'},
     {href: '/painel/perfis', label: 'Perfis de clientes'},
     {href: '/painel/encomendas', label: 'Encomendas'},
-    ...(staff?.role === 'admin' ? [{href: '/painel/equipa', label: 'Equipa'}] : []),
+    ...(staff?.role === 'admin'
+      ? [
+          {href: '/painel/equipa', label: 'Equipa'},
+          {href: '/painel/definicoes', label: 'Definições'},
+        ]
+      : []),
   ])
 
   const isActive = (href: string) => path.startsWith(href)
