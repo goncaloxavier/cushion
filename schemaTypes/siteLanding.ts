@@ -1,11 +1,17 @@
 import {defineField, defineType} from 'sanity'
 
-const localizedStringField = (name: string, title: string, description?: string) =>
+const localizedStringField = (
+  name: string,
+  title: string,
+  description?: string,
+  options: {hidden?: boolean} = {},
+) =>
   defineField({
     name,
     title,
     description,
     type: 'localizedString',
+    hidden: options.hidden,
   })
 
 const localizedTextField = (name: string, title: string, description?: string) =>
@@ -469,9 +475,9 @@ export const siteLanding = defineType({
         localizedStringField('viewCases', 'Ver casos'),
         localizedStringField('allProducts', 'Todos os produtos'),
         localizedStringField('latestPosts', 'Artigos recentes'),
-        localizedStringField('challenge', 'Desafio'),
-        localizedStringField('solution', 'Solução'),
-        localizedStringField('result', 'Resultado'),
+        localizedStringField('challenge', 'Desafio', undefined, {hidden: true}),
+        localizedStringField('solution', 'Solução', undefined, {hidden: true}),
+        localizedStringField('result', 'Resultado', undefined, {hidden: true}),
         localizedStringField('emailLabel', 'Nome do email'),
         localizedStringField('phoneLabel', 'Nome do telefone'),
         localizedStringField('backToProducts', 'Voltar aos produtos'),

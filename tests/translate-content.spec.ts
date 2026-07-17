@@ -7,6 +7,13 @@ import {
   reinsertArticleLeaves,
   type PortableTextBlock,
 } from '../src/lib/server/translate-content'
+import {
+  buildTranslationContext,
+  prepareTranslationText,
+  preserveTranslationPresentation,
+  restoreTranslationText,
+  splitTranslationText,
+} from '../src/lib/server/translation-fidelity'
 
 const articleFixture: PortableTextBlock[] = [
   {
@@ -192,5 +199,70 @@ test.describe('translate-content tree-walker', () => {
   test('findLocalizedFields skips fields with an empty Portuguese value', () => {
     const doc = {empty: {pt: '', en: '', es: ''}, blank: {pt: '   ', en: '', es: ''}}
     expect(findLocalizedFields(doc)).toEqual([])
+  })
+
+  test('translation presentation follows the Portuguese capitalization and punctuation', () => {
+    expect(preserveTranslationPresentation('ola tudo bem?', 'Hi, how are you?', 'en')).toBe(
+      'hi how are you?',
+    )
+    expect(
+      preserveTranslationPresentation(
+        'isto é uma frase sem ponto',
+        'This is a sentence without a period.',
+        'en',
+      ),
+    ).toBe('this is a sentence without a period')
+    expect(preserveTranslationPresentation('VOU TESTAR', 'I will test.', 'en')).toBe('I WILL TEST')
+    expect(
+      preserveTranslationPresentation(
+        'vou testar com DaFábrica4You',
+        'I will test with DaFábrica4You.',
+        'en',
+      ),
+    ).toBe('i will test with DaFábrica4You')
+    expect(
+      preserveTranslationPresentation('  texto sem ponto\n', 'Text without a period.', 'en'),
+    ).toBe('  text without a period\n')
+  })
+
+  test('protected translation markup restores exact commercial values', () => {
+    const prepared = prepareTranslationText(
+      'DaFábrica4You entrega 3 unidades de 12 kg por 185,00 €',
+    )
+    expect(prepared.tokens).toEqual(['DaFábrica4You', '3', '12 kg', '185,00 €'])
+
+    const translated =
+      '<r><keep id="p0">wrong brand</keep> delivers <keep id="p1">three</keep> units of <keep id="p2">twelve kilograms</keep> for <keep id="p3">EUR 185</keep>.</r>'
+    expect(restoreTranslationText(prepared, translated, 'en')).toBe(
+      'DaFábrica4You delivers 3 units of 12 kg for 185,00 €',
+    )
+
+    const url = prepareTranslationText('consulte https://dafabrica4you.pt/loja.')
+    expect(url.tokens).toEqual(['https://dafabrica4you.pt/loja'])
+    expect(
+      restoreTranslationText(url, '<r>see <keep id="p0">https://wrong.example</keep></r>', 'en'),
+    ).toBe('see https://dafabrica4you.pt/loja.')
+  })
+
+  test('translation segmentation preserves authored line breaks and tabs exactly', () => {
+    expect(splitTranslationText('linha um\n\n\tlinha dois')).toEqual([
+      {kind: 'text', value: 'linha um'},
+      {kind: 'literal', value: '\n'},
+      {kind: 'literal', value: '\n'},
+      {kind: 'literal', value: '\t'},
+      {kind: 'text', value: 'linha dois'},
+    ])
+  })
+
+  test('translation context includes website terminology and document copy without growing forever', () => {
+    const context = buildTranslationContext([
+      'Banco Gavião',
+      'Banco para sentar em espaços exteriores.',
+      'x'.repeat(20_000),
+    ])
+    expect(context).toContain('DaFábrica4You fabrica mobiliário urbano')
+    expect(context).toContain('Banco Gavião')
+    expect(context).toContain('Banco para sentar em espaços exteriores.')
+    expect(context.length).toBeLessThanOrEqual(12_000)
   })
 })

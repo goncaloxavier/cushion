@@ -36,9 +36,6 @@
   const leadFieldPath = $derived(
     data.caseStudy.description ? 'description.pt' : 'summary.pt',
   )
-  const hasProcess = $derived(
-    Boolean(data.caseStudy.challenge || data.caseStudy.solution || data.caseStudy.result),
-  )
   const caseJsonLd = $derived(
     breadcrumbListSchema([
       {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
@@ -85,41 +82,6 @@
         fallbackEditPath="image"
       />
     </section>
-
-    {#if hasProcess}
-      <section class="case-detail-list">
-        {#if data.caseStudy.challenge}
-          <article>
-            <span>{content.common.challenge}</span>
-            <p
-              class="cms-styled-text"
-              style={textAppearanceStyle(data.caseStudy.textAppearance?.challenge)}
-              data-sanity={caseDataAttribute?.('challenge.pt')}
-            >{data.caseStudy.challenge}</p>
-          </article>
-        {/if}
-        {#if data.caseStudy.solution}
-          <article>
-            <span>{content.common.solution}</span>
-            <p
-              class="cms-styled-text"
-              style={textAppearanceStyle(data.caseStudy.textAppearance?.solution)}
-              data-sanity={caseDataAttribute?.('solution.pt')}
-            >{data.caseStudy.solution}</p>
-          </article>
-        {/if}
-        {#if data.caseStudy.result}
-          <article>
-            <span>{content.common.result}</span>
-            <p
-              class="cms-styled-text"
-              style={textAppearanceStyle(data.caseStudy.textAppearance?.result)}
-              data-sanity={caseDataAttribute?.('result.pt')}
-            >{data.caseStudy.result}</p>
-          </article>
-        {/if}
-      </section>
-    {/if}
   </article>
 
 </main>

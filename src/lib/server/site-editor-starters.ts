@@ -77,9 +77,6 @@ export const createSiteEditorStarterFields = ({
       location: 'Localização',
       summary: localizedText('Resuma o projeto e a solução aplicada.'),
       description: localizedText('Descreva o contexto, o trabalho realizado e o resultado.'),
-      challenge: localizedText(''),
-      solution: localizedText(''),
-      result: localizedText(''),
       orderRank: 100,
     }
   }

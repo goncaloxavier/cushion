@@ -1,11 +1,8 @@
 import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
-import {
-  findLocalizedFields,
-  reinsertLeaves,
-  type PortableTextBlock,
-} from './translate-content'
+import {findLocalizedFields, reinsertLeaves, type PortableTextBlock} from './translate-content'
 import {logTranslationFailure, translateBatch} from './translate'
+import {buildTranslationContext} from './translation-fidelity'
 
 const projectId = 'u4uyfix8'
 const apiVersion = '2026-06-10'
@@ -28,7 +25,10 @@ export type TranslateDocumentResult =
 // target-language value is empty, so a field that fails to translate here
 // simply keeps showing Portuguese until a later attempt succeeds — it never
 // produces a broken or blank page.
-export const translateDocument = async (documentId: string): Promise<TranslateDocumentResult> => {
+export const translateDocument = async (
+  documentId: string,
+  options: {force?: boolean} = {},
+): Promise<TranslateDocumentResult> => {
   if (!env.SANITY_WRITE_TOKEN || !env.DEEPL_API_KEY) {
     return {ok: false, reason: 'not-configured'}
   }
@@ -37,13 +37,18 @@ export const translateDocument = async (documentId: string): Promise<TranslateDo
   const doc = await client.getDocument(documentId)
   if (!doc) return {ok: false, reason: 'not-found'}
 
-  const tasks = findLocalizedFields(doc).filter((task) => task.hash !== task.currentHash)
+  const localizedFields = findLocalizedFields(doc)
+  const tasks = localizedFields.filter((task) => options.force || task.hash !== task.currentHash)
   if (!tasks.length) return {ok: true, changed: 0}
 
   const allLeaves = tasks.flatMap((task) => task.leaves)
+  // A small changed label often depends on the rest of its product/article
+  // for meaning. DeepL does not bill `context`, so include every Portuguese
+  // field in the document while only translating the fields that are dirty.
+  const context = buildTranslationContext(localizedFields.flatMap((task) => task.leaves))
   const [en, es] = await Promise.all([
-    translateBatch(allLeaves, 'en'),
-    translateBatch(allLeaves, 'es'),
+    translateBatch(allLeaves, 'en', {context}),
+    translateBatch(allLeaves, 'es', {context}),
   ])
   if (!en.ok) logTranslationFailure(`${documentId} EN`, en.error)
   if (!es.ok) logTranslationFailure(`${documentId} ES`, es.error)

@@ -578,7 +578,11 @@ test.describe('Sanity Studio content contract', () => {
     expect(productDetailRoute).toContain("type: 'productCategory'")
     expect(productDetailRoute).toContain('data.preview || data.builderPreview')
     expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
-    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(copyFieldPath)}')
+    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(leadFieldPath)}')
+    expect(productDetailRoute).toContain("data-sanity={productDataAttribute?.('description.pt')}")
+    expect(productDetailRoute.indexOf('>{leadCopy}</p>')).toBeLessThan(
+      productDetailRoute.indexOf('>{descriptionCopy.intro}</p>'),
+    )
     expect(productDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(productListRoute).toContain("siteContentDataAttribute?.('productsPage.heroImage')")
     expect(productListRoute).toContain('data.preview || data.builderPreview')
@@ -586,6 +590,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(caseDetailRoute).toContain("type: 'caseStudy'")
     expect(caseDetailRoute).toContain('StoreMediaGallery')
     expect(caseDetailRoute).toContain('dataAttribute={imageDataAttribute}')
+    expect(caseDetailRoute).not.toContain('case-detail-list')
+    expect(caseDetailRoute).not.toContain("caseDataAttribute?.('challenge.pt')")
     expect(blogDetailRoute).toContain("type: 'blogPost'")
     expect(blogDetailRoute).toContain('StoreMediaGallery')
     expect(blogDetailRoute).toContain('dataAttribute={imageDataAttribute}')
@@ -773,6 +779,8 @@ test.describe('Sanity Studio content contract', () => {
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const sanityClient = read('src/lib/sanity.ts')
     const contentModel = read('src/lib/site-content.ts')
+    const editorModel = read('src/lib/site-editor/model.ts')
+    const editorStarters = read('src/lib/server/site-editor-starters.ts')
     const route = read('src/routes/casos-de-estudo/[slug]/+page.svelte')
     const importScript = read('scripts/write-case-study-import.ts')
 
@@ -785,6 +793,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(route).toContain('data-sanity={caseDataAttribute?.(leadFieldPath)}')
     expect(route).toContain('>{lead}</p>')
     expect(route).not.toContain('case-detail-description')
+    expect(route).not.toContain('case-detail-list')
+    expect(editorModel).not.toContain("localizedText('challenge', 'Desafio')")
+    expect(editorModel).not.toContain("localizedText('solution', 'Solução')")
+    expect(editorModel).not.toContain("localizedText('result', 'Resultado')")
+    expect(editorStarters).not.toContain("challenge: localizedText('')")
+    expect(caseSchema.match(/hidden: true/g)?.length ?? 0).toBeGreaterThanOrEqual(3)
     expect(importScript).toContain('caseStudy-')
     expect(importScript).toContain('case-study-import.ndjson')
   })
@@ -1084,6 +1098,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(translateEndpoint).toContain('x-sanity-translate-secret')
     expect(translateEndpoint).toContain('access-control-allow-origin')
     expect(translateEndpoint).toContain('translateDocument(')
+    expect(translateEndpoint).toContain('force: Boolean(viaStudioButton)')
 
     // The manual-trigger secret is baked into a public Studio JS bundle, so
     // it can't be treated as a real secret the way the signed webhook can —
@@ -1109,6 +1124,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(backfillScript).not.toContain('patchPath}.es')
 
     expect(envExample).toContain('DEEPL_API_KEY')
+    expect(envExample).toContain('DEEPL_GLOSSARY_EN')
+    expect(envExample).toContain('DEEPL_GLOSSARY_ES')
     expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
     expect(envExample).toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })

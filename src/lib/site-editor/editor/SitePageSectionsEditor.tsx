@@ -1,72 +1,89 @@
-import React, {useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {AddIcon} from '@sanity/icons/Add'
-import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
-import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {CopyIcon} from '@sanity/icons/Copy'
 import {EditIcon} from '@sanity/icons/Edit'
 import {EyeClosedIcon} from '@sanity/icons/EyeClosed'
 import {EyeOpenIcon} from '@sanity/icons/EyeOpen'
 import {TrashIcon} from '@sanity/icons/Trash'
 import {
-  createBuilderKey,
   createBuilderSection,
   duplicateBuilderSection,
 } from '$lib/builder/defaults'
-import {BuilderSectionInspector} from '$lib/builder/editor/BuilderInspector'
-import type {
-  BuilderMedia,
-  BuilderSection,
-  BuilderSectionType,
-} from '$lib/builder/types'
+import type {BuilderSection, BuilderSectionType} from '$lib/builder/types'
 import type {SitePageDocument} from '../types'
+import type {SiteEditorUploadProgress} from './api'
+import {ConfirmDialog} from './ConfirmDialog'
+import {SitePageSectionEditor} from './SitePageSectionEditor'
 
 type Asset = {id: string; url: string}
 
 type Props = {
   page: SitePageDocument
   selectedSectionKey?: string
+  dataset: string
   onSelectSection: (key?: string) => void
   onChange: (page: SitePageDocument) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<Asset>
+  onOpenArticle?: (path: string, returnFocus: HTMLButtonElement) => void
 }
 
-const sectionTypes: Array<{value: BuilderSectionType; label: string}> = [
-  {value: 'builderHeroSection', label: 'Destaque principal'},
-  {value: 'builderMediaSection', label: 'Texto com imagem ou vídeo'},
-  {value: 'builderRichTextSection', label: 'Texto editorial'},
-  {value: 'builderGallerySection', label: 'Galeria'},
-  {value: 'builderCardsSection', label: 'Cartões'},
-  {value: 'builderStatsSection', label: 'Números e indicadores'},
-  {value: 'builderCollectionSection', label: 'Conteúdo dinâmico'},
-  {value: 'builderCtaSection', label: 'Chamada para ação'},
-  {value: 'builderSpacerSection', label: 'Espaçamento'},
+const sectionTypes: Array<{
+  value: BuilderSectionType
+  label: string
+  description: string
+}> = [
+  {value: 'builderHeroSection', label: 'Destaque principal', description: 'Abertura com título, botão e imagem ou vídeo.'},
+  {value: 'builderMediaSection', label: 'Texto com imagem', description: 'Texto e media apresentados lado a lado.'},
+  {value: 'builderRichTextSection', label: 'Texto editorial', description: 'Texto longo com títulos, listas, imagens e tabelas.'},
+  {value: 'builderGallerySection', label: 'Galeria', description: 'Conjunto ordenado de imagens e vídeos.'},
+  {value: 'builderCardsSection', label: 'Cartões', description: 'Vários conteúdos curtos numa grelha.'},
+  {value: 'builderStatsSection', label: 'Números', description: 'Indicadores e resultados em destaque.'},
+  {value: 'builderCollectionSection', label: 'Lista automática', description: 'Produtos, loja, casos ou artigos do CMS.'},
+  {value: 'builderCtaSection', label: 'Chamada para ação', description: 'Mensagem curta com um ou mais botões.'},
+  {value: 'builderContactSection', label: 'Formulário', description: 'Contacto, orçamento ou pedido de catálogo.'},
 ]
 
+const definitionFor = (section: BuilderSection) =>
+  sectionTypes.find((type) => type.value === section._type)
+
 const labelFor = (section: BuilderSection) =>
-  section.internalLabel?.trim() ||
-  sectionTypes.find((type) => type.value === section._type)?.label ||
-  'Secção'
+  section.internalLabel?.trim() || definitionFor(section)?.label || 'Secção'
 
 export function SitePageSectionsEditor({
   page,
   selectedSectionKey,
+  dataset,
   onSelectSection,
   onChange,
   onUpload,
+  onOpenArticle,
 }: Props) {
-  const [newType, setNewType] = useState<BuilderSectionType>('builderMediaSection')
-  const [uploadState, setUploadState] = useState<string>()
+  const [actionsFor, setActionsFor] = useState<string>()
+  const [addOpen, setAddOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<BuilderSection>()
+  const menuRef = useRef<HTMLDivElement>(null)
   const sections = useMemo(() => page.sections ?? [], [page.sections])
   const selected = useMemo(
     () => sections.find((section) => section._key === selectedSectionKey),
     [sections, selectedSectionKey],
   )
 
+  useEffect(() => {
+    if (!actionsFor) return
+    const close = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setActionsFor(undefined)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [actionsFor])
+
   const commitSections = (next: BuilderSection[]) => onChange({...page, sections: next})
   const updateSection = (next: BuilderSection) =>
-    commitSections(
-      sections.map((section) => (section._key === next._key ? next : section)),
-    )
+    commitSections(sections.map((section) => (section._key === next._key ? next : section)))
 
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction
@@ -75,77 +92,25 @@ export function SitePageSectionsEditor({
     const [section] = next.splice(index, 1)
     next.splice(target, 0, section)
     commitSections(next)
-  }
-
-  const uploadSectionMedia = async (file: File, kind: 'image' | 'video') => {
-    if (!selected) return
-    setUploadState('A carregar…')
-    try {
-      const asset = await onUpload(file, kind)
-      const media: BuilderMedia = {
-        ...selected.media,
-        _type: 'builderMedia',
-        kind,
-        fit: selected.media?.fit ?? 'cover',
-        position: selected.media?.position ?? 'center',
-        ...(kind === 'image'
-          ? {image: {_type: 'image', asset: {_type: 'reference', _ref: asset.id}}}
-          : {videoFile: {_type: 'file', asset: {_type: 'reference', _ref: asset.id}}}),
-      }
-      updateSection({...selected, media})
-      setUploadState('Carregado')
-    } catch (error) {
-      setUploadState(error instanceof Error ? error.message : 'Falha no carregamento')
-    }
-  }
-
-  const uploadGalleryMedia = async (files: FileList) => {
-    if (!selected) return
-    const selectedFiles = Array.from(files).slice(0, 20)
-    const uploaded: BuilderMedia[] = []
-    setUploadState(`A carregar 0/${selectedFiles.length}…`)
-    try {
-      for (let index = 0; index < selectedFiles.length; index += 1) {
-        const file = selectedFiles[index]
-        const kind = file.type.startsWith('video/') ? 'video' : 'image'
-        const asset = await onUpload(file, kind)
-        uploaded.push({
-          _type: 'builderMedia',
-          _key: createBuilderKey(),
-          kind,
-          fit: 'contain',
-          position: 'center',
-          alt: {_type: 'localizedString', pt: ''},
-          ...(kind === 'image'
-            ? {image: {_type: 'image', asset: {_type: 'reference', _ref: asset.id}}}
-            : {
-                videoFile: {_type: 'file', asset: {_type: 'reference', _ref: asset.id}},
-                muted: true,
-                controls: true,
-              }),
-        })
-        setUploadState(`A carregar ${index + 1}/${selectedFiles.length}…`)
-      }
-      updateSection({...selected, items: [...(selected.items ?? []), ...uploaded]})
-      setUploadState('Carregado')
-    } catch (error) {
-      setUploadState(error instanceof Error ? error.message : 'Falha no carregamento')
-    }
+    setActionsFor(undefined)
   }
 
   if (selected) {
     return (
       <div className="site-editor-section-properties">
-        <button className="site-editor-section-back" type="button" onClick={() => onSelectSection(undefined)}>
-          ← Estrutura da página
+        <button
+          className="site-editor-section-back"
+          type="button"
+          onClick={() => onSelectSection(undefined)}
+        >
+          ← Voltar às secções
         </button>
-        <BuilderSectionInspector
+        <SitePageSectionEditor
           section={selected}
-          issues={[]}
-          uploadState={uploadState}
-          onUpdateSection={updateSection}
-          onUploadSectionMedia={(file, kind) => void uploadSectionMedia(file, kind)}
-          onUploadGalleryMedia={(files) => void uploadGalleryMedia(files)}
+          dataset={dataset}
+          onUpdate={updateSection}
+          onUpload={onUpload}
+          onOpenArticle={onOpenArticle}
         />
       </div>
     )
@@ -153,48 +118,119 @@ export function SitePageSectionsEditor({
 
   return (
     <div className="site-editor-sections">
-      <div className="site-editor-field-head">
-        <strong>Estrutura da página</strong>
-        <small>As coleções mostram sempre os produtos, casos ou artigos reais.</small>
+      <div className="site-editor-sections-head">
+        <span>
+          <small>Página livre</small>
+          <strong>Secções da página</strong>
+          <p>Abra uma secção para alterar apenas o que aparece nessa parte do site.</p>
+        </span>
+        <b>{sections.length}</b>
       </div>
+
       <div className="site-editor-section-list">
-        {sections.map((section, index) => (
-          <article key={section._key} className={section.enabled === false ? 'is-hidden' : ''}>
-            <button type="button" className="site-editor-section-main" onClick={() => onSelectSection(section._key)}>
-              <EditIcon />
-              <span>
-                <strong>{labelFor(section)}</strong>
-                <small>{sectionTypes.find((type) => type.value === section._type)?.label}</small>
-              </span>
-            </button>
-            <div className="site-editor-section-actions">
-              <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Subir"><ArrowUpIcon /></button>
-              <button type="button" onClick={() => move(index, 1)} disabled={index === sections.length - 1} aria-label="Descer"><ArrowDownIcon /></button>
-              <button type="button" onClick={() => updateSection({...section, enabled: section.enabled === false})} aria-label={section.enabled === false ? 'Mostrar' : 'Ocultar'}>{section.enabled === false ? <EyeClosedIcon /> : <EyeOpenIcon />}</button>
-              <button type="button" onClick={() => {
-                const clone = duplicateBuilderSection(section)
-                const next = [...sections]
-                next.splice(index + 1, 0, clone)
-                commitSections(next)
-              }} aria-label="Duplicar"><CopyIcon /></button>
-              <button type="button" onClick={() => {
-                if (window.confirm(`Eliminar “${labelFor(section)}”?`)) commitSections(sections.filter((item) => item._key !== section._key))
-              }} aria-label="Eliminar"><TrashIcon /></button>
-            </div>
-          </article>
-        ))}
-        {!sections.length ? <div className="site-editor-sections-empty">Esta página ainda não tem secções.</div> : null}
+        {sections.map((section, index) => {
+          const definition = definitionFor(section)
+          return (
+            <article key={section._key} className={section.enabled === false ? 'is-hidden' : ''}>
+              <button
+                type="button"
+                className="site-editor-section-main"
+                onClick={() => onSelectSection(section._key)}
+              >
+                <i aria-hidden="true"><EditIcon /></i>
+                <span>
+                  <strong>{labelFor(section)}</strong>
+                  <small>{definition?.label}</small>
+                </span>
+              </button>
+              <div
+                className="site-editor-section-menu-wrap"
+                ref={actionsFor === section._key ? menuRef : undefined}
+              >
+                <button
+                  className="site-editor-section-menu-button"
+                  type="button"
+                  aria-label={`Ações de ${labelFor(section)}`}
+                  aria-expanded={actionsFor === section._key}
+                  onClick={() => setActionsFor((current) => current === section._key ? undefined : section._key)}
+                >
+                  <span aria-hidden="true">•••</span>
+                </button>
+                {actionsFor === section._key ? (
+                  <div className="site-editor-section-menu">
+                    <button type="button" disabled={index === 0} onClick={() => move(index, -1)}>Mover para cima</button>
+                    <button type="button" disabled={index === sections.length - 1} onClick={() => move(index, 1)}>Mover para baixo</button>
+                    <button type="button" onClick={() => { updateSection({...section, enabled: section.enabled === false}); setActionsFor(undefined) }}>
+                      {section.enabled === false ? <EyeOpenIcon /> : <EyeClosedIcon />}
+                      {section.enabled === false ? 'Mostrar no site' : 'Ocultar do site'}
+                    </button>
+                    <button type="button" onClick={() => {
+                      const clone = duplicateBuilderSection(section)
+                      const next = [...sections]
+                      next.splice(index + 1, 0, clone)
+                      commitSections(next)
+                      setActionsFor(undefined)
+                    }}><CopyIcon /> Duplicar</button>
+                    <button className="is-danger" type="button" onClick={() => { setPendingDelete(section); setActionsFor(undefined) }}><TrashIcon /> Eliminar</button>
+                  </div>
+                ) : null}
+              </div>
+            </article>
+          )
+        })}
+        {!sections.length ? (
+          <div className="site-editor-sections-empty">
+            <strong>Esta página ainda está vazia.</strong>
+            <span>Adicione a primeira secção para começar.</span>
+          </div>
+        ) : null}
       </div>
+
       <div className="site-editor-section-add">
-        <select value={newType} onChange={(event) => setNewType(event.currentTarget.value as BuilderSectionType)}>
-          {sectionTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-        </select>
-        <button type="button" onClick={() => {
-          const section = createBuilderSection(newType)
-          commitSections([...sections, section])
-          onSelectSection(section._key)
-        }}><AddIcon /> Adicionar secção</button>
+        <button
+          className="site-editor-section-add-trigger"
+          type="button"
+          aria-expanded={addOpen}
+          onClick={() => setAddOpen((current) => !current)}
+        >
+          <AddIcon /> {addOpen ? 'Fechar opções' : 'Adicionar secção'}
+        </button>
+        {addOpen ? (
+          <div className="site-editor-section-picker">
+            <header>
+              <strong>O que quer acrescentar?</strong>
+              <small>Escolha pelo resultado que pretende ver na página.</small>
+            </header>
+            {sectionTypes.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => {
+                  const section = createBuilderSection(type.value)
+                  commitSections([...sections, section])
+                  setAddOpen(false)
+                  onSelectSection(section._key)
+                }}
+              >
+                <span><strong>{type.label}</strong><small>{type.description}</small></span>
+                <AddIcon />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={`Eliminar “${pendingDelete ? labelFor(pendingDelete) : 'esta secção'}”?`}
+        description="A secção deixa de aparecer nesta página. Pode desfazer esta alteração antes de publicar."
+        onCancel={() => setPendingDelete(undefined)}
+        onConfirm={() => {
+          if (!pendingDelete) return
+          commitSections(sections.filter((section) => section._key !== pendingDelete._key))
+          setPendingDelete(undefined)
+        }}
+      />
     </div>
   )
 }

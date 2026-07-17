@@ -155,7 +155,9 @@
       if (!event.data || typeof event.data !== 'object') return
 
       if (event.data.type === 'df4y:builder-state') {
-        if (event.data.page?._type === 'builderPage') currentPage = event.data.page
+        if (event.data.page?._type === 'builderPage' || event.data.page?._type === 'sitePage') {
+          currentPage = event.data.page
+        }
         if (event.data.settings?._type === 'builderSiteSettings') {
           currentSettings = event.data.settings
         }

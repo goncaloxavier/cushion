@@ -1,8 +1,14 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {ArrowLeftIcon} from '@sanity/icons/ArrowLeft'
+import {BasketIcon} from '@sanity/icons/Basket'
+import {CaseIcon} from '@sanity/icons/Case'
+import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {CloseIcon} from '@sanity/icons/Close'
 import {CogIcon} from '@sanity/icons/Cog'
+import {CubeIcon} from '@sanity/icons/Cube'
 import {DesktopIcon} from '@sanity/icons/Desktop'
+import {DocumentIcon} from '@sanity/icons/Document'
+import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 import {LaunchIcon} from '@sanity/icons/Launch'
 import {MenuIcon} from '@sanity/icons/Menu'
 import {MobileDeviceIcon} from '@sanity/icons/MobileDevice'
@@ -10,6 +16,7 @@ import {PublishIcon} from '@sanity/icons/Publish'
 import {RedoIcon} from '@sanity/icons/Redo'
 import {RefreshIcon} from '@sanity/icons/Refresh'
 import {TabletDeviceIcon} from '@sanity/icons/TabletDevice'
+import {TagIcon} from '@sanity/icons/Tag'
 import {UndoIcon} from '@sanity/icons/Undo'
 import type {BuilderViewport} from '$lib/builder/types'
 import {getEditorValue, normalizeEditorDocumentId, setEditorValue} from '../path'
@@ -23,6 +30,7 @@ import type {
   SiteEditorSaveState,
 } from '../types'
 import {createSiteEditorApi} from './api'
+import {ConfirmDialog} from './ConfirmDialog'
 import {SiteEditorCanvas} from './SiteEditorCanvas'
 import {SiteEditorInspector} from './SiteEditorInspector'
 import {SiteEditorSidebar} from './SiteEditorSidebar'
@@ -39,7 +47,10 @@ type Notice = {
   tone: 'success' | 'warning' | 'error'
   title: string
   description?: string
+  closing?: boolean
 }
+
+type PublishState = 'idle' | 'publishing' | 'published'
 
 type CreateState = {
   open: boolean
@@ -68,6 +79,61 @@ const typeLabels: Record<Exclude<SiteEditorDocumentType, 'siteLanding'>, string>
   storeProduct: 'Produto da Loja',
   caseStudy: 'Caso de estudo',
   blogPost: 'Artigo do Blog',
+}
+
+type CreatableDocumentType = Exclude<SiteEditorDocumentType, 'siteLanding'>
+
+const createTypeDetails: Record<
+  CreatableDocumentType,
+  {description: string; nameLabel: string; placeholder: string}
+> = {
+  sitePage: {
+    description: 'Uma página nova que pode montar com secções.',
+    nameLabel: 'Nome da página',
+    placeholder: 'Ex.: Sustentabilidade',
+  },
+  productCategory: {
+    description: 'Uma solução apresentada na página Produtos.',
+    nameLabel: 'Nome do produto',
+    placeholder: 'Ex.: Bancos para exterior',
+  },
+  storeCategory: {
+    description: 'Um grupo para organizar os produtos da Loja.',
+    nameLabel: 'Nome da categoria',
+    placeholder: 'Ex.: Decking',
+  },
+  storeProduct: {
+    description: 'Um artigo da Loja com preço, peso e opções.',
+    nameLabel: 'Nome do produto da Loja',
+    placeholder: 'Ex.: Banco Gavião',
+  },
+  caseStudy: {
+    description: 'Um projeto realizado, com texto e galeria.',
+    nameLabel: 'Nome do caso',
+    placeholder: 'Ex.: Proteção de piscina na Trofa',
+  },
+  blogPost: {
+    description: 'Um artigo com resumo, imagens e editor de texto.',
+    nameLabel: 'Título do artigo',
+    placeholder: 'Ex.: Como escolher materiais para exterior',
+  },
+}
+
+const contentCreateTypes: CreatableDocumentType[] = [
+  'productCategory',
+  'storeProduct',
+  'caseStudy',
+  'blogPost',
+  'storeCategory',
+]
+
+const CreateTypeIcon = ({type}: {type: CreatableDocumentType}) => {
+  if (type === 'sitePage') return <DocumentIcon />
+  if (type === 'productCategory') return <CubeIcon />
+  if (type === 'storeCategory') return <TagIcon />
+  if (type === 'storeProduct') return <BasketIcon />
+  if (type === 'caseStudy') return <CaseIcon />
+  return <DocumentTextIcon />
 }
 
 const normalizePath = (path: string) => path.replace(/^\$\./, '').replace(/^\$/, '')
@@ -104,10 +170,10 @@ const appearanceObjectPath = (path: string) => {
 }
 
 const saveLabels: Record<SiteEditorSaveState, string> = {
-  idle: 'Sem alterações',
-  dirty: 'A guardar…',
+  idle: 'Tudo guardado',
+  dirty: 'Alterações por guardar',
   saving: 'A guardar…',
-  saved: 'Guardado',
+  saved: 'Guardado automaticamente',
   error: 'Erro ao guardar',
   conflict: 'Conflito de edição',
 }
@@ -128,6 +194,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       : 'desktop',
   )
   const [saveState, setSaveState] = useState<SiteEditorSaveState>('idle')
+  const [publishState, setPublishState] = useState<PublishState>('idle')
   const [loading, setLoading] = useState(true)
   const [documentLoading, setDocumentLoading] = useState(false)
   const [loadError, setLoadError] = useState<string>()
@@ -144,9 +211,16 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const inlineEditing = useRef(false)
   const fieldStateRef = useRef<Record<string, unknown>>()
   const noticeId = useRef(0)
+  const noticeDismissTimer = useRef<number | undefined>(undefined)
+  const noticeRemoveTimer = useRef<number | undefined>(undefined)
+  const publishResetTimer = useRef<number | undefined>(undefined)
   const [createState, setCreateState] = useState<CreateState>(initialCreateState)
+  const [deleteState, setDeleteState] = useState({open: false, busy: false})
   const dirtyVersion = useRef(0)
+  const savedVersion = useRef(0)
   const saving = useRef<Promise<SiteEditorDocument> | null>(null)
+  const publishing = useRef<Promise<SiteEditorDocument> | null>(null)
+  const previewNeedsRefresh = useRef(false)
   const canPublish = manifest?.capabilities.canPublish ?? initialCanPublish
   const canWrite = manifest?.capabilities.canWrite ?? false
 
@@ -165,32 +239,73 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     [frame],
   )
 
-  const pushNotice = useCallback((value: Omit<Notice, 'id'>) => {
-    const next = {...value, id: ++noticeId.current}
-    setNotice(next)
-    window.setTimeout(() => {
-      setNotice((current) => (current?.id === next.id ? undefined : current))
-    }, 4600)
+  const dismissNotice = useCallback((id?: number) => {
+    window.clearTimeout(noticeDismissTimer.current)
+    window.clearTimeout(noticeRemoveTimer.current)
+    setNotice((current) => {
+      if (!current || (id !== undefined && current.id !== id)) return current
+      return {...current, closing: true}
+    })
+    noticeRemoveTimer.current = window.setTimeout(() => {
+      setNotice((current) =>
+        !current || (id !== undefined && current.id !== id) ? current : undefined,
+      )
+    }, 280)
   }, [])
 
-  const replaceDocument = useCallback((next: SiteEditorDocument, record = true) => {
-    const copy = snapshot(next)
-    documentRef.current = copy
-    setDocument(copy)
-    dirtyVersion.current += 1
-    if (record) {
-      setHistory((current) => {
-        const trimmed = current.slice(0, historyIndexRef.current + 1)
-        const result = [...trimmed, snapshot(copy)]
-        const bounded = result.length > 80 ? result.slice(-80) : result
-        const nextIndex = bounded.length - 1
-        historyIndexRef.current = nextIndex
-        setHistoryIndex(nextIndex)
-        return bounded
-      })
-    }
-    setSaveState('dirty')
-  }, [])
+  const pushNotice = useCallback(
+    (value: Omit<Notice, 'id' | 'closing'>) => {
+      window.clearTimeout(noticeDismissTimer.current)
+      window.clearTimeout(noticeRemoveTimer.current)
+      const next = {...value, id: ++noticeId.current, closing: false}
+      setNotice(next)
+      noticeDismissTimer.current = window.setTimeout(
+        () => dismissNotice(next.id),
+        value.tone === 'success' ? 4800 : 7600,
+      )
+    },
+    [dismissNotice],
+  )
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(noticeDismissTimer.current)
+      window.clearTimeout(noticeRemoveTimer.current)
+      window.clearTimeout(publishResetTimer.current)
+    },
+    [],
+  )
+
+  const replaceDocument = useCallback(
+    (next: SiteEditorDocument, record = true, previewIsAuthoritative = false) => {
+      const copy = snapshot(next)
+      documentRef.current = copy
+      setDocument(copy)
+      dirtyVersion.current += 1
+      if (!previewIsAuthoritative) previewNeedsRefresh.current = true
+      if (record) {
+        setHistory((current) => {
+          const trimmed = current.slice(0, historyIndexRef.current + 1)
+          const result = [...trimmed, snapshot(copy)]
+          const bounded = result.length > 80 ? result.slice(-80) : result
+          const nextIndex = bounded.length - 1
+          historyIndexRef.current = nextIndex
+          setHistoryIndex(nextIndex)
+          return bounded
+        })
+      }
+      setSaveState('dirty')
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!frame?.contentWindow || document?._type !== 'sitePage') return
+    frame.contentWindow.postMessage(
+      {type: 'df4y:builder-state', page: document, selectedSectionKey},
+      window.location.origin,
+    )
+  }, [document, frame, selectedSectionKey])
 
   const openDocument = useCallback(
     async (node: SiteEditorNode, path?: string) => {
@@ -221,6 +336,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         setHistory([snapshot(copy)])
         setHistoryIndex(0)
         historyIndexRef.current = 0
+        savedVersion.current = dirtyVersion.current
+        previewNeedsRefresh.current = false
         setSaveState('idle')
       } catch (error) {
         pushNotice({
@@ -257,6 +374,31 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     [api, openDocument],
   )
 
+  const refreshManifest = useCallback(
+    async (preferredDocumentId?: string) => {
+      const next = await api.manifest()
+      setManifest(next)
+      const current = selectedNodeRef.current
+      const target =
+        (current ? next.nodes.find((node) => node.id === current.id) : undefined) ??
+        (preferredDocumentId
+          ? next.nodes.find(
+              (node) =>
+                node.documentId &&
+                normalizeEditorDocumentId(node.documentId) ===
+                  normalizeEditorDocumentId(preferredDocumentId),
+            )
+          : undefined)
+      if (target) {
+        selectedNodeRef.current = target
+        setSelectedNode(target)
+        setArea(target.area)
+      }
+      return target
+    },
+    [api],
+  )
+
   useEffect(() => {
     setLoading(true)
     loadManifest()
@@ -267,6 +409,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   }, [loadManifest])
 
   const saveNow = useCallback(async () => {
+    if (publishing.current) await publishing.current.catch(() => undefined)
     const current = documentRef.current
     if (!current || !canWrite) {
       if (!canWrite) pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
@@ -274,8 +417,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     }
     if (saving.current) await saving.current
 
+    const latestBeforeSave = documentRef.current
+    if (!latestBeforeSave) throw new Error('Não existe conteúdo para guardar.')
+    if (savedVersion.current >= dirtyVersion.current) return latestBeforeSave
+
     const version = dirtyVersion.current
-    const value = snapshot(documentRef.current!)
+    const value = snapshot(latestBeforeSave)
+    const refreshPreview = previewNeedsRefresh.current
+    if (refreshPreview) previewNeedsRefresh.current = false
     setSaveState('saving')
     const request = api.save(value)
     saving.current = request
@@ -296,6 +445,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         documentRef.current = merged
         setDocument(merged)
       }
+      savedVersion.current = Math.max(savedVersion.current, version)
       setSaveState(dirtyVersion.current === version ? 'saved' : 'dirty')
       setManifest((currentManifest) =>
         currentManifest
@@ -338,16 +488,19 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             })()
           : currentManifest,
       )
-      frame?.contentWindow?.postMessage(
-        {
-          type: 'df4y:site-editor:refresh-preview',
-          documentId: saved._id,
-          revision: saved._rev,
-        },
-        window.location.origin,
-      )
+      if (refreshPreview) {
+        frame?.contentWindow?.postMessage(
+          {
+            type: 'df4y:site-editor:refresh-preview',
+            documentId: saved._id,
+            revision: saved._rev,
+          },
+          window.location.origin,
+        )
+      }
       return saved
     } catch (error) {
+      if (refreshPreview) previewNeedsRefresh.current = true
       const message = error instanceof Error ? error.message : 'Não foi possível guardar.'
       const conflict = /conflito|alterado noutro|recarregue|revision/i.test(message)
       setSaveState(conflict ? 'conflict' : 'error')
@@ -364,36 +517,93 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   useEffect(() => {
     if (saveState !== 'dirty') return
-    const timer = window.setTimeout(() => void saveNow().catch(() => undefined), 900)
+    const timer = window.setTimeout(() => void saveNow().catch(() => undefined), 650)
     return () => window.clearTimeout(timer)
   }, [document, saveNow, saveState])
+
+  useEffect(() => {
+    const protectUnsavedChanges = (event: BeforeUnloadEvent) => {
+      if (!['dirty', 'saving', 'error', 'conflict'].includes(saveState)) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', protectUnsavedChanges)
+    return () => window.removeEventListener('beforeunload', protectUnsavedChanges)
+  }, [saveState])
 
   const publish = useCallback(async () => {
     if (!canPublish || !documentRef.current) {
       pushNotice({tone: 'warning', title: 'Apenas administradores podem publicar'})
       return
     }
+    if (publishing.current) return
+    window.clearTimeout(publishResetTimer.current)
+    setPublishState('publishing')
     try {
-      const saved = saveState === 'dirty' ? await saveNow() : documentRef.current
-      const published = await api.publish(saved)
-      const copy = snapshot(published)
+      await saveNow()
+      const value = snapshot(documentRef.current!)
+      const version = dirtyVersion.current
+      const request = api.publish(value)
+      publishing.current = request
+      const published = await request
+      const latest = documentRef.current
+      const hasNewerChanges = dirtyVersion.current !== version
+      const copy = hasNewerChanges && latest
+        ? {
+            ...latest,
+            _id: published._id,
+            _rev: published._rev,
+            _createdAt: published._createdAt,
+            _updatedAt: published._updatedAt,
+          }
+        : snapshot(published)
       documentRef.current = copy
       setDocument(copy)
-      setHistory([snapshot(copy)])
-      setHistoryIndex(0)
-      historyIndexRef.current = 0
-      setSaveState('saved')
-      await loadManifest(published._id)
-      setRefreshToken((token) => token + 1)
-      pushNotice({tone: 'success', title: 'Alterações publicadas'})
+      savedVersion.current = version
+      if (hasNewerChanges) {
+        setSaveState('dirty')
+      } else {
+        setHistory([snapshot(copy)])
+        setHistoryIndex(0)
+        historyIndexRef.current = 0
+        setSaveState('saved')
+      }
+      try {
+        await refreshManifest(published._id)
+      } catch {
+        setManifest((current) =>
+          current
+            ? {
+                ...current,
+                nodes: current.nodes.map((node) =>
+                  node.documentId &&
+                  normalizeEditorDocumentId(node.documentId) ===
+                    normalizeEditorDocumentId(published._id)
+                    ? {...node, draft: false, updatedAt: published._updatedAt}
+                    : node,
+                ),
+              }
+            : current,
+        )
+      }
+      setPublishState('published')
+      publishResetTimer.current = window.setTimeout(() => setPublishState('idle'), 1800)
+      pushNotice({
+        tone: 'success',
+        title: 'Alterações publicadas',
+        description: 'A versão pública do site já está atualizada.',
+      })
     } catch (error) {
+      setPublishState('idle')
       pushNotice({
         tone: 'error',
         title: 'Não foi possível publicar',
         description: error instanceof Error ? error.message : undefined,
       })
+    } finally {
+      publishing.current = null
     }
-  }, [api, canPublish, loadManifest, pushNotice, saveNow, saveState])
+  }, [api, canPublish, pushNotice, refreshManifest, saveNow])
 
   const undo = useCallback(() => {
     if (historyIndexRef.current <= 0) return
@@ -411,6 +621,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     documentRef.current = next
     setDocument(next)
     dirtyVersion.current += 1
+    previewNeedsRefresh.current = true
     setSaveState('dirty')
   }, [history])
 
@@ -430,6 +641,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     documentRef.current = next
     setDocument(next)
     dirtyVersion.current += 1
+    previewNeedsRefresh.current = true
     setSaveState('dirty')
   }, [history])
 
@@ -459,16 +671,22 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const appearancePath = appearanceObjectPath(path)
       const patchPath = appearancePath ?? path
       const patchValue = appearancePath ? getEditorValue(next, appearancePath) : value
-      frame?.contentWindow?.postMessage(
-        {
-          type: 'df4y:site-editor:preview-patch',
-          documentId: next._id,
-          path: patchPath,
-          value: patchValue,
-        },
-        window.location.origin,
-      )
-      replaceDocument(next, record)
+      const canPatchPreview = current._type === 'sitePage' || Boolean(appearancePath) || typeof value === 'string'
+      if (canPatchPreview && current._type !== 'sitePage') {
+        frame?.contentWindow?.postMessage(
+          {
+            type: 'df4y:site-editor:preview-patch',
+            documentId: next._id,
+            path: patchPath,
+            value: patchValue,
+          },
+          window.location.origin,
+        )
+      }
+      // DOM patches make text feel immediate, but the Svelte page still owns
+      // server-loaded data. Reconcile every non-builder preview after save so
+      // a later component update can never restore the stale value.
+      replaceDocument(next, record, current._type === 'sitePage')
     },
     [frame, replaceDocument],
   )
@@ -560,6 +778,29 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     const handleMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== frame?.contentWindow) return
       if (!event.data || typeof event.data.type !== 'string') return
+
+      if (event.data.type === 'df4y:builder-ready') {
+        const current = documentRef.current
+        if (current?._type === 'sitePage') {
+          frame.contentWindow?.postMessage(
+            {type: 'df4y:builder-state', page: current, selectedSectionKey},
+            window.location.origin,
+          )
+        }
+        return
+      }
+
+      if (event.data.type === 'df4y:builder-select') {
+        if (documentRef.current?._type !== 'sitePage') return
+        inlineEditing.current = false
+        fieldStateRef.current = undefined
+        setSelectedPath(undefined)
+        setSelectedSectionKey(String(event.data.sectionKey || '') || undefined)
+        setInspectorMode('focused')
+        setSettingsOpen(true)
+        return
+      }
+
       if (!event.data.type.startsWith('df4y:site-editor:')) return
 
       if (event.data.type === 'df4y:site-editor:ready') {
@@ -635,6 +876,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     syncPreviewRoute,
     targetForSelection,
     updatePath,
+    selectedSectionKey,
   ])
 
   useEffect(() => {
@@ -670,12 +912,24 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (settingsOpen) clearCanvasSelection()
+      if (deleteState.open) {
+        if (!deleteState.busy) setDeleteState({open: false, busy: false})
+      } else if (createState.open) {
+        if (!createState.busy) setCreateState(initialCreateState)
+      } else if (settingsOpen) clearCanvasSelection()
       else if (navigationOpen) setNavigationOpen(false)
     }
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
-  }, [clearCanvasSelection, navigationOpen, settingsOpen])
+  }, [
+    clearCanvasSelection,
+    createState.busy,
+    createState.open,
+    deleteState.busy,
+    deleteState.open,
+    navigationOpen,
+    settingsOpen,
+  ])
 
   const openCreate = useCallback((documentType?: SiteEditorDocumentType) => {
     setCreateState({
@@ -731,6 +985,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     setHistory([snapshot(copy)])
     setHistoryIndex(0)
     historyIndexRef.current = 0
+    savedVersion.current = dirtyVersion.current
+    previewNeedsRefresh.current = false
     setSaveState('idle')
   }
 
@@ -771,7 +1027,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const deleteDocument = async () => {
     const current = documentRef.current
-    if (!current || !window.confirm(`Eliminar “${selectedNode?.title || 'este conteúdo'}”?`)) return
+    if (!current) return
+    setDeleteState({open: true, busy: true})
     try {
       await api.delete(current._id)
       documentRef.current = undefined
@@ -779,8 +1036,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       setDocument(undefined)
       setSelectedNode(undefined)
       await loadManifest()
+      setDeleteState({open: false, busy: false})
       pushNotice({tone: 'success', title: 'Conteúdo eliminado'})
     } catch (error) {
+      setDeleteState({open: true, busy: false})
       pushNotice({
         tone: 'error',
         title: 'Não foi possível eliminar',
@@ -809,6 +1068,15 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       </div>
     )
   }
+
+  const createDocumentType = createState.documentType as CreatableDocumentType
+  const createDetails = createTypeDetails[createDocumentType]
+  const createTitle =
+    createDocumentType === 'sitePage'
+      ? 'Criar uma página'
+      : createState.fixedType
+        ? `Adicionar ${typeLabels[createDocumentType].toLocaleLowerCase('pt')}`
+        : 'Adicionar conteúdo'
 
   return (
     <div className="site-editor-shell">
@@ -844,7 +1112,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           </button>
         </div>
 
-        <div className={`site-editor-top-save is-${saveState}`} aria-live="polite">
+        <div
+          className={`site-editor-top-save is-${saveState}`}
+          aria-live="polite"
+          title={saveLabels[saveState]}
+        >
           <i /> <span>{saveLabels[saveState]}</span>
         </div>
 
@@ -914,12 +1186,26 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             <CogIcon />
           </button>
           <button
-            className="site-editor-publish-button"
+            className={`site-editor-publish-button is-${publishState}`}
             type="button"
-            disabled={!canPublish || saveState === 'saving'}
+            disabled={!canPublish || publishState === 'publishing'}
+            aria-busy={publishState === 'publishing'}
             onClick={() => void publish()}
           >
-            <PublishIcon /> <span>Publicar</span>
+            {publishState === 'publishing' ? (
+              <i className="site-editor-button-spinner" aria-hidden="true" />
+            ) : publishState === 'published' ? (
+              <CheckmarkIcon />
+            ) : (
+              <PublishIcon />
+            )}{' '}
+            <span>
+              {publishState === 'publishing'
+                ? 'A publicar…'
+                : publishState === 'published'
+                  ? 'Publicado'
+                  : 'Publicar'}
+            </span>
           </button>
         </div>
       </header>
@@ -994,10 +1280,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           nodes={manifest.nodes}
           optionSources={manifest.optionSources}
           onChange={updatePath}
-          onReplace={(next) => replaceDocument(next)}
+          onReplace={(next) => replaceDocument(next, true, next._type === 'sitePage')}
           onSelectSection={setSelectedSectionKey}
-          onUpload={async (file, kind) => (await api.uploadAsset(file, kind)).asset}
-          onDelete={() => void deleteDocument()}
+          onUpload={async (file, kind, onProgress) =>
+            (await api.uploadAsset(file, kind, onProgress)).asset
+          }
+          onDelete={() => setDeleteState({open: true, busy: false})}
           onShowAll={() => setInspectorMode('all')}
           onOpenNode={(node, path) => {
             setInspectorMode(path ? 'focused' : 'all')
@@ -1008,14 +1296,19 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
       {notice ? (
         <div
-          className={`site-editor-notice is-${notice.tone}`}
+          className={`site-editor-notice is-${notice.tone}${notice.closing ? ' is-closing' : ''}`}
           role={notice.tone === 'error' ? 'alert' : 'status'}
+          aria-atomic="true"
         >
           <span>
             <strong>{notice.title}</strong>
             {notice.description ? <small>{notice.description}</small> : null}
           </span>
-          <button type="button" onClick={() => setNotice(undefined)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => dismissNotice(notice.id)}
+            aria-label="Fechar notificação"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -1032,6 +1325,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         >
           <form
             className="site-editor-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="site-editor-create-title"
             onSubmit={(event) => {
               event.preventDefault()
               void createDocument()
@@ -1039,17 +1335,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           >
             <div className="site-editor-modal-head">
               <div>
-                <small>Novo conteúdo</small>
-                <strong>
-                  {createState.fixedType && createState.documentType !== 'sitePage'
-                    ? `Adicionar ${typeLabels[createState.documentType as Exclude<
-                        SiteEditorDocumentType,
-                        'siteLanding'
-                      >].toLocaleLowerCase('pt')}`
-                    : area === 'pages'
-                      ? 'Criar página'
-                      : 'Adicionar ao site'}
-                </strong>
+                <small>{typeLabels[createDocumentType]}</small>
+                <strong id="site-editor-create-title">{createTitle}</strong>
+                <p>{createDetails.description}</p>
               </div>
               <button
                 type="button"
@@ -1059,71 +1347,93 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                 <CloseIcon />
               </button>
             </div>
-            {area === 'content' && !createState.fixedType ? (
-              <label>
-                <span>Tipo</span>
-                <select
-                  value={createState.documentType}
-                  onChange={(event) => {
-                    const documentType = event.currentTarget.value as SiteEditorDocumentType
-                    setCreateState((current) => ({...current, documentType}))
-                  }}
-                >
-                  {(
-                    Object.entries(typeLabels) as Array<
-                      [Exclude<SiteEditorDocumentType, 'siteLanding'>, string]
-                    >
-                  )
-                    .filter(([type]) => type !== 'sitePage')
-                    .map(([type, label]) => (
-                      <option key={type} value={type}>
-                        {label}
-                      </option>
+            <div className="site-editor-modal-body">
+              {area === 'content' && !createState.fixedType ? (
+                <fieldset className="site-editor-create-types">
+                  <legend>O que quer criar?</legend>
+                  <div>
+                    {contentCreateTypes.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={type === createDocumentType ? 'is-active' : undefined}
+                        aria-label={typeLabels[type]}
+                        aria-pressed={type === createDocumentType}
+                        onClick={() =>
+                          setCreateState((current) => ({...current, documentType: type}))
+                        }
+                      >
+                        <i aria-hidden="true">
+                          <CreateTypeIcon type={type} />
+                        </i>
+                        <span>
+                          <strong>{typeLabels[type]}</strong>
+                          <small>{createTypeDetails[type].description}</small>
+                        </span>
+                      </button>
                     ))}
-                </select>
-              </label>
-            ) : null}
-            <label>
-              <span>Nome</span>
-              <input
-                autoFocus
-                required
-                minLength={2}
-                maxLength={100}
-                value={createState.title}
-                onChange={(event) => {
-                  const title = event.currentTarget.value
-                  setCreateState((current) => ({...current, title}))
-                }}
-              />
-            </label>
-            {createState.documentType === 'sitePage' ? (
-              <label>
-                <span>Endereço</span>
-                <input
-                  placeholder="/nome-da-pagina"
-                  value={createState.route}
-                  onChange={(event) => {
-                    const route = event.currentTarget.value
-                    setCreateState((current) => ({...current, route}))
-                  }}
-                />
-              </label>
-            ) : null}
-            {createState.error ? (
-              <p className="site-editor-modal-error">{createState.error}</p>
-            ) : null}
+                  </div>
+                </fieldset>
+              ) : null}
+              <div className="site-editor-create-fields">
+                <label>
+                  <span>{createDetails.nameLabel}</span>
+                  <input
+                    aria-label="Nome"
+                    autoFocus
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    placeholder={createDetails.placeholder}
+                    value={createState.title}
+                    onChange={(event) => {
+                      const title = event.currentTarget.value
+                      setCreateState((current) => ({...current, title}))
+                    }}
+                  />
+                </label>
+                {createDocumentType === 'sitePage' ? (
+                  <label>
+                    <span>Endereço da página</span>
+                    <input
+                      aria-label="Endereço"
+                      placeholder="Criado automaticamente a partir do nome"
+                      value={createState.route}
+                      onChange={(event) => {
+                        const route = event.currentTarget.value
+                        setCreateState((current) => ({...current, route}))
+                      }}
+                    />
+                    <small>Opcional. Só precisa de alterar se quiser outro endereço.</small>
+                  </label>
+                ) : null}
+              </div>
+              {createState.error ? (
+                <p className="site-editor-modal-error">{createState.error}</p>
+              ) : null}
+            </div>
             <div className="site-editor-modal-actions">
-              <button type="button" onClick={() => setCreateState(initialCreateState)}>
-                Cancelar
-              </button>
-              <button type="submit" disabled={createState.busy}>
-                {createState.busy ? 'A criar…' : 'Criar rascunho'}
-              </button>
+              <small>Depois de criar, pode completar tudo antes de publicar.</small>
+              <span>
+                <button type="button" onClick={() => setCreateState(initialCreateState)}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={createState.busy}>
+                  {createState.busy ? 'A criar…' : 'Criar e editar'}
+                </button>
+              </span>
             </div>
           </form>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={deleteState.open}
+        busy={deleteState.busy}
+        title={`Eliminar “${selectedNode?.title || 'este conteúdo'}”?`}
+        description="Esta ação remove o conteúdo do editor e do site depois de publicado. Não pode ser anulada."
+        onCancel={() => setDeleteState({open: false, busy: false})}
+        onConfirm={() => void deleteDocument()}
+      />
     </div>
   )
 }

@@ -428,7 +428,12 @@
   }
 
   const selectElement = (id: string, current: RegisteredElement, node: SanityNode) => {
-    if (matchesSelection(node) && selectedElement === current.element) return
+    if (matchesSelection(node) && selectedElement === current.element) {
+      if (!editing && activeInline && current.element instanceof HTMLElement) {
+        beginEditing(id, current.element, node)
+      }
+      return
+    }
     activateElement(id, current, node)
     formatEnabled = false
     post({
@@ -495,6 +500,9 @@
           ? 'fontSizeTablet'
           : 'fontSize'
     const size = Number(value[sizeField] || value.fontSize || 0)
+    const sizeProperty = `--cms-text-size-${targetViewport}`
+    if (size >= 10 && size <= 120) element.style.setProperty(sizeProperty, `${size}px`)
+    else element.style.removeProperty(sizeProperty)
     element.style.fontFamily = cssFontFamily[String(value.fontFamily || '')] || ''
     element.style.fontSize = size >= 10 && size <= 120 ? `${size}px` : ''
     element.style.fontWeight = cssWeight[String(value.fontWeight || '')] || ''

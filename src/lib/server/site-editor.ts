@@ -78,9 +78,6 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'location',
     'summary',
     'description',
-    'challenge',
-    'solution',
-    'result',
     'orderRank',
   ],
   blogPost: [

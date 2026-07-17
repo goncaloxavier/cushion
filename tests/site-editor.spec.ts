@@ -175,8 +175,26 @@ test.describe('visual website editor', () => {
     }
 
     const savedPreviewUrl = await frame.locator('html').evaluate(() => window.location.href)
+    await page.route('**/painel/site/api', async (route) => {
+      const request = route.request()
+      if (request.method() === 'POST' && request.postData()?.includes('"action":"publish"')) {
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
+      await route.continue()
+    })
     await page.locator('.site-editor-publish-button').click()
+    await expect(page.locator('.site-editor-publish-button')).toContainText('A publicar…')
     await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
+    await expect(page.locator('.site-editor-notice')).toContainText(
+      'A versão pública do site já está atualizada.',
+    )
+    await expect(frame.locator('html')).toHaveAttribute(
+      'data-site-editor-fixture-boot',
+      initialBootId!,
+    )
+    await page.getByRole('button', {name: 'Fechar notificação'}).click()
+    await expect(page.locator('.site-editor-notice')).toHaveClass(/is-closing/)
+    await expect(page.locator('.site-editor-notice')).toHaveCount(0)
 
     const publishedPreviewUrl = new URL(savedPreviewUrl)
     publishedPreviewUrl.searchParams.set('published', '1')
@@ -185,6 +203,37 @@ test.describe('visual website editor', () => {
     await expect(savedHeading).toHaveText('Título final guardado pelo editor')
     await expect(savedHeading).toHaveCSS('font-family', /Georgia/)
     await expect(savedHeading).toHaveCSS('font-size', '64px')
+  })
+
+  test('keeps a newer edit when it is made while publishing', async ({page}, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Publish concurrency runs once')
+    const frame = await openEditor(page, testInfo)
+    const heading = frame.getByTestId('fixture-hero-title')
+
+    await heading.click()
+    await heading.fill('Versão enviada para publicação')
+    await heading.press('Enter')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    let publishRequestSeen = false
+    await page.route('**/painel/site/api', async (route) => {
+      const request = route.request()
+      if (request.method() === 'POST' && request.postData()?.includes('"action":"publish"')) {
+        publishRequestSeen = true
+        await new Promise((resolve) => setTimeout(resolve, 1200))
+      }
+      await route.continue()
+    })
+
+    await page.locator('.site-editor-publish-button').click()
+    await expect.poll(() => publishRequestSeen).toBe(true)
+    await heading.click()
+    await heading.fill('Alteração mais recente preservada')
+    await heading.press('Enter')
+
+    await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+    await expect(heading).toHaveText('Alteração mais recente preservada')
   })
 
   test('keeps the selection attached while scrolling and never falls back to the full form', async ({
@@ -432,6 +481,10 @@ test.describe('visual website editor', () => {
     })
     await expect(gallery.getByRole('listitem')).toHaveCount(4)
     await gallery.getByRole('button', {name: 'Remover'}).click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', {name: 'Remover da galeria'})
+      .click()
     await expect(gallery.getByRole('listitem')).toHaveCount(3)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 
@@ -443,7 +496,19 @@ test.describe('visual website editor', () => {
     await expect(gallery.getByRole('listitem')).toHaveCount(4)
     await expect(gallery.getByRole('listitem', {name: 'Vídeo 4'})).toBeVisible()
     await expect(gallery.locator('.site-editor-gallery-description textarea')).toBeVisible()
+    await expect(gallery.getByRole('status', {name: /Ficheiro pronto/})).toBeVisible()
+    await expect(gallery.getByText('Imagem de capa', {exact: true})).toBeVisible()
+    await gallery.locator('.site-editor-gallery-poster input').setInputFiles({
+      name: 'capa-video.png',
+      mimeType: 'image/png',
+      buffer: tinyPng,
+    })
+    await expect(gallery.getByRole('listitem', {name: 'Vídeo 4'}).locator('img')).toBeVisible()
     await gallery.getByRole('button', {name: 'Remover'}).click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', {name: 'Remover da galeria'})
+      .click()
     await expect(gallery.getByRole('listitem')).toHaveCount(3)
   })
 
@@ -461,10 +526,12 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
 
     let modal = page.locator('.site-editor-modal')
-    await modal.getByLabel('Tipo').selectOption('blogPost')
+    await expect(modal).toHaveAttribute('role', 'dialog')
+    await expect(modal.getByText('O que quer criar?')).toBeVisible()
+    await modal.getByRole('button', {name: 'Artigo do Blog'}).click()
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
     await modal.getByLabel('Nome').fill('Artigo criado no editor')
-    await modal.getByRole('button', {name: 'Criar rascunho'}).click()
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(modal).toHaveCount(0)
     await expect(page.locator('.site-editor-shell')).toBeVisible()
     await expect(page.locator('.site-editor-notice')).toContainText('Conteúdo criado como rascunho')
@@ -476,11 +543,63 @@ test.describe('visual website editor', () => {
     modal = page.locator('.site-editor-modal')
     await modal.getByLabel('Nome').fill('Página criada no editor')
     await modal.getByLabel('Endereço').fill('/pagina-criada-no-editor')
-    await modal.getByRole('button', {name: 'Criar rascunho'}).click()
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(modal).toHaveCount(0)
     await expect(page.locator('.site-editor-shell')).toBeVisible()
     await expect(navigation.getByRole('button', {name: /Página criada no editor/})).toBeVisible()
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
+  })
+
+  test('updates a free-page preview immediately while autosave is still pending', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Free-page live preview runs once')
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Páginas'}).click()
+    await navigation.getByRole('button', {name: 'Nova página'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await modal.getByLabel('Nome').fill('Página com pré-visualização imediata')
+    await modal.getByLabel('Endereço').fill('/pagina-preview-imediato')
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
+
+    await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
+    await expect(frame.locator('.builder-responsive-title')).toHaveText(
+      'Página com pré-visualização imediata',
+    )
+    const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
+    expect(bootId).toBeTruthy()
+
+    await navigation.getByRole('button', {name: 'Fechar páginas e conteúdo'}).click()
+    await expect(navigation).not.toHaveClass(/is-open/)
+
+    await frame.getByRole('button', {name: 'Editar Destaque principal'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await expect(settings).toHaveClass(/is-open/)
+    await expect(settings.locator('.site-page-editor-group').getByText('Conteúdo', {exact: true})).toBeVisible()
+    await expect(settings.getByText('Computador', {exact: true})).toHaveCount(0)
+    await expect(settings.getByText('Tablet', {exact: true})).toHaveCount(0)
+    await expect(settings.getByText('Telemóvel', {exact: true})).toHaveCount(0)
+
+    let releaseSave: (() => void) | undefined
+    const saveGate = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    await page.route('**/painel/site/api', async (route) => {
+      if (route.request().method() === 'PUT') await saveGate
+      await route.continue()
+    })
+
+    await settings.getByLabel('Título').fill('O texto aparece sem esperar pelo autosave')
+    await expect(frame.locator('.builder-responsive-title')).toHaveText(
+      'O texto aparece sem esperar pelo autosave',
+      {timeout: 500},
+    )
+    await expect(frame.locator('html')).toHaveAttribute('data-site-editor-fixture-boot', bootId!)
+    releaseSave?.()
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
   })
 
   test('creates every structured content type with its starter fields and keeps visual editing active', async ({
@@ -497,10 +616,10 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
 
     const drafts = [
-      {type: 'productCategory', title: 'Produto criado no editor'},
-      {type: 'storeProduct', title: 'Produto da Loja criado no editor'},
-      {type: 'caseStudy', title: 'Caso criado no editor'},
-      {type: 'blogPost', title: 'Artigo completo criado no editor'},
+      {type: 'productCategory', label: 'Produto', title: 'Produto criado no editor'},
+      {type: 'storeProduct', label: 'Produto da Loja', title: 'Produto da Loja criado no editor'},
+      {type: 'caseStudy', label: 'Caso de estudo', title: 'Caso criado no editor'},
+      {type: 'blogPost', label: 'Artigo do Blog', title: 'Artigo completo criado no editor'},
     ] as const
 
     for (const [index, draft] of drafts.entries()) {
@@ -509,9 +628,9 @@ test.describe('visual website editor', () => {
       }
       await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
       const modal = page.locator('.site-editor-modal')
-      await modal.getByLabel('Tipo').selectOption(draft.type)
+      await modal.getByRole('button', {name: draft.label, exact: true}).click()
       await modal.getByLabel('Nome').fill(draft.title)
-      await modal.getByRole('button', {name: 'Criar rascunho'}).click()
+      await modal.getByRole('button', {name: 'Criar e editar'}).click()
 
       await expect(modal).toHaveCount(0)
       await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
@@ -645,9 +764,9 @@ test.describe('visual website editor', () => {
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
     const duplicateModal = page.locator('.site-editor-modal')
-    await duplicateModal.getByLabel('Tipo').selectOption('blogPost')
+    await duplicateModal.getByRole('button', {name: 'Artigo do Blog'}).click()
     await duplicateModal.getByLabel('Nome').fill('Artigo completo criado no editor')
-    await duplicateModal.getByRole('button', {name: 'Criar rascunho'}).click()
+    await duplicateModal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(duplicateModal.locator('.site-editor-modal-error')).toContainText(
       'Já existe conteúdo deste tipo com o mesmo endereço.',
     )
@@ -945,9 +1064,9 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: 'Adicionar categoria'}).click()
 
     const modal = page.locator('.site-editor-modal')
-    await expect(modal.getByLabel('Tipo')).toHaveCount(0)
+    await expect(modal.locator('.site-editor-create-types')).toHaveCount(0)
     await modal.getByLabel('Nome').fill('Deck modular')
-    await modal.getByRole('button', {name: 'Criar rascunho'}).click()
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(modal).toHaveCount(0)
     await expandCollection(navigation, /Categorias da Loja/)
     await expect(navigation.getByRole('button', {name: /Deck modular/})).toBeVisible()
@@ -1020,8 +1139,10 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}).click()
     await expect(settings.getByText('Mudança por publicar')).toHaveCount(0)
 
-    page.once('dialog', (dialog) => dialog.accept())
     await settings.getByRole('button', {name: 'Eliminar conteúdo'}).click()
+    const confirmation = page.getByRole('alertdialog', {name: /Eliminar “Bancos exteriores”/})
+    await expect(confirmation).toBeVisible()
+    await confirmation.getByRole('button', {name: 'Eliminar', exact: true}).click()
     await expect(navigation.getByRole('button', {name: /Bancos exteriores/})).toHaveCount(0)
   })
 

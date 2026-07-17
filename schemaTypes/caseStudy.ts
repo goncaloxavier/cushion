@@ -122,6 +122,7 @@ export const caseStudy = defineType({
       description: 'Opcional. Problema inicial do espaço.',
       type: 'localizedText',
       group: 'conteudo',
+      hidden: true,
     }),
     defineField({
       name: 'solution',
@@ -129,6 +130,7 @@ export const caseStudy = defineType({
       description: 'Opcional. O que foi feito.',
       type: 'localizedText',
       group: 'conteudo',
+      hidden: true,
     }),
     defineField({
       name: 'result',
@@ -136,6 +138,7 @@ export const caseStudy = defineType({
       description: 'Opcional. Benefício final do projeto.',
       type: 'localizedText',
       group: 'conteudo',
+      hidden: true,
     }),
     defineField({
       name: 'orderRank',

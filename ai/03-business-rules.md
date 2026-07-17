@@ -119,3 +119,4 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Social links, WhatsApp number/link, complaints-book link, privacy/cookie policy links, and marketing-consent wording.
 - Institutional video URL, partner names/links/logos, and claims about partnerships/projects.
 - Whether fallback content should remain after Sanity is populated.
+- Automatic PT → EN/ES translation must preserve the editor's visible presentation: authored casing, terminal punctuation, line breaks, tabs, numbers, measurements, prices, URLs, email addresses, and the DaFábrica4You name. Translation uses the surrounding document plus the recycled-plastic/outdoor-furniture domain as context. The Studio's manual “Retraduzir” action intentionally forces a fresh translation even when the Portuguese source hash is unchanged; optional DeepL glossary IDs remain the authority for business-approved terminology.

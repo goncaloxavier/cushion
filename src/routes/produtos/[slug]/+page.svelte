@@ -24,8 +24,8 @@
       ?.map((sentence) => sentence.trim())
       .filter(Boolean) ?? []
 
-  const productDetailCopy = (summary: string, description: string) => {
-    const source = cleanProductMaterialCopy(description || summary)
+  const productDetailCopy = (description: string) => {
+    const source = cleanProductMaterialCopy(description)
     const sentences = splitSentences(source)
     const introSentences: string[] = []
     const resistanceSentences: string[] = []
@@ -45,6 +45,14 @@
     }
   }
 
+  const comparableCopy = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, ' ')
+      .trim()
+      .toLowerCase()
+
   let {data} = $props()
   const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
@@ -63,15 +71,23 @@
   const imageDataAttribute = $derived(
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
-  const copy = $derived(productDetailCopy(data.product.summary, data.product.description))
-  const copyFieldPath = $derived(data.product.description ? 'description.pt' : 'summary.pt')
+  const summaryCopy = $derived(cleanProductMaterialCopy(data.product.summary))
+  const descriptionCopy = $derived(productDetailCopy(data.product.description))
+  const descriptionIntroIsDistinct = $derived(
+    Boolean(
+      descriptionCopy.intro &&
+        (!summaryCopy || comparableCopy(descriptionCopy.intro) !== comparableCopy(summaryCopy)),
+    ),
+  )
+  const leadCopy = $derived(summaryCopy || descriptionCopy.intro)
+  const leadFieldPath = $derived(summaryCopy ? 'summary.pt' : 'description.pt')
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
   const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
-      description: copy.intro || data.product.summary,
+      description: leadCopy,
       imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
     }),
     breadcrumbListSchema([
@@ -84,7 +100,7 @@
 
 <SeoHead
   title={data.product.title}
-  description={copy.intro || data.product.summary}
+  description={leadCopy}
   image={images[0]}
   jsonLd={productJsonLd}
 />
@@ -108,25 +124,34 @@
         >{data.product.title}</h1>
       </div>
       <div class="product-editorial-copy">
-        <p
-          class="article-lead cms-styled-text"
-          style={textAppearanceStyle(
-            data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
-          )}
-          data-df4y-editor-field="true"
-          data-df4y-editor-label="Descrição do produto"
-          data-sanity={productDataAttribute?.(copyFieldPath)}
-        >{copy.intro}</p>
-        {#if copy.resistance}
+        {#if leadCopy}
           <p
-            class="product-editorial-proof cms-styled-text"
+            class="article-lead cms-styled-text"
             style={textAppearanceStyle(
-              data.product.textAppearance?.[copyFieldPath.startsWith('description') ? 'description' : 'summary'],
+              data.product.textAppearance?.[leadFieldPath.startsWith('summary') ? 'summary' : 'description'],
             )}
             data-df4y-editor-field="true"
+            data-df4y-editor-label={summaryCopy ? 'Resumo do produto' : 'Descrição do produto'}
+            data-sanity={productDataAttribute?.(leadFieldPath)}
+          >{leadCopy}</p>
+        {/if}
+        {#if descriptionIntroIsDistinct}
+          <p
+            class="product-editorial-description cms-styled-text"
+            style={textAppearanceStyle(data.product.textAppearance?.description)}
+            data-df4y-editor-field="true"
             data-df4y-editor-label="Descrição do produto"
-            data-sanity={productDataAttribute?.(copyFieldPath)}
-          >{copy.resistance}</p>
+            data-sanity={productDataAttribute?.('description.pt')}
+          >{descriptionCopy.intro}</p>
+        {/if}
+        {#if descriptionCopy.resistance}
+          <p
+            class="product-editorial-proof cms-styled-text"
+            style={textAppearanceStyle(data.product.textAppearance?.description)}
+            data-df4y-editor-field="true"
+            data-df4y-editor-label="Descrição do produto"
+            data-sanity={productDataAttribute?.('description.pt')}
+          >{descriptionCopy.resistance}</p>
         {/if}
       </div>
     </section>
