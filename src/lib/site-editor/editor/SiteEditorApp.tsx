@@ -92,32 +92,32 @@ const createTypeDetails: Record<
   {description: string; nameLabel: string; placeholder: string}
 > = {
   sitePage: {
-    description: 'Uma página nova que pode montar com secções.',
+    description: 'Uma página nova que pode montar com secções',
     nameLabel: 'Nome da página',
     placeholder: 'Ex.: Sustentabilidade',
   },
   productCategory: {
-    description: 'Uma solução apresentada na página Produtos.',
+    description: 'Uma solução apresentada na página Produtos',
     nameLabel: 'Nome do produto',
     placeholder: 'Ex.: Bancos para exterior',
   },
   storeCategory: {
-    description: 'Um grupo para organizar os produtos da Loja.',
+    description: 'Um grupo para organizar os produtos da Loja',
     nameLabel: 'Nome da categoria',
     placeholder: 'Ex.: Decking',
   },
   storeProduct: {
-    description: 'Um artigo da Loja com preço, peso e opções.',
+    description: 'Um artigo da Loja com preço, peso e opções',
     nameLabel: 'Nome do produto da Loja',
     placeholder: 'Ex.: Banco Gavião',
   },
   caseStudy: {
-    description: 'Um projeto realizado, com texto e galeria.',
+    description: 'Um projeto realizado, com texto e galeria',
     nameLabel: 'Nome do caso',
     placeholder: 'Ex.: Proteção de piscina na Trofa',
   },
   blogPost: {
-    description: 'Um artigo com resumo, imagens e editor de texto.',
+    description: 'Um artigo com resumo, imagens e editor de texto',
     nameLabel: 'Título do artigo',
     placeholder: 'Ex.: Como escolher materiais para exterior',
   },
@@ -665,7 +665,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'success',
         title: 'Alterações publicadas',
-        description: 'A versão pública do site já está atualizada.',
+        description: 'A versão pública do site já está atualizada',
       })
     } catch (error) {
       setPublishState('idle')
@@ -1479,7 +1479,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                         setCreateState((current) => ({...current, route}))
                       }}
                     />
-                    <small>Opcional. Só precisa de alterar se quiser outro endereço.</small>
+                    <small>Opcional. Só precisa de alterar se quiser outro endereço</small>
                   </label>
                 ) : null}
               </div>
@@ -1488,7 +1488,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               ) : null}
             </div>
             <div className="site-editor-modal-actions">
-              <small>Depois de criar, pode completar tudo antes de publicar.</small>
+              <small>Depois de criar, pode completar tudo antes de publicar</small>
               <span>
                 <button type="button" onClick={() => setCreateState(initialCreateState)}>
                   Cancelar

@@ -27,7 +27,7 @@ type Props = {
 const titleField: SiteEditorField = {
   name: 'title',
   label: 'Nome da categoria',
-  description: 'É o nome apresentado nos filtros e junto aos produtos.',
+  description: 'É o nome apresentado nos filtros e junto aos produtos',
   type: 'localizedString',
   required: true,
 }
@@ -38,13 +38,13 @@ const slugField: SiteEditorField = {
   type: 'slug',
   readOnly: true,
   description:
-    'Gerado a partir do nome na primeira vez que a categoria é guardada. Fica estável depois para não quebrar os produtos associados.',
+    'Gerado a partir do nome na primeira vez que a categoria é guardada. Fica estável depois para não quebrar os produtos associados',
 }
 
 const orderField: SiteEditorField = {
   name: 'orderRank',
   label: 'Posição na Loja',
-  description: 'Os números mais baixos aparecem primeiro.',
+  description: 'Os números mais baixos aparecem primeiro',
   type: 'number',
   min: 0,
   step: 1,

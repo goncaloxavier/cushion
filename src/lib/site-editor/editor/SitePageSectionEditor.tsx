@@ -530,7 +530,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         {kind === 'video' ? (
           <MediaUpload
             label="Adicionar imagem de capa"
-            help="Aparece antes do vídeo e na miniatura da galeria."
+            help="Aparece antes do vídeo e na miniatura da galeria"
             accept="image/*"
             hasAsset={Boolean(posterRef)}
             disabled={uploadBusy}
@@ -540,7 +540,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         ) : null}
         <Field
           label="Descrição acessível"
-          help="Descreva o que é importante na imagem ou no vídeo."
+          help="Descreva o que é importante na imagem ou no vídeo"
           localized
         >
           <textarea rows={3} value={media.alt?.pt ?? ''} onChange={(event) => apply({...media, alt: localizedValue(media.alt, event.currentTarget.value, 'localizedString')})} />
@@ -592,7 +592,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
                 type="button"
                 onClick={(event) => onOpenArticle?.(`sections[_key=="${section._key}"].body`, event.currentTarget)}
               >
-                <EditIcon /> <span><strong>Editar texto editorial</strong><small>Abre o editor completo para títulos, listas, imagens e tabelas.</small></span>
+                <EditIcon /> <span><strong>Editar texto editorial</strong><small>Abre o editor completo para títulos, listas, imagens e tabelas</small></span>
               </button>
             ) : null}
           </div>
@@ -638,7 +638,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           <summary><span><strong>Galeria</strong><small>Imagens e vídeos pela ordem apresentada</small></span><b>{galleryItems.length}</b></summary>
           <div className="site-page-editor-group-body">
             <label className={`site-page-gallery-add${uploadBusy ? ' is-disabled' : ''}`}>
-              <UploadIcon /> <span><strong>Adicionar à galeria</strong><small>Pode selecionar vários ficheiros.</small></span>
+              <UploadIcon /> <span><strong>Adicionar à galeria</strong><small>Pode selecionar vários ficheiros</small></span>
               <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple disabled={uploadBusy} onChange={(event) => { if (event.currentTarget.files?.length) void uploadGallery(event.currentTarget.files); event.currentTarget.value = '' }} />
             </label>
             {uploadStatus?.key.startsWith('gallery-') ? <MediaUploadProgress status={uploadStatus} /> : null}
@@ -688,7 +688,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
       <details className="site-page-editor-group is-advanced">
         <summary><span><strong>Organização</strong><small>Nome interno e ligação direta</small></span></summary>
         <div className="site-page-editor-group-body">
-          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção."><input value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
+          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção"><input value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
           <Field label="Ligação direta" help="Opcional. Exemplo: impacto"><input value={section.anchor ?? ''} onChange={(event) => onUpdate({...section, anchor: event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} /></Field>
         </div>
       </details>

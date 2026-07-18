@@ -859,7 +859,7 @@ function GalleryEditor({
             <div className="site-editor-gallery-poster">
               <span>
                 <strong>Imagem de capa</strong>
-                <small>Aparece na miniatura e antes de o vídeo começar.</small>
+                <small>Aparece na miniatura e antes de o vídeo começar</small>
               </span>
               {activePosterUrl ? <img src={activePosterUrl} alt="" /> : <VideoIcon />}
               <label className="site-editor-upload-button">
@@ -905,7 +905,7 @@ function GalleryEditor({
           <ImagesIcon />{' '}
           <span>
             <strong>Galeria vazia</strong>
-            <small>Adicione a primeira imagem ou vídeo.</small>
+            <small>Adicione a primeira imagem ou vídeo</small>
           </span>
         </div>
       )}
@@ -1318,7 +1318,7 @@ export function SiteEditorFieldInput({
           </span>
           <div>
             <strong>{blocks.length ? 'Conteúdo estruturado' : 'Artigo vazio'}</strong>
-            <small>{text || 'Abra o editor para começar a escrever.'}</small>
+            <small>{text || 'Abra o editor para começar a escrever'}</small>
           </div>
           <button
             ref={articleLauncher}

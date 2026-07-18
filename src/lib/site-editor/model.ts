@@ -67,7 +67,7 @@ const gallery: SiteEditorField = {
   name: 'gallery',
   label: 'Galeria',
   type: 'gallery',
-  description: 'Imagens e vídeos apresentados nesta página.',
+  description: 'Imagens e vídeos apresentados nesta página',
 }
 
 const contactFormLabelFields = [
@@ -97,7 +97,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'navigation',
       label: 'Cabeçalho',
-      description: 'A ordem desta lista é a ordem apresentada no site.',
+      description: 'A ordem desta lista é a ordem apresentada no site',
       fields: [
         {
           name: 'navigation',
@@ -182,18 +182,18 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'store-page-hero',
       label: 'Topo da Loja',
-      description: 'Título e etiqueta apresentados no início da Loja.',
+      description: 'Título e etiqueta apresentados no início da Loja',
       fields: [copyBlock('hero', 'Texto do topo')],
     },
     {
       id: 'store-page-transport',
       label: 'Cálculo do transporte',
-      description: 'Valor global usado para calcular o transporte em toda a Loja.',
+      description: 'Valor global usado para calcular o transporte em toda a Loja',
       fields: [
         {
           name: 'transportMultiplier',
           label: 'Multiplicador de transporte',
-          description: 'Aplicado ao preço da transportadora antes do IVA.',
+          description: 'Aplicado ao preço da transportadora antes do IVA',
           type: 'number',
           min: 0.1,
           max: 20,
@@ -357,7 +357,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'shared-copy',
       label: 'Textos partilhados',
-      description: 'Botões, pesquisa, paginação e ligações repetidas no site.',
+      description: 'Botões, pesquisa, paginação e ligações repetidas no site',
       fields: [
         localizedString('readMore', 'Ler mais'),
         localizedString('requestQuote', 'Pedir orçamento'),
@@ -406,13 +406,13 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'content',
       label: 'Categoria',
-      description: 'Nome e identificador usados nos filtros da Loja.',
+      description: 'Nome e identificador usados nos filtros da Loja',
       fields: [{...localizedString('title', 'Nome da categoria'), required: true}],
     },
     {
       id: 'organization',
       label: 'Ordem',
-      description: 'Escolha a posição da categoria no filtro.',
+      description: 'Escolha a posição da categoria no filtro',
       fields: [{name: 'orderRank', label: 'Ordem de apresentação', type: 'number', step: 1}],
     },
   ],
@@ -425,7 +425,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
           name: 'category',
           label: 'Categoria',
           type: 'select',
-          description: 'As categorias são geridas em Conteúdo > Categorias da Loja.',
+          description: 'As categorias são geridas em Conteúdo > Categorias da Loja',
           options: defaultStoreCategoryOptions,
           optionsSource: 'storeCategories',
         },
@@ -506,7 +506,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'article-details',
       label: 'Informação do artigo',
-      description: 'Título, data, tema e resumo.',
+      description: 'Título, data, tema e resumo',
       fields: [
         ...baseDocumentPanels('Título do artigo')[0].fields,
         {name: 'publishedAt', label: 'Data de publicação', type: 'date'},
@@ -517,12 +517,12 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'article-content',
       label: 'Texto do artigo',
-      description: 'Parágrafos, títulos, imagens e vídeos.',
+      description: 'Parágrafos, títulos, imagens e vídeos',
       fields: [
         {
           name: 'article',
           label: 'Texto do artigo',
-          description: 'Escreva e formate o artigo num único documento.',
+          description: 'Escreva e formate o artigo num único documento',
           type: 'article',
         },
       ],
@@ -530,7 +530,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'media',
       label: 'Capa e galeria',
-      description: 'Imagem de capa e ficheiros adicionais.',
+      description: 'Imagem de capa e ficheiros adicionais',
       fields: [image('image', 'Imagem de capa'), gallery],
     },
   ],
@@ -544,7 +544,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
           name: 'route',
           label: 'Endereço',
           type: 'string',
-          description: 'Exemplo: /sustentabilidade.',
+          description: 'Exemplo: /sustentabilidade',
           required: true,
         },
         {name: 'active', label: 'Mostrar no site', type: 'boolean'},
