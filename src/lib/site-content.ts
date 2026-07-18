@@ -2242,12 +2242,15 @@ const heroVideoFromSanity = (
   source: {kind?: string; youtubeUrl?: string; fileUrl?: string} | undefined,
   fallback: {kind: 'upload' | 'youtube'; url: string},
 ) => {
-  if (source?.kind === 'upload' && source.fileUrl) {
-    return {kind: 'upload' as const, url: source.fileUrl}
-  }
-  if (source?.kind === 'youtube' && source.youtubeUrl?.trim()) {
-    return {kind: 'youtube' as const, url: source.youtubeUrl.trim()}
-  }
+  const youtubeUrl = source?.youtubeUrl?.trim()
+  const fileUrl = source?.fileUrl
+  if (source?.kind === 'upload' && fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  if (source?.kind === 'youtube' && youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
+  // `kind` can drift from the populated field (e.g. touching the other tab after
+  // uploading re-stamps kind without clearing the file) — prefer whichever source
+  // actually has content instead of silently falling back to placeholder copy.
+  if (fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  if (youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
   return fallback
 }
 
