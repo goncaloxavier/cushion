@@ -372,7 +372,13 @@ const collectionsQuery = `{
       },
     },
     summary,
-    description
+    description,
+    "specs": {
+      "dimensions": dimensions[],
+      "materials": materials[],
+      "specifications": specifications[],
+      "advantages": advantages[]
+    }
   },
   "storeCategories": *[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,

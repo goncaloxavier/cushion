@@ -402,6 +402,22 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     },
     {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
     {
+      id: 'specs',
+      label: 'Especificações técnicas',
+      description: 'Opcional. Lista de características do produto',
+      fields: [
+        {name: 'dimensions', label: 'Dimensões', type: 'array', item: localizedString('item', 'Medida')},
+        {name: 'materials', label: 'Materiais', type: 'array', item: localizedString('item', 'Material')},
+        {
+          name: 'specifications',
+          label: 'Especificações',
+          type: 'array',
+          item: localizedString('item', 'Especificação'),
+        },
+        {name: 'advantages', label: 'Vantagens', type: 'array', item: localizedString('item', 'Vantagem')},
+      ],
+    },
+    {
       id: 'organization',
       label: 'Organização',
       fields: [{name: 'orderRank', label: 'Ordem', type: 'number', step: 1}],

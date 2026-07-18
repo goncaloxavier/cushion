@@ -117,6 +117,12 @@ export type ProductItem = {
   toolTitle?: string
   toolText?: string
   toolLabel?: string
+  specs?: {
+    dimensions: string[]
+    materials: string[]
+    specifications: string[]
+    advantages: string[]
+  }
   textAppearance?: TextAppearanceMap
 }
 
@@ -412,6 +418,12 @@ type SanityProduct = {
   gallery?: SanityStoreProductGalleryItem[]
   summary?: LocalizedValue
   description?: LocalizedValue
+  specs?: {
+    dimensions?: LocalizedValue[]
+    materials?: LocalizedValue[]
+    specifications?: LocalizedValue[]
+    advantages?: LocalizedValue[]
+  }
 }
 
 type SanityCaseStudy = {
@@ -2657,6 +2669,12 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
+        specs: {
+          dimensions: localizedListFromSanity(product.specs?.dimensions, language, []),
+          materials: localizedListFromSanity(product.specs?.materials, language, []),
+          specifications: localizedListFromSanity(product.specs?.specifications, language, []),
+          advantages: localizedListFromSanity(product.specs?.advantages, language, []),
+        },
         textAppearance: appearanceMap({
           title: product.title,
           summary: product.summary,

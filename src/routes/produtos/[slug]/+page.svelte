@@ -13,7 +13,32 @@
     productImagesFor,
     productMediaFor,
     withLanguage,
+    type LanguageCode,
   } from '$lib/site-content'
+
+  const specsLabels: Record<
+    LanguageCode,
+    {dimensions: string; materials: string; specifications: string; advantages: string}
+  > = {
+    pt: {
+      dimensions: 'Dimensões',
+      materials: 'Materiais',
+      specifications: 'Especificações',
+      advantages: 'Vantagens',
+    },
+    en: {
+      dimensions: 'Dimensions',
+      materials: 'Materials',
+      specifications: 'Specifications',
+      advantages: 'Advantages',
+    },
+    es: {
+      dimensions: 'Dimensiones',
+      materials: 'Materiales',
+      specifications: 'Especificaciones',
+      advantages: 'Ventajas',
+    },
+  }
 
   let {data} = $props()
   const content = $derived(data.site)
@@ -37,6 +62,18 @@
   const descriptionCopy = $derived(cleanProductMaterialCopy(data.product.description))
   const leadCopy = $derived(summaryCopy || descriptionCopy)
   const leadFieldPath = $derived(summaryCopy ? 'summary.pt' : 'description.pt')
+  const specsCopy = $derived(specsLabels[data.language] ?? specsLabels.pt)
+  const specs = $derived(
+    data.product.specs ?? {dimensions: [], materials: [], specifications: [], advantages: []},
+  )
+  const hasSpecs = $derived(
+    Boolean(
+      specs.dimensions.length ||
+        specs.materials.length ||
+        specs.specifications.length ||
+        specs.advantages.length,
+    ),
+  )
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
@@ -123,6 +160,51 @@
         </div>
       {/if}
     </section>
+
+    {#if hasSpecs}
+      <section class="product-editorial-specs">
+        {#if specs.dimensions.length}
+          <div class="product-spec-block">
+            <h2>{specsCopy.dimensions}</h2>
+            <ul class="product-spec-tags">
+              {#each specs.dimensions as item}
+                <li>{item}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+        {#if specs.materials.length}
+          <div class="product-spec-block">
+            <h2>{specsCopy.materials}</h2>
+            <ul class="product-spec-list">
+              {#each specs.materials as item}
+                <li>{item}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+        {#if specs.specifications.length}
+          <div class="product-spec-block">
+            <h2>{specsCopy.specifications}</h2>
+            <ul class="product-spec-list">
+              {#each specs.specifications as item}
+                <li>{item}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+        {#if specs.advantages.length}
+          <div class="product-spec-block">
+            <h2>{specsCopy.advantages}</h2>
+            <ul class="product-spec-list">
+              {#each specs.advantages as item}
+                <li>{item}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </section>
+    {/if}
 
     {#if hasProductSupport}
       <section
