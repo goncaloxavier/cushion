@@ -36,6 +36,7 @@ import {UlistIcon} from '@sanity/icons/Ulist'
 import {UndoIcon} from '@sanity/icons/Undo'
 import {VideoIcon} from '@sanity/icons/Video'
 import {editorKey, sanityAssetUrl} from './asset'
+import {ConfirmDialog} from './ConfirmDialog'
 
 type ArticleObject = PortableTextObject & {
   asset?: {_ref?: string}
@@ -298,6 +299,7 @@ function ArticleObjectCard({
   const editor = useEditor()
   const node = props.value as ArticleObject
   const isEditing = selected?.node._key === node._key
+  const [pendingRemoval, setPendingRemoval] = useState(false)
   const currentNode = isEditing ? selected.node : node
   const imageUrl =
     node._type === 'image' ? sanityAssetUrl(node.asset?._ref, projectId, dataset) : ''
@@ -370,7 +372,7 @@ function ArticleObjectCard({
             <button
               type="button"
               onMouseDown={keepEditorSelection}
-              onClick={() => editor.send({type: 'delete.block', at: props.path})}
+              onClick={() => setPendingRemoval(true)}
               aria-label={`Eliminar ${objectLabel(node).toLowerCase()}`}
               title={`Eliminar ${objectLabel(node).toLowerCase()}`}
             >
@@ -432,6 +434,16 @@ function ArticleObjectCard({
           <p className="site-editor-rich-object-empty">Este conteúdo está preservado.</p>
         )}
       </div>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title={`Eliminar ${objectLabel(node).toLowerCase()}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          editor.send({type: 'delete.block', at: props.path})
+          setPendingRemoval(false)
+        }}
+      />
     </div>
   )
 }
@@ -735,6 +747,8 @@ function TableFields({
   const rows = Array.isArray(node.rows) ? node.rows : []
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<{row: number; column: number}>()
+  const [pendingColumnRemoval, setPendingColumnRemoval] = useState<number>()
+  const [pendingRowRemoval, setPendingRowRemoval] = useState<number>()
 
   useEffect(() => {
     const target = pendingFocus.current
@@ -866,7 +880,7 @@ function TableFields({
                   />
                   <button
                     type="button"
-                    onClick={() => removeColumn(columnIndex)}
+                    onClick={() => setPendingColumnRemoval(columnIndex)}
                     disabled={columns.length <= 1}
                     aria-label={`Eliminar coluna ${columnIndex + 1}`}
                     title={
@@ -885,7 +899,7 @@ function TableFields({
                   <span>{rowIndex + 1}</span>
                   <button
                     type="button"
-                    onClick={() => onChange({rows: rows.filter((_, index) => index !== rowIndex)})}
+                    onClick={() => setPendingRowRemoval(rowIndex)}
                     aria-label={`Eliminar linha ${rowIndex + 1}`}
                     title="Eliminar linha"
                   >
@@ -926,6 +940,28 @@ function TableFields({
           A tabela ainda não tem linhas. Adicionar a primeira linha
         </button>
       ) : null}
+      <ConfirmDialog
+        open={pendingColumnRemoval !== undefined}
+        title={`Eliminar a coluna ${(pendingColumnRemoval ?? 0) + 1}?`}
+        description="Remove essa coluna em todas as linhas. Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingColumnRemoval(undefined)}
+        onConfirm={() => {
+          if (pendingColumnRemoval === undefined) return
+          removeColumn(pendingColumnRemoval)
+          setPendingColumnRemoval(undefined)
+        }}
+      />
+      <ConfirmDialog
+        open={pendingRowRemoval !== undefined}
+        title={`Eliminar a linha ${(pendingRowRemoval ?? 0) + 1}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRowRemoval(undefined)}
+        onConfirm={() => {
+          if (pendingRowRemoval === undefined) return
+          onChange({rows: rows.filter((_, index) => index !== pendingRowRemoval)})
+          setPendingRowRemoval(undefined)
+        }}
+      />
     </div>
   )
 }

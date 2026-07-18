@@ -61,7 +61,7 @@ const scrollPanelWithWheel = (event: React.WheelEvent<HTMLDivElement>) => {
   }
 }
 
-export function SiteEditorSidebar({
+function SiteEditorSidebarComponent({
   nodes,
   selectedNodeId,
   area,
@@ -248,3 +248,5 @@ export function SiteEditorSidebar({
     </aside>
   )
 }
+
+export const SiteEditorSidebar = React.memo(SiteEditorSidebarComponent)

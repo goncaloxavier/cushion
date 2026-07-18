@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {Suspense, useCallback, useEffect, useMemo, useState} from 'react'
 import {ArrowLeftIcon} from '@sanity/icons/ArrowLeft'
 import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {CogIcon} from '@sanity/icons/Cog'
@@ -15,11 +15,16 @@ import type {
   SitePageDocument,
 } from '../types'
 import {SiteEditorFieldInput} from './SiteEditorField'
-import {ArticleWorkspace} from './ArticleWorkspace'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
-import {StoreCategoryManager} from './StoreCategoryManager'
 import type {SiteEditorUploadProgress} from './api'
 import type {BuilderViewport} from '$lib/builder/types'
+
+const ArticleWorkspace = React.lazy(() =>
+  import('./ArticleWorkspace').then((module) => ({default: module.ArticleWorkspace})),
+)
+const StoreCategoryManager = React.lazy(() =>
+  import('./StoreCategoryManager').then((module) => ({default: module.StoreCategoryManager})),
+)
 
 type Asset = {id: string; url: string}
 
@@ -196,7 +201,7 @@ const scrollPanelWithWheel = (event: React.WheelEvent<HTMLDivElement>) => {
   }
 }
 
-export function SiteEditorInspector({
+function SiteEditorInspectorComponent({
   node,
   document,
   loading,
@@ -380,18 +385,20 @@ export function SiteEditorInspector({
           ) : null}
 
           {document._type === 'storeCategory' && mode === 'all' ? (
-            <StoreCategoryManager
-              document={document}
-              products={categoryProducts}
-              pendingProducts={categoryPendingProducts}
-              selectedPath={selectedPath}
-              projectId={projectId}
-              dataset={dataset}
-              viewport={viewport}
-              onChange={onChange}
-              onUpload={onUpload}
-              onOpenProduct={(product) => onOpenNode(product, 'category')}
-            />
+            <Suspense fallback={null}>
+              <StoreCategoryManager
+                document={document}
+                products={categoryProducts}
+                pendingProducts={categoryPendingProducts}
+                selectedPath={selectedPath}
+                projectId={projectId}
+                dataset={dataset}
+                viewport={viewport}
+                onChange={onChange}
+                onUpload={onUpload}
+                onOpenProduct={(product) => onOpenNode(product, 'category')}
+              />
+            </Suspense>
           ) : focusedSection ? (
             <SitePageSectionsEditor
               page={document as SitePageDocument}
@@ -537,20 +544,24 @@ export function SiteEditorInspector({
         </div>
       )}
       {articleWorkspace && document && node ? (
-        <ArticleWorkspace
-          document={document}
-          documentTitle={node.title}
-          fieldLabel={articleWorkspace.field.label}
-          path={articleWorkspace.path}
-          projectId={projectId}
-          dataset={dataset}
-          saveState={saveState}
-          returnFocus={articleWorkspace.returnFocus}
-          onChange={onChange}
-          onUpload={onUpload}
-          onClose={closeArticleWorkspace}
-        />
+        <Suspense fallback={null}>
+          <ArticleWorkspace
+            document={document}
+            documentTitle={node.title}
+            fieldLabel={articleWorkspace.field.label}
+            path={articleWorkspace.path}
+            projectId={projectId}
+            dataset={dataset}
+            saveState={saveState}
+            returnFocus={articleWorkspace.returnFocus}
+            onChange={onChange}
+            onUpload={onUpload}
+            onClose={closeArticleWorkspace}
+          />
+        </Suspense>
       ) : null}
     </aside>
   )
 }
+
+export const SiteEditorInspector = React.memo(SiteEditorInspectorComponent)

@@ -86,7 +86,7 @@ const baseDocumentPanels = (titleLabel: string): SiteEditorPanel[] => [
     id: 'content',
     label: 'Conteúdo',
     fields: [
-      localizedString('title', titleLabel),
+      {...localizedString('title', titleLabel), required: true},
       {name: 'slug', label: 'Endereço da página', type: 'slug'},
     ],
   },
@@ -407,7 +407,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
       id: 'content',
       label: 'Categoria',
       description: 'Nome e identificador usados nos filtros da Loja.',
-      fields: [localizedString('title', 'Nome da categoria')],
+      fields: [{...localizedString('title', 'Nome da categoria'), required: true}],
     },
     {
       id: 'organization',

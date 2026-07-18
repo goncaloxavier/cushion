@@ -621,14 +621,27 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
       throw cause
     }
   }
-  const document = editableDocument(input)
-  const client = requireWriteClient()
-  const publishedId = normalizeEditorDocumentId(document._id)
+  const publishedId = normalizeEditorDocumentId(String(input?._id || ''))
+  if (!publishedId || publishedId.length > 180) throw new Error('Identificador inválido.')
   const draftId = editorDraftId(publishedId)
+  const client = requireWriteClient()
   const [published, draft] = await Promise.all([
     client.getDocument<SiteEditorDocument>(publishedId),
     client.getDocument<SiteEditorDocument>(draftId),
   ])
+
+  // The client's claimed _type is only trustworthy once we've confirmed it matches
+  // whatever this document actually is server-side — otherwise a stale or forged
+  // request could relabel an existing document (e.g. the siteLanding singleton) as
+  // a different type, or smuggle foreign-type fields onto it via editableFields.
+  const existingType = (draft ?? published)?._type
+  if (existingType && existingType !== input?._type) {
+    throw new SiteEditorConflictError(
+      'Este conteúdo foi alterado noutra janela. Recarregue antes de continuar.',
+    )
+  }
+
+  const document = editableDocument(input)
 
   if (document._type === 'storeCategory') {
     const existingSlug = documentSlug(draft ?? published)
@@ -655,7 +668,7 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     return patch.commit({returnDocuments: true}) as Promise<SiteEditorDocument>
   }
 
-  if (published && input._rev && input._rev !== published._rev) {
+  if (published && input._rev !== published._rev) {
     throw new SiteEditorConflictError(
       'A versão publicada mudou enquanto editava. Recarregue antes de continuar.',
     )

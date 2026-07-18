@@ -15,44 +15,6 @@
     withLanguage,
   } from '$lib/site-content'
 
-  const productResistancePattern =
-    /\b(resiste|resistem|resistente|resistentes|resistant|withstands?|weatherproof|water-resistant|uv-resistant|rot-proof|maintenance-free|low maintenance|no maintenance|sem manutenção|manutenção|mantenimiento|sin mantenimiento|apodrec|pudr|rot|rots|pintura|painting|paint|água|agua|water|humidade|humedad|damp|chuva|lluvia|rain|sol|sun|uv|compressão|compression|duradour|duração|long-lasting|estável|stable)\b/i
-
-  const splitSentences = (value: string) =>
-    value
-      .match(/[^.!?]+(?:[.!?]+|$)/g)
-      ?.map((sentence) => sentence.trim())
-      .filter(Boolean) ?? []
-
-  const productDetailCopy = (description: string) => {
-    const source = cleanProductMaterialCopy(description)
-    const sentences = splitSentences(source)
-    const introSentences: string[] = []
-    const resistanceSentences: string[] = []
-
-    sentences.forEach((sentence, index) => {
-      if (index > 0 && productResistancePattern.test(sentence)) {
-        resistanceSentences.push(sentence)
-        return
-      }
-
-      introSentences.push(sentence)
-    })
-
-    return {
-      intro: introSentences.join(' ') || source,
-      resistance: resistanceSentences.join(' '),
-    }
-  }
-
-  const comparableCopy = (value: string) =>
-    value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/gi, ' ')
-      .trim()
-      .toLowerCase()
-
   let {data} = $props()
   const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
@@ -72,14 +34,8 @@
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
   const summaryCopy = $derived(cleanProductMaterialCopy(data.product.summary))
-  const descriptionCopy = $derived(productDetailCopy(data.product.description))
-  const descriptionIntroIsDistinct = $derived(
-    Boolean(
-      descriptionCopy.intro &&
-        (!summaryCopy || comparableCopy(descriptionCopy.intro) !== comparableCopy(summaryCopy)),
-    ),
-  )
-  const leadCopy = $derived(summaryCopy || descriptionCopy.intro)
+  const descriptionCopy = $derived(cleanProductMaterialCopy(data.product.description))
+  const leadCopy = $derived(summaryCopy || descriptionCopy)
   const leadFieldPath = $derived(summaryCopy ? 'summary.pt' : 'description.pt')
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
@@ -135,23 +91,14 @@
             data-sanity={productDataAttribute?.(leadFieldPath)}
           >{leadCopy}</p>
         {/if}
-        {#if descriptionIntroIsDistinct}
-          <p
-            class="product-editorial-description cms-styled-text"
-            style={textAppearanceStyle(data.product.textAppearance?.description)}
-            data-df4y-editor-field="true"
-            data-df4y-editor-label="Descrição do produto"
-            data-sanity={productDataAttribute?.('description.pt')}
-          >{descriptionCopy.intro}</p>
-        {/if}
-        {#if descriptionCopy.resistance}
+        {#if summaryCopy && descriptionCopy}
           <p
             class="product-editorial-proof cms-styled-text"
             style={textAppearanceStyle(data.product.textAppearance?.description)}
             data-df4y-editor-field="true"
             data-df4y-editor-label="Descrição do produto"
             data-sanity={productDataAttribute?.('description.pt')}
-          >{descriptionCopy.resistance}</p>
+          >{descriptionCopy}</p>
         {/if}
       </div>
     </section>

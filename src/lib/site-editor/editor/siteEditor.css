@@ -4126,51 +4126,13 @@
 
 .site-page-switch {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   min-height: 30px;
   gap: 10px;
   color: #41574f;
-  cursor: pointer;
   font-size: 10px;
   font-weight: 750;
-}
-
-.site-page-switch input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-
-.site-page-switch i {
-  position: relative;
-  width: 36px;
-  height: 21px;
-  background: #c6d1cd;
-  border-radius: 11px;
-  transition: background 150ms ease;
-}
-
-.site-page-switch i::after {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 17px;
-  height: 17px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgb(18 42 35 / 24%);
-  content: '';
-  transition: translate 150ms ease;
-}
-
-.site-page-switch input:checked + i {
-  background: #278d72;
-}
-
-.site-page-switch input:checked + i::after {
-  translate: 15px 0;
 }
 
 .site-page-choice {

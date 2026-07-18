@@ -5,7 +5,6 @@ import {ArrowRightIcon} from '@sanity/icons/ArrowRight'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
 import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {BoldIcon} from '@sanity/icons/Bold'
-import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DesktopIcon} from '@sanity/icons/Desktop'
 import {EditIcon} from '@sanity/icons/Edit'
 import {ImageIcon} from '@sanity/icons/Image'
@@ -26,6 +25,7 @@ import {editorKey, sanityAssetUrl, slugify} from './asset'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
+import {Toggle} from './Toggle'
 
 type Asset = {id: string; url: string}
 
@@ -229,30 +229,6 @@ const arrayItemTitle = (item: unknown, index: number, fallback: string) => {
   return name || `${fallback} ${index + 1}`
 }
 
-function Toggle({
-  checked,
-  label = 'Ativar opção',
-  onChange,
-}: {
-  checked: boolean
-  label?: string
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      className={`site-editor-toggle${checked ? ' is-on' : ''}`}
-      onClick={() => onChange(!checked)}
-    >
-      <i>{checked ? <CheckmarkIcon /> : null}</i>
-      <span>{checked ? 'Sim' : 'Não'}</span>
-    </button>
-  )
-}
-
 function NavigationEditor({
   value,
   viewport,
@@ -267,6 +243,7 @@ function NavigationEditor({
     [value],
   )
   const [activeKey, setActiveKey] = useState<string>()
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number>()
 
   useEffect(() => {
     if (!items.length) {
@@ -430,7 +407,7 @@ function NavigationEditor({
                   <button
                     type="button"
                     className="site-editor-navigation-remove"
-                    onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}
+                    onClick={() => setPendingRemovalIndex(index)}
                   >
                     <TrashIcon /> Remover ligação
                   </button>
@@ -443,6 +420,18 @@ function NavigationEditor({
       <button className="site-editor-array-add" type="button" onClick={add}>
         <AddIcon /> Adicionar ligação
       </button>
+      <ConfirmDialog
+        open={pendingRemovalIndex !== undefined}
+        title="Remover esta ligação do menu?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemovalIndex(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalIndex === undefined) return
+          onChange(items.filter((_, itemIndex) => itemIndex !== pendingRemovalIndex))
+          setPendingRemovalIndex(undefined)
+        }}
+      />
     </div>
   )
 }
@@ -461,6 +450,8 @@ function ImageEditor({
   onUpload: Props['onUpload']
 }) {
   const [busy, setBusy] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const [pendingRemoval, setPendingRemoval] = useState(false)
   const image = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
   const asset = image.asset as {_ref?: string} | undefined
   const url = sanityAssetUrl(asset?._ref, projectId, dataset)
@@ -468,9 +459,26 @@ function ImageEditor({
 
   const upload = async (file: File) => {
     setBusy(true)
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
     try {
-      const next = await onUpload(file, 'image')
+      const next = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus({key: 'image', phase: 'done', fileName: file.name, percent: 100})
       onChange({...image, _type: 'image', asset: {_type: 'reference', _ref: next.id}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
     } finally {
       setBusy(false)
     }
@@ -500,11 +508,12 @@ function ImageEditor({
           />
         </label>
         {url ? (
-          <button type="button" onClick={() => onChange(null)}>
+          <button type="button" onClick={() => setPendingRemoval(true)}>
             <TrashIcon /> Remover
           </button>
         ) : null}
       </div>
+      <MediaUploadProgress status={uploadStatus} />
       <label>
         <span>Descrição da imagem</span>
         <textarea
@@ -513,6 +522,17 @@ function ImageEditor({
           onChange={(event) => onChange({...image, alt: {...alt, pt: event.currentTarget.value}})}
         />
       </label>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title="Remover esta imagem?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          onChange(null)
+          setPendingRemoval(false)
+        }}
+      />
     </div>
   )
 }
@@ -923,6 +943,7 @@ export function SiteEditorFieldInput({
   const articleLauncher = useRef<HTMLButtonElement>(null)
   const value = getEditorValue(source, path)
   const [activeArrayKey, setActiveArrayKey] = useState<string>()
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number>()
   const selected = Boolean(
     selectedPath &&
     (selectedPath === path ||
@@ -1014,6 +1035,19 @@ export function SiteEditorFieldInput({
       )
       setActiveArrayKey(undefined)
     }
+    const removalDialog = (
+      <ConfirmDialog
+        open={pendingRemovalIndex !== undefined}
+        title={`Eliminar ${field.item?.label?.toLocaleLowerCase('pt') || 'este item'}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRemovalIndex(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalIndex === undefined) return
+          removeItem(pendingRemovalIndex)
+          setPendingRemovalIndex(undefined)
+        }}
+      />
+    )
     const addItem = () => {
       const next = defaultValue(field.item ?? {name: 'item', label: 'Item', type: 'string'}, path)
       const keyed =
@@ -1059,7 +1093,11 @@ export function SiteEditorFieldInput({
                 >
                   <ArrowDownIcon />
                 </button>
-                <button type="button" onClick={() => removeItem(activeIndex)} aria-label="Eliminar">
+                <button
+                  type="button"
+                  onClick={() => setPendingRemovalIndex(activeIndex)}
+                  aria-label="Eliminar"
+                >
                   <TrashIcon />
                 </button>
               </div>
@@ -1078,6 +1116,7 @@ export function SiteEditorFieldInput({
             onUpload={onUpload}
             onOpenArticle={onOpenArticle}
           />
+          {removalDialog}
         </div>
       )
     }
@@ -1118,7 +1157,11 @@ export function SiteEditorFieldInput({
                     >
                       <ArrowDownIcon />
                     </button>
-                    <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                    <button
+                      type="button"
+                      onClick={() => setPendingRemovalIndex(index)}
+                      aria-label="Eliminar"
+                    >
                       <TrashIcon />
                     </button>
                   </div>
@@ -1129,6 +1172,7 @@ export function SiteEditorFieldInput({
           <button className="site-editor-array-add" type="button" onClick={addItem}>
             <AddIcon /> Adicionar {field.item.label.toLocaleLowerCase('pt')}
           </button>
+          {removalDialog}
         </div>
       )
     }
@@ -1165,7 +1209,11 @@ export function SiteEditorFieldInput({
                   >
                     <ArrowDownIcon />
                   </button>
-                  <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                  <button
+                    type="button"
+                    onClick={() => setPendingRemovalIndex(index)}
+                    aria-label="Eliminar"
+                  >
                     <TrashIcon />
                   </button>
                 </div>
@@ -1191,6 +1239,7 @@ export function SiteEditorFieldInput({
         <button className="site-editor-array-add" type="button" onClick={addItem}>
           <AddIcon /> Adicionar
         </button>
+        {removalDialog}
       </div>
     )
   }
@@ -1344,19 +1393,25 @@ export function SiteEditorFieldInput({
           <input
             aria-label={field.label}
             value={String((value as {current?: string} | undefined)?.current || '')}
-            onChange={(event) =>
-              commit({_type: 'slug', current: slugify(event.currentTarget.value)})
+            readOnly={field.readOnly}
+            disabled={field.readOnly}
+            onChange={
+              field.readOnly
+                ? undefined
+                : (event) => commit({_type: 'slug', current: slugify(event.currentTarget.value)})
             }
           />
-          <button
-            type="button"
-            onClick={() => {
-              const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
-              commit({_type: 'slug', current: slugify(title)})
-            }}
-          >
-            Gerar
-          </button>
+          {field.readOnly ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
+                commit({_type: 'slug', current: slugify(title)})
+              }}
+            >
+              Gerar
+            </button>
+          )}
         </div>
       ) : (
         <input

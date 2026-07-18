@@ -1246,6 +1246,10 @@ test.describe('visual website editor', () => {
     await expect(manager.locator('article')).toHaveCount(10)
     await expect(manager.getByRole('textbox', {name: 'Nome'})).toHaveValue('Nova ligação')
     await manager.getByRole('button', {name: 'Remover ligação'}).click()
+    await page
+      .getByRole('alertdialog', {name: 'Remover esta ligação do menu?'})
+      .getByRole('button', {name: 'Remover', exact: true})
+      .click()
     await expect(manager.locator('article')).toHaveCount(9)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 

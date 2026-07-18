@@ -170,6 +170,7 @@ export function SitePageSectionsEditor({
                       next.splice(index + 1, 0, clone)
                       commitSections(next)
                       setActionsFor(undefined)
+                      onSelectSection(clone._key)
                     }}><CopyIcon /> Duplicar</button>
                     <button className="is-danger" type="button" onClick={() => { setPendingDelete(section); setActionsFor(undefined) }}><TrashIcon /> Eliminar</button>
                   </div>

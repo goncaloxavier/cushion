@@ -64,6 +64,10 @@ type CreateState = {
 
 const snapshot = <T,>(value: T): T => structuredClone(value)
 
+// Edits made within this window of each other collapse into one undo step
+// instead of one per keystroke — see replaceDocument.
+const historyCoalesceWindowMs = 900
+
 const initialCreateState: CreateState = {
   open: false,
   documentType: 'sitePage',
@@ -201,6 +205,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const [history, setHistory] = useState<SiteEditorDocument[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const historyIndexRef = useRef(-1)
+  const lastHistoryPushAt = useRef(0)
+  const builderStateTimer = useRef<number>()
+  const builderStateLastSentAt = useRef(0)
+  const latestBuilderState = useRef<{page: SiteEditorDocument; selectedSectionKey?: string}>()
   const [refreshToken, setRefreshToken] = useState(0)
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null)
   const previewRouteRef = useRef('/')
@@ -285,9 +293,18 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       dirtyVersion.current += 1
       if (!previewIsAuthoritative) previewNeedsRefresh.current = true
       if (record) {
+        // Coalesce checkpoints made within the same short burst of typing into one
+        // undo step (reusing `copy`, never re-cloning it) instead of recording a
+        // full-document snapshot per keystroke — that both halves the cloning cost
+        // of every edit and keeps undo granularity the same everywhere an edit can
+        // be made, matching the "commit on pause" feel inline canvas editing already has.
+        const now = Date.now()
+        const coalesce = now - lastHistoryPushAt.current < historyCoalesceWindowMs
+        lastHistoryPushAt.current = now
         setHistory((current) => {
           const trimmed = current.slice(0, historyIndexRef.current + 1)
-          const result = [...trimmed, snapshot(copy)]
+          const result =
+            coalesce && trimmed.length ? [...trimmed.slice(0, -1), copy] : [...trimmed, copy]
           const bounded = result.length > 80 ? result.slice(-80) : result
           const nextIndex = bounded.length - 1
           historyIndexRef.current = nextIndex
@@ -302,11 +319,33 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   useEffect(() => {
     if (!frame?.contentWindow || document?._type !== 'sitePage') return
-    frame.contentWindow.postMessage(
-      {type: 'df4y:builder-state', page: document, selectedSectionKey},
-      window.location.origin,
-    )
+    latestBuilderState.current = {page: document, selectedSectionKey}
+    // Trailing-edge throttle: the free-page canvas needs the live unsaved
+    // document to preview edits as they happen, but posting (and structured-
+    // cloning) the whole page on every single keystroke is wasted work once
+    // typing is faster than the canvas can usefully redraw. Send immediately
+    // if we haven't sent recently; otherwise let one already-scheduled send
+    // pick up whatever is latest when its window closes.
+    const throttleMs = 120
+    const send = () => {
+      const target = frame.contentWindow
+      const payload = latestBuilderState.current
+      if (!target || !payload) return
+      builderStateLastSentAt.current = Date.now()
+      target.postMessage({type: 'df4y:builder-state', ...payload}, window.location.origin)
+    }
+    const elapsed = Date.now() - builderStateLastSentAt.current
+    if (elapsed >= throttleMs) {
+      send()
+    } else if (!builderStateTimer.current) {
+      builderStateTimer.current = window.setTimeout(() => {
+        builderStateTimer.current = undefined
+        send()
+      }, throttleMs - elapsed)
+    }
   }, [document, frame, selectedSectionKey])
+
+  useEffect(() => () => window.clearTimeout(builderStateTimer.current), [])
 
   const openDocument = useCallback(
     async (node: SiteEditorNode, path?: string) => {
@@ -364,6 +403,24 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     },
     [api, pushNotice],
   )
+
+  const selectSidebarNode = useCallback(
+    (node: SiteEditorNode) => {
+      // Global content and Loja categories open straight into settings (there's
+      // no canvas element to click for them); everything else closes both
+      // drawers so the canvas itself stays directly hoverable/clickable.
+      clearCanvasSelection(false)
+      setInspectorMode('all')
+      const keepNavigationOpen = node.documentType === 'storeCategory'
+      if (!keepNavigationOpen) setNavigationOpen(false)
+      void openDocument(node).then(() => {
+        if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
+      })
+    },
+    [clearCanvasSelection, openDocument],
+  )
+
+  const closeSidebar = useCallback(() => setNavigationOpen(false), [])
 
   const loadManifest = useCallback(
     async (preferredDocumentId?: string) => {
@@ -668,13 +725,18 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (event.key.toLowerCase() === 's') {
         event.preventDefault()
         void saveNow().catch(() => undefined)
-      } else if (event.key.toLowerCase() === 'z' && event.shiftKey) {
-        event.preventDefault()
-        redo()
-      } else if (event.key.toLowerCase() === 'z') {
-        event.preventDefault()
-        undo()
+        return
       }
+      if (event.key.toLowerCase() !== 'z') return
+      // Let a focused text input keep its own native undo/redo (e.g. mid-word,
+      // before the field has even committed a change) instead of hijacking the
+      // keystroke for whole-document history, which uses coarser checkpoints.
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
     }
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
@@ -1260,17 +1322,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           selectedNodeId={selectedNode?.id}
           area={area}
           onAreaChange={setArea}
-          onSelect={(node) => {
-            clearCanvasSelection(false)
-            setInspectorMode('all')
-            const keepNavigationOpen = node.documentType === 'storeCategory'
-            if (!keepNavigationOpen) setNavigationOpen(false)
-            void openDocument(node).then(() => {
-              if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
-            })
-          }}
+          onSelect={selectSidebarNode}
           onCreate={openCreate}
-          onClose={() => setNavigationOpen(false)}
+          onClose={closeSidebar}
         />
       </aside>
 

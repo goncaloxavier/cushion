@@ -70,6 +70,20 @@ export function ArticleWorkspace({
         onClose()
         return
       }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        // The mounted rich-text canvas only reads the document's article value once,
+        // at mount — it never picks up a later whole-document undo/redo. Keep native
+        // undo working inside the canvas (and in any plain input here) but swallow
+        // the keystroke everywhere else in the workspace so it can't reach the
+        // document-level history and desync from what the canvas is still showing.
+        const target = event.target as HTMLElement | null
+        const tag = target?.tagName
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !target?.isContentEditable) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        return
+      }
       if (event.key !== 'Tab' || !workspace.current) return
 
       const focusable = Array.from(

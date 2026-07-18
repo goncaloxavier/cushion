@@ -32,6 +32,15 @@ const titleField: SiteEditorField = {
   required: true,
 }
 
+const slugField: SiteEditorField = {
+  name: 'slug',
+  label: 'Endereço',
+  type: 'slug',
+  readOnly: true,
+  description:
+    'Gerado a partir do nome na primeira vez que a categoria é guardada. Fica estável depois para não quebrar os produtos associados.',
+}
+
 const orderField: SiteEditorField = {
   name: 'orderRank',
   label: 'Posição na Loja',
@@ -105,6 +114,18 @@ export function StoreCategoryManager({
         <SiteEditorFieldInput
           field={titleField}
           path="title"
+          source={document}
+          documentType={document._type}
+          selectedPath={selectedPath}
+          projectId={projectId}
+          dataset={dataset}
+          viewport={viewport}
+          onChange={onChange}
+          onUpload={onUpload}
+        />
+        <SiteEditorFieldInput
+          field={slugField}
+          path="slug"
           source={document}
           documentType={document._type}
           selectedPath={selectedPath}

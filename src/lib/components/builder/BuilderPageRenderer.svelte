@@ -172,9 +172,19 @@
       }
     }
 
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !selectedSectionKey) return
+      selectedSectionKey = undefined
+      window.parent.postMessage({type: 'df4y:site-editor:clear-selection'}, window.location.origin)
+    }
+
     window.addEventListener('message', handleMessage)
+    window.addEventListener('keydown', handleKeydown)
     window.parent.postMessage({type: 'df4y:builder-ready'}, window.location.origin)
-    return () => window.removeEventListener('message', handleMessage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      window.removeEventListener('keydown', handleKeydown)
+    }
   })
 </script>
 

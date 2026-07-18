@@ -96,6 +96,7 @@ export type SiteEditorField = {
   max?: number
   step?: number
   required?: boolean
+  readOnly?: boolean
   rows?: number
   collapsed?: boolean
 }
