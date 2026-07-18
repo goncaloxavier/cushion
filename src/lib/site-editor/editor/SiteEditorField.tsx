@@ -552,11 +552,23 @@ function VideoEditor({
 }) {
   const [busy, setBusy] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const [pendingRemoval, setPendingRemoval] = useState(false)
   const video = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
-  const kind = video.kind === 'upload' ? 'upload' : 'youtube'
   const file = video.file as {asset?: {_ref?: string}} | undefined
   const fileUrl = sanityAssetUrl(file?.asset?._ref, projectId, dataset)
   const youtubeUrl = typeof video.youtubeUrl === 'string' ? video.youtubeUrl : ''
+
+  // The uploaded file always wins when both are present, so there is never a
+  // separate "which source is active" toggle to fall out of sync with the
+  // actual data — what's here is what plays.
+  const commit = (next: Record<string, unknown>) => {
+    const nextFile = next.file as {asset?: {_ref?: string}} | undefined
+    const nextYoutubeUrl = typeof next.youtubeUrl === 'string' ? next.youtubeUrl.trim() : ''
+    onChange({
+      ...next,
+      kind: nextFile?.asset?._ref ? 'upload' : nextYoutubeUrl ? 'youtube' : video.kind,
+    })
+  }
 
   const upload = async (uploadFile: File) => {
     setBusy(true)
@@ -571,11 +583,7 @@ function VideoEditor({
         }),
       )
       setUploadStatus({key: 'video', phase: 'done', fileName: uploadFile.name, percent: 100})
-      onChange({
-        ...video,
-        kind: 'upload',
-        file: {_type: 'file', asset: {_type: 'reference', _ref: next.id}},
-      })
+      commit({...video, file: {_type: 'file', asset: {_type: 'reference', _ref: next.id}}})
     } catch (error) {
       setUploadStatus({
         key: 'video',
@@ -591,67 +599,63 @@ function VideoEditor({
 
   return (
     <div className="site-editor-video-field">
-      <div className="site-editor-video-kind-tabs">
-        <button
-          type="button"
-          className={kind === 'youtube' ? 'is-active' : ''}
-          onClick={() => onChange({...video, kind: 'youtube'})}
-        >
-          Link do YouTube
-        </button>
-        <button
-          type="button"
-          className={kind === 'upload' ? 'is-active' : ''}
-          onClick={() => onChange({...video, kind: 'upload'})}
-        >
-          Vídeo carregado
-        </button>
+      <div className="site-editor-video-upload">
+        {fileUrl ? (
+          <video src={fileUrl} controls muted />
+        ) : (
+          <div className="site-editor-video-empty">
+            <VideoIcon />
+          </div>
+        )}
+        <div className="site-editor-media-actions">
+          <label className="site-editor-upload-button">
+            <UploadIcon /> {busy ? 'A carregar…' : fileUrl ? 'Substituir' : 'Carregar vídeo'}
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              disabled={busy}
+              onChange={(event) => {
+                const uploadFile = event.currentTarget.files?.[0]
+                if (uploadFile) void upload(uploadFile)
+                event.currentTarget.value = ''
+              }}
+            />
+          </label>
+          {fileUrl ? (
+            <button type="button" onClick={() => setPendingRemoval(true)}>
+              <TrashIcon /> Remover
+            </button>
+          ) : null}
+        </div>
+        <MediaUploadProgress status={uploadStatus} />
       </div>
 
-      {kind === 'youtube' ? (
-        <label>
-          <span>Link do YouTube</span>
-          <input
-            type="url"
-            placeholder="https://www.youtube.com/watch?v=…"
-            value={youtubeUrl}
-            onChange={(event) =>
-              onChange({...video, kind: 'youtube', youtubeUrl: event.currentTarget.value})
-            }
-          />
-        </label>
-      ) : (
-        <div className="site-editor-video-upload">
-          {fileUrl ? (
-            <video src={fileUrl} controls muted />
-          ) : (
-            <div className="site-editor-video-empty">
-              <VideoIcon />
-            </div>
-          )}
-          <div className="site-editor-media-actions">
-            <label className="site-editor-upload-button">
-              <UploadIcon /> {busy ? 'A carregar…' : fileUrl ? 'Substituir' : 'Carregar vídeo'}
-              <input
-                type="file"
-                accept="video/mp4,video/webm,video/quicktime"
-                disabled={busy}
-                onChange={(event) => {
-                  const uploadFile = event.currentTarget.files?.[0]
-                  if (uploadFile) void upload(uploadFile)
-                  event.currentTarget.value = ''
-                }}
-              />
-            </label>
-            {fileUrl ? (
-              <button type="button" onClick={() => onChange({...video, file: undefined})}>
-                <TrashIcon /> Remover
-              </button>
-            ) : null}
-          </div>
-          <MediaUploadProgress status={uploadStatus} />
-        </div>
-      )}
+      <div className="site-editor-video-divider">
+        <span>ou</span>
+      </div>
+
+      <label>
+        <span>Link do YouTube</span>
+        <input
+          type="url"
+          placeholder="https://www.youtube.com/watch?v=…"
+          value={youtubeUrl}
+          disabled={Boolean(fileUrl)}
+          onChange={(event) => commit({...video, youtubeUrl: event.currentTarget.value})}
+        />
+        {fileUrl ? <small>Remova o vídeo carregado acima para usar este link</small> : null}
+      </label>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title="Remover este vídeo?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          commit({...video, file: undefined})
+          setPendingRemoval(false)
+        }}
+      />
     </div>
   )
 }

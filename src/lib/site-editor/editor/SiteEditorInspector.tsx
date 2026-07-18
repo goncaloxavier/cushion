@@ -172,8 +172,9 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
     const hasYoutubeUrl = Boolean(
       typeof video?.youtubeUrl === 'string' && (video.youtubeUrl as string).trim(),
     )
-    if (video?.kind === 'upload') return hasFile ? 'Vídeo carregado' : emptyFieldSummary(field)
-    return hasYoutubeUrl ? 'Link do YouTube' : emptyFieldSummary(field)
+    if (hasFile) return 'Vídeo carregado'
+    if (hasYoutubeUrl) return 'Link do YouTube'
+    return emptyFieldSummary(field)
   }
   if (field.type === 'navigation') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ligação', 'ligações')
