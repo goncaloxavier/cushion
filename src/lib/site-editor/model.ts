@@ -119,7 +119,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           type: 'object',
           fields: [localizedString('title', 'Título principal')],
         },
-        {name: 'heroVideoUrl', label: 'Vídeo do topo', type: 'url'},
+        {
+          name: 'heroVideo',
+          label: 'Vídeo do topo',
+          description: 'Opcional. Carregue um vídeo ou cole um link do YouTube',
+          type: 'video',
+        },
         localizedString('heroVideoLabel', 'Texto do botão do vídeo'),
         localizedString('heroVideoCloseLabel', 'Texto para fechar o vídeo'),
         {

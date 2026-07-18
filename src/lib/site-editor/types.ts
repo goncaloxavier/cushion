@@ -77,6 +77,7 @@ export type SiteEditorFieldType =
   | 'select'
   | 'image'
   | 'gallery'
+  | 'video'
   | 'navigation'
   | 'article'
   | 'sections'

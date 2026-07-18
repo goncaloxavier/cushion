@@ -5422,7 +5422,8 @@ body.lightbox-open {
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.38);
 }
 
-.video-lightbox-frame iframe {
+.video-lightbox-frame iframe,
+.video-lightbox-frame video {
   display: block;
   width: 100%;
   height: 100%;

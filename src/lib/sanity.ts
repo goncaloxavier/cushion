@@ -132,7 +132,11 @@ const collectionsQuery = `{
       hero {
         title
       },
-      heroVideoUrl,
+      heroVideo{
+        kind,
+        youtubeUrl,
+        "fileUrl": file.asset->url
+      },
       heroVideoLabel,
       heroVideoCloseLabel,
       impact {

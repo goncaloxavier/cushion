@@ -291,7 +291,7 @@ export type SiteContent = {
   home: {
     hero: CopyBlock
     heroImage: ContentImage
-    heroVideoUrl: string
+    heroVideo: {kind: 'upload' | 'youtube'; url: string}
     heroVideoLabel: string
     heroVideoCloseLabel: string
     intro: CopyBlock
@@ -520,7 +520,7 @@ type SanitySiteContent = {
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
-    heroVideoUrl?: string
+    heroVideo?: {kind?: string; youtubeUrl?: string; fileUrl?: string}
     heroVideoLabel?: LocalizedValue
     heroVideoCloseLabel?: LocalizedValue
     impact?: {
@@ -1192,7 +1192,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Ver vídeo institucional',
       heroVideoCloseLabel: 'Fechar vídeo',
       intro: {
@@ -1535,7 +1535,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Watch the company video',
       heroVideoCloseLabel: 'Close video',
       intro: {
@@ -1878,7 +1878,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Ver el vídeo institucional',
       heroVideoCloseLabel: 'Cerrar vídeo',
       intro: {
@@ -2225,6 +2225,19 @@ const copyBlockFromSanity = (
     lead: source?.lead,
   }),
 })
+
+const heroVideoFromSanity = (
+  source: {kind?: string; youtubeUrl?: string; fileUrl?: string} | undefined,
+  fallback: {kind: 'upload' | 'youtube'; url: string},
+) => {
+  if (source?.kind === 'upload' && source.fileUrl) {
+    return {kind: 'upload' as const, url: source.fileUrl}
+  }
+  if (source?.kind === 'youtube' && source.youtubeUrl?.trim()) {
+    return {kind: 'youtube' as const, url: source.youtubeUrl.trim()}
+  }
+  return fallback
+}
 
 const contentCardsFromSanity = (
   items: SanityContentCard[] | undefined,
@@ -2889,7 +2902,7 @@ const applySiteContentFromSanity = (
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
     heroImage: fallback.home.heroImage,
-    heroVideoUrl: source.home?.heroVideoUrl?.trim() || fallback.home.heroVideoUrl,
+    heroVideo: heroVideoFromSanity(source.home?.heroVideo, fallback.home.heroVideo),
     heroVideoLabel: localized(source.home?.heroVideoLabel, language, fallback.home.heroVideoLabel),
     heroVideoCloseLabel: localized(
       source.home?.heroVideoCloseLabel,

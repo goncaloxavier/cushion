@@ -52,18 +52,29 @@
   }
   const featuredWork = $derived(content.caseStudies.slice(0, 3))
 
+  const heroVideoKind = $derived(content.home.heroVideo.kind)
+  const heroVideoUrl = $derived(content.home.heroVideo.url)
   const heroBackgroundVideoEmbed = $derived(
-    youtubeEmbedUrl(content.home.heroVideoUrl, {
-      autoplay: true,
-      controls: false,
-      loop: true,
-      muted: true,
-      playsInline: true,
-    }),
+    heroVideoKind === 'youtube'
+      ? youtubeEmbedUrl(heroVideoUrl, {
+          autoplay: true,
+          controls: false,
+          loop: true,
+          muted: true,
+          playsInline: true,
+        })
+      : undefined,
   )
   const heroWatchVideoEmbed = $derived(
-    youtubeEmbedUrl(content.home.heroVideoUrl, {autoplay: true, playsInline: true}),
+    heroVideoKind === 'youtube'
+      ? youtubeEmbedUrl(heroVideoUrl, {autoplay: true, playsInline: true})
+      : undefined,
   )
+  const heroBackgroundVideoFile = $derived(
+    heroVideoKind === 'upload' && heroVideoUrl ? heroVideoUrl : undefined,
+  )
+  const hasHeroVideo = $derived(Boolean(heroBackgroundVideoEmbed || heroBackgroundVideoFile))
+  const hasHeroWatchVideo = $derived(Boolean(heroWatchVideoEmbed || heroBackgroundVideoFile))
   let heroVideoOpen = $state(false)
   let heroDialog = $state<HTMLDivElement | null>(null)
   // The background embed isn't needed for first paint, so keep it out of the
@@ -125,14 +136,26 @@
 <main class="home-page">
   <section class="home-hero">
     <div class="home-hero-bg" aria-hidden="true">
-      {#if heroBackgroundVideoEmbed && heroBackgroundReady}
-        <iframe
-          class="home-hero-video home-hero-video-bg"
-          title=""
-          src={heroBackgroundVideoEmbed}
-          tabindex="-1"
-          allow="autoplay; encrypted-media; picture-in-picture; web-share"
-        ></iframe>
+      {#if hasHeroVideo && heroBackgroundReady}
+        {#if heroBackgroundVideoFile}
+          <video
+            class="home-hero-video home-hero-video-bg"
+            src={heroBackgroundVideoFile}
+            tabindex="-1"
+            autoplay
+            muted
+            loop
+            playsinline
+          ></video>
+        {:else if heroBackgroundVideoEmbed}
+          <iframe
+            class="home-hero-video home-hero-video-bg"
+            title=""
+            src={heroBackgroundVideoEmbed}
+            tabindex="-1"
+            allow="autoplay; encrypted-media; picture-in-picture; web-share"
+          ></iframe>
+        {/if}
       {/if}
     </div>
 
@@ -146,7 +169,7 @@
       </Reveal>
     </div>
 
-    {#if heroWatchVideoEmbed}
+    {#if hasHeroWatchVideo}
       <button
         type="button"
         class="home-hero-play"
@@ -159,7 +182,7 @@
     {/if}
   </section>
 
-  {#if heroVideoOpen && heroWatchVideoEmbed}
+  {#if heroVideoOpen && hasHeroWatchVideo}
     <div
       class="video-lightbox"
       role="dialog"
@@ -185,12 +208,22 @@
         </svg>
       </button>
       <div class="video-lightbox-frame">
-        <iframe
-          title={content.home.heroVideoLabel}
-          src={heroWatchVideoEmbed}
-          allow="autoplay; encrypted-media; picture-in-picture; web-share"
-          allowfullscreen
-        ></iframe>
+        {#if heroBackgroundVideoFile}
+          <video
+            title={content.home.heroVideoLabel}
+            src={heroBackgroundVideoFile}
+            autoplay
+            controls
+            playsinline
+          ></video>
+        {:else if heroWatchVideoEmbed}
+          <iframe
+            title={content.home.heroVideoLabel}
+            src={heroWatchVideoEmbed}
+            allow="autoplay; encrypted-media; picture-in-picture; web-share"
+            allowfullscreen
+          ></iframe>
+        {/if}
       </div>
     </div>
   {/if}

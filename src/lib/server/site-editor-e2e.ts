@@ -193,7 +193,7 @@ const initialDocuments = (): SiteEditorDocument[] => [
           fontWeight: 'bold',
         },
       },
-      heroVideoUrl: 'https://www.youtube.com/watch?v=e2e',
+      heroVideo: {kind: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=e2e'},
       heroVideoLabel: localizedString('Ver vídeo institucional'),
       impact: {
         _type: 'impactBlock',

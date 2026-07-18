@@ -410,7 +410,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('cookieNoticeAccept')
     expect(sanityClient).toContain('marketingConsent')
     expect(sanityClient).toContain('formLabels')
-    expect(sanityClient).toContain('heroVideoUrl')
+    expect(sanityClient).toContain('heroVideo')
     expect(sanityClient).not.toContain('videoUrl')
     expect(sanityClient).not.toContain('toolUrl')
     expect(sanityClient).toContain('storePage')

@@ -257,10 +257,40 @@ export const siteLanding = defineType({
           includeLead: false,
         }),
         defineField({
-          name: 'heroVideoUrl',
+          name: 'heroVideo',
           title: 'Vídeo do topo',
-          description: 'Opcional. Cole o link do vídeo no YouTube.',
-          type: 'url',
+          description: 'Opcional. Carregue um vídeo ou cole um link do YouTube',
+          type: 'object',
+          options: {collapsible: true},
+          fields: [
+            defineField({
+              name: 'kind',
+              title: 'Origem do vídeo',
+              type: 'string',
+              initialValue: 'youtube',
+              options: {
+                list: [
+                  {title: 'Vídeo carregado', value: 'upload'},
+                  {title: 'Link do YouTube', value: 'youtube'},
+                ],
+                layout: 'radio',
+              },
+            }),
+            defineField({
+              name: 'file',
+              title: 'Ficheiro de vídeo',
+              type: 'file',
+              options: {accept: 'video/mp4,video/webm,video/quicktime'},
+              hidden: ({parent}) => parent?.kind !== 'upload',
+            }),
+            defineField({
+              name: 'youtubeUrl',
+              title: 'Link do YouTube',
+              type: 'url',
+              hidden: ({parent}) => parent?.kind !== 'youtube',
+              validation: (Rule) => Rule.uri({scheme: ['https']}),
+            }),
+          ],
         }),
         localizedStringField('heroVideoLabel', 'Texto do botão do vídeo'),
         localizedStringField('heroVideoCloseLabel', 'Texto para fechar o vídeo'),

@@ -161,6 +161,20 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'gallery') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ficheiro', 'ficheiros')
   }
+  if (field.type === 'video') {
+    const video =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined
+    const hasFile = Boolean(
+      video?.file && typeof video.file === 'object' && (video.file as {asset?: unknown}).asset,
+    )
+    const hasYoutubeUrl = Boolean(
+      typeof video?.youtubeUrl === 'string' && (video.youtubeUrl as string).trim(),
+    )
+    if (video?.kind === 'upload') return hasFile ? 'Vídeo carregado' : emptyFieldSummary(field)
+    return hasYoutubeUrl ? 'Link do YouTube' : emptyFieldSummary(field)
+  }
   if (field.type === 'navigation') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ligação', 'ligações')
   }
