@@ -51,7 +51,6 @@ test.describe('Sanity Studio content contract', () => {
     const schemaIndex = read('schemaTypes/index.ts')
 
     expect(schemaIndex).toContain('websiteSchemaTypes')
-    expect(schemaIndex).toContain('crmSchemaTypes')
     expect(schemaIndex).toContain('siteLanding')
     expect(schemaIndex).toContain('productCategory')
     expect(schemaIndex).toContain('storeCategory')
@@ -59,8 +58,6 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).toContain('caseStudy')
     expect(schemaIndex).toContain('blogPost')
     expect(schemaIndex).toContain('partnerItem')
-    expect(schemaIndex).toContain('clientProfile')
-    expect(schemaIndex).toContain('formSubmission')
   })
 
   test('Loja settings expose only clear, used groups in the site editor', () => {
@@ -345,24 +342,22 @@ test.describe('Sanity Studio content contract', () => {
     expect(cleanupScript).toContain('_type == "storeCategory" && defined(active)')
   })
 
-  test('private CRM content is isolated from the public website workspace', () => {
+  test('CRM leads/profiles live only in Postgres, not Sanity Studio', () => {
     const studioConfig = read('sanity.config.ts')
     const studioStructure = read('sanity.structure.ts')
+    const schemaIndex = read('schemaTypes/index.ts')
     const crmServer = read('src/lib/server/crm.ts')
     const contactAction = read('src/routes/contacto/+page.server.ts')
     const formGuard = read('src/lib/server/form-guard.ts')
 
-    expect(studioConfig).toContain("name: 'crm'")
-    expect(studioConfig).toContain("basePath: '/crm'")
-    expect(studioConfig).toContain("dataset: 'crm'")
-    expect(studioConfig).toContain('types: crmSchemaTypes')
-    expect(studioStructure).toContain('crmStructure')
-    expect(studioStructure).toContain("'Novos pedidos'")
-    expect(studioStructure).toContain("'Pedidos em acompanhamento'")
-    expect(studioStructure).toContain("'Perfis de clientes'")
-    // Leads/profiles themselves moved to Postgres (crm.ts) — only the legacy
-    // Studio workspace for already-migrated Sanity CRM docs stays isolated
-    // here until the deferred Sanity cleanup.
+    // The legacy private Sanity `crm` dataset/workspace was retired after the
+    // Postgres migration — leads/profiles/staff accounts live only in
+    // Postgres now, and Studio only edits the public website content.
+    expect(studioConfig).not.toContain("name: 'crm'")
+    expect(studioConfig).not.toContain("basePath: '/crm'")
+    expect(studioConfig).not.toContain("dataset: 'crm'")
+    expect(studioStructure).not.toContain('crmStructure')
+    expect(schemaIndex).not.toContain('crmSchemaTypes')
     expect(crmServer).toContain('databaseConfigured')
     expect(crmServer).toContain('withTransaction')
     expect(crmServer).toContain('insert into crm_client_profiles')

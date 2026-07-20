@@ -43,7 +43,6 @@
     "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts",
     "cleanup:removed-fields": "npm run sanity:require-write && tsx scripts/cleanup-removed-website-fields.ts",
     "seed:translation-hashes": "tsx scripts/seed-translation-hashes.ts",
-    "migrate:crm": "tsx --env-file-if-exists=.env scripts/migrate-crm-to-postgres.ts",
     "warm:images": "tsx scripts/warm-images.ts",
     "deploy:content": "npm run seed:studio && npm run import:cases && npm run import:blog && npm run import:products",
     "deploy:studio": "sanity deploy",

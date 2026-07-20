@@ -20,8 +20,7 @@ Use this to help agents avoid accidental damage.
 - `src/lib/server/password-auth.ts`, `src/lib/server/staff-auth.ts` - shared scrypt hashing and backoffice auth/session/account-management; a hash-format change here breaks both customer and staff login without a forced reset being obvious.
 - `src/lib/server/db.ts`, `src/lib/server/customer-auth.ts`, `src/lib/server/orders.ts`, `src/lib/server/email.ts`, and `src/lib/server/payment.ts` - private ecommerce foundation; mistakes can leak account/order data, weaken auth, or create false payment states.
 - `src/routes/contacto/+page.server.ts` - contact form validation, CSRF/origin checks, honeypot handling, and CRM submission.
-- `scripts/migrate-crm-to-postgres.ts` - one-off legacy Sanity → Postgres CRM/staff migration; mistakes can duplicate leads/profiles or copy a corrupted password hash. Idempotent via `legacy_sanity_id`, but always `--dry-run` first.
-- `sanity.config.ts` - contains Studio workspaces, project id, datasets, plugins, and schema registration.
+- `sanity.config.ts` - contains the Studio workspace, project id, dataset, plugins, and schema registration.
 - `sanity.structure.ts` - contains the client-facing Studio navigation.
 - `sanity.cli.ts` - contains Sanity CLI project, dataset, and deployment settings.
 - `schemaTypes/index.ts` - central schema export list; changes affect all Studio content types.
@@ -84,10 +83,8 @@ Use this to help agents avoid accidental damage.
 ## Security Or Access-Control Areas
 
 - Sanity project access and dataset permissions.
-- The legacy private Sanity `crm` dataset — now read-only history, pending deletion after the Postgres migration's verification window.
-- The private Postgres database: CRM leads/client profiles, staff accounts/sessions, customer account records, sessions, saved addresses, order history, payment attempts, and outbound email logs.
+- The private Postgres database: CRM leads/client profiles, staff accounts/sessions, customer account records, sessions, saved addresses, order history, payment attempts, and outbound email logs. There is no Sanity CRM dataset anymore.
 - The Carrinho localStorage key stores only non-personal product selections. The Loja delivery localStorage key stores only a postal code for transport estimates. Do not add names, emails, full addresses, phone numbers, or free-text messages to localStorage.
-- `SANITY_CRM_WRITE_TOKEN` (only needed to run the one-off Sanity → Postgres CRM migration script) must only exist in server/private runtime environments.
 - `DATABASE_URL`, `RESEND_API_KEY`, and future Ifthenpay credentials must only exist in server/private runtime environments.
 - The CSP in `svelte.config.js` is a deliberate security boundary. SvelteKit injects a nonce for the inline bootstrap scripts; do not weaken `script-src`, `connect-src`, or `frame-ancestors` to make a feature work without reviewing the actual origin and browser requirement.
 - `SANITY_VIEWER_TOKEN` is server-only too. It enables Presentation preview by reading drafts and `sanity.previewUrlSecret` documents; never expose it through public env vars, client code, logs, or generated files.
@@ -123,7 +120,7 @@ Use this to help agents avoid accidental damage.
 - Allowing copied builder preview query URLs to render drafts in normal top-level tabs, or broadening CSP framing beyond the same origin just to make the canvas load.
 - Treating `data-sanity-edit-target` as a marker on the same element as `data-sanity`. Sanity interprets it as a descendant-target instruction and registration can fail; use the project's private editor marker for typed fields instead.
 - Adding private CRM/staff fields to `src/lib/sanity.ts` or any public route by mistake.
-- Exposing `SANITY_CRM_WRITE_TOKEN` or `DATABASE_URL` through public environment variables, logs, generated static files, or client-side code.
+- Exposing `DATABASE_URL` through public environment variables, logs, generated static files, or client-side code.
 - Changing scrypt parameters or the hash string format in `src/lib/server/password-auth.ts` without a migration plan — existing customer and staff password hashes would stop verifying.
 - Adding partner logos or media assets without local fallback assets, alt text, and matching Sanity query fields.
 - Making Sanity images required before the client has uploaded approved assets.

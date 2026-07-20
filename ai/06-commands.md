@@ -15,10 +15,9 @@ npm run dev
 npm run dev:studio
 ```
 
-Sanity Studio now exposes two workspaces:
+Sanity Studio exposes one workspace:
 
-- `/website` edits public website content in dataset `production`.
-- `/crm` is a legacy, read-only view of already-migrated requests/client profiles/staff accounts in dataset `crm`; the backoffice no longer writes here (scheduled for deletion after a post-migration verification window).
+- `/website` edits public website content in dataset `production`. There is no private CRM workspace — leads/client profiles/staff accounts live only in Postgres, managed at `/painel`.
 - `/painel/site` is the standalone visual builder. It uses the normal staff login and stores drafts/assets in the configured Sanity website dataset through server-only endpoints.
 
 Live form submissions, the backoffice, customer accounts, checkout orders, addresses, sessions, and payment attempts all require Railway Postgres:
@@ -102,18 +101,6 @@ SANITY_ALLOW_WRITE=true npm run seed:store-categories
 - `import:store-images` uploads approved Loja product photos from `static/images/store/` and patches only the configured `storeProduct` documents. Use this for incoming Loja image batches instead of rerunning the full starter seed.
 - `seed:store-categories` safely creates only missing Loja category documents. It preserves every product, price, image, and existing category; use it after introducing category management to an older dataset.
 
-## Legacy Sanity CRM Dataset Migration
-
-```bash
-SANITY_CRM_WRITE_TOKEN=... npm run migrate:crm -- --dry-run
-SANITY_CRM_WRITE_TOKEN=... npm run migrate:crm
-```
-
-- One-off, idempotent (`legacy_sanity_id`-keyed) copy of staff accounts, client profiles, and form submissions from the legacy Sanity `crm` dataset into Postgres. Safe to re-run.
-- Needs `SANITY_CRM_WRITE_TOKEN` (read access to dataset `crm`) and `DATABASE_URL` (target Postgres).
-- The `crm` dataset should remain private and is otherwise read-only history now; do not import public seed/content data into it.
-- Do not add `SANITY_CRM_WRITE_TOKEN` to public/client environment variables.
-
 ## Ecommerce Database
 
 ```bash
@@ -162,7 +149,7 @@ npm ls @playwright/test
 ## Notes
 
 - `npm run dev` is the SvelteKit website.
-- `npm run dev:studio` is Sanity Studio on port `3333` with `/website` and `/crm` workspaces.
+- `npm run dev:studio` is Sanity Studio on port `3333` with the `/website` workspace.
 - `http://localhost:5173/painel/site` is the standalone builder; it requires local Postgres staff auth plus `SANITY_VIEWER_TOKEN` or `SANITY_WRITE_TOKEN` for drafts, and `SANITY_WRITE_TOKEN` for saves/uploads/publishing.
 - `npm run build` produces the SvelteKit Node build used by Railway.
 - `npm run build:studio` may need network access because Sanity fetches remote version metadata.

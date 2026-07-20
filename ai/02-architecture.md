@@ -4,9 +4,9 @@
 
 - Frontend: SvelteKit v2 routed presentation site.
 - Frontend runtime: Svelte 5 with Vite 7 and `@sveltejs/adapter-node` for Node/Railway hosting.
-- CMS/content backend: Sanity Studio v6 with two workspaces.
+- CMS/content backend: Sanity Studio v6, single `/website` workspace.
 - Studio runtime: React 19, React DOM 19, styled-components, Sanity structure tool, Sanity Vision v6.
-- Database/storage: Sanity Content Lake, project `u4uyfix8`, public website dataset `production`, plus Railway Postgres for customer accounts, sessions, addresses, orders, order items, payment attempts, order history, staff accounts/sessions, and CRM leads/client profiles. The legacy private Sanity `crm` dataset is being retired (Studio workspace/schema still present pending a post-migration verification window) and no longer receives writes.
+- Database/storage: Sanity Content Lake, project `u4uyfix8`, public website dataset `production`, plus Railway Postgres for customer accounts, sessions, addresses, orders, order items, payment attempts, order history, staff accounts/sessions, and CRM leads/client profiles. There is no private Sanity CRM dataset — that legacy workspace/schema was retired and deleted after migrating to Postgres.
 - Build/deploy: Vite/SvelteKit scripts for the Railway public website and Sanity CLI scripts for the Studio.
 - Test tools: TypeScript, ESLint, Prettier, and Playwright are installed.
 
@@ -66,7 +66,7 @@ current public route <-> builder draft renderer comparison -> page-by-page migra
 - `src/routes/blog/+page.svelte` - blog index route.
 - `src/routes/blog/[slug]/+page.server.ts` and `+page.svelte` - blog article route.
 - `src/routes/contacto/+page.svelte` - contact route with required fields, consent checkbox, stable backend field names, and server action submission.
-- `src/routes/contacto/+page.server.ts` - contact form load/action: CSRF cookie, origin check, honeypot, server validation, and CRM submission.
+- `src/routes/contacto/+page.server.ts` - contact form load/action: CSRF cookie, origin check, honeypot, server validation, and CRM submission (Postgres).
 - `src/routes/painel/**` - private, server-rendered backoffice (NOT Sanity Studio, and deliberately not styled like the public site — plain dense "Excel-esque" tables, zero animation): username+password `login`, dashboard, unified lead list/detail (`pedidos`, merging former contact + catalogue requests), client profiles (`perfis`), ecommerce order lists/details (`encomendas`), and staff-account management (`equipa`, admin-only). All backed by Postgres. `noindex`; guarded by the session check in `src/hooks.server.ts` (which sets `locals.staff`). The root `+layout.svelte` hides the public chrome for `/painel`.
 - `src/routes/painel/site/**` - full-screen visual website editor. It reuses `/painel` staff authentication, serves a same-origin API for Sanity draft/save/publish/media operations, and embeds the real current route. Normal content uses optimistic DOM patches for immediate text/typography feedback and then quietly reconciles the whole preview with the saved draft, including media, prices, galleries, and arrays; free `sitePage` documents stream their complete draft state directly to the block renderer on every edit. The browser never receives a Sanity token.
 - `src/lib/site-editor/editor/SitePageSectionEditor.tsx` - guided free-page section inspector. It presents named responsive presets instead of raw device matrices, supports ordered image/video galleries, uploaded video cover images, real transfer progress, and custom confirmation dialogs.
@@ -99,7 +99,7 @@ current public route <-> builder draft renderer comparison -> page-by-page migra
 - `src/lib/sanity.ts` - public cached Sanity client plus Visual Editing draft/stega clients and site/product/store/case/blog queries for dataset `production`; product-category queries expose only genuinely reusable product content.
 - `src/lib/server/preview.ts` - Visual Editing preview cookie helpers; local HTTP uses a non-secure `SameSite=Lax` cookie, deployed HTTPS uses `SameSite=None; Secure` for Studio iframe preview. Local Studio and local website should use the same hostname (`localhost` by default) because `localhost` and `127.0.0.1` do not share preview cookies.
 - `src/routes/preview/enable/+server.ts` and `src/routes/preview/disable/+server.ts` - Presentation tool preview-mode endpoints; validate the signed preview URL secret with a non-stega authed client before toggling draft rendering.
-- `src/lib/server/crm.ts` - private server-only Postgres writer for client profiles (`crm_client_profiles`) and form submissions (`crm_form_submissions`); dedupes profiles by normalized email in one atomic `insert ... on conflict`. Validation is per-source so catalogue needs an address and contact needs a message.
+- `src/lib/server/crm.ts` - private server-only Postgres writer for client profiles (`crm_client_profiles`) and form submissions (`crm_form_submissions`); dedupes profiles by normalized email in one atomic `insert ... on conflict`. Validation is per-source so catalogue needs an address and contact needs a message. (Naming note: "CRM" here is the Postgres-backed leads/profiles module — unrelated to the deleted legacy Sanity `crm` dataset.)
 - `src/lib/server/crm-postgres.ts` - server-only read/write helpers for the backoffice (list/search profiles and submissions, status + internal-note updates), all against Postgres.
 - `src/lib/server/password-auth.ts` - shared scrypt password hashing (`hashPassword`/`verifyPassword`/`dummyHash`), session token hashing (`tokenHashOf`), and token generation (`randomToken`); used identically by `customer-auth.ts` and `staff-auth.ts` so the hash format is a structural guarantee, not a comment-enforced convention.
 - `src/lib/server/staff-auth.ts` - Postgres-backed backoffice auth: scrypt password hashing via `password-auth.ts`, hashed-token sessions in `staff_sessions`, login with enumeration-resistant timing, an in-memory login rate limiter, and in-app staff-account management (`listStaff`/`createStaff`/`updateStaffRole`/`setStaffActive`/`resetStaffPassword`) with self-lockout guards (can't demote/deactivate yourself or drop the last active admin).
@@ -109,11 +109,10 @@ current public route <-> builder draft renderer comparison -> page-by-page migra
 - `src/routes/painel/definicoes/+page.server.ts` and `+page.svelte` - admin-only settings page (`canManageStaff` guard) to view DeepL key status/usage and swap the API key in-app when the free plan's 1M-lifetime-character limit is reached, without a redeploy.
 - `src/lib/server/form-guard.ts` - shared CSRF token + same-origin helpers for the public forms.
 - `src/lib/painel.ts` - client-safe backoffice constants (status lists/labels, status-to-tone mapping for the tag UI, date formatting); kept out of server modules so components don't pull in server-only code.
-- `scripts/migrate-crm-to-postgres.ts` - one-off, idempotent (`legacy_sanity_id`-keyed) migration copying staff accounts, client profiles, and form submissions out of the legacy Sanity `crm` dataset into Postgres; staff password hashes copy byte-for-byte (zero forced resets). Supports `--dry-run`; run via `npm run migrate:crm`.
-- `sanity.config.ts` - multi-workspace Studio config: website editing at `/website`, legacy private requests/client profiles at `/crm` (retained temporarily for reference; no longer written to).
-- `sanity.structure.ts` - client-friendly Studio navigation for public website content and the legacy private CRM workspace.
+- `sanity.config.ts` - single `/website` workspace Studio config for public website editing. There is no private CRM workspace: staff accounts, leads, and client profiles live only in Postgres.
+- `sanity.structure.ts` - client-friendly Studio navigation for public website content.
 - `sanity.cli.ts` - Sanity CLI project, dataset, and deployment settings for the hosted Studio at `https://dafabrica4you.sanity.studio/`.
-- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, Loja products, case studies, blog posts, and the legacy private CRM documents (`clientProfile`, `formSubmission`, `staffUser`, `staffSession`) pending deletion after the Postgres migration's verification window. Localized short copy uses a compact two-line `localizedString` textarea and longer copy uses `localizedText`; EN/ES are hidden and filled by the translation pipeline. Keeping the established object type avoids migrations for existing content.
+- `schemaTypes/` - Portuguese Sanity document and object schemas for editable site content, product categories, Loja products, case studies, and blog posts. Localized short copy uses a compact two-line `localizedString` textarea and longer copy uses `localizedText`; EN/ES are hidden and filled by the translation pipeline. Keeping the established object type avoids migrations for existing content.
 - `static/logo/brand_mark.png` - provided brand mark.
 - `static/images/recycled-products-hero.png` - generated hero image for this project.
 - `static/images/product-materials.png`, `static/images/case-installation.png`, and `static/images/blog-editorial.png` - generated fallback collection images used until Sanity entries have uploaded images.
@@ -129,7 +128,7 @@ current public route <-> builder draft renderer comparison -> page-by-page migra
 - Public visitor Sanity document queries use `useCdn: true` for speed. Published Studio edits can take a few seconds to propagate outside preview; editors should use Presentation/Visual Editing when they need immediate draft/live review.
 - Visual Editing/Presentation preview uses a server-only token, `useCdn: false`, draft perspective, and stega metadata so Studio can show drafts and click-to-edit overlays without exposing the token to the browser.
 - Image asset URLs still use Sanity's CDN and the warm-up script uses uncached document queries only to pre-generate transformed image variants.
-- Private CRM + backoffice source of truth: Railway Postgres via `DATABASE_URL`, tables `crm_form_submissions`, `crm_client_profiles`, `staff_users`, `staff_sessions`. The legacy Sanity `crm` dataset (`formSubmission`/`clientProfile`/`staffUser`/`staffSession` document types) is read-only history pending deletion after a post-migration verification window.
+- Private CRM + backoffice source of truth: Railway Postgres via `DATABASE_URL`, tables `crm_form_submissions`, `crm_client_profiles`, `staff_users`, `staff_sessions`. There is no Sanity CRM dataset anymore — it was deleted after the Postgres migration.
 - Private ecommerce source of truth: Railway Postgres via `DATABASE_URL`, with tables for customers, sessions, email verification tokens, password reset tokens, addresses, orders, order items, order status events, payment attempts, and outbound email attempts.
 - Confidential data: submitted names, email addresses, phone numbers, messages, consent text, internal notes, CRM statuses, account records, addresses, sessions, payment status, and order history must not be queried by public Sanity loaders or stored in public Sanity datasets.
 - Local browser data: the Loja cart stores only product slugs, stable variant keys (with a legacy positional fallback), finish keys, and quantities under `df4y-store-cart-v1`; the Loja delivery gate stores only the postal code under `df4y-store-delivery-postal-code-v1`. Neither localStorage key may store names, emails, phone numbers, addresses, payment data, or free-text messages.
@@ -177,13 +176,13 @@ current public route <-> builder draft renderer comparison -> page-by-page migra
 
 ## Architecture Rules
 
-- Keep `sanity.config.ts` and `sanity.cli.ts` aligned on project id. `sanity.cli.ts` defaults to the public `production` dataset; the legacy `crm` workspace targets private dataset `crm` and is retained temporarily but no longer written to (see `scripts/migrate-crm-to-postgres.ts`).
+- Keep `sanity.config.ts` and `sanity.cli.ts` aligned on project id. `sanity.cli.ts` defaults to the public `production` dataset; there is no private `crm` workspace.
 - Keep the visual builder outside Sanity Studio. Studio owns schemas/content/assets, while `/painel/site` owns the simplified client editing experience and communicates with Sanity through server-only clients.
 - Keep the existing public Svelte routes active until every route has an equivalent builder document and has passed current-vs-builder desktop/tablet/mobile comparison. Builder schemas or drafts alone must never change the live renderer.
 - Keep builder preview URLs iframe-only and same-origin. The signed preview cookie is httpOnly and short-lived; `SANITY_WRITE_TOKEN`, `SANITY_VIEWER_TOKEN`, and `BUILDER_PREVIEW_SECRET` must never enter browser code.
 - Add content schemas through `schemaTypes/` and register them in `schemaTypes/index.ts`.
 - Do not retain hidden legacy fields in client-facing schemas. Remove confirmed dead values with `scripts/cleanup-removed-website-fields.ts` so Studio stays free of unknown/ghost fields.
-- Keep public website schemas in `websiteSchemaTypes`; the legacy `crmSchemaTypes` stay isolated from it pending deletion.
+- Keep `schemaTypes/index.ts` limited to `websiteSchemaTypes` — there is no private CRM schema to isolate from it anymore.
 - Never add CRM/client profile/form submission documents to the public website GROQ query or fallback content.
 - Public content in dataset `production` can be readable by the website. Editing that content happens through Sanity login/permissions in Studio.
 - Private form/client/staff data belongs in Postgres (`crm_form_submissions`, `crm_client_profiles`, `staff_users`, `staff_sessions`); writes happen only through SvelteKit server code, and `DATABASE_URL` must never be exposed to the browser.

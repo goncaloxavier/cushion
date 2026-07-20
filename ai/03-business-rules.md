@@ -96,7 +96,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - `/painel/site` requires a valid staff session. Builder writes additionally require same-origin and CSRF validation; global theme/publish/delete operations are admin-only. Its signed draft-preview cookie is short-lived, httpOnly, same-origin, and iframe-only.
 - CRM and backoffice-staff access is handled by Postgres row data (`crm_form_submissions`/`crm_client_profiles`/`staff_users`) plus `/painel` session auth; staff roles (`admin`/`staff`) gate write actions via `canManageStaff`.
 - The public SvelteKit app writes CRM data only through server-side Postgres code (`DATABASE_URL`); no database credential should ever be bundled into client-side code.
-- Required private runtime variable for live CRM writes and the backoffice: `DATABASE_URL` (same Postgres database as ecommerce). `SANITY_CRM_WRITE_TOKEN` (optionally with `SANITY_CRM_DATASET`) is only needed to run the one-off `scripts/migrate-crm-to-postgres.ts` against the legacy Sanity `crm` dataset.
+- Required private runtime variable for live CRM writes and the backoffice: `DATABASE_URL` (same Postgres database as ecommerce). There is no Sanity CRM dataset or token anymore.
 - Required private/runtime variables for Visual Editing preview: `SANITY_VIEWER_TOKEN`, `SANITY_STUDIO_PREVIEW_ORIGIN`, and `SANITY_STUDIO_URL`.
 - Required private/runtime variables for ecommerce orders/accounts: `DATABASE_URL`; run `npm run db:migrate` after provisioning.
 - Required private/runtime variables for production ecommerce email: `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.
@@ -114,7 +114,6 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 - Sanity project id `u4uyfix8`.
 - Sanity public dataset `production`.
-- Sanity private CRM dataset `crm`.
 - Public impact metrics, client-facing product claims, and contact details.
 - Social links, WhatsApp number/link, complaints-book link, privacy/cookie policy links, and marketing-consent wording.
 - Institutional video URL, partner names/links/logos, and claims about partnerships/projects.

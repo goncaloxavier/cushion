@@ -33,7 +33,6 @@ npm run seed:studio:write
 - Language toggle review for `?lang=pt`, `?lang=en`, and `?lang=es`.
 - Targeted browser screenshots are acceptable for small visual/UI fixes when Xavier explicitly asks to skip Playwright E2E or visual runs.
 - Sanity dataset/project changes.
-- Running `scripts/migrate-crm-to-postgres.ts` for real against production data, because it needs a live `SANITY_CRM_WRITE_TOKEN` with read access to the legacy `crm` dataset.
 - Visual Editing token/origin setup, because automated local tests do not have a real `SANITY_VIEWER_TOKEN`, deployed Studio URL, or browser iframe session.
 
 ## Test Data Or Fixtures
@@ -49,7 +48,6 @@ npm run seed:studio:write
 
 ## Known Gaps
 
-- The legacy `/crm` Studio workspace is opt-in through `SANITY_STUDIO_ENABLE_CRM=true`, is now read-only history (the backoffice no longer writes to it), and is scheduled for deletion after a post-migration verification window (see `schemaTypes/crm/*`, `sanity.structure.ts`).
 - Browser tests default to the installed Chrome channel, with bounded workers and bounded timeouts for quicker local/CI runs. Set `PLAYWRIGHT_CHANNEL` only when a different installed/browser-cache channel is available.
 - Browser tests force `SANITY_DISABLE_REMOTE=true` for deterministic fixture content.
 - Contact-form security/storage tests are contract-level only for now. Manual/staging validation must confirm production `DATABASE_URL` is configured before relying on live submissions.
