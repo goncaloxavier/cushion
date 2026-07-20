@@ -340,6 +340,7 @@ function NavigationEditor({
                     <span>Nome</span>
                     <textarea
                       rows={2}
+                      placeholder="Ex.: Sustentabilidade"
                       value={String(label.pt || '')}
                       onChange={(event) =>
                         update(index, {...item, label: {...label, pt: event.currentTarget.value}})
@@ -518,6 +519,7 @@ function ImageEditor({
         <span>Descrição da imagem</span>
         <textarea
           rows={2}
+          placeholder="Ex.: Banco em plástico reciclado num jardim público"
           value={String(alt.pt || '')}
           onChange={(event) => onChange({...image, alt: {...alt, pt: event.currentTarget.value}})}
         />
@@ -967,6 +969,11 @@ function GalleryEditor({
             <span>{activeIsVideo ? 'Título do vídeo' : 'Descrição da imagem'}</span>
             <textarea
               rows={3}
+              placeholder={
+                activeIsVideo
+                  ? 'Ex.: Instalação de decking num terraço exterior'
+                  : 'Ex.: Banco em plástico reciclado num jardim público'
+              }
               value={String((activeIsVideo ? activeTitle.pt : activeAlt.pt) || '')}
               onChange={(event) =>
                 commitItem(activeIndex, {
@@ -1501,6 +1508,7 @@ export function SiteEditorFieldInput({
         <textarea
           aria-label={field.label}
           rows={field.rows ?? 5}
+          placeholder={field.placeholder}
           value={String(plainValue || '')}
           onChange={(event) => commit(event.currentTarget.value)}
         />
@@ -1566,6 +1574,7 @@ export function SiteEditorFieldInput({
                   ? 'date'
                   : 'text'
           }
+          placeholder={field.placeholder}
           value={String(plainValue || '')}
           onChange={(event) => commit(event.currentTarget.value)}
         />

@@ -714,6 +714,7 @@ function ArticleToolbar({
               type="url"
               value={videoUrl}
               onChange={(event) => setVideoUrl(event.currentTarget.value)}
+              placeholder="https://www.youtube.com/watch?v=…"
               autoFocus
             />
           </label>
@@ -722,6 +723,7 @@ function ArticleToolbar({
             <input
               value={videoTitle}
               onChange={(event) => setVideoTitle(event.currentTarget.value)}
+              placeholder="Ex.: Instalação de decking em 5 passos"
             />
           </label>
           <button type="submit">Adicionar</button>
@@ -870,6 +872,7 @@ function TableFields({
                     data-table-field="true"
                     data-table-row="heading"
                     data-table-column={columnIndex}
+                    placeholder={`Ex.: Coluna ${columnIndex + 1}`}
                     value={column}
                     onKeyDown={moveBetweenFields}
                     onChange={(event) => {
@@ -1027,6 +1030,7 @@ function ArticleObjectEditor({
               <span>Descrição da imagem</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: Banco em plástico reciclado num jardim público"
                 value={String(selected.node.alt || '')}
                 onChange={(event) => patch({alt: event.currentTarget.value})}
               />
@@ -1035,6 +1039,7 @@ function ArticleObjectEditor({
               <span>Legenda</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: O banco Gavião instalado no Parque da Cidade"
                 value={String(selected.node.caption || '')}
                 onChange={(event) => patch({caption: event.currentTarget.value})}
               />
@@ -1046,6 +1051,7 @@ function ArticleObjectEditor({
               <span>Link do YouTube</span>
               <input
                 type="url"
+                placeholder="https://www.youtube.com/watch?v=…"
                 value={String(selected.node.url || '')}
                 onChange={(event) => patch({url: event.currentTarget.value})}
               />
@@ -1053,6 +1059,7 @@ function ArticleObjectEditor({
             <label>
               <span>Título do vídeo</span>
               <input
+                placeholder="Ex.: Instalação de decking em 5 passos"
                 value={String(selected.node.title || '')}
                 onChange={(event) => patch({title: event.currentTarget.value})}
               />
@@ -1061,6 +1068,7 @@ function ArticleObjectEditor({
               <span>Legenda</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: Veja o processo completo de instalação"
                 value={String(selected.node.caption || '')}
                 onChange={(event) => patch({caption: event.currentTarget.value})}
               />

@@ -280,6 +280,7 @@ function ActionsEditor({
             </header>
             <Field label="Texto" localized>
               <input
+                placeholder="Ex.: Pedir orçamento"
                 value={action.label?.pt ?? ''}
                 onChange={(event) =>
                   onChange(actions.map((candidate) =>
@@ -292,6 +293,7 @@ function ActionsEditor({
             </Field>
             <Field label="Destino" help="Exemplo: /contacto ou https://exemplo.pt">
               <input
+                placeholder="/contacto"
                 value={action.href ?? ''}
                 onChange={(event) =>
                   onChange(actions.map((candidate) =>
@@ -357,8 +359,8 @@ function RepeatersEditor({section, onUpdate}: {section: BuilderSection; onUpdate
           {stats.map((stat, index) => (
             <div className="site-page-repeater" key={stat._key}>
               <header><strong>Número {index + 1}</strong><button type="button" onClick={() => onUpdate({...section, items: stats.filter((item) => item._key !== stat._key)})}><TrashIcon /></button></header>
-              <Field label="Valor" localized><input value={stat.value?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, value: localizedValue(item.value, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
-              <Field label="Explicação" localized><input value={stat.label?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, label: localizedValue(item.label, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Valor" localized><input placeholder="Ex.: 15" value={stat.value?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, value: localizedValue(item.value, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Explicação" localized><input placeholder="Ex.: anos de garantia" value={stat.label?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, label: localizedValue(item.label, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
             </div>
           ))}
           <button className="site-page-add-row" type="button" onClick={() => onUpdate({...section, items: [...stats, {_type: 'builderStat', _key: createBuilderKey(), value: localizedValue(undefined, '0', 'localizedString'), label: localizedValue(undefined, 'Novo indicador', 'localizedString')}]})}><AddIcon /> Adicionar número</button>
@@ -376,8 +378,8 @@ function RepeatersEditor({section, onUpdate}: {section: BuilderSection; onUpdate
           {cards.map((card, index) => (
             <div className="site-page-repeater" key={card._key}>
               <header><strong>Cartão {index + 1}</strong><button type="button" onClick={() => onUpdate({...section, items: cards.filter((item) => item._key !== card._key)})}><TrashIcon /></button></header>
-              <Field label="Título" localized><input value={card.title?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, title: localizedValue(item.title, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
-              <Field label="Texto" localized><textarea rows={4} value={card.body?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, body: localizedValue(item.body, event.currentTarget.value, 'localizedText')} : item)})} /></Field>
+              <Field label="Título" localized><input placeholder="Ex.: Feito para durar" value={card.title?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, title: localizedValue(item.title, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Texto" localized><textarea rows={4} placeholder="Ex.: Resistente a chuva, sol e variações de temperatura, sem necessidade de manutenção." value={card.body?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, body: localizedValue(item.body, event.currentTarget.value, 'localizedText')} : item)})} /></Field>
             </div>
           ))}
           <button className="site-page-add-row" type="button" onClick={() => onUpdate({...section, items: [...cards, {_type: 'builderCard', _key: createBuilderKey(), title: localizedValue(undefined, 'Novo cartão', 'localizedString'), body: localizedValue(undefined, '', 'localizedText')}]})}><AddIcon /> Adicionar cartão</button>
@@ -500,7 +502,12 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         />
         {kind === 'youtube' ? (
           <Field label="Link do YouTube">
-            <input type="url" value={media.youtubeUrl ?? ''} onChange={(event) => apply({...media, youtubeUrl: event.currentTarget.value})} />
+            <input
+              type="url"
+              placeholder="https://www.youtube.com/watch?v=…"
+              value={media.youtubeUrl ?? ''}
+              onChange={(event) => apply({...media, youtubeUrl: event.currentTarget.value})}
+            />
           </Field>
         ) : (
           <MediaUpload
@@ -543,7 +550,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           help="Descreva o que é importante na imagem ou no vídeo"
           localized
         >
-          <textarea rows={3} value={media.alt?.pt ?? ''} onChange={(event) => apply({...media, alt: localizedValue(media.alt, event.currentTarget.value, 'localizedString')})} />
+          <textarea rows={3} placeholder="Ex.: Banco em plástico reciclado instalado num jardim público." value={media.alt?.pt ?? ''} onChange={(event) => apply({...media, alt: localizedValue(media.alt, event.currentTarget.value, 'localizedString')})} />
         </Field>
         <details className="site-page-subdetails">
           <summary>Opções de apresentação</summary>
@@ -583,9 +590,9 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         <section className="site-page-editor-group is-open">
           <header><span><strong>Conteúdo</strong><small>O texto que aparece nesta secção</small></span></header>
           <div className="site-page-editor-group-body">
-            {'eyebrow' in section ? <Field label="Etiqueta" localized><input value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
-            {'title' in section ? <Field label="Título" localized><textarea rows={3} value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field> : null}
-            {'body' in section && !Array.isArray(section.body) ? <Field label="Texto" localized><textarea rows={6} value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
+            {'eyebrow' in section ? <Field label="Etiqueta" localized><input placeholder="Ex.: Sobre nós" value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
+            {'title' in section ? <Field label="Título" localized><textarea rows={3} placeholder="Ex.: Feito para durar no exterior" value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field> : null}
+            {'body' in section && !Array.isArray(section.body) ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
             {Array.isArray(section.body) ? (
               <button
                 className="site-page-article-button"
@@ -688,8 +695,8 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
       <details className="site-page-editor-group is-advanced">
         <summary><span><strong>Organização</strong><small>Nome interno e ligação direta</small></span></summary>
         <div className="site-page-editor-group-body">
-          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção"><input value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
-          <Field label="Ligação direta" help="Opcional. Exemplo: impacto"><input value={section.anchor ?? ''} onChange={(event) => onUpdate({...section, anchor: event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} /></Field>
+          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção"><input placeholder="Ex.: Destaque principal" value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
+          <Field label="Ligação direta" help="Opcional. Exemplo: impacto"><input placeholder="impacto" value={section.anchor ?? ''} onChange={(event) => onUpdate({...section, anchor: event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} /></Field>
         </div>
       </details>
 

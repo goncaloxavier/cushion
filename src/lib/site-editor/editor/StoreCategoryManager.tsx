@@ -28,6 +28,7 @@ const titleField: SiteEditorField = {
   name: 'title',
   label: 'Nome da categoria',
   description: 'É o nome apresentado nos filtros e junto aos produtos',
+  placeholder: 'Ex.: Decking',
   type: 'localizedString',
   required: true,
 }

@@ -89,6 +89,7 @@ export type SiteEditorField = {
   label: string
   type: SiteEditorFieldType
   description?: string
+  placeholder?: string
   fields?: SiteEditorField[]
   item?: SiteEditorField
   options?: SiteEditorOption[]
