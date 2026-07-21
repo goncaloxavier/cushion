@@ -738,11 +738,16 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
 
 export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
   if (siteEditorE2eEnabled()) return publishSiteEditorE2eDocument(input, scope)
-  const saved = await saveSiteEditorDocument(input, scope)
-  validateDocument(saved)
   const client = requireWriteClient()
-  const publishedId = normalizeEditorDocumentId(saved._id)
-  const published = await client.getDocument<SiteEditorDocument>(publishedId)
+  // publishedId is derivable from input._id alone, so the save (which fetches/writes the
+  // draft) and this pre-publish read of the currently-published document don't need to
+  // run one after another — only client.action below actually needs both results.
+  const publishedId = normalizeEditorDocumentId(String(input?._id || ''))
+  const [saved, published] = await Promise.all([
+    saveSiteEditorDocument(input, scope),
+    client.getDocument<SiteEditorDocument>(publishedId),
+  ])
+  validateDocument(saved)
   await client.action({
     actionType: 'sanity.action.document.publish',
     draftId: editorDraftId(publishedId),
