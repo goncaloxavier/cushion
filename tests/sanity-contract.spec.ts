@@ -159,6 +159,39 @@ test.describe('Sanity Studio content contract', () => {
     )
   })
 
+  test('hero video prefers whichever source matches kind, then whichever is actually populated', () => {
+    // This is the exact drift bug fixed earlier: the site-editor's upload/YouTube tabs
+    // could leave `kind` pointing at an empty field while the other field held real
+    // content (e.g. uploading a file after previously picking YouTube re-stamps `kind`
+    // without clearing youtubeUrl, or vice versa). heroVideoFromSanity must recover by
+    // preferring whichever field is actually populated over a stale `kind`.
+    const heroVideoWith = (heroVideo: Record<string, unknown>) =>
+      contentFromSanity({
+        siteContent: {home: {heroVideo}},
+      } as unknown as SanityCollections).pt.home.heroVideo
+
+    expect(heroVideoWith({kind: 'upload', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'})).toEqual(
+      {kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'},
+    )
+    expect(
+      heroVideoWith({kind: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=abc123'}),
+    ).toEqual({kind: 'youtube', url: 'https://www.youtube.com/watch?v=abc123'})
+
+    // Drift: kind says youtube but only a file was actually uploaded — the file wins.
+    expect(
+      heroVideoWith({kind: 'youtube', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'}),
+    ).toEqual({kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'})
+    // Drift: kind says upload but only a YouTube link was actually set — the link wins.
+    expect(
+      heroVideoWith({kind: 'upload', youtubeUrl: 'https://www.youtube.com/watch?v=abc123'}),
+    ).toEqual({kind: 'youtube', url: 'https://www.youtube.com/watch?v=abc123'})
+
+    // Neither field populated — falls back to the built-in placeholder video, not a blank hero.
+    const empty = heroVideoWith({kind: 'upload'})
+    expect(empty.kind).toBe('youtube')
+    expect(empty.url).toContain('youtube.com')
+  })
+
   test('productCategory specs fields localize with PT fallback and default to empty lists', () => {
     const collections = {
       products: [
