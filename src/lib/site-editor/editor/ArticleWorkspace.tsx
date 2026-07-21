@@ -4,6 +4,7 @@ import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 import {getEditorValue} from '../path'
 import type {SiteEditorDocument, SiteEditorSaveState} from '../types'
+import type {SiteEditorUploadProgress} from './api'
 import {ArticleEditor} from './ArticleEditor'
 
 type Asset = {id: string; url: string}
@@ -18,7 +19,11 @@ type Props = {
   saveState: SiteEditorSaveState
   returnFocus?: HTMLElement
   onChange: (path: string, value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<Asset>
   onClose: () => void
 }
 

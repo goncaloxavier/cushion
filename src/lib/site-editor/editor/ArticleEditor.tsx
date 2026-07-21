@@ -35,8 +35,10 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {UlistIcon} from '@sanity/icons/Ulist'
 import {UndoIcon} from '@sanity/icons/Undo'
 import {VideoIcon} from '@sanity/icons/Video'
+import type {SiteEditorUploadProgress} from './api'
 import {editorKey, sanityAssetUrl} from './asset'
 import {ConfirmDialog} from './ConfirmDialog'
+import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
 
 type ArticleObject = PortableTextObject & {
   asset?: {_ref?: string}
@@ -59,7 +61,11 @@ type Props = {
   projectId: string
   dataset: string
   onChange: (value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<{id: string; url: string}>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<{id: string; url: string}>
 }
 
 const schemaDefinition = defineSchema({
@@ -466,6 +472,7 @@ function ArticleToolbar({
   const [link, setLink] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [videoTitle, setVideoTitle] = useState('')
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
 
   const preserveSelection = (event: React.MouseEvent) => event.preventDefault()
   const refocus = () => editor.send({type: 'focus'})
@@ -505,6 +512,30 @@ function ArticleToolbar({
       if (!inserted?._key) return
       onObjectInserted({node: inserted, path: [{_key: inserted._key}]})
     })
+  }
+
+  const uploadImage = async (file: File) => {
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
+    try {
+      const asset = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus(undefined)
+      insertObject('image', {asset: {_type: 'reference', _ref: asset.id}, alt: '', caption: ''})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+    }
   }
 
   return (
@@ -612,22 +643,19 @@ function ArticleToolbar({
           </span>
 
           <span className="site-editor-rich-toolbar-group is-media" aria-label="Inserir conteúdo">
-            <label aria-label="Adicionar imagem" title="Adicionar imagem">
+            <label
+              aria-label="Adicionar imagem"
+              title="Adicionar imagem"
+              aria-disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
+            >
               <ImageIcon /> <span>Imagem</span>
               <input
                 type="file"
                 accept="image/*"
+                disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0]
-                  if (file) {
-                    void onUpload(file, 'image').then((asset) => {
-                      insertObject('image', {
-                        asset: {_type: 'reference', _ref: asset.id},
-                        alt: '',
-                        caption: '',
-                      })
-                    })
-                  }
+                  if (file) void uploadImage(file)
                   event.currentTarget.value = ''
                 }}
               />
@@ -661,6 +689,8 @@ function ArticleToolbar({
           </span>
         </div>
       </div>
+
+      <MediaUploadProgress status={uploadStatus} />
 
       {openForm === 'link' ? (
         <form
@@ -979,6 +1009,7 @@ function ArticleObjectEditor({
   onUpload: Props['onUpload']
 }) {
   const editor = useEditor()
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
 
   useEffect(() => {
     if (!selected) return
@@ -996,6 +1027,30 @@ function ArticleObjectEditor({
     setSelected((current) => (current ? {...current, node: {...current.node, ...props}} : current))
   }
 
+  const uploadImage = async (file: File) => {
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
+    try {
+      const asset = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus(undefined)
+      patch({asset: {_type: 'reference', _ref: asset.id}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+    }
+  }
+
   return (
     <section className="site-editor-rich-object-editor">
       <header>
@@ -1010,22 +1065,23 @@ function ArticleObjectEditor({
       <div>
         {selected.node._type === 'image' ? (
           <div className="site-editor-form-stack">
-            <label className="site-editor-upload-button">
+            <label
+              className="site-editor-upload-button"
+              aria-disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
+            >
               <ImageIcon /> Substituir imagem
               <input
                 type="file"
                 accept="image/*"
+                disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0]
-                  if (file) {
-                    void onUpload(file, 'image').then((asset) =>
-                      patch({asset: {_type: 'reference', _ref: asset.id}}),
-                    )
-                  }
+                  if (file) void uploadImage(file)
                   event.currentTarget.value = ''
                 }}
               />
             </label>
+            <MediaUploadProgress status={uploadStatus} />
             <label>
               <span>Descrição da imagem</span>
               <textarea
