@@ -266,6 +266,218 @@ const titleFor = (document: ManifestDocument) =>
   document.title?.trim() ||
   (document._type === 'sitePage' ? 'Página sem nome' : 'Conteúdo sem título')
 
+type ManifestLookups = {
+  publishedStoreProductCategories: Map<string, string>
+  storeProductCounts: Map<string, number>
+  storeCategoryOptions: Map<string, {label: string; value: string}>
+}
+
+// publishedStoreProductCategories reads `documents` (the raw fetch, draft and published
+// copies both present) rather than `preferred` (already deduped to one entry per document)
+// because it specifically needs to know a product's *published* category, independent of
+// whatever its draft currently says.
+const buildManifestLookups = (
+  documents: ManifestDocument[],
+  preferred: ManifestDocument[],
+): ManifestLookups => {
+  const publishedStoreProductCategories = new Map(
+    documents
+      .filter(
+        (document) =>
+          document._type === 'storeProduct' && !isDraft(document._id) && document.category,
+      )
+      .map((document) => [normalizeEditorDocumentId(document._id), document.category!]),
+  )
+  const storeProductCounts = preferred
+    .filter((document) => document._type === 'storeProduct' && document.category)
+    .reduce((counts, document) => {
+      const category = document.category!
+      counts.set(category, (counts.get(category) ?? 0) + 1)
+      return counts
+    }, new Map<string, number>())
+  const storeCategoryOptions = new Map<string, {label: string; value: string}>(
+    defaultStoreCategoryOptions.map((option) => [option.value, option]),
+  )
+  preferred
+    .filter((document) => document._type === 'storeCategory' && document.slug)
+    .sort(
+      (left, right) =>
+        (left.orderRank ?? 100) - (right.orderRank ?? 100) ||
+        titleFor(left).localeCompare(titleFor(right), 'pt'),
+    )
+    .forEach((document) => {
+      storeCategoryOptions.set(document.slug!, {
+        label: titleFor(document),
+        value: document.slug!,
+      })
+    })
+  return {publishedStoreProductCategories, storeProductCounts, storeCategoryOptions}
+}
+
+const buildGlobalNodes = (siteDocument: ManifestDocument): SiteEditorNode[] => {
+  const siteDocumentId = normalizeEditorDocumentId(siteDocument._id)
+  const draft = isDraft(siteDocument._id)
+  return [
+    ...staticPages.map((page) => ({
+      ...page,
+      kind: 'page' as const,
+      area: 'pages' as const,
+      documentId: siteDocumentId,
+      documentType: 'siteLanding' as const,
+      draft,
+      updatedAt: siteDocument._updatedAt,
+    })),
+    {
+      id: 'global-navigation',
+      kind: 'collection',
+      area: 'global',
+      title: 'Cabeçalho e navegação',
+      subtitle: 'Menu principal e ações',
+      route: '/',
+    },
+    ...manifestNavigation(siteDocument).map((item, index) => ({
+      id: `global-navigation-${item._key || index}`,
+      kind: 'global' as const,
+      area: 'global' as const,
+      title: item.label?.trim() || `Ligação ${index + 1}`,
+      subtitle: item.href?.trim() || 'Sem destino',
+      route: '/',
+      documentId: siteDocumentId,
+      documentType: 'siteLanding' as const,
+      rootPath: item._key
+        ? `navigation[_key=="${item._key.replace(/"/g, '\\"')}"]`
+        : `navigation[${index}]`,
+      parentId: 'global-navigation',
+      draft,
+      updatedAt: siteDocument._updatedAt,
+    })),
+    {
+      id: 'global-navigation-all',
+      kind: 'global',
+      area: 'global',
+      title: 'Gerir menu completo',
+      subtitle: 'Adicionar, remover e ordenar ligações',
+      route: '/',
+      documentId: siteDocumentId,
+      documentType: 'siteLanding',
+      rootPath: 'navigation',
+      parentId: 'global-navigation',
+      draft,
+      updatedAt: siteDocument._updatedAt,
+    },
+    {
+      id: 'global-common',
+      kind: 'global',
+      area: 'global',
+      title: 'Contacto, rodapé e textos comuns',
+      subtitle: 'Informação partilhada em todo o site',
+      route: '/contacto',
+      documentId: siteDocumentId,
+      documentType: 'siteLanding',
+      rootPath: 'common',
+      draft,
+      updatedAt: siteDocument._updatedAt,
+    },
+  ]
+}
+
+const buildCollectionNodes = (
+  preferred: ManifestDocument[],
+  lookups: ManifestLookups,
+): SiteEditorNode[] => {
+  const nodes: SiteEditorNode[] = []
+  for (const definition of collectionDefinitions) {
+    const items = preferred
+      .filter((document) => document._type === definition.type)
+      .sort((left, right) => titleFor(left).localeCompare(titleFor(right), 'pt'))
+    nodes.push({
+      id: definition.id,
+      kind: 'collection',
+      area: 'content',
+      title: definition.title,
+      route: definition.routePrefix,
+      collectionType: definition.type,
+      count: items.length,
+    })
+    for (const item of items) {
+      nodes.push({
+        id: `document-${normalizeEditorDocumentId(item._id)}`,
+        kind: 'document',
+        area: 'content',
+        title: titleFor(item),
+        subtitle:
+          item._type === 'storeCategory'
+            ? `${lookups.storeProductCounts.get(item.slug || '') ?? 0} ${
+                (lookups.storeProductCounts.get(item.slug || '') ?? 0) === 1
+                  ? 'produto'
+                  : 'produtos'
+              }`
+            : item._type === 'blogPost'
+            ? item.publishedAt
+            : item._type === 'caseStudy'
+              ? item.location
+              : undefined,
+        route:
+          item._type === 'storeCategory'
+            ? definition.routePrefix
+            : item.slug
+              ? `${definition.routePrefix}/${item.slug}`
+              : definition.routePrefix,
+        documentId: normalizeEditorDocumentId(item._id),
+        documentType: item._type,
+        parentId: definition.id,
+        draft: isDraft(item._id),
+        updatedAt: item._updatedAt,
+        active: item.active,
+        thumbnailUrl: item.thumbnailUrl,
+        slug: item.slug,
+        category: item.category,
+        publishedCategory:
+          item._type === 'storeProduct'
+            ? lookups.publishedStoreProductCategories.get(normalizeEditorDocumentId(item._id))
+            : undefined,
+        count:
+          item._type === 'storeCategory'
+            ? lookups.storeProductCounts.get(item.slug || '') ?? 0
+            : undefined,
+      })
+    }
+  }
+  return nodes
+}
+
+const buildFreePageNodes = (preferred: ManifestDocument[]): SiteEditorNode[] => {
+  const freePages = preferred
+    .filter((document) => document._type === 'sitePage')
+    .sort((left, right) => (left.route || '').localeCompare(right.route || '', 'pt'))
+  const nodes: SiteEditorNode[] = [
+    {
+      id: 'collection-pages',
+      kind: 'collection',
+      area: 'pages',
+      title: 'Páginas livres',
+      collectionType: 'sitePage',
+      count: freePages.length,
+    },
+  ]
+  for (const page of freePages) {
+    nodes.push({
+      id: `page-${normalizeEditorDocumentId(page._id)}`,
+      kind: 'flexiblePage',
+      area: 'pages',
+      title: titleFor(page),
+      route: page.route,
+      documentId: normalizeEditorDocumentId(page._id),
+      documentType: 'sitePage',
+      parentId: 'collection-pages',
+      draft: isDraft(page._id),
+      updatedAt: page._updatedAt,
+      active: page.active,
+    })
+  }
+  return nodes
+}
+
 export const getSiteEditorManifest = async (
   canPublish: boolean,
   scope = 'default',
@@ -299,190 +511,20 @@ export const getSiteEditorManifest = async (
     {types: [...documentTypes]},
   )
   const preferred = preferDrafts(documents)
-  const publishedStoreProductCategories = new Map(
-    documents
-      .filter(
-        (document) =>
-          document._type === 'storeProduct' && !isDraft(document._id) && document.category,
-      )
-      .map((document) => [normalizeEditorDocumentId(document._id), document.category!]),
-  )
-  const storeProductCounts = preferred
-    .filter((document) => document._type === 'storeProduct' && document.category)
-    .reduce((counts, document) => {
-      const category = document.category!
-      counts.set(category, (counts.get(category) ?? 0) + 1)
-      return counts
-    }, new Map<string, number>())
-  const storeCategoryOptions = new Map<string, {label: string; value: string}>(
-    defaultStoreCategoryOptions.map((option) => [option.value, option]),
-  )
-  preferred
-    .filter((document) => document._type === 'storeCategory' && document.slug)
-    .sort(
-      (left, right) =>
-        (left.orderRank ?? 100) - (right.orderRank ?? 100) ||
-        titleFor(left).localeCompare(titleFor(right), 'pt'),
-    )
-    .forEach((document) => {
-      storeCategoryOptions.set(document.slug!, {
-        label: titleFor(document),
-        value: document.slug!,
-      })
-    })
+  const lookups = buildManifestLookups(documents, preferred)
   const siteDocument =
     preferred.find((document) => document._type === 'siteLanding') ??
     ({_id: 'siteContent', _type: 'siteLanding'} as ManifestDocument)
-  const siteDocumentId = normalizeEditorDocumentId(siteDocument._id)
+
   const nodes: SiteEditorNode[] = [
-    ...staticPages.map((page) => ({
-      ...page,
-      kind: 'page' as const,
-      area: 'pages' as const,
-      documentId: siteDocumentId,
-      documentType: 'siteLanding' as const,
-      draft: isDraft(siteDocument._id),
-      updatedAt: siteDocument._updatedAt,
-    })),
-    {
-      id: 'global-navigation',
-      kind: 'collection',
-      area: 'global',
-      title: 'Cabeçalho e navegação',
-      subtitle: 'Menu principal e ações',
-      route: '/',
-    },
-    ...manifestNavigation(siteDocument).map((item, index) => ({
-      id: `global-navigation-${item._key || index}`,
-      kind: 'global' as const,
-      area: 'global' as const,
-      title: item.label?.trim() || `Ligação ${index + 1}`,
-      subtitle: item.href?.trim() || 'Sem destino',
-      route: '/',
-      documentId: siteDocumentId,
-      documentType: 'siteLanding' as const,
-      rootPath: item._key
-        ? `navigation[_key=="${item._key.replace(/"/g, '\\"')}"]`
-        : `navigation[${index}]`,
-      parentId: 'global-navigation',
-      draft: isDraft(siteDocument._id),
-      updatedAt: siteDocument._updatedAt,
-    })),
-    {
-      id: 'global-navigation-all',
-      kind: 'global',
-      area: 'global',
-      title: 'Gerir menu completo',
-      subtitle: 'Adicionar, remover e ordenar ligações',
-      route: '/',
-      documentId: siteDocumentId,
-      documentType: 'siteLanding',
-      rootPath: 'navigation',
-      parentId: 'global-navigation',
-      draft: isDraft(siteDocument._id),
-      updatedAt: siteDocument._updatedAt,
-    },
-    {
-      id: 'global-common',
-      kind: 'global',
-      area: 'global',
-      title: 'Contacto, rodapé e textos comuns',
-      subtitle: 'Informação partilhada em todo o site',
-      route: '/contacto',
-      documentId: siteDocumentId,
-      documentType: 'siteLanding',
-      rootPath: 'common',
-      draft: isDraft(siteDocument._id),
-      updatedAt: siteDocument._updatedAt,
-    },
+    ...buildGlobalNodes(siteDocument),
+    ...buildCollectionNodes(preferred, lookups),
+    ...buildFreePageNodes(preferred),
   ]
-
-  for (const definition of collectionDefinitions) {
-    const items = preferred
-      .filter((document) => document._type === definition.type)
-      .sort((left, right) => titleFor(left).localeCompare(titleFor(right), 'pt'))
-    nodes.push({
-      id: definition.id,
-      kind: 'collection',
-      area: 'content',
-      title: definition.title,
-      route: definition.routePrefix,
-      collectionType: definition.type,
-      count: items.length,
-    })
-    for (const item of items) {
-      nodes.push({
-        id: `document-${normalizeEditorDocumentId(item._id)}`,
-        kind: 'document',
-        area: 'content',
-        title: titleFor(item),
-        subtitle:
-          item._type === 'storeCategory'
-            ? `${storeProductCounts.get(item.slug || '') ?? 0} ${
-                (storeProductCounts.get(item.slug || '') ?? 0) === 1 ? 'produto' : 'produtos'
-              }`
-            : item._type === 'blogPost'
-            ? item.publishedAt
-            : item._type === 'caseStudy'
-              ? item.location
-              : undefined,
-        route:
-          item._type === 'storeCategory'
-            ? definition.routePrefix
-            : item.slug
-              ? `${definition.routePrefix}/${item.slug}`
-              : definition.routePrefix,
-        documentId: normalizeEditorDocumentId(item._id),
-        documentType: item._type,
-        parentId: definition.id,
-        draft: isDraft(item._id),
-        updatedAt: item._updatedAt,
-        active: item.active,
-        thumbnailUrl: item.thumbnailUrl,
-        slug: item.slug,
-        category: item.category,
-        publishedCategory:
-          item._type === 'storeProduct'
-            ? publishedStoreProductCategories.get(normalizeEditorDocumentId(item._id))
-            : undefined,
-        count:
-          item._type === 'storeCategory'
-            ? storeProductCounts.get(item.slug || '') ?? 0
-            : undefined,
-      })
-    }
-  }
-
-  const freePages = preferred
-    .filter((document) => document._type === 'sitePage')
-    .sort((left, right) => (left.route || '').localeCompare(right.route || '', 'pt'))
-  nodes.push({
-    id: 'collection-pages',
-    kind: 'collection',
-    area: 'pages',
-    title: 'Páginas livres',
-    collectionType: 'sitePage',
-    count: freePages.length,
-  })
-  for (const page of freePages) {
-    nodes.push({
-      id: `page-${normalizeEditorDocumentId(page._id)}`,
-      kind: 'flexiblePage',
-      area: 'pages',
-      title: titleFor(page),
-      route: page.route,
-      documentId: normalizeEditorDocumentId(page._id),
-      documentType: 'sitePage',
-      parentId: 'collection-pages',
-      draft: isDraft(page._id),
-      updatedAt: page._updatedAt,
-      active: page.active,
-    })
-  }
 
   return {
     nodes,
-    optionSources: {storeCategories: [...storeCategoryOptions.values()]},
+    optionSources: {storeCategories: [...lookups.storeCategoryOptions.values()]},
     capabilities: {...siteEditorCapabilities(), canPublish},
   }
 }
