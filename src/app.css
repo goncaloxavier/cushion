@@ -5240,7 +5240,7 @@ body.lightbox-open {
   justify-content: space-between;
   gap: 0.6rem;
   padding: 0.5rem 1.1rem;
-  color: rgba(51, 68, 61, 0.55);
+  color: var(--muted);
   font-size: 0.7rem;
   background: var(--paper);
   border-top: 1px solid var(--line);
