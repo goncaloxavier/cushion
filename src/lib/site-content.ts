@@ -104,6 +104,7 @@ export type PartnerItem = {
 
 export type ProductItem = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   description: string
@@ -127,6 +128,7 @@ export type ProductItem = {
 
 export type CaseStudy = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   location: string
@@ -143,6 +145,7 @@ export type CaseStudy = {
 
 export type BlogPost = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   excerpt: string
@@ -217,6 +220,7 @@ export type StoreProductVariant = {
 
 export type StoreProduct = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   category: StoreCategory
@@ -234,6 +238,7 @@ export type StoreProduct = {
 }
 
 export type SiteContent = {
+  updatedAt?: string
   textAppearance?: Record<string, TextAppearance>
   navigation?: SiteNavigationItem[]
   nav: {
@@ -411,6 +416,7 @@ export type SiteContent = {
 
 type SanityProduct = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -426,6 +432,7 @@ type SanityProduct = {
 
 type SanityCaseStudy = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -440,6 +447,7 @@ type SanityCaseStudy = {
 
 type SanityBlogPost = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -463,6 +471,7 @@ type SanityStoreProductVariant = {
 
 type SanityStoreProduct = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   category?: string
@@ -517,6 +526,7 @@ type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], Com
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
 
 type SanitySiteContent = {
+  _updatedAt?: string
   navigation?: Array<{
     _key?: string
     label?: LocalizedValue
@@ -2631,6 +2641,7 @@ const productsFromSanity = (
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
+        updatedAt: product._updatedAt,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
@@ -2748,6 +2759,7 @@ const storeProductsFromSanity = (
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
+        updatedAt: product._updatedAt,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
         slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
         category: cleanStoreCategory(product.category ?? fallbackProduct?.category ?? 'bancos'),
@@ -2787,6 +2799,7 @@ const casesFromSanity = (
 
       return {
         studioDocumentId: item._id?.replace(/^drafts\./, ''),
+        updatedAt: item._updatedAt,
         title: localized(item.title, language, fallbackCase?.title ?? 'Case study'),
         slug: slug || fallbackCase?.slug || `case-${index + 1}`,
         image: images[0],
@@ -2831,6 +2844,7 @@ const postsFromSanity = (
 
       return {
         studioDocumentId: post._id?.replace(/^drafts\./, ''),
+        updatedAt: post._updatedAt,
         title: localized(post.title, language, fallbackPost?.title ?? 'Blog post'),
         slug: slug || fallbackPost?.slug || `post-${index + 1}`,
         image: images[0],
@@ -3113,6 +3127,7 @@ export const contentFromSanity = (
       language,
       fallbackContent[language],
     )
+    next[language].updatedAt = collections.siteContent?._updatedAt
     applyStoreCategoriesFromSanity(next[language], collections.storeCategories, language)
     next[language].products = productsFromSanity(
       collections.products,
