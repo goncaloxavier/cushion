@@ -549,7 +549,11 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
         payment.ok ? payment.paymentUrl : null,
         payment.ok ? payment.reference : null,
       ],
-    ).catch(() => undefined)
+    ).catch((error) => {
+      console.error(
+        `[orders] payment_attempts insert failed for order ${created.order.id}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    })
   }
 
   return created
@@ -571,7 +575,11 @@ export const recordOutboundEmail = async (
       result.ok ? result.id : null,
       result.ok ? null : result.error,
     ],
-  ).catch(() => undefined)
+  ).catch((error) => {
+    console.error(
+      `[orders] outbound_emails insert failed for order ${input.orderId}: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  })
 }
 
 export const sendOrderEmails = async (order: OrderRow) => {
