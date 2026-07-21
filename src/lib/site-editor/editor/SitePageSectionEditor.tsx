@@ -17,12 +17,12 @@ import type {
   BuilderTypography,
   LocalizedValue,
 } from '$lib/builder/types'
+import type {Asset} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
 import {Toggle} from './Toggle'
 
-type Asset = {id: string; url: string}
 type UploadAsset = (
   file: File,
   kind: 'image' | 'video',

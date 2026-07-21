@@ -3,13 +3,12 @@ import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {StackCompactIcon} from '@sanity/icons/StackCompact'
 import type {BuilderViewport} from '$lib/builder/types'
 import type {
+  Asset,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
 } from '$lib/site-editor/types'
 import {SiteEditorFieldInput} from './SiteEditorField'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   document: SiteEditorDocument

@@ -10,12 +10,10 @@ import {
   duplicateBuilderSection,
 } from '$lib/builder/defaults'
 import type {BuilderSection, BuilderSectionType} from '$lib/builder/types'
-import type {SitePageDocument} from '../types'
+import type {Asset, SitePageDocument} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SitePageSectionEditor} from './SitePageSectionEditor'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   page: SitePageDocument

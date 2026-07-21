@@ -1,6 +1,8 @@
 import type {SanityDocument} from '@sanity/client'
 import type {BuilderSection} from '$lib/builder/types'
 
+export type Asset = {id: string; url: string}
+
 export type SiteEditorDocumentType =
   | 'siteLanding'
   | 'productCategory'

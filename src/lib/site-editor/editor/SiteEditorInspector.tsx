@@ -7,6 +7,7 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {panelsForEditorNode} from '../model'
 import {getEditorValue} from '../path'
 import type {
+  Asset,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
@@ -25,8 +26,6 @@ const ArticleWorkspace = React.lazy(() =>
 const StoreCategoryManager = React.lazy(() =>
   import('./StoreCategoryManager').then((module) => ({default: module.StoreCategoryManager})),
 )
-
-type Asset = {id: string; url: string}
 
 type Props = {
   node?: SiteEditorNode

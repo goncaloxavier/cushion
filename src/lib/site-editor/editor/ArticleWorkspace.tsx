@@ -3,11 +3,9 @@ import {createPortal} from 'react-dom'
 import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 import {getEditorValue} from '../path'
-import type {SiteEditorDocument, SiteEditorSaveState} from '../types'
+import type {Asset, SiteEditorDocument, SiteEditorSaveState} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ArticleEditor} from './ArticleEditor'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   document: SiteEditorDocument

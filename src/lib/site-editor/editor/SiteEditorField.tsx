@@ -18,7 +18,7 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {UploadIcon} from '@sanity/icons/Upload'
 import {VideoIcon} from '@sanity/icons/Video'
 import {getEditorValue} from '../path'
-import type {SiteEditorDocumentType, SiteEditorField} from '../types'
+import type {Asset, SiteEditorDocumentType, SiteEditorField} from '../types'
 import type {BuilderViewport} from '$lib/builder/types'
 import {textAppearanceFields, type TextAppearance} from '$lib/text-appearance'
 import {editorKey, sanityAssetUrl, slugify} from './asset'
@@ -26,8 +26,6 @@ import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
 import {Toggle} from './Toggle'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   field: SiteEditorField
