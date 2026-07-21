@@ -18,21 +18,30 @@
 
   const specsLabels: Record<
     LanguageCode,
-    {dimensions: string; materials: string; specifications: string; advantages: string}
+    {
+      heading: string
+      dimensions: string
+      materials: string
+      specifications: string
+      advantages: string
+    }
   > = {
     pt: {
+      heading: 'Informação técnica',
       dimensions: 'Dimensões',
       materials: 'Materiais',
       specifications: 'Especificações',
       advantages: 'Vantagens',
     },
     en: {
+      heading: 'Technical information',
       dimensions: 'Dimensions',
       materials: 'Materials',
       specifications: 'Specifications',
       advantages: 'Advantages',
     },
     es: {
+      heading: 'Información técnica',
       dimensions: 'Dimensiones',
       materials: 'Materiales',
       specifications: 'Especificaciones',
@@ -58,22 +67,20 @@
   const imageDataAttribute = $derived(
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
-  const summaryCopy = $derived(cleanProductMaterialCopy(data.product.summary))
-  const descriptionCopy = $derived(cleanProductMaterialCopy(data.product.description))
-  const leadCopy = $derived(summaryCopy || descriptionCopy)
-  const leadFieldPath = $derived(summaryCopy ? 'summary.pt' : 'description.pt')
+  const leadCopy = $derived(cleanProductMaterialCopy(data.product.description))
   const specsCopy = $derived(specsLabels[data.language] ?? specsLabels.pt)
   const specs = $derived(
     data.product.specs ?? {dimensions: [], materials: [], specifications: [], advantages: []},
   )
-  const hasSpecs = $derived(
-    Boolean(
-      specs.dimensions.length ||
-        specs.materials.length ||
-        specs.specifications.length ||
-        specs.advantages.length,
-    ),
+  const specGroups = $derived(
+    [
+      {key: 'dimensions', label: specsCopy.dimensions, items: specs.dimensions},
+      {key: 'materials', label: specsCopy.materials, items: specs.materials},
+      {key: 'specifications', label: specsCopy.specifications, items: specs.specifications},
+      {key: 'advantages', label: specsCopy.advantages, items: specs.advantages},
+    ].filter((group) => group.items.length > 0),
   )
+  const hasSpecs = $derived(specGroups.length > 0)
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
@@ -120,22 +127,11 @@
         {#if leadCopy}
           <p
             class="article-lead cms-styled-text"
-            style={textAppearanceStyle(
-              data.product.textAppearance?.[leadFieldPath.startsWith('summary') ? 'summary' : 'description'],
-            )}
-            data-df4y-editor-field="true"
-            data-df4y-editor-label={summaryCopy ? 'Resumo do produto' : 'Descrição do produto'}
-            data-sanity={productDataAttribute?.(leadFieldPath)}
-          >{leadCopy}</p>
-        {/if}
-        {#if summaryCopy && descriptionCopy}
-          <p
-            class="product-editorial-proof cms-styled-text"
             style={textAppearanceStyle(data.product.textAppearance?.description)}
             data-df4y-editor-field="true"
             data-df4y-editor-label="Descrição do produto"
             data-sanity={productDataAttribute?.('description.pt')}
-          >{descriptionCopy}</p>
+          >{leadCopy}</p>
         {/if}
       </div>
     </section>
@@ -162,47 +158,32 @@
     </section>
 
     {#if hasSpecs}
-      <section class="product-editorial-specs">
-        {#if specs.dimensions.length}
-          <div class="product-spec-block">
-            <h2>{specsCopy.dimensions}</h2>
-            <ul class="product-spec-tags">
-              {#each specs.dimensions as item}
-                <li>{item}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-        {#if specs.materials.length}
-          <div class="product-spec-block">
-            <h2>{specsCopy.materials}</h2>
-            <ul class="product-spec-list">
-              {#each specs.materials as item}
-                <li>{item}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-        {#if specs.specifications.length}
-          <div class="product-spec-block">
-            <h2>{specsCopy.specifications}</h2>
-            <ul class="product-spec-list">
-              {#each specs.specifications as item}
-                <li>{item}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-        {#if specs.advantages.length}
-          <div class="product-spec-block">
-            <h2>{specsCopy.advantages}</h2>
-            <ul class="product-spec-list">
-              {#each specs.advantages as item}
-                <li>{item}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
+      <section
+        class="product-editorial-specs"
+        class:has-following-support={hasProductSupport}
+        aria-labelledby="product-specs-heading"
+      >
+        <header class="product-specs-header">
+          <h2 id="product-specs-heading">{specsCopy.heading}</h2>
+        </header>
+
+        <div class="product-specs-grid">
+          {#each specGroups as group (group.key)}
+            <section
+              class="product-spec-block"
+              data-df4y-editor-field="true"
+              data-df4y-editor-label={group.label}
+              data-sanity={productDataAttribute?.(group.key)}
+            >
+              <h3>{group.label}</h3>
+              <ul class="product-spec-list">
+                {#each group.items as item}
+                  <li>{item}</li>
+                {/each}
+              </ul>
+            </section>
+          {/each}
+        </div>
       </section>
     {/if}
 

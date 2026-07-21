@@ -69,14 +69,13 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
 
   const products = rank(content.products, tokens, (item) => [
     {text: item.title, weight: 5},
-    {text: item.summary, weight: 3},
-    {text: item.description, weight: 1},
+    {text: item.description, weight: 3},
   ]).map(({item}) => ({
     category: 'products' as const,
     title: item.title,
     slug: item.slug,
     href: `${ROUTE_PREFIX.products}/${item.slug}`,
-    snippet: snippet(item.summary, item.description),
+    snippet: snippet(item.description),
   }))
 
   const storeProducts = rank(content.storeProducts, tokens, (item) => [

@@ -106,7 +106,6 @@ export type ProductItem = {
   studioDocumentId?: string
   title: string
   slug: string
-  summary: string
   description: string
   image?: ContentImage
   images?: ContentImage[]
@@ -416,7 +415,6 @@ type SanityProduct = {
   slug?: {current?: string}
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
-  summary?: LocalizedValue
   description?: LocalizedValue
   specs?: {
     dimensions?: LocalizedValue[]
@@ -777,124 +775,96 @@ const productCategories = {
     {
       title: 'Decking, pavimentos e passadiços',
       slug: 'decking-pavimentos-passadicos',
-      summary:
-        'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
-        'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
+        'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer. Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
     },
     {
       title: 'Vedações, divisórias e resguardos',
       slug: 'vedacoes-divisorias-resguardos',
-      summary:
-        'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável.',
       description:
-        'Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
+        'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável. Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
     },
     {
       title: 'Mobiliário urbano e jardim',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados.',
       description:
-        'Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
+        'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados. Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
     },
     {
       title: 'Abrigos, telheiros e pérgolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado.',
       description:
-        'Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
+        'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado. Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
     },
     {
       title: 'Compostores, caixas de cultivo e bordaduras',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Soluções para agricultura, compostagem e organização de canteiros em material reciclado.',
       description:
-        'Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
+        'Soluções para agricultura, compostagem e organização de canteiros em material reciclado. Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
     },
   ],
   en: [
     {
       title: 'Decking, flooring and walkways',
       slug: 'decking-pavimentos-passadicos',
-      summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
-        'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
+        'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces. An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
     },
     {
       title: 'Fencing, dividers and screens',
       slug: 'vedacoes-divisorias-resguardos',
-      summary: 'Profiles to define, protect and organize outdoor spaces with a durable material.',
       description:
-        'Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
+        'Profiles to define, protect and organize outdoor spaces with a durable material. Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
     },
     {
       title: 'Urban and garden furniture',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Benches, tables, planters and pieces for intensive use in public or private spaces.',
       description:
-        'Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
+        'Benches, tables, planters and pieces for intensive use in public or private spaces. Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
     },
     {
       title: 'Shelters, canopies and pergolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Outdoor structures for shade, protection and organization using recycled-plastic profiles.',
       description:
-        'Products that create support and stay areas without the maintenance routine of traditional timber.',
+        'Outdoor structures for shade, protection and organization using recycled-plastic profiles. Products that create support and stay areas without the maintenance routine of traditional timber.',
     },
     {
       title: 'Composters, grow boxes and borders',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Solutions for agriculture, composting and garden organization in recycled material.',
       description:
-        'Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
+        'Solutions for agriculture, composting and garden organization in recycled material. Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
     },
   ],
   es: [
     {
       title: 'Tarimas, pavimentos y pasarelas',
       slug: 'decking-pavimentos-passadicos',
-      summary:
-        'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
-        'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
+        'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio. Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
     },
     {
       title: 'Vallas, divisorias y resguardos',
       slug: 'vedacoes-divisorias-resguardos',
-      summary:
-        'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero.',
       description:
-        'Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
+        'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero. Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
     },
     {
       title: 'Mobiliario urbano y jardín',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados.',
       description:
-        'Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
+        'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados. Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
     },
     {
       title: 'Refugios, cubiertas y pérgolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado.',
       description:
-        'Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
+        'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado. Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
     },
     {
       title: 'Compostadores, cajas de cultivo y borduras',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Soluciones para agricultura, compostaje y organización de canteros en material reciclado.',
       description:
-        'Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
+        'Soluciones para agricultura, compostaje y organización de canteros en material reciclado. Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
     },
   ],
 } satisfies Record<LanguageCode, ProductItem[]>
@@ -2666,9 +2636,6 @@ const productsFromSanity = (
         image: productImages[0],
         images: productImages,
         media: productMedia,
-        summary: cleanProductMaterialCopy(
-          localized(product.summary, language, fallbackProduct?.summary ?? ''),
-        ),
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
@@ -2680,7 +2647,6 @@ const productsFromSanity = (
         },
         textAppearance: appearanceMap({
           title: product.title,
-          summary: product.summary,
           description: product.description,
         }),
         ...exclusiveExtras,

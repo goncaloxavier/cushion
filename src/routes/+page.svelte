@@ -261,11 +261,11 @@
                 class="cms-styled-text"
                 style={textAppearanceStyle(product.textAppearance?.title)}
               >{product.title}</h3>
-              {#if product.summary}
+              {#if product.description}
                 <p
                   class="cms-styled-text"
-                  style={textAppearanceStyle(product.textAppearance?.summary)}
-                >{product.summary}</p>
+                  style={textAppearanceStyle(product.textAppearance?.description)}
+                >{product.description}</p>
               {/if}
             </div>
           </a>

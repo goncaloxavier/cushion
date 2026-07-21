@@ -68,7 +68,7 @@
             data.created.type,
             data.created.type === 'blogPost'
               ? 'excerpt.pt'
-              : data.created.type === 'caseStudy'
+              : data.created.type === 'caseStudy' || data.created.type === 'productCategory'
                 ? 'description.pt'
                 : 'summary.pt',
           )}

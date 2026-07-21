@@ -689,16 +689,10 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
       fields: [
         ...baseDocumentPanels('Nome da solução', 'Ex.: Bancos para exterior')[0].fields,
         localizedText(
-          'summary',
-          'Resumo',
-          undefined,
-          'Ex.: Bancos robustos em plástico reciclado, prontos a instalar em espaços públicos.',
-        ),
-        localizedText(
           'description',
           'Descrição',
           undefined,
-          'Ex.: Sistema modular com fixação simples e acabamento resistente a raios UV, chuva e variações de temperatura.',
+          'Ex.: Bancos robustos em plástico reciclado, prontos a instalar em espaços públicos. Sistema modular com fixação simples e acabamento resistente a raios UV, chuva e variações de temperatura.',
         ),
       ],
     },
@@ -748,25 +742,6 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
       id: 'organization',
       label: 'Organização',
       fields: [{name: 'orderRank', label: 'Ordem', type: 'number', step: 1}],
-    },
-  ],
-  storeCategory: [
-    {
-      id: 'content',
-      label: 'Categoria',
-      description: 'Nome e identificador usados nos filtros da Loja',
-      fields: [
-        {
-          ...localizedString('title', 'Nome da categoria', undefined, 'Ex.: Decking'),
-          required: true,
-        },
-      ],
-    },
-    {
-      id: 'organization',
-      label: 'Ordem',
-      description: 'Escolha a posição da categoria no filtro',
-      fields: [{name: 'orderRank', label: 'Ordem de apresentação', type: 'number', step: 1}],
     },
   ],
   storeProduct: [

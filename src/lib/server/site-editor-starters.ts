@@ -40,8 +40,9 @@ export const createSiteEditorStarterFields = ({
     return {
       ...identity,
       gallery: [],
-      summary: localizedText('Apresente aqui, numa frase, onde este produto é útil.'),
-      description: localizedText('Descreva o produto, as aplicações e as principais vantagens.'),
+      description: localizedText(
+        'Apresente aqui, numa frase, onde este produto é útil. Descreva o produto, as aplicações e as principais vantagens.',
+      ),
       orderRank: 100,
     }
   }

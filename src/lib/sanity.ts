@@ -371,7 +371,6 @@ const collectionsQuery = `{
         alt
       },
     },
-    summary,
     description,
     "specs": {
       "dimensions": dimensions[],

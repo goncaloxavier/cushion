@@ -105,13 +105,6 @@ export const productCategory = defineType({
       ],
     }),
     defineField({
-      name: 'summary',
-      title: 'Resumo',
-      description: 'Explique rapidamente onde a solução é útil.',
-      type: 'localizedText',
-      group: 'conteudo',
-    }),
-    defineField({
       name: 'description',
       title: 'Descrição',
       description: 'Texto principal da página.',
@@ -162,7 +155,7 @@ export const productCategory = defineType({
   preview: {
     select: {
       title: 'title.pt',
-      subtitle: 'summary.pt',
+      subtitle: 'description.pt',
       media: 'image',
     },
   },
