@@ -615,6 +615,27 @@ test.describe('public website routes', () => {
       expect(response?.status()).toBe(404)
       await expect(page.getByRole('heading', {name: 'Página não encontrada'})).toBeVisible()
     })
+
+    test('the 404 page localizes copy and CTA links for non-default languages', async ({page}) => {
+      const response = await page.goto('/produtos/not-a-real-product?lang=en', {
+        waitUntil: 'domcontentloaded',
+      })
+
+      expect(response?.status()).toBe(404)
+      await expect(page.getByRole('heading', {name: 'Page not found'})).toBeVisible()
+      await expect(page.locator('.error-lead')).toHaveText(
+        "The page you're looking for doesn't exist or was moved. Check the address or head back home.",
+      )
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        'noindex, nofollow',
+      )
+
+      const homeLink = page.getByRole('link', {name: 'Back to home'})
+      const storeLink = page.getByRole('link', {name: 'Visit the store'})
+      await expect(homeLink).toHaveAttribute('href', '/?lang=en')
+      await expect(storeLink).toHaveAttribute('href', '/loja?lang=en')
+    })
   })
 
   test('pagination returns the reader to the top of the collection', async ({page}) => {

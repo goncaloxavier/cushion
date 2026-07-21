@@ -26,6 +26,7 @@ import {
   type SanityCollections,
 } from '../src/lib/site-content'
 import {textAppearanceStyle} from '../src/lib/text-appearance'
+import {breadcrumbListSchema} from '../src/lib/seo'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -243,6 +244,40 @@ test.describe('Sanity Studio content contract', () => {
       specifications: [],
       advantages: [],
     })
+  })
+
+  test('breadcrumbListSchema builds a positioned, schema.org-shaped ItemList', () => {
+    const schema = breadcrumbListSchema([
+      {name: 'Início', url: 'https://dafabrica4you.pt/'},
+      {name: 'Produtos', url: 'https://dafabrica4you.pt/produtos'},
+      {name: 'Decking e Pavimentos', url: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos'},
+    ])
+
+    expect(schema['@context']).toBe('https://schema.org')
+    expect(schema['@type']).toBe('BreadcrumbList')
+
+    const items = schema.itemListElement as Array<Record<string, unknown>>
+    expect(items).toHaveLength(3)
+    expect(items.map((item) => item.position)).toEqual([1, 2, 3])
+    expect(items.map((item) => item['@type'])).toEqual(['ListItem', 'ListItem', 'ListItem'])
+    expect(items[2]).toEqual({
+      '@type': 'ListItem',
+      position: 3,
+      name: 'Decking e Pavimentos',
+      item: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos',
+    })
+
+    // Names run through the same stega-stripping/whitespace-collapse as other
+    // schema builders, so a crumb label copied from the CMS can't leak
+    // zero-width markers or raw newlines into the structured data.
+    const stegaEncoded = vercelStegaCombine('Loja  \n  Online', {
+      origin: 'sanity.io',
+      href: 'http://localhost:3333/intent/edit/id=siteContent;path=nav.store',
+    })
+    const [dirty] = breadcrumbListSchema([{name: stegaEncoded, url: '/loja'}]).itemListElement as Array<
+      Record<string, unknown>
+    >
+    expect(dirty.name).toBe('Loja Online')
   })
 
   test('standalone builder keeps Sanity credentials and publishing behind the staff server', () => {
