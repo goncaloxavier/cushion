@@ -132,9 +132,20 @@ export const publishBuilderSettings = async (settings: BuilderSiteSettings) => {
 
 export const deleteBuilderPage = (id: string) => deletePageDocument(requireWriteClient(), id)
 
+const allowedImageTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+])
+const allowedVideoTypes = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
+
 export const uploadBuilderAsset = async (file: File, kind: 'image' | 'video') => {
   const maxBytes = kind === 'video' ? 250 * 1024 * 1024 : 25 * 1024 * 1024
-  const validType = kind === 'image' ? file.type.startsWith('image/') : file.type.startsWith('video/')
+  // Explicit allowlist, not a startsWith('image/') check — that pattern also
+  // accepts image/svg+xml, which can carry inline <script>/event handlers.
+  const validType = kind === 'image' ? allowedImageTypes.has(file.type) : allowedVideoTypes.has(file.type)
 
   if (!validType) throw new Error(kind === 'image' ? 'Escolha uma imagem válida.' : 'Escolha um vídeo válido.')
   if (file.size <= 0 || file.size > maxBytes) {

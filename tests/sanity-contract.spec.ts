@@ -20,7 +20,7 @@ import {
   createBuilderSiteSettings,
 } from '../src/lib/builder/defaults'
 import {validateBuilderPage, validateBuilderSettings} from '../src/lib/builder/validation'
-import {siteScopePanels} from '../src/lib/site-editor/model'
+import {documentPanels, siteScopePanels} from '../src/lib/site-editor/model'
 import {
   contentFromSanity,
   type SanityCollections,
@@ -58,6 +58,47 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).toContain('caseStudy')
     expect(schemaIndex).toContain('blogPost')
     expect(schemaIndex).toContain('partnerItem')
+  })
+
+  test('every editable field the site editor exposes is in the server save allowlist', () => {
+    // src/lib/server/site-editor.ts's `editableFields` allowlist filters every save/publish —
+    // a field the UI lets someone edit but that's missing from that allowlist gets silently
+    // dropped (the UI shows "Guardado" but Sanity never receives it). This test catches that
+    // class of bug for any field declared in model.ts's documentPanels/siteScopePanels.
+    const siteEditorSource = read('src/lib/server/site-editor.ts')
+    const allowlistFor = (typeKey: string): string[] => {
+      const match = siteEditorSource.match(new RegExp(`\\b${typeKey}:\\s*\\[([^\\]]*)\\]`, 's'))
+      if (!match) throw new Error(`editableFields.${typeKey} not found in site-editor.ts`)
+      return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1])
+    }
+    const topLevelFieldNames = (panels: (typeof documentPanels)[string]) =>
+      panels.flatMap((panel) => panel.fields.map((field) => field.name))
+
+    for (const [type, panels] of Object.entries(documentPanels)) {
+      const allowlist = allowlistFor(type)
+      for (const name of topLevelFieldNames(panels)) {
+        expect(allowlist, `${type}.${name} is editable but missing from editableFields`).toContain(name)
+      }
+    }
+
+    // siteLanding is scoped by top-level field (navigation/home/about/…), not documentPanels —
+    // each siteScopePanels key IS the document-level field name that must be in the allowlist.
+    const siteLandingAllowlist = allowlistFor('siteLanding')
+    for (const rootField of Object.keys(siteScopePanels)) {
+      expect(
+        siteLandingAllowlist,
+        `siteLanding.${rootField} is editable but missing from editableFields`,
+      ).toContain(rootField)
+    }
+
+    // storeCategory has no documentPanels entry (StoreCategoryManager.tsx renders it directly
+    // with its own hardcoded fields instead of the generic panel system) — check those by hand.
+    const storeCategoryAllowlist = allowlistFor('storeCategory')
+    for (const name of ['title', 'slug', 'orderRank']) {
+      expect(storeCategoryAllowlist, `storeCategory.${name} is editable but missing from editableFields`).toContain(
+        name,
+      )
+    }
   })
 
   test('Loja settings expose only clear, used groups in the site editor', () => {

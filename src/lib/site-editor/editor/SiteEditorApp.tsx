@@ -287,24 +287,26 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const replaceDocument = useCallback(
     (next: SiteEditorDocument, record = true, previewIsAuthoritative = false) => {
-      const copy = snapshot(next)
-      documentRef.current = copy
-      setDocument(copy)
+      // `next` always comes from setEditorValue (or an equivalent object-spread
+      // update), which already builds a fresh tree with structural sharing —
+      // nothing downstream mutates it in place, so re-cloning the whole document
+      // here on every keystroke would just be wasted work.
+      documentRef.current = next
+      setDocument(next)
       dirtyVersion.current += 1
       if (!previewIsAuthoritative) previewNeedsRefresh.current = true
       if (record) {
         // Coalesce checkpoints made within the same short burst of typing into one
-        // undo step (reusing `copy`, never re-cloning it) instead of recording a
-        // full-document snapshot per keystroke — that both halves the cloning cost
-        // of every edit and keeps undo granularity the same everywhere an edit can
-        // be made, matching the "commit on pause" feel inline canvas editing already has.
+        // undo step instead of recording a full-document snapshot per keystroke —
+        // that keeps undo granularity the same everywhere an edit can be made,
+        // matching the "commit on pause" feel inline canvas editing already has.
         const now = Date.now()
         const coalesce = now - lastHistoryPushAt.current < historyCoalesceWindowMs
         lastHistoryPushAt.current = now
         setHistory((current) => {
           const trimmed = current.slice(0, historyIndexRef.current + 1)
           const result =
-            coalesce && trimmed.length ? [...trimmed.slice(0, -1), copy] : [...trimmed, copy]
+            coalesce && trimmed.length ? [...trimmed.slice(0, -1), next] : [...trimmed, next]
           const bounded = result.length > 80 ? result.slice(-80) : result
           const nextIndex = bounded.length - 1
           historyIndexRef.current = nextIndex

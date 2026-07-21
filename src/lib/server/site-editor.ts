@@ -60,7 +60,6 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'slug',
     'image',
     'gallery',
-    'summary',
     'description',
     'dimensions',
     'materials',
@@ -566,7 +565,44 @@ const editableDocument = (input: SiteEditorDocument) => {
   return result as SiteEditorDocument
 }
 
+const safeUrlSchemes = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+const linkFieldNames = new Set([
+  'href',
+  'whatsappUrl',
+  'instagramUrl',
+  'facebookUrl',
+  'youtubeUrl',
+  'complaintsUrl',
+  'privacyPolicyUrl',
+  'cookiePolicyUrl',
+])
+
+const isSafeLinkValue = (value: string): boolean => {
+  const trimmed = value.trim()
+  if (!trimmed) return true
+  try {
+    return safeUrlSchemes.has(new URL(trimmed, 'https://www.dafabrica4you.pt').protocol)
+  } catch {
+    return false
+  }
+}
+
+const validateLinkSchemes = (value: unknown, depth = 0): void => {
+  if (depth > 24 || !value || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    for (const item of value) validateLinkSchemes(item, depth + 1)
+    return
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (linkFieldNames.has(key) && typeof child === 'string' && !isSafeLinkValue(child)) {
+      throw new SiteEditorValidationError('Uma ligação usa um protocolo não permitido.')
+    }
+    validateLinkSchemes(child, depth + 1)
+  }
+}
+
 const validateDocument = (document: SiteEditorDocument) => {
+  validateLinkSchemes(document)
   const localizedTitle = document.title as {pt?: unknown} | string | undefined
   const title =
     typeof localizedTitle === 'string'
