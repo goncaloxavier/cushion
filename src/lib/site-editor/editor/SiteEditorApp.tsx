@@ -30,6 +30,7 @@ import type {
   SiteEditorSaveState,
 } from '../types'
 import {createSiteEditorApi} from './api'
+import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SiteEditorCanvas} from './SiteEditorCanvas'
 import {SiteEditorInspector} from './SiteEditorInspector'
@@ -423,6 +424,31 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   )
 
   const closeSidebar = useCallback(() => setNavigationOpen(false), [])
+
+  // Stable references for the memoized SiteEditorInspector's callback props —
+  // inline arrow functions here would be recreated on every SiteEditorApp
+  // render (e.g. a toast, a save-state tick), defeating its React.memo.
+  const inspectorOnReplace = useCallback(
+    (next: SiteEditorDocument) => replaceDocument(next, true, next._type === 'sitePage'),
+    [replaceDocument],
+  )
+  const inspectorOnUpload = useCallback(
+    async (
+      file: File,
+      kind: 'image' | 'video',
+      onProgress?: (progress: SiteEditorUploadProgress) => void,
+    ) => (await api.uploadAsset(file, kind, onProgress)).asset,
+    [api],
+  )
+  const inspectorOnDelete = useCallback(() => setDeleteState({open: true, busy: false}), [])
+  const inspectorOnShowAll = useCallback(() => setInspectorMode('all'), [])
+  const inspectorOnOpenNode = useCallback(
+    (node: SiteEditorNode, path?: string) => {
+      setInspectorMode(path ? 'focused' : 'all')
+      void openDocument(node, path)
+    },
+    [openDocument],
+  )
 
   const loadManifest = useCallback(
     async (preferredDocumentId?: string) => {
@@ -990,6 +1016,25 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     frame.contentWindow.postMessage(message, window.location.origin)
   }, [document, frame, selectedPath, viewport])
 
+  // Return focus to whatever triggered the drawer once it closes, matching
+  // ConfirmDialog/ArticleWorkspace — otherwise keyboard users are stranded
+  // at <body> after every open/close of the two most-used drawers.
+  useEffect(() => {
+    if (!navigationOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    return () => previous?.focus()
+    // document.activeElement is a one-time snapshot read at open time, not a
+    // reactive dependency — including it would refocus on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationOpen])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    return () => previous?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsOpen])
+
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -1357,17 +1402,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           nodes={manifest.nodes}
           optionSources={manifest.optionSources}
           onChange={updatePath}
-          onReplace={(next) => replaceDocument(next, true, next._type === 'sitePage')}
+          onReplace={inspectorOnReplace}
           onSelectSection={setSelectedSectionKey}
-          onUpload={async (file, kind, onProgress) =>
-            (await api.uploadAsset(file, kind, onProgress)).asset
-          }
-          onDelete={() => setDeleteState({open: true, busy: false})}
-          onShowAll={() => setInspectorMode('all')}
-          onOpenNode={(node, path) => {
-            setInspectorMode(path ? 'focused' : 'all')
-            void openDocument(node, path)
-          }}
+          onUpload={inspectorOnUpload}
+          onDelete={inspectorOnDelete}
+          onShowAll={inspectorOnShowAll}
+          onOpenNode={inspectorOnOpenNode}
         />
       </aside>
 

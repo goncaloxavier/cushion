@@ -930,7 +930,7 @@
 
 .site-editor-panel-index small {
   overflow: hidden;
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 10px;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -1067,7 +1067,7 @@
 }
 
 .site-editor-panel-workspace-head small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 10px;
   line-height: 1.45;
 }
@@ -1357,7 +1357,7 @@
 }
 
 .site-editor-navigation-summary small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -1558,7 +1558,7 @@
 }
 
 .site-editor-array-index > div > button small {
-  color: #778680;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -1619,7 +1619,7 @@
 }
 
 .site-editor-array-detail-head small {
-  color: #778680;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -1928,7 +1928,7 @@
 }
 
 .site-editor-gallery-active-head small {
-  color: #72827c;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -1990,7 +1990,7 @@
 }
 
 .site-editor-gallery-poster small {
-  color: #72827c;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }
@@ -2513,7 +2513,7 @@
 .site-editor-article-note {
   margin: 0;
   padding: 0 2px;
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.45;
 }
@@ -3153,7 +3153,7 @@
 }
 
 .site-editor-rich-video-preview small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -3275,7 +3275,7 @@
 }
 
 .site-editor-rich-table-manager-head small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -3925,7 +3925,7 @@
 }
 
 .site-editor-section-picker > header small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }
@@ -3962,7 +3962,7 @@
 }
 
 .site-editor-section-picker > button small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.35;
 }
@@ -3986,7 +3986,7 @@
 }
 
 .site-editor-sections-empty span {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 10px;
 }
 
@@ -4144,7 +4144,7 @@
 }
 
 .site-page-field > small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }
@@ -4348,7 +4348,7 @@
 .site-page-media-upload small,
 .site-page-gallery-add small,
 .site-page-article-button small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }
@@ -4583,7 +4583,7 @@
 }
 
 .site-page-gallery-list > div > button small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 8px;
 }
 
@@ -4879,7 +4879,7 @@
 }
 
 .site-editor-category-product-list > button small {
-  color: #72827c;
+  color: var(--editor-muted);
   font-size: 9px;
 }
 
@@ -5191,7 +5191,7 @@
 }
 
 .site-editor-create-types button small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 10px;
   line-height: 1.4;
 }
@@ -5206,7 +5206,7 @@
 }
 
 .site-editor-create-fields label > small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }
@@ -5220,7 +5220,7 @@
 }
 
 .site-editor-modal-actions > small {
-  color: #71817b;
+  color: var(--editor-muted);
   font-size: 9px;
   line-height: 1.4;
 }

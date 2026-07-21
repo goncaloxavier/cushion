@@ -156,7 +156,11 @@ function SiteEditorSidebarComponent({
           <strong>{node.title}</strong>
           <small>{subtitle}</small>
         </span>
-        {node.draft ? <i className="site-editor-draft-dot" title="Rascunho" /> : null}
+        {node.draft ? (
+          <i className="site-editor-draft-dot" title="Rascunho">
+            <span className="site-editor-visually-hidden">Rascunho, por publicar</span>
+          </i>
+        ) : null}
         {collection ? (
           <span className={`site-editor-tree-chevron${isCollapsed ? '' : ' is-open'}`}>
             <ChevronDownIcon />
