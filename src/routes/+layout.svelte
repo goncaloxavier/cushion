@@ -9,7 +9,6 @@
   import RouteProgress from '$lib/components/RouteProgress.svelte'
   import RouteScene from '$lib/components/RouteScene.svelte'
   import SearchOverlay, {type SearchStrings} from '$lib/components/SearchOverlay.svelte'
-  import SiteEditorOverlay from '$lib/components/SiteEditorOverlay.svelte'
   import Toaster from '$lib/components/Toaster.svelte'
   import {cartEventName, cartTotalQuantity, readCart} from '$lib/cart'
   import {prefersReducedMotion} from '$lib/motion'
@@ -111,6 +110,9 @@
   const isBuilderCanvas = $derived(Boolean(data.builderPreview))
   let VisualEditingComponent = $state<
     (typeof import('@sanity/visual-editing/svelte'))['VisualEditing'] | null
+  >(null)
+  let SiteEditorOverlayComponent = $state<
+    (typeof import('$lib/components/SiteEditorOverlay.svelte'))['default'] | null
   >(null)
   let cartCount = $state(0)
   let menuOpen = $state(false)
@@ -377,6 +379,18 @@
 
     import('@sanity/visual-editing/svelte').then((module) => {
       VisualEditingComponent = module.VisualEditing
+    })
+  })
+
+  // SiteEditorOverlay pulls in @sanity/visual-editing-csm, which every visitor's
+  // page would otherwise ship eagerly (Svelte's {#if} only hides markup, it
+  // doesn't code-split — only import() does) despite being needed by nobody but
+  // staff inside the /painel/site canvas.
+  $effect(() => {
+    if (!data.builderPreview || SiteEditorOverlayComponent) return
+
+    import('$lib/components/SiteEditorOverlay.svelte').then((module) => {
+      SiteEditorOverlayComponent = module.default
     })
   })
 
@@ -740,6 +754,6 @@
   <VisualEditingComponent />
 {/if}
 
-{#if data.builderPreview && data.builderRenderMode !== 'builder'}
-  <SiteEditorOverlay />
+{#if data.builderPreview && data.builderRenderMode !== 'builder' && SiteEditorOverlayComponent}
+  <SiteEditorOverlayComponent />
 {/if}
