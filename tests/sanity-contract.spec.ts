@@ -159,6 +159,59 @@ test.describe('Sanity Studio content contract', () => {
     )
   })
 
+  test('productCategory specs fields localize with PT fallback and default to empty lists', () => {
+    const collections = {
+      products: [
+        {
+          _id: 'product.with-specs',
+          slug: {current: 'produto-com-especificacoes'},
+          title: {_type: 'localizedString', pt: 'Produto com especificações'},
+          specs: {
+            dimensions: [{_type: 'localizedString', pt: '20 x 30 x 10 cm'}],
+            materials: [
+              {_type: 'localizedString', pt: 'Plástico reciclado', en: 'Recycled plastic'},
+            ],
+            specifications: [{_type: 'localizedString', pt: 'Resistente a UV'}],
+            advantages: [
+              {_type: 'localizedString', pt: 'Sem manutenção'},
+              {_type: 'localizedString', pt: 'Fabrico nacional'},
+            ],
+          },
+        },
+        {
+          _id: 'product.without-specs',
+          slug: {current: 'produto-sem-especificacoes'},
+          title: {_type: 'localizedString', pt: 'Produto sem especificações'},
+        },
+      ],
+    } as unknown as SanityCollections
+
+    const withSpecs = contentFromSanity(collections).pt.products[0]
+    expect(withSpecs.specs).toEqual({
+      dimensions: ['20 x 30 x 10 cm'],
+      materials: ['Plástico reciclado'],
+      specifications: ['Resistente a UV'],
+      advantages: ['Sem manutenção', 'Fabrico nacional'],
+    })
+
+    // A field only translated into EN should still resolve for the EN reader.
+    const withSpecsEn = contentFromSanity(collections).en.products[0]
+    expect(withSpecsEn.specs?.materials).toEqual(['Recycled plastic'])
+    // Fields with no EN translation fall back to the PT copy rather than going blank.
+    expect(withSpecsEn.specs?.dimensions).toEqual(['20 x 30 x 10 cm'])
+
+    // A product with no specs object at all must not throw and must expose
+    // empty lists (matching what the /produtos/[slug] page checks before
+    // deciding whether to render the specs section), not undefined.
+    const withoutSpecs = contentFromSanity(collections).pt.products[1]
+    expect(withoutSpecs.specs).toEqual({
+      dimensions: [],
+      materials: [],
+      specifications: [],
+      advantages: [],
+    })
+  })
+
   test('standalone builder keeps Sanity credentials and publishing behind the staff server', () => {
     const studioConfig = read('sanity.config.ts')
     const studioStructure = read('sanity.structure.ts')
