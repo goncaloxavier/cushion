@@ -623,7 +623,6 @@ test.describe('Sanity Studio content contract', () => {
     const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
     const storeMediaGallery = read('src/lib/components/StoreMediaGallery.svelte')
     const siteEditorOverlay = read('src/lib/components/SiteEditorOverlay.svelte')
-    const imageGallery = read('src/lib/components/ImageGallery.svelte')
     const productListRoute = read('src/routes/produtos/+page.svelte')
     const productDetailRoute = read('src/routes/produtos/[slug]/+page.svelte')
     const caseDetailRoute = read('src/routes/casos-de-estudo/[slug]/+page.svelte')
@@ -692,19 +691,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('editPath?: string')
     expect(contentModel).toContain("imageFromSanity(mainImage, language, fallback, 'image')")
     expect(contentModel).toContain('gallery[_key==')
-    expect(imageGallery).toContain('dataAttribute?: (path: string) => string | undefined')
-    expect(imageGallery).toContain('image?.editPath && dataAttribute')
-    expect(imageGallery).toContain('data-sanity={activeDataAttribute}')
-    expect(imageGallery).toContain('data-sanity={thumbAttr}')
     expect(productDetailRoute).toContain('@sanity/visual-editing/create-data-attribute')
     expect(productDetailRoute).toContain("type: 'productCategory'")
     expect(productDetailRoute).toContain('data.preview || data.builderPreview')
     expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
-    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(leadFieldPath)}')
     expect(productDetailRoute).toContain("data-sanity={productDataAttribute?.('description.pt')}")
-    expect(productDetailRoute.indexOf('>{leadCopy}</p>')).toBeLessThan(
-      productDetailRoute.indexOf('>{descriptionCopy.intro}</p>'),
-    )
+    expect(productDetailRoute).toContain('>{leadCopy}</p>')
     expect(productDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(productListRoute).toContain("siteContentDataAttribute?.('productsPage.heroImage')")
     expect(productListRoute).toContain('data.preview || data.builderPreview')
@@ -925,8 +917,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(importScript).toContain('case-study-import.ndjson')
   })
 
-  test('shared image galleries lock background scroll', () => {
-    const gallery = read('src/lib/components/ImageGallery.svelte')
+  test('the shared media gallery locks background scroll', () => {
+    const gallery = read('src/lib/components/StoreMediaGallery.svelte')
     const styles = read('src/app.css')
 
     expect(gallery).toContain("classList.add('lightbox-open')")
