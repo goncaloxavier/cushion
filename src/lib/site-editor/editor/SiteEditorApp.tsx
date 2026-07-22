@@ -1214,7 +1214,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         <div className="site-editor-command-start">
           <a
             className="site-editor-backoffice-link"
-            href="/painel/pedidos"
+            href="/painel"
             aria-label="Voltar ao backoffice"
             title="Voltar ao backoffice"
           >

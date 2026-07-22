@@ -87,10 +87,26 @@
 .painel-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 1rem;
   margin-top: 1.4rem;
   padding-top: 1.1rem;
   border-top: 1px solid var(--p-sidebar-line);
+}
+
+.painel-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.painel-nav-group-label {
+  padding: 0 0.55rem;
+  margin-bottom: 0.25rem;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .painel-nav a {
@@ -196,6 +212,16 @@
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.75rem;
+}
+
+.painel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: 6px;
 }
 
 .painel-stat strong {

@@ -4,24 +4,35 @@
 
   let {data, children} = $props()
   const staff = $derived(data.staff)
-  const path = $derived(data.currentPath ?? '/painel/pedidos')
+  const path = $derived(data.currentPath ?? '/painel')
   const isSiteBuilder = $derived(path === '/painel/site' || path.startsWith('/painel/site/'))
 
-  const nav = $derived([
-    {href: '/painel/site', label: 'Website'},
-    {href: '/painel/pedidos', label: 'Pedidos'},
-    {href: '/painel/perfis', label: 'Perfis de clientes'},
-    {href: '/painel/encomendas', label: 'Encomendas'},
+  const navGroups = $derived([
+    {label: 'Visão geral', items: [{href: '/painel', label: 'Início'}]},
+    {
+      label: 'Vendas',
+      items: [
+        {href: '/painel/pedidos', label: 'Pedidos'},
+        {href: '/painel/perfis', label: 'Perfis de clientes'},
+        {href: '/painel/encomendas', label: 'Encomendas'},
+      ],
+    },
+    {label: 'Site', items: [{href: '/painel/site', label: 'Website'}]},
     ...(staff?.role === 'admin'
       ? [
-          {href: '/painel/equipa', label: 'Equipa'},
-          {href: '/painel/atividade', label: 'Atividade'},
-          {href: '/painel/definicoes', label: 'Definições'},
+          {
+            label: 'Administração',
+            items: [
+              {href: '/painel/equipa', label: 'Equipa'},
+              {href: '/painel/atividade', label: 'Atividade'},
+              {href: '/painel/definicoes', label: 'Definições'},
+            ],
+          },
         ]
       : []),
   ])
 
-  const isActive = (href: string) => path.startsWith(href)
+  const isActive = (href: string) => (href === '/painel' ? path === '/painel' : path.startsWith(href))
 </script>
 
 <svelte:head>
@@ -38,8 +49,13 @@
       <div class="painel-brand">DaFábrica4You</div>
       <p class="painel-brand-sub">Backoffice</p>
       <nav class="painel-nav" aria-label="Backoffice">
-        {#each nav as item (item.href)}
-          <a href={item.href} class:active={isActive(item.href)}>{item.label}</a>
+        {#each navGroups as group (group.label)}
+          <div class="painel-nav-group">
+            <p class="painel-nav-group-label">{group.label}</p>
+            {#each group.items as item (item.href)}
+              <a href={item.href} class:active={isActive(item.href)}>{item.label}</a>
+            {/each}
+          </div>
         {/each}
       </nav>
       <form method="POST" action="/painel/pedidos?/logout" class="painel-account">

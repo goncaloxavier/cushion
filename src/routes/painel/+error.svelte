@@ -13,5 +13,5 @@
 <div class="painel-panel">
   <p class="painel-field-text">{page.error?.message || 'Não tem permissão para aceder a esta página.'}</p>
   <p class="painel-hint">Esta área está reservada a contas de administrador.</p>
-  <p class="painel-page-sub"><a href="/painel/pedidos">← Voltar aos pedidos</a></p>
+  <p class="painel-page-sub"><a href="/painel">← Voltar ao início</a></p>
 </div>
