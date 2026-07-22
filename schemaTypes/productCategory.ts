@@ -7,6 +7,7 @@ export const productCategory = defineType({
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'imagens', title: 'Imagens'},
+    {name: 'seccoes', title: 'Conteúdo adicional'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -110,6 +111,181 @@ export const productCategory = defineType({
       description: 'Texto principal da página.',
       type: 'localizedText',
       group: 'conteudo',
+    }),
+    defineField({
+      name: 'contentSections',
+      title: 'Conteúdo adicional',
+      description: 'Blocos opcionais apresentados depois da galeria e da informação técnica.',
+      type: 'array',
+      group: 'seccoes',
+      validation: (Rule) => Rule.max(12),
+      of: [
+        defineField({
+          name: 'productContentSection',
+          title: 'Secção',
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'mediaKind',
+              title: 'Conteúdo visual',
+              description: 'Escolha uma imagem ou um vídeo.',
+              type: 'string',
+              initialValue: 'image',
+              options: {
+                list: [
+                  {title: 'Imagem', value: 'image'},
+                  {title: 'Vídeo', value: 'video'},
+                ],
+                layout: 'radio',
+              },
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'image',
+              title: 'Imagem',
+              type: 'image',
+              options: {hotspot: true},
+              hidden: ({parent}) => parent?.mediaKind !== 'image',
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  description: 'Para acessibilidade. Diga o que se vê.',
+                  type: 'localizedString',
+                  validation: (Rule) =>
+                    Rule.required().warning('Adicione uma descrição para leitores de ecrã.'),
+                }),
+              ],
+            }),
+            defineField({
+              name: 'video',
+              title: 'Vídeo',
+              description: 'Carregue um ficheiro ou cole um link do YouTube.',
+              type: 'object',
+              hidden: ({parent}) => parent?.mediaKind !== 'video',
+              fields: [
+                defineField({
+                  name: 'kind',
+                  title: 'Origem',
+                  type: 'string',
+                  initialValue: 'youtube',
+                  options: {
+                    list: [
+                      {title: 'Vídeo carregado', value: 'upload'},
+                      {title: 'Link do YouTube', value: 'youtube'},
+                    ],
+                    layout: 'radio',
+                  },
+                }),
+                defineField({
+                  name: 'file',
+                  title: 'Ficheiro de vídeo',
+                  type: 'file',
+                  options: {accept: 'video/mp4,video/webm,video/quicktime'},
+                  hidden: ({parent}) => parent?.kind !== 'upload',
+                }),
+                defineField({
+                  name: 'youtubeUrl',
+                  title: 'Link do YouTube',
+                  type: 'url',
+                  hidden: ({parent}) => parent?.kind !== 'youtube',
+                  validation: (Rule) => Rule.uri({scheme: ['https']}),
+                }),
+              ],
+            }),
+            defineField({
+              name: 'poster',
+              title: 'Imagem de capa do vídeo',
+              description: 'Opcional. Aparece enquanto o vídeo carrega.',
+              type: 'image',
+              options: {hotspot: true},
+              hidden: ({parent}) => parent?.mediaKind !== 'video',
+              fields: [
+                defineField({
+                  name: 'alt',
+                  title: 'Descrição da imagem',
+                  description: 'Para acessibilidade. Diga o que se vê.',
+                  type: 'localizedString',
+                }),
+              ],
+            }),
+            defineField({
+              name: 'videoTitle',
+              title: 'Nome do vídeo',
+              description: 'Identifica o vídeo para leitores de ecrã.',
+              type: 'localizedString',
+              hidden: ({parent}) => parent?.mediaKind !== 'video',
+            }),
+            defineField({
+              name: 'title',
+              title: 'Título',
+              description: 'Opcional. Aparece por baixo da imagem ou do vídeo.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'text',
+              title: 'Texto',
+              description: 'Opcional. Aparece por baixo da imagem ou do vídeo.',
+              type: 'localizedText',
+            }),
+            defineField({
+              name: 'buttonLabel',
+              title: 'Texto do botão',
+              description: 'Opcional. Só aparece quando também indicar um destino.',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'buttonUrl',
+              title: 'Destino do botão',
+              description: 'Opcional. Página do site ou ligação externa.',
+              type: 'url',
+              validation: (Rule) => Rule.uri({scheme: ['http', 'https'], allowRelative: true}),
+            }),
+          ],
+          validation: (Rule) =>
+            Rule.custom((value) => {
+              const section = value as
+                | {
+                    mediaKind?: string
+                    image?: {asset?: {_ref?: string}}
+                    video?: {file?: {asset?: {_ref?: string}}; youtubeUrl?: string}
+                    buttonLabel?: {pt?: string}
+                    buttonUrl?: string
+                  }
+                | undefined
+              if (!section) return true
+              if (section.mediaKind === 'image' && !section.image?.asset?._ref) {
+                return 'Adicione a imagem desta secção.'
+              }
+              if (
+                section.mediaKind === 'video' &&
+                !section.video?.file?.asset?._ref &&
+                !section.video?.youtubeUrl?.trim()
+              ) {
+                return 'Carregue um vídeo ou indique um link do YouTube.'
+              }
+              const hasButtonLabel = Boolean(section.buttonLabel?.pt?.trim())
+              const hasButtonUrl = Boolean(section.buttonUrl?.trim())
+              if (hasButtonLabel !== hasButtonUrl) {
+                return 'Preencha o texto e o destino do botão, ou deixe ambos vazios.'
+              }
+              return true
+            }),
+          preview: {
+            select: {
+              title: 'title.pt',
+              mediaKind: 'mediaKind',
+              image: 'image',
+              poster: 'poster',
+            },
+            prepare: ({title, mediaKind, image, poster}) => ({
+              title: title || (mediaKind === 'video' ? 'Secção com vídeo' : 'Secção com imagem'),
+              subtitle: mediaKind === 'video' ? 'Vídeo' : 'Imagem',
+              media: mediaKind === 'video' ? poster : image,
+            }),
+          },
+        }),
+      ],
     }),
     defineField({
       name: 'dimensions',

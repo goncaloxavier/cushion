@@ -185,6 +185,7 @@ const arrayItemPath = (path: string, item: unknown, index: number) => {
 const defaultObjectType = (path: string) => {
   if (path.endsWith('navigation')) return 'navigationItem'
   if (path.endsWith('variants')) return 'storeProductVariant'
+  if (path.endsWith('contentSections')) return 'productContentSection'
   if (path.endsWith('stats') || path.endsWith('timeline')) return 'contentCard'
   if (path.endsWith('partners.items')) return 'partnerItem'
   return 'object'
@@ -203,6 +204,9 @@ const defaultValue = (field: SiteEditorField, path: string): unknown => {
   )
     return []
   if (field.type === 'slug') return {_type: 'slug', current: ''}
+  if (field.type === 'select') return field.options?.[0]?.value ?? ''
+  if (field.type === 'image') return null
+  if (field.type === 'video') return {kind: 'youtube', youtubeUrl: ''}
   if (field.type === 'object') {
     const value: Record<string, unknown> = {_type: defaultObjectType(path)}
     for (const child of field.fields ?? [])
@@ -1094,6 +1098,11 @@ export function SiteEditorFieldInput({
   }, [field.type, path, selectedPath])
 
   if (field.type === 'object') {
+    const visibleFields = (field.fields ?? []).filter(
+      (child) =>
+        !child.visibleWhen ||
+        getEditorValue(source, `${path}.${child.visibleWhen.sibling}`) === child.visibleWhen.equals,
+    )
     return (
       <div ref={container} className={`site-editor-object${selected ? ' is-selected' : ''}`}>
         <div className="site-editor-object-title">
@@ -1101,7 +1110,7 @@ export function SiteEditorFieldInput({
           {field.description ? <small>{field.description}</small> : null}
         </div>
         <div className="site-editor-object-fields">
-          {(field.fields ?? []).map((child) => (
+          {visibleFields.map((child) => (
             <SiteEditorFieldInput
               key={child.name}
               {...{

@@ -5054,13 +5054,12 @@ body.lightbox-open {
   max-width: 100%;
 }
 
-/* Only rendered when there's no video/tool support block: the quote CTA sits
+/* Only rendered when there is no following product content: the quote CTA sits
    inside the same dark stage element as the gallery (not a sibling section),
    so there is no seam — two adjacent elements each painting their own copy
    of the stage gradient would restart the gradient at the boundary and show
    a visible line even with identical values. The button flips to a solid
-   white pill here (same move as .product-support-tool-link on the dark tool
-   card below) since the green/blue gradient primary button is tuned for
+   white pill here since the green/blue gradient primary button is tuned for
    light surfaces and loses its pop as a same-family tone on dark teal. */
 .product-stage-cta {
   display: flex;
@@ -5096,8 +5095,8 @@ body.lightbox-open {
 .product-support-video {
   display: grid;
   gap: 0.9rem;
-  margin: 0;
   min-width: 0;
+  margin: 0;
 }
 
 .product-support-frame {
@@ -5127,7 +5126,6 @@ body.lightbox-open {
   border-left: 2px solid var(--green);
 }
 
-/* The "do it" card: a confident brand-deep action panel. */
 .product-support-tool {
   position: relative;
   display: flex;
@@ -5161,7 +5159,7 @@ body.lightbox-open {
   font-family: inherit;
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   line-height: 1.05;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .product-support-tool p {
@@ -5181,8 +5179,8 @@ body.lightbox-open {
   margin-top: auto;
   padding: 0.9rem 1.2rem;
   color: var(--brand-deep);
-  font-weight: 820;
   font-size: 1.02rem;
+  font-weight: 820;
   text-decoration: none;
   background: #fff;
   border-radius: 9px;
@@ -5202,6 +5200,138 @@ body.lightbox-open {
 
 .product-support-tool-link:hover .product-support-tool-arrow {
   transform: translateX(0.3rem);
+}
+
+/* Repeatable product chapters: media first, optional copy and action below. */
+.product-content-sections {
+  border-top: 1px solid rgba(17, 57, 60, 0.12);
+}
+
+.product-content-section {
+  position: relative;
+  padding: clamp(3.5rem, 7vw, 6.5rem) max(1.25rem, calc((100% - var(--max)) / 2));
+  background: #ffffff;
+}
+
+.product-content-section:nth-child(even) {
+  background: #edf6f1;
+}
+
+.product-content-section + .product-content-section::before {
+  position: absolute;
+  top: 0;
+  right: max(1.25rem, calc((100% - var(--max)) / 2));
+  left: max(1.25rem, calc((100% - var(--max)) / 2));
+  height: 1px;
+  content: '';
+  background: rgba(17, 57, 60, 0.14);
+}
+
+.product-content-media {
+  width: min(100%, calc(72svh * var(--product-content-ratio)));
+  max-width: var(--max);
+  max-height: 72svh;
+  aspect-ratio: var(--product-content-ratio);
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(17, 57, 60, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 1.4rem 3.8rem rgba(10, 48, 55, 0.12);
+}
+
+.product-content-media:not(.is-image) {
+  width: min(100%, calc(72svh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  background: var(--brand-deep);
+}
+
+.product-content-media img,
+.product-content-media video,
+.product-content-media iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.product-content-media img,
+.product-content-media video {
+  object-fit: contain;
+}
+
+.product-content-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: end;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding-top: clamp(1.6rem, 3vw, 2.5rem);
+}
+
+.product-content-copy-body {
+  display: grid;
+  min-width: 0;
+}
+
+.product-content-copy-body.has-title.has-text {
+  grid-template-columns: minmax(12rem, 0.72fr) minmax(18rem, 1.28fr);
+  gap: clamp(1.5rem, 5vw, 5rem);
+  align-items: start;
+}
+
+.product-content-copy h2 {
+  max-width: 13ch;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: clamp(2rem, 4.2vw, 3.7rem);
+  font-weight: 650;
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.product-content-copy p {
+  max-width: 44rem;
+  margin: 0;
+  color: #30413a;
+  font-size: clamp(1.08rem, 1.6vw, 1.25rem);
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.product-content-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.2rem;
+  padding: 0.85rem 1.25rem;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  background: var(--brand-deep);
+  border: 1px solid var(--brand-deep);
+  border-radius: 8px;
+  box-shadow: 0 0.75rem 1.8rem rgba(10, 48, 55, 0.14);
+  transition:
+    transform 0.2s var(--ease-snap),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.product-content-link:hover {
+  background: var(--sea);
+  box-shadow: 0 1rem 2.2rem rgba(10, 48, 55, 0.2);
+  transform: translateY(-2px);
+}
+
+.product-content-link:focus-visible {
+  outline: 3px solid var(--material-yellow);
+  outline-offset: 3px;
 }
 
 .product-editorial-intro {
@@ -6814,6 +6944,49 @@ html.reduce-motion {
   }
 
   .product-support-tool-link {
+    width: 100%;
+  }
+
+  .product-content-section {
+    padding: 3rem var(--mobile-gutter) 3.5rem;
+  }
+
+  .product-content-section + .product-content-section::before {
+    right: var(--mobile-gutter);
+    left: var(--mobile-gutter);
+  }
+
+  .product-content-media,
+  .product-content-media:not(.is-image) {
+    width: 100%;
+    max-height: 68svh;
+  }
+
+  .product-content-copy,
+  .product-content-copy-body.has-title.has-text {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .product-content-copy {
+    gap: 1.5rem;
+    align-items: start;
+    padding-top: 1.4rem;
+  }
+
+  .product-content-copy-body.has-title.has-text {
+    gap: 0.9rem;
+  }
+
+  .product-content-copy h2 {
+    max-width: 100%;
+    font-size: clamp(2rem, 9vw, 2.8rem);
+  }
+
+  .product-content-copy p {
+    font-size: 1.08rem;
+  }
+
+  .product-content-link {
     width: 100%;
   }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import ProductContentSections from '$lib/components/ProductContentSections.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -84,6 +85,9 @@
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
+  const contentSections = $derived(data.product.contentSections ?? [])
+  const hasContentSections = $derived(contentSections.length > 0)
+  const hasFollowingContent = $derived(hasProductSupport || hasContentSections)
   const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
@@ -150,7 +154,7 @@
         dataAttribute={imageDataAttribute}
         fallbackEditPath="image"
       />
-      {#if !hasProductSupport}
+      {#if !hasFollowingContent}
         <div class="product-stage-cta">
           {@render quoteButton()}
         </div>
@@ -160,7 +164,7 @@
     {#if hasSpecs}
       <section
         class="product-editorial-specs"
-        class:has-following-support={hasProductSupport}
+        class:has-following-support={hasFollowingContent}
         aria-labelledby="product-specs-heading"
       >
         <header class="product-specs-header">
@@ -234,7 +238,11 @@
       </section>
     {/if}
 
-    {#if hasProductSupport}
+    {#if hasContentSections}
+      <ProductContentSections sections={contentSections} dataAttribute={imageDataAttribute} />
+    {/if}
+
+    {#if hasFollowingContent}
       <section class="product-editorial-cta">
         {@render quoteButton()}
       </section>

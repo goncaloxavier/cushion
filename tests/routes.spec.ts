@@ -377,7 +377,7 @@ test.describe('public website routes', () => {
       }
     })
 
-    test('decking detail exposes the product video and deck builder tool', async ({page}) => {
+    test('decking detail preserves the product video and deck builder tool', async ({page}) => {
       await page.goto('/produtos/decking?lang=pt&fromPage=2', {waitUntil: 'domcontentloaded'})
       await page.locator('.page-transition.entered').waitFor({state: 'visible'})
 
@@ -393,19 +393,18 @@ test.describe('public website routes', () => {
       )
     })
 
-    test('product CTA placement follows whether the product has video/tool support', async ({
+    test('product CTA placement follows whether the product has following content', async ({
       page,
     }) => {
-      // Fallback content only has two real shapes today: a product with no
-      // video/tool ("vedacoes...") and one with both ("decking..."). Video-only
-      // and tool-only are additive to the same `hasProductSupport` boolean, so
-      // covering these two locks the actual placement branch that regressed.
+      // Products without supporting content keep the quote action with the
+      // gallery. Decking moves it after its dedicated support section.
       await page.goto('/produtos/vedacoes-divisorias-resguardos?lang=pt', {
         waitUntil: 'domcontentloaded',
       })
       await page.locator('.page-transition.entered').waitFor({state: 'visible'})
       await expect(page.locator('.product-stage-cta .button')).toBeVisible()
       await expect(page.locator('.product-editorial-support')).toHaveCount(0)
+      await expect(page.locator('.product-content-sections')).toHaveCount(0)
       await expect(page.locator('.product-editorial-cta')).toHaveCount(0)
 
       await page.goto('/produtos/decking-pavimentos-passadicos?lang=pt', {

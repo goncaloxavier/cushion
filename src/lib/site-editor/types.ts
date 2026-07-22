@@ -103,6 +103,10 @@ export type SiteEditorField = {
   readOnly?: boolean
   rows?: number
   collapsed?: boolean
+  visibleWhen?: {
+    sibling: string
+    equals: string
+  }
 }
 
 export type SiteEditorPanel = {

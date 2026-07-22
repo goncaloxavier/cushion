@@ -120,6 +120,73 @@ const gallery: SiteEditorField = {
   description: 'Imagens e vídeos apresentados nesta página',
 }
 
+const productContentSectionItem: SiteEditorField = {
+  name: 'item',
+  label: 'Secção',
+  type: 'object',
+  fields: [
+    {
+      name: 'mediaKind',
+      label: 'Conteúdo visual',
+      type: 'select',
+      required: true,
+      options: [
+        {label: 'Imagem', value: 'image'},
+        {label: 'Vídeo', value: 'video'},
+      ],
+    },
+    {
+      ...image('image', 'Imagem'),
+      visibleWhen: {sibling: 'mediaKind', equals: 'image'},
+    },
+    {
+      name: 'video',
+      label: 'Vídeo',
+      description: 'Carregue um ficheiro ou cole um link do YouTube',
+      type: 'video',
+      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
+    },
+    {
+      ...image('poster', 'Imagem de capa', 'Opcional. Aparece enquanto o vídeo carrega'),
+      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
+    },
+    {
+      ...localizedString(
+        'videoTitle',
+        'Nome do vídeo',
+        'Identifica o vídeo para leitores de ecrã',
+        'Ex.: Deck instalado num terraço',
+      ),
+      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
+    },
+    localizedString(
+      'title',
+      'Título por baixo',
+      'Opcional',
+      'Ex.: Planeie o seu espaço',
+    ),
+    localizedText(
+      'text',
+      'Texto por baixo',
+      'Opcional',
+      'Ex.: Veja a aplicação em contexto e conheça as opções disponíveis.',
+    ),
+    localizedString(
+      'buttonLabel',
+      'Texto do botão',
+      'Opcional. Preencha também o destino',
+      'Ex.: Abrir simulador',
+    ),
+    {
+      name: 'buttonUrl',
+      label: 'Destino do botão',
+      description: 'Opcional. Página do site ou ligação externa',
+      placeholder: 'https://…',
+      type: 'url',
+    },
+  ],
+}
+
 const contactFormLabelFields = [
   localizedString('firstName', 'Primeiro nome', undefined, 'Ex.: Primeiro nome'),
   localizedString('lastName', 'Apelido', undefined, 'Ex.: Apelido'),
@@ -735,6 +802,19 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
             undefined,
             'Ex.: Não precisa de pintura nem verniz',
           ),
+        },
+      ],
+    },
+    {
+      id: 'content-sections',
+      label: 'Conteúdo adicional',
+      description: 'Imagem ou vídeo, com texto e botão opcionais por baixo',
+      fields: [
+        {
+          name: 'contentSections',
+          label: 'Secções da página',
+          type: 'array',
+          item: productContentSectionItem,
         },
       ],
     },

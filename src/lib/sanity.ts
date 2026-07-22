@@ -374,6 +374,49 @@ const collectionsQuery = `{
       },
     },
     description,
+    contentSections[] {
+      _key,
+      _type,
+      mediaKind,
+      image {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            lqip,
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      video {
+        kind,
+        youtubeUrl,
+        "fileUrl": file.asset->url,
+        "fileName": file.asset->originalFilename,
+        "mimeType": file.asset->mimeType
+      },
+      poster {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            lqip,
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      videoTitle,
+      title,
+      text,
+      buttonLabel,
+      buttonUrl
+    },
     "specs": {
       "dimensions": dimensions[],
       "materials": materials[],

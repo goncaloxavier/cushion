@@ -693,7 +693,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'success',
         title: 'Alterações publicadas',
-        description: 'A versão pública do site já está atualizada',
+        description: 'A versão pública do site já está atualizada.',
       })
     } catch (error) {
       setPublishState('idle')

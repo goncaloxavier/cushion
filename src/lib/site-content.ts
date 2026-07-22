@@ -94,6 +94,19 @@ export type StoreProductMedia =
       editPath?: string
     })
 
+export type ProductContentSection = {
+  key: string
+  editPath: string
+  mediaKind: 'image' | 'video'
+  image?: ContentImage
+  video?: ContentVideo
+  title: string
+  text: string
+  buttonLabel: string
+  buttonUrl: string
+  textAppearance?: TextAppearanceMap
+}
+
 export type PartnerItem = {
   name: string
   url: string
@@ -117,6 +130,7 @@ export type ProductItem = {
   toolTitle?: string
   toolText?: string
   toolLabel?: string
+  contentSections?: ProductContentSection[]
   specs?: {
     dimensions: string[]
     materials: string[]
@@ -422,12 +436,33 @@ type SanityProduct = {
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   description?: LocalizedValue
+  contentSections?: SanityProductContentSection[]
   specs?: {
     dimensions?: LocalizedValue[]
     materials?: LocalizedValue[]
     specifications?: LocalizedValue[]
     advantages?: LocalizedValue[]
   }
+}
+
+type SanityProductContentSection = {
+  _key?: string
+  _type?: string
+  mediaKind?: 'image' | 'video'
+  image?: SanityImage
+  video?: {
+    kind?: 'upload' | 'youtube'
+    youtubeUrl?: string
+    fileUrl?: string
+    fileName?: string
+    mimeType?: string
+  }
+  poster?: SanityImage
+  videoTitle?: LocalizedValue
+  title?: LocalizedValue
+  text?: LocalizedValue
+  buttonLabel?: LocalizedValue
+  buttonUrl?: string
 }
 
 type SanityCaseStudy = {
@@ -2611,6 +2646,61 @@ const exclusiveProductExtrasForSlug = (
     ? deckingProductExtras[language]
     : {}
 
+const productContentSectionsFromSanity = (
+  sections: SanityProductContentSection[] | undefined,
+  language: LanguageCode,
+): ProductContentSection[] =>
+  (sections ?? []).flatMap((section, index) => {
+    const key = section._key || `section-${index + 1}`
+    const editPath = section._key
+      ? `contentSections[_key=="${section._key.replace(/"/g, '\\"')}"]`
+      : `contentSections[${index}]`
+    const image = optionalImageFromSanity(section.image, language)
+    const fileUrl = stegaClean(section.video?.fileUrl ?? '').trim()
+    const youtubeUrl = stegaClean(section.video?.youtubeUrl ?? '').trim()
+    const videoUrl = fileUrl || youtubeUrl
+    const inferredKind = videoUrl ? 'video' : image ? 'image' : section.mediaKind
+    const mediaKind = section.mediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
+
+    if (mediaKind === 'image' && !image) return []
+    if (mediaKind === 'video' && !videoUrl) return []
+
+    const title = localized(section.title, language, '')
+    const text = localized(section.text, language, '')
+    const videoTitle = localized(section.videoTitle, language, title || 'Vídeo do produto')
+
+    return [
+      {
+        key,
+        editPath,
+        mediaKind,
+        ...(image && mediaKind === 'image'
+          ? {image: {...image, editPath: `${editPath}.image`}}
+          : {}),
+        ...(videoUrl && mediaKind === 'video'
+          ? {
+              video: {
+                url: videoUrl,
+                title: videoTitle,
+                mimeType: section.video?.mimeType,
+                sourceName: section.video?.fileName,
+                poster: optionalImageFromSanity(section.poster, language),
+              },
+            }
+          : {}),
+        title,
+        text,
+        buttonLabel: localized(section.buttonLabel, language, ''),
+        buttonUrl: stegaClean(section.buttonUrl ?? '').trim(),
+        textAppearance: appearanceMap({
+          title: section.title,
+          text: section.text,
+          buttonLabel: section.buttonLabel,
+        }),
+      },
+    ]
+  })
+
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
@@ -2638,6 +2728,7 @@ const productsFromSanity = (
         ),
       )
       const productMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
+      const contentSections = productContentSectionsFromSanity(product.contentSections, language)
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
@@ -2650,6 +2741,8 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
+        contentSections:
+          product.contentSections === undefined ? fallbackProduct?.contentSections ?? [] : contentSections,
         specs: {
           dimensions: localizedListFromSanity(product.specs?.dimensions, language, []),
           materials: localizedListFromSanity(product.specs?.materials, language, []),

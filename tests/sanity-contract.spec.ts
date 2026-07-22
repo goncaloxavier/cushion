@@ -246,6 +246,83 @@ test.describe('Sanity Studio content contract', () => {
     })
   })
 
+  test('product content sections support image, uploaded video, copy, and optional actions', () => {
+    const collections = {
+      products: [
+        {
+          _id: 'product.with-content-sections',
+          slug: {current: 'produto-com-conteudo'},
+          title: {_type: 'localizedString', pt: 'Produto com conteúdo'},
+          contentSections: [
+            {
+              _key: 'image-section',
+              _type: 'productContentSection',
+              mediaKind: 'image',
+              image: {
+                _type: 'image',
+                asset: {
+                  url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
+                  metadata: {dimensions: {aspectRatio: 1.5}},
+                },
+                alt: {_type: 'localizedString', pt: 'Produto instalado num jardim'},
+              },
+              title: {_type: 'localizedString', pt: 'Uma aplicação real', en: 'A real application'},
+              text: {_type: 'localizedText', pt: 'Texto por baixo da imagem.'},
+              buttonLabel: {_type: 'localizedString', pt: 'Saber mais'},
+              buttonUrl: '/contacto',
+            },
+            {
+              _key: 'video-section',
+              _type: 'productContentSection',
+              mediaKind: 'video',
+              video: {
+                kind: 'upload',
+                fileUrl: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
+                fileName: 'example.mp4',
+                mimeType: 'video/mp4',
+              },
+              poster: {
+                _type: 'image',
+                asset: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
+                alt: {_type: 'localizedString', pt: 'Capa do vídeo'},
+              },
+              videoTitle: {_type: 'localizedString', pt: 'Demonstração do produto'},
+              text: {_type: 'localizedText', pt: 'Texto opcional por baixo do vídeo.'},
+            },
+          ],
+        },
+      ],
+    } as unknown as SanityCollections
+
+    const product = contentFromSanity(collections).en.products[0]
+    expect(product.contentSections).toHaveLength(2)
+    expect(product.contentSections?.[0]).toMatchObject({
+      key: 'image-section',
+      editPath: 'contentSections[_key=="image-section"]',
+      mediaKind: 'image',
+      title: 'A real application',
+      text: 'Texto por baixo da imagem.',
+      buttonLabel: 'Saber mais',
+      buttonUrl: '/contacto',
+      image: {
+        url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
+        alt: 'Produto instalado num jardim',
+        aspectRatio: 1.5,
+      },
+    })
+    expect(product.contentSections?.[1]).toMatchObject({
+      key: 'video-section',
+      mediaKind: 'video',
+      text: 'Texto opcional por baixo do vídeo.',
+      video: {
+        url: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
+        title: 'Demonstração do produto',
+        mimeType: 'video/mp4',
+        poster: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
+      },
+    })
+  })
+
   test('breadcrumbListSchema builds a positioned, schema.org-shaped ItemList', () => {
     const schema = breadcrumbListSchema([
       {name: 'Início', url: 'https://dafabrica4you.pt/'},
@@ -579,6 +656,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('hasFinishChoice')
     expect(sanityClient).toContain('flatTransportPrice')
     expect(sanityClient).toContain('gallery[]')
+    expect(sanityClient).toContain('contentSections[]')
+    expect(sanityClient).toContain('"fileUrl": file.asset->url')
     expect(storeProductsImport).toContain('createIfNotExists(document)')
     expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
     expect(storeProductsImport).toContain('setIfMissing(fields)')
@@ -819,6 +898,11 @@ test.describe('Sanity Studio content contract', () => {
     expect(productSchema).toContain("name: 'galleryImage'")
     expect(productSchema).toContain("name: 'galleryVideo'")
     expect(productSchema).toContain("type: 'file'")
+    expect(productSchema).toContain("name: 'contentSections'")
+    expect(productSchema).toContain("name: 'productContentSection'")
+    expect(productSchema).toContain("name: 'mediaKind'")
+    expect(productSchema).toContain("name: 'buttonLabel'")
+    expect(productSchema).toContain("name: 'buttonUrl'")
     expect(caseSchema).toContain("name: 'galleryVideo'")
     expect(caseSchema).toContain("type: 'file'")
     expect(blogSchema).toContain("name: 'galleryVideo'")

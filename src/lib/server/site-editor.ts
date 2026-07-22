@@ -61,6 +61,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'image',
     'gallery',
     'description',
+    'contentSections',
     'dimensions',
     'materials',
     'specifications',
@@ -614,6 +615,7 @@ const linkFieldNames = new Set([
   'instagramUrl',
   'facebookUrl',
   'youtubeUrl',
+  'buttonUrl',
   'complaintsUrl',
   'privacyPolicyUrl',
   'cookiePolicyUrl',
@@ -689,6 +691,42 @@ const validateDocument = (document: SiteEditorDocument) => {
         if (typeof value[field] !== 'number' || !Number.isFinite(value[field]) || value[field] <= 0) {
           throw new Error('Indique preços superiores a zero em todas as opções.')
         }
+      }
+    }
+  }
+
+  if (document._type === 'productCategory' && document.contentSections !== undefined) {
+    if (!Array.isArray(document.contentSections) || document.contentSections.length > 12) {
+      throw new Error('Adicione no máximo 12 secções de conteúdo adicional.')
+    }
+    for (const item of document.contentSections) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        throw new Error('Uma das secções de conteúdo está incompleta.')
+      }
+      const section = item as Record<string, unknown>
+      const mediaKind = section.mediaKind
+      const image = section.image as {asset?: {_ref?: unknown}} | undefined
+      const video = section.video as
+        | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}
+        | undefined
+      if (mediaKind === 'image' && typeof image?.asset?._ref !== 'string') {
+        throw new Error('Adicione a imagem de todas as secções com imagem.')
+      }
+      if (
+        mediaKind === 'video' &&
+        typeof video?.file?.asset?._ref !== 'string' &&
+        (typeof video?.youtubeUrl !== 'string' || !video.youtubeUrl.trim())
+      ) {
+        throw new Error('Carregue um vídeo ou indique um link do YouTube em cada secção com vídeo.')
+      }
+      if (mediaKind !== 'image' && mediaKind !== 'video') {
+        throw new Error('Escolha imagem ou vídeo em todas as secções adicionais.')
+      }
+      const buttonLabel = section.buttonLabel as {pt?: unknown} | undefined
+      const hasButtonLabel = typeof buttonLabel?.pt === 'string' && Boolean(buttonLabel.pt.trim())
+      const hasButtonUrl = typeof section.buttonUrl === 'string' && Boolean(section.buttonUrl.trim())
+      if (hasButtonLabel !== hasButtonUrl) {
+        throw new Error('Preencha o texto e o destino de cada botão, ou deixe ambos vazios.')
       }
     }
   }
