@@ -10,14 +10,12 @@
   <div class="painel-login-shell">
     <header class="painel-login-brand">
       <img src="/logo/brand_mark.png" alt="DaFábrica4You" />
-      <span>Backoffice</span>
     </header>
 
     <form class="painel-login-card" method="POST">
       <div>
         <p class="painel-login-eyebrow">Acesso interno</p>
         <h1>Backoffice</h1>
-        <p class="painel-login-sub">Entre com a sua conta de equipa.</p>
       </div>
 
       <input type="hidden" name="next" value={data.next} />
