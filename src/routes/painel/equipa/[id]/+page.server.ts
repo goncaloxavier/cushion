@@ -8,6 +8,7 @@ import {
   updateStaffRole,
   type StaffMutationError,
 } from '$lib/server/staff-auth'
+import {logStaffActivity} from '$lib/server/staff-activity'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -39,8 +40,17 @@ export const actions: Actions = {
     }
 
     const role = data.get('role') === 'admin' ? 'admin' : 'staff'
+    const member = await getStaff(params.id)
     const result = await updateStaffRole(locals.staff.id, params.id, role)
     if (!result.ok) return fail(400, {message: mutationMessages[result.error]})
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'staff.role',
+      entityType: 'staff',
+      entityId: params.id,
+      entityLabel: member ? `${member.name} (@${member.username})` : params.id,
+      detail: role === 'admin' ? 'Administrador' : 'Equipa',
+    })
     return {ok: true}
   },
 
@@ -58,8 +68,17 @@ export const actions: Actions = {
     }
 
     const active = data.get('active') === 'true'
+    const member = await getStaff(params.id)
     const result = await setStaffActive(locals.staff.id, params.id, active)
     if (!result.ok) return fail(400, {message: mutationMessages[result.error]})
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'staff.active',
+      entityType: 'staff',
+      entityId: params.id,
+      entityLabel: member ? `${member.name} (@${member.username})` : params.id,
+      detail: active ? 'Reativada' : 'Desativada',
+    })
     return {ok: true}
   },
 
@@ -79,7 +98,15 @@ export const actions: Actions = {
     const password = String(data.get('password') ?? '')
     if (password.length < 10) return fail(400, {message: 'A palavra-passe deve ter pelo menos 10 caracteres.'})
 
+    const member = await getStaff(params.id)
     await resetStaffPassword(params.id, password)
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'staff.password',
+      entityType: 'staff',
+      entityId: params.id,
+      entityLabel: member ? `${member.name} (@${member.username})` : params.id,
+    })
     return {ok: true, reset: true}
   },
 }

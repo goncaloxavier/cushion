@@ -2,8 +2,9 @@
   import PainelRequestTable from '$lib/components/PainelRequestTable.svelte'
   import {fmtDateTime, profileStatuses, profileStatusLabels, profileStatusTone} from '$lib/painel'
 
-  let {data} = $props()
+  let {data, form} = $props()
   const p = $derived(data.profile)
+  const readOnly = $derived(data.staff?.role !== 'admin')
 </script>
 
 <svelte:head>
@@ -19,6 +20,13 @@
     {profileStatusLabels[p.status] ?? p.status}
   </span>
 </header>
+
+{#if readOnly}
+  <p class="painel-alert" data-tone="warn">Modo de consulta — apenas administradores podem guardar alterações.</p>
+{/if}
+{#if form?.message}
+  <p class="painel-alert" data-tone="error" role="alert">{form.message}</p>
+{/if}
 
 <div class="painel-grid-two">
   <div class="painel-panel">

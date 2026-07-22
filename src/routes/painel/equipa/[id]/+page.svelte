@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {fmtDateTime} from '$lib/painel'
+  import {fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
 
   let {data, form} = $props()
   const member = $derived(data.member)
@@ -14,9 +14,14 @@
     <a class="painel-back" href="/painel/equipa">← Equipa</a>
     <h1>{member.name}</h1>
   </div>
-  <span class="painel-tag" data-tone={member.active ? 'done' : 'danger'}>
-    {member.active ? 'Ativa' : 'Inativa'}
-  </span>
+  <div class="painel-form-row">
+    <span class="painel-tag" data-tone={roleTone(member.role)}>
+      {roleLabels[member.role] ?? member.role}
+    </span>
+    <span class="painel-tag" data-tone={member.active ? 'done' : 'danger'}>
+      {member.active ? 'Ativa' : 'Inativa'}
+    </span>
+  </div>
 </header>
 
 {#if form?.message}
@@ -54,6 +59,11 @@
     </select>
     <button type="submit" class="painel-btn painel-btn-primary">Guardar função</button>
   </form>
+  <p class="painel-hint">
+    <strong>{roleLabels.admin}:</strong> {roleDescriptions.admin}
+    <br />
+    <strong>{roleLabels.staff}:</strong> {roleDescriptions.staff}
+  </p>
 
   <form method="POST" action="?/setActive" class="painel-form-row">
     <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />

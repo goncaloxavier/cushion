@@ -1,5 +1,6 @@
 <script lang="ts">
   import '$lib/styles/painel.css'
+  import {roleLabels, roleTone} from '$lib/painel'
 
   let {data, children} = $props()
   const staff = $derived(data.staff)
@@ -14,14 +15,13 @@
     ...(staff?.role === 'admin'
       ? [
           {href: '/painel/equipa', label: 'Equipa'},
+          {href: '/painel/atividade', label: 'Atividade'},
           {href: '/painel/definicoes', label: 'Definições'},
         ]
       : []),
   ])
 
   const isActive = (href: string) => path.startsWith(href)
-
-  const roleLabel: Record<string, string> = {admin: 'Administrador', staff: 'Equipa'}
 </script>
 
 <svelte:head>
@@ -45,7 +45,12 @@
       <form method="POST" action="/painel/pedidos?/logout" class="painel-account">
         <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
         <span class="painel-account-name">{staff.name}</span>
-        <span class="painel-account-role">@{staff.username} · {roleLabel[staff.role] ?? staff.role}</span>
+        <span class="painel-account-role">
+          @{staff.username}
+          <span class="painel-tag" data-tone={roleTone(staff.role)}>
+            {roleLabels[staff.role] ?? staff.role}
+          </span>
+        </span>
         <button type="submit" class="painel-logout">Terminar sessão</button>
       </form>
     </aside>

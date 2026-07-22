@@ -27,6 +27,7 @@
   --p-good: #1c6b3f;
   --p-good-bg: #e9f4ee;
   --p-neutral-bg: #eceff1;
+  --p-accent-bg: #e8eefc;
   --p-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   --p-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -406,6 +407,22 @@
   background: var(--p-danger);
 }
 
+.painel-tag[data-tone='accent'] {
+  color: var(--p-accent);
+  background: var(--p-accent-bg);
+}
+
+.painel-tag[data-tone='accent']::before {
+  background: var(--p-accent);
+}
+
+.painel-hint {
+  margin: 0.3rem 0 0;
+  color: var(--p-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 /* ---- progress bar ---- */
 
 .painel-progress {
@@ -658,6 +675,12 @@
   color: var(--p-good);
   background: var(--p-good-bg);
   border-color: var(--p-good);
+}
+
+.painel-alert[data-tone='warn'] {
+  color: var(--p-warn);
+  background: var(--p-warn-bg);
+  border-color: var(--p-warn);
 }
 
 /* ---- login ---- */

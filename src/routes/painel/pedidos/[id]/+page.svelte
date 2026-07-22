@@ -1,8 +1,9 @@
 <script lang="ts">
   import {fmtDateTime, sourceLabel, submissionStatuses, submissionStatusLabels, submissionStatusTone} from '$lib/painel'
 
-  let {data} = $props()
+  let {data, form} = $props()
   const s = $derived(data.submission)
+  const readOnly = $derived(data.staff?.role !== 'admin')
   const langLabel: Record<string, string> = {pt: 'Português', en: 'Inglês', es: 'Espanhol'}
 </script>
 
@@ -19,6 +20,13 @@
     {submissionStatusLabels[s.status] ?? s.status}
   </span>
 </header>
+
+{#if readOnly}
+  <p class="painel-alert" data-tone="warn">Modo de consulta — apenas administradores podem guardar alterações.</p>
+{/if}
+{#if form?.message}
+  <p class="painel-alert" data-tone="error" role="alert">{form.message}</p>
+{/if}
 
 <form method="POST" action="?/setStatus" class="painel-panel">
   <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />

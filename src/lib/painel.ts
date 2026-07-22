@@ -59,7 +59,7 @@ export const profileStatusLabels: Record<string, string> = {
   archived: 'Arquivado',
 }
 
-export type StatusTone = 'new' | 'progress' | 'done' | 'danger' | undefined
+export type StatusTone = 'new' | 'progress' | 'done' | 'danger' | 'accent' | undefined
 
 const submissionTones: Record<string, StatusTone> = {
   new: 'new',
@@ -87,6 +87,21 @@ const orderTones: Record<string, StatusTone> = {
 export const submissionStatusTone = (status: string): StatusTone => submissionTones[status]
 export const profileStatusTone = (status: string): StatusTone => profileTones[status]
 export const orderStatusTone = (status: string): StatusTone => orderTones[status]
+
+export const roleLabels: Record<string, string> = {
+  admin: 'Administrador',
+  staff: 'Equipa',
+}
+
+export const roleDescriptions: Record<string, string> = {
+  admin: 'Acesso total — pode editar, publicar, apagar e gerir a equipa.',
+  staff: 'Apenas consulta — sem permissão para guardar alterações.',
+}
+
+// Deliberately asymmetric: admin gets a visible identity tag, staff (the
+// default/plain tier) gets no tone — matching how every other "no special
+// state" case already renders in this tag system.
+export const roleTone = (role: string): StatusTone => (role === 'admin' ? 'accent' : undefined)
 
 export const sourceLabel = (source: string) => {
   if (source === 'catalogue') return 'Catálogo'

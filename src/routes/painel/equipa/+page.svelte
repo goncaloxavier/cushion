@@ -1,9 +1,7 @@
 <script lang="ts">
-  import {fmtDateTime} from '$lib/painel'
+  import {fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
 
   let {data, form} = $props()
-
-  const roleLabel: Record<string, string> = {admin: 'Administrador', staff: 'Equipa'}
 </script>
 
 <svelte:head>
@@ -35,7 +33,11 @@
         <tr>
           <td><a href={`/painel/equipa/${member.id}`}>{member.name}</a></td>
           <td class="painel-mono">@{member.username}</td>
-          <td>{roleLabel[member.role] ?? member.role}</td>
+          <td>
+            <span class="painel-tag" data-tone={roleTone(member.role)}>
+              {roleLabels[member.role] ?? member.role}
+            </span>
+          </td>
           <td>
             <span class="painel-tag" data-tone={member.active ? 'done' : 'danger'}>
               {member.active ? 'Ativa' : 'Inativa'}
@@ -71,5 +73,10 @@
       </select>
       <button type="submit" class="painel-btn painel-btn-primary">Criar conta</button>
     </div>
+    <p class="painel-hint">
+      <strong>{roleLabels.admin}:</strong> {roleDescriptions.admin}
+      <br />
+      <strong>{roleLabels.staff}:</strong> {roleDescriptions.staff}
+    </p>
   </form>
 </div>

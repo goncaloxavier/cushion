@@ -17,6 +17,7 @@ import {
   SiteEditorDuplicateError,
   SiteEditorValidationError,
 } from '$lib/server/site-editor-errors'
+import {logStaffActivity} from '$lib/server/staff-activity'
 import type {RequestHandler} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -90,7 +91,15 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
   if (body.action === 'publish') {
     if (!canManageStaff(locals.staff)) error(403, 'Apenas administradores podem publicar.')
     if (!body.document) error(400, 'Conteúdo em falta.')
-    return json({document: await runMutation(() => publishSiteEditorDocument(body.document!, scope))})
+    const published = await runMutation(() => publishSiteEditorDocument(body.document!, scope))
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'site.publish',
+      entityType: 'siteDocument',
+      entityId: body.document._id,
+      entityLabel: body.document._type,
+    })
+    return json({document: published})
   }
   if (body.action === 'create') {
     return json({
@@ -109,5 +118,6 @@ export const DELETE: RequestHandler = async ({request, url, cookies, locals}) =>
   const id = url.searchParams.get('id')?.trim()
   if (!id) error(400, 'Identificador em falta.')
   await runMutation(() => deleteSiteEditorDocument(id, siteEditorE2eScope(request.headers)))
+  await logStaffActivity({staff: locals.staff, action: 'site.delete', entityType: 'siteDocument', entityId: id})
   return json({ok: true})
 }

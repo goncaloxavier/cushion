@@ -7,9 +7,9 @@
     paymentMethodLabels,
     paymentStatusLabels,
   } from '$lib/painel'
-
-  let {data} = $props()
+  let {data, form} = $props()
   const order = $derived(data.order)
+  const readOnly = $derived(data.staff?.role !== 'admin')
   const money = new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'EUR',
@@ -30,6 +30,13 @@
     {orderStatusLabels[order.status] ?? order.status}
   </span>
 </header>
+
+{#if readOnly}
+  <p class="painel-alert" data-tone="warn">Modo de consulta — apenas administradores podem guardar alterações.</p>
+{/if}
+{#if form?.message}
+  <p class="painel-alert" data-tone="error" role="alert">{form.message}</p>
+{/if}
 
 <form method="POST" action="?/setStatus" class="painel-panel">
   <input type="hidden" name="csrfToken" value={data.painelCsrfToken} />
