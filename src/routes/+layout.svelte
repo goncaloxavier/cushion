@@ -341,6 +341,12 @@
     const accountArea = /^\/conta\/(dados|moradas|encomendas)/
     if (accountArea.test(from) && accountArea.test(to)) return
 
+    // /painel is a deliberately animation-free "excel-esque" tool — a
+    // full-page view transition would crossfade the sidebar along with the
+    // content on every navigation, which is exactly the motion it's meant
+    // to avoid.
+    if (from.startsWith('/painel') || to.startsWith('/painel')) return
+
     document.documentElement.dataset.transition = transitionKind(from, to)
 
     return new Promise<void>((resolve) => {
