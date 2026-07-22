@@ -4213,7 +4213,7 @@
 
 .site-editor-category-details > header small,
 .site-editor-category-products > header small {
-  color: #278d72;
+  color: #155f77;
   font-size: 9px;
   font-weight: 850;
   text-transform: uppercase;
@@ -4642,8 +4642,9 @@
 }
 
 .site-editor-create-fields label > small {
-  color: var(--editor-muted);
+  color: var(--editor-ink-soft);
   font-size: 9px;
+  font-weight: 650;
   line-height: 1.4;
 }
 

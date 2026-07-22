@@ -14,8 +14,11 @@
 </svelte:head>
 
 <header class="painel-page-head">
-  <h1>Encomendas</h1>
-  <p class="painel-page-sub">{data.orders.length} encomenda(s)</p>
+  <div>
+    <p class="painel-eyebrow">Loja</p>
+    <h1>Encomendas</h1>
+    <p class="painel-page-sub">{data.orders.length} {data.orders.length === 1 ? 'encomenda' : 'encomendas'}</p>
+  </div>
 </header>
 
 {#if data.orders.length}
@@ -34,19 +37,19 @@
       <tbody>
         {#each data.orders as order (order.id)}
           <tr>
-            <td class="painel-mono"><a href={`/painel/encomendas/${order.id}`}>{order.orderNumber}</a></td>
-            <td>
+            <td data-label="Número" class="painel-mono"><a href={`/painel/encomendas/${order.id}`}>{order.orderNumber}</a></td>
+            <td data-label="Cliente">
               <a href={`/painel/encomendas/${order.id}`}>{order.customerName}</a><br />
               <a href={`mailto:${order.email}`}>{order.email}</a>
             </td>
-            <td>{order.deliveryZone}</td>
-            <td data-num>{money.format(order.totalGross)}</td>
-            <td>
+            <td data-label="Zona">{order.deliveryZone}</td>
+            <td data-label="Total" data-num>{money.format(order.totalGross)}</td>
+            <td data-label="Estado">
               <span class="painel-tag" data-tone={orderStatusTone(order.status)}>
                 {orderStatusLabels[order.status] ?? order.status}
               </span>
             </td>
-            <td class="painel-mono">{fmtDateTime(order.createdAt)}</td>
+            <td data-label="Recebida" class="painel-mono">{fmtDateTime(order.createdAt)}</td>
           </tr>
         {/each}
       </tbody>

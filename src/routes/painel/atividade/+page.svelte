@@ -6,8 +6,8 @@
   const actionLabels: Record<string, string> = {
     'order.status': 'Alterou o estado da encomenda',
     'order.note': 'Adicionou uma nota à encomenda',
-    'lead.status': 'Alterou o estado do lead',
-    'lead.note': 'Adicionou uma nota ao lead',
+    'lead.status': 'Alterou o estado do pedido de contacto',
+    'lead.note': 'Adicionou uma nota ao pedido de contacto',
     'profile.status': 'Alterou o estado do perfil',
     'profile.note': 'Adicionou uma nota ao perfil',
     'site.publish': 'Publicou conteúdo do site',
@@ -34,8 +34,11 @@
 </svelte:head>
 
 <header class="painel-page-head">
-  <h1>Atividade</h1>
-  <p class="painel-page-sub">{data.activity.length} registo(s)</p>
+  <div>
+    <p class="painel-eyebrow">Administração</p>
+    <h1>Atividade</h1>
+    <p class="painel-page-sub">{data.activity.length} {data.activity.length === 1 ? 'registo' : 'registos'}</p>
+  </div>
 </header>
 
 {#if data.activity.length}
@@ -54,22 +57,22 @@
         {#each data.activity as entry (entry.id)}
           {@const href = entityHref(entry.entityType, entry.entityId)}
           <tr>
-            <td class="painel-mono">{fmtDateTime(entry.createdAt)}</td>
-            <td>
+            <td data-label="Data/Hora" class="painel-mono">{fmtDateTime(entry.createdAt)}</td>
+            <td data-label="Autor">
               {entry.staffName}
               <span class="painel-tag" data-tone={roleTone(entry.staffRole)}>
                 {roleLabels[entry.staffRole] ?? entry.staffRole}
               </span>
             </td>
-            <td>{actionLabels[entry.action] ?? entry.action}</td>
-            <td>
+            <td data-label="Ação">{actionLabels[entry.action] ?? entry.action}</td>
+            <td data-label="Entidade">
               {#if href}
                 <a {href}>{entry.entityLabel || entry.entityId}</a>
               {:else}
                 {entry.entityLabel || entry.entityId || '-'}
               {/if}
             </td>
-            <td>{entry.detail || '-'}</td>
+            <td data-label="Detalhe">{entry.detail || '-'}</td>
           </tr>
         {/each}
       </tbody>

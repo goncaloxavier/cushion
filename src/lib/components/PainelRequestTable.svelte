@@ -22,11 +22,11 @@
       <tbody>
         {#each rows as row (row.id)}
           <tr>
-            <td class="painel-mono"><a href={`/painel/pedidos/${row.id}`}>{fmtDateTime(row.submittedAt)}</a></td>
-            {#if showSource}<td>{sourceLabel(row.source)}</td>{/if}
-            <td><a href={`/painel/pedidos/${row.id}`}>{row.name}</a></td>
-            <td>{row.email}</td>
-            <td>
+            <td data-label="Data" class="painel-mono"><a href={`/painel/pedidos/${row.id}`}>{fmtDateTime(row.submittedAt)}</a></td>
+            {#if showSource}<td data-label="Origem">{sourceLabel(row.source)}</td>{/if}
+            <td data-label="Nome"><a href={`/painel/pedidos/${row.id}`}>{row.name}</a></td>
+            <td data-label="Email">{row.email}</td>
+            <td data-label="Estado">
               <span class="painel-tag" data-tone={submissionStatusTone(row.status)}>
                 {submissionStatusLabels[row.status] ?? row.status}
               </span>
