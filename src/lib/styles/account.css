@@ -420,11 +420,6 @@
   line-height: 1.5;
 }
 
-.account-verify-note {
-  margin-top: 0.5rem;
-  font-weight: 750;
-}
-
 .account-verify-note.success {
   color: var(--green-dark);
 }

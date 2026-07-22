@@ -87,7 +87,6 @@
 }
 
 .account-card,
-.account-form-card,
 .checkout-form,
 .checkout-summary,
 .checkout-success {
@@ -104,8 +103,6 @@
   border-radius: 8px;
   box-shadow: 0 1.1rem 2.8rem rgba(13, 52, 56, 0.055);
 }
-
-.account-form-card,
 .checkout-success {
   width: min(calc(100% - 2rem), 34rem);
   margin: clamp(3rem, 10vw, 6rem) auto;
@@ -738,8 +735,7 @@
 }
 
 .checkout-lines span,
-.checkout-account-hint,
-.account-alt {
+.checkout-account-hint{
   color: var(--muted);
 }
 
@@ -753,11 +749,6 @@
   margin: 1rem 0 0;
   font-size: 0.92rem;
   line-height: 1.55;
-}
-
-.account-alt {
-  margin: 1rem 0 0;
-  font-size: 0.95rem;
 }
 
 .account-alt a {
