@@ -102,6 +102,8 @@ export type ProductContentSection = {
   surface: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
   image?: ContentImage
   video?: ContentVideo
+  label: string
+  labelStyle: 'caption' | 'pill' | 'eyebrow'
   title: string
   text: string
   buttonLabel: string
@@ -463,6 +465,8 @@ type SanityProductContentSection = {
   }
   poster?: SanityImage
   videoTitle?: LocalizedValue
+  label?: LocalizedValue
+  labelStyle?: 'caption' | 'pill' | 'eyebrow'
   title?: LocalizedValue
   text?: LocalizedValue
   buttonLabel?: LocalizedValue
@@ -2673,6 +2677,9 @@ const productContentSectionsFromSanity = (
       cleanSurface === 'fog' || cleanSurface === 'mint' || cleanSurface === 'deep' || cleanSurface === 'blue'
         ? cleanSurface
         : 'white'
+    const cleanLabelStyle = stegaClean(section.labelStyle ?? '').trim()
+    const labelStyle =
+      cleanLabelStyle === 'pill' || cleanLabelStyle === 'eyebrow' ? cleanLabelStyle : 'caption'
 
     if (mediaKind === 'image' && !image) return []
     if (mediaKind === 'video' && !videoUrl) return []
@@ -2680,6 +2687,7 @@ const productContentSectionsFromSanity = (
     const title = localized(section.title, language, '')
     const text = localized(section.text, language, '')
     const videoTitle = localized(section.videoTitle, language, title || 'Vídeo do produto')
+    const label = localized(section.label, language, '')
 
     return [
       {
@@ -2702,6 +2710,8 @@ const productContentSectionsFromSanity = (
               },
             }
           : {}),
+        label,
+        labelStyle,
         title,
         text,
         buttonLabel: localized(section.buttonLabel, language, ''),

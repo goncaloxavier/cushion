@@ -249,6 +249,28 @@ export const productCategory = defineType({
               hidden: ({parent}) => parent?.mediaKind !== 'video',
             }),
             defineField({
+              name: 'label',
+              title: 'Rótulo',
+              description:
+                'Opcional. Pequeno destaque sobre a imagem ou o vídeo, por exemplo "Decking aplicado em exterior".',
+              type: 'localizedString',
+            }),
+            defineField({
+              name: 'labelStyle',
+              title: 'Estilo do rótulo',
+              description: 'Só é usado quando preenche o rótulo acima.',
+              type: 'string',
+              initialValue: 'caption',
+              options: {
+                list: [
+                  {title: 'Legenda por baixo da imagem', value: 'caption'},
+                  {title: 'Selo sobre a imagem', value: 'pill'},
+                  {title: 'Texto acima do título', value: 'eyebrow'},
+                ],
+                layout: 'radio',
+              },
+            }),
+            defineField({
               name: 'title',
               title: 'Título',
               description: 'Opcional.',

@@ -414,6 +414,8 @@ const collectionsQuery = `{
         alt
       },
       videoTitle,
+      label,
+      labelStyle,
       title,
       text,
       buttonLabel,

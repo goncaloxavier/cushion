@@ -5214,6 +5214,7 @@ body.lightbox-open {
   --product-section-muted: rgba(255, 255, 255, 0.82);
   --product-section-action-bg: #ffffff;
   --product-section-action-text: var(--brand-deep);
+  --product-section-caption: #24352e;
   position: relative;
   padding: clamp(2.5rem, 5vw, 4.6rem) max(1.25rem, calc((100% - var(--max)) / 2));
   color: var(--product-section-text);
@@ -5235,6 +5236,7 @@ body.lightbox-open {
   --product-section-muted: #40524b;
   --product-section-action-bg: var(--brand-deep);
   --product-section-action-text: #ffffff;
+  --product-section-caption: rgba(255, 255, 255, 0.86);
 }
 
 .product-content-section.is-blue {
@@ -5244,6 +5246,7 @@ body.lightbox-open {
   --product-section-muted: #40524b;
   --product-section-action-bg: #17657a;
   --product-section-action-text: #ffffff;
+  --product-section-caption: rgba(255, 255, 255, 0.86);
 }
 
 .product-content-section + .product-content-section::before {
@@ -5279,7 +5282,7 @@ body.lightbox-open {
   grid-template-columns: minmax(16.5rem, 0.66fr) minmax(0, 1.34fr);
 }
 
-.product-content-section.is-right .product-content-media {
+.product-content-section.is-right .product-content-media-group {
   grid-column: 2;
 }
 
@@ -5288,7 +5291,14 @@ body.lightbox-open {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.product-content-media-group {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
 .product-content-media {
+  position: relative;
   width: 100%;
   min-width: 0;
   max-height: 76svh;
@@ -5305,14 +5315,14 @@ body.lightbox-open {
   background: var(--brand-deep);
 }
 
-.product-content-section.is-top .product-content-media,
-.product-content-section:not(.has-copy) .product-content-media {
+.product-content-section.is-top .product-content-media-group,
+.product-content-section:not(.has-copy) .product-content-media-group {
   width: min(100%, calc(76svh * var(--product-content-ratio)));
   margin: 0 auto;
 }
 
-.product-content-section.is-top .product-content-media:not(.is-image),
-.product-content-section:not(.has-copy) .product-content-media:not(.is-image) {
+.product-content-section.is-top .product-content-media-group:not(.is-image),
+.product-content-section:not(.has-copy) .product-content-media-group:not(.is-image) {
   width: min(100%, calc(76svh * 16 / 9));
 }
 
@@ -5328,6 +5338,43 @@ body.lightbox-open {
 .product-content-media img,
 .product-content-media video {
   object-fit: contain;
+}
+
+.product-content-label {
+  margin: 0;
+}
+
+.product-content-label.is-pill {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 1;
+  padding: 0.5rem 0.95rem;
+  color: var(--brand-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.product-content-label.is-caption {
+  padding-left: 0.95rem;
+  color: var(--product-section-caption);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border-left: 2px solid var(--brand-leaf);
+}
+
+.product-content-label.is-eyebrow {
+  color: var(--product-section-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .product-content-copy {
@@ -7066,11 +7113,11 @@ html.reduce-motion {
   }
 
   .product-content-section.is-right .product-content-copy,
-  .product-content-section.is-right .product-content-media {
+  .product-content-section.is-right .product-content-media-group {
     grid-column: 1;
   }
 
-  .product-content-section.is-right .product-content-media {
+  .product-content-section.is-right .product-content-media-group {
     grid-row: 1;
   }
 
@@ -7079,13 +7126,16 @@ html.reduce-motion {
   }
 
   .product-content-media,
-  .product-content-media:not(.is-image),
-  .product-content-section.is-top .product-content-media,
-  .product-content-section:not(.has-copy) .product-content-media,
-  .product-content-section.is-top .product-content-media:not(.is-image),
-  .product-content-section:not(.has-copy) .product-content-media:not(.is-image) {
+  .product-content-media:not(.is-image) {
     width: 100%;
     max-height: 68svh;
+  }
+
+  .product-content-section.is-top .product-content-media-group,
+  .product-content-section:not(.has-copy) .product-content-media-group,
+  .product-content-section.is-top .product-content-media-group:not(.is-image),
+  .product-content-section:not(.has-copy) .product-content-media-group:not(.is-image) {
+    width: 100%;
   }
 
   .product-content-copy,

@@ -711,6 +711,9 @@ const validateDocument = (document: SiteEditorDocument) => {
       if (!['white', 'fog', 'mint', 'deep', 'blue'].includes(String(section.surface || 'white'))) {
         throw new Error('Escolha um fundo válido em todas as secções adicionais.')
       }
+      if (!['caption', 'pill', 'eyebrow'].includes(String(section.labelStyle || 'caption'))) {
+        throw new Error('Escolha um estilo de rótulo válido em todas as secções adicionais.')
+      }
       const image = section.image as {asset?: {_ref?: unknown}} | undefined
       const video = section.video as
         | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}

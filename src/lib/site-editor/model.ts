@@ -186,6 +186,23 @@ const productContentSectionItem: SiteEditorField = {
       visibleWhen: {sibling: 'mediaKind', equals: 'video'},
     },
     localizedString(
+      'label',
+      'Rótulo',
+      'Opcional. Pequeno destaque sobre a imagem ou o vídeo',
+      'Ex.: Decking aplicado em exterior',
+    ),
+    {
+      name: 'labelStyle',
+      label: 'Estilo do rótulo',
+      description: 'Só é usado quando preenche o rótulo acima',
+      type: 'select',
+      options: [
+        {label: 'Legenda por baixo da imagem', value: 'caption'},
+        {label: 'Selo sobre a imagem', value: 'pill'},
+        {label: 'Texto acima do título', value: 'eyebrow'},
+      ],
+    },
+    localizedString(
       'title',
       'Título',
       'Opcional',
