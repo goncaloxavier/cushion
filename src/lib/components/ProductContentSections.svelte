@@ -23,93 +23,96 @@
     {@const hasCopy = Boolean(section.title || section.text || (section.buttonLabel && section.buttonUrl))}
     {@const externalButton = isExternalUrl(section.buttonUrl)}
     <section
-      class="product-content-section"
+      class={`product-content-section is-${section.mediaSide} is-${section.surface}`}
       class:has-copy={hasCopy}
       data-df4y-editor-field="true"
       data-df4y-editor-label={`Conteúdo adicional ${index + 1}`}
       data-sanity={dataAttribute?.(section.editPath)}
       aria-label={section.title || section.video?.title || undefined}
     >
-      <div
-        class="product-content-media"
-        class:is-portrait={(section.image?.aspectRatio ?? 16 / 9) < 1}
-        class:is-image={section.mediaKind === 'image'}
-        style={`--product-content-ratio: ${section.image?.aspectRatio ?? 16 / 9}`}
-        data-sanity={dataAttribute?.(
-          sectionFieldPath(section, section.mediaKind === 'image' ? 'image' : 'video'),
-        )}
-      >
-        {#if section.mediaKind === 'image' && section.image}
-          <img
-            src={section.image.url}
-            alt={section.image.alt}
-            loading="lazy"
-            decoding="async"
-          />
-        {:else if section.mediaKind === 'video' && section.video}
-          {#if embedUrl}
-            <iframe
-              src={embedUrl}
-              title={section.video.title}
+      <div class="product-content-inner">
+        <div
+          class="product-content-media"
+          class:is-portrait={(section.image?.aspectRatio ?? 16 / 9) < 1}
+          class:is-image={section.mediaKind === 'image'}
+          style={`--product-content-ratio: ${section.image?.aspectRatio ?? 16 / 9}`}
+          data-df4y-editor-field="true"
+          data-df4y-editor-label={section.mediaKind === 'image' ? 'Imagem da secção' : 'Vídeo da secção'}
+          data-sanity={dataAttribute?.(
+            sectionFieldPath(section, section.mediaKind === 'image' ? 'image' : 'video'),
+          )}
+        >
+          {#if section.mediaKind === 'image' && section.image}
+            <img
+              src={section.image.url}
+              alt={section.image.alt}
               loading="lazy"
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-            ></iframe>
-          {:else}
-            <!-- svelte-ignore a11y_media_has_caption: uploaded product videos do not yet collect caption tracks in the CMS. -->
-            <video
-              src={section.video.url}
-              poster={section.video.poster?.url}
-              aria-label={section.video.title}
-              controls
-              playsinline
-              preload="metadata"
-            ></video>
-          {/if}
-        {/if}
-      </div>
-
-      {#if hasCopy}
-        <div class="product-content-copy">
-          <div
-            class="product-content-copy-body"
-            class:has-title={Boolean(section.title)}
-            class:has-text={Boolean(section.text)}
-          >
-            {#if section.title}
-              <h2
-                class="cms-styled-text"
-                style={textAppearanceStyle(section.textAppearance?.title)}
-                data-df4y-editor-field="true"
-                data-df4y-editor-label="Título da secção"
-                data-sanity={dataAttribute?.(sectionFieldPath(section, 'title.pt'))}
-              >{section.title}</h2>
+              decoding="async"
+            />
+          {:else if section.mediaKind === 'video' && section.video}
+            {#if embedUrl}
+              <iframe
+                src={embedUrl}
+                title={section.video.title}
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+              ></iframe>
+            {:else}
+              <!-- svelte-ignore a11y_media_has_caption: uploaded product videos do not yet collect caption tracks in the CMS. -->
+              <video
+                src={section.video.url}
+                poster={section.video.poster?.url}
+                aria-label={section.video.title}
+                controls
+                playsinline
+                preload="metadata"
+              ></video>
             {/if}
-            {#if section.text}
-              <p
-                class="cms-styled-text"
-                style={textAppearanceStyle(section.textAppearance?.text)}
-                data-df4y-editor-field="true"
-                data-df4y-editor-label="Texto da secção"
-                data-sanity={dataAttribute?.(sectionFieldPath(section, 'text.pt'))}
-              >{section.text}</p>
-            {/if}
-          </div>
-
-          {#if section.buttonLabel && section.buttonUrl}
-            <a
-              class="product-content-link cms-styled-text"
-              style={textAppearanceStyle(section.textAppearance?.buttonLabel)}
-              href={section.buttonUrl}
-              target={externalButton ? '_blank' : undefined}
-              rel={externalButton ? 'noreferrer' : undefined}
-              data-df4y-editor-field="true"
-              data-df4y-editor-label="Botão da secção"
-              data-sanity={dataAttribute?.(sectionFieldPath(section, 'buttonLabel.pt'))}
-            >{section.buttonLabel}</a>
           {/if}
         </div>
-      {/if}
+
+        {#if hasCopy}
+          <div class="product-content-copy">
+            <div class="product-content-copy-body">
+              {#if section.title}
+                <h2
+                  class="cms-styled-text"
+                  style={textAppearanceStyle(section.textAppearance?.title)}
+                  data-df4y-editor-field="true"
+                  data-df4y-editor-label="Título da secção"
+                  data-sanity={dataAttribute?.(sectionFieldPath(section, 'title.pt'))}
+                >{section.title}</h2>
+              {/if}
+              {#if section.text}
+                <p
+                  class="cms-styled-text"
+                  style={textAppearanceStyle(section.textAppearance?.text)}
+                  data-df4y-editor-field="true"
+                  data-df4y-editor-label="Texto da secção"
+                  data-sanity={dataAttribute?.(sectionFieldPath(section, 'text.pt'))}
+                >{section.text}</p>
+              {/if}
+            </div>
+
+            {#if section.buttonLabel && section.buttonUrl}
+              <a
+                class="product-content-link cms-styled-text"
+                style={textAppearanceStyle(section.textAppearance?.buttonLabel)}
+                href={section.buttonUrl}
+                target={externalButton ? '_blank' : undefined}
+                rel={externalButton ? 'noreferrer' : undefined}
+                data-df4y-editor-field="true"
+                data-df4y-editor-label="Botão da secção"
+                data-sanity={dataAttribute?.(sectionFieldPath(section, 'buttonLabel.pt'))}
+              >
+                <span>{section.buttonLabel}</span>
+                <span class="product-content-link-arrow" aria-hidden="true">→</span>
+              </a>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </section>
   {/each}
 </div>

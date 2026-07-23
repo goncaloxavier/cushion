@@ -98,6 +98,8 @@ export type ProductContentSection = {
   key: string
   editPath: string
   mediaKind: 'image' | 'video'
+  mediaSide: 'left' | 'right' | 'top'
+  surface: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
   image?: ContentImage
   video?: ContentVideo
   title: string
@@ -449,6 +451,8 @@ type SanityProductContentSection = {
   _key?: string
   _type?: string
   mediaKind?: 'image' | 'video'
+  mediaSide?: 'left' | 'right' | 'top'
+  surface?: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
   image?: SanityImage
   video?: {
     kind?: 'upload' | 'youtube'
@@ -2661,6 +2665,15 @@ const productContentSectionsFromSanity = (
     const videoUrl = fileUrl || youtubeUrl
     const inferredKind = videoUrl ? 'video' : image ? 'image' : section.mediaKind
     const mediaKind = section.mediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
+    const mediaSide =
+      section.mediaSide === 'right' || section.mediaSide === 'top' ? section.mediaSide : 'left'
+    const surface =
+      section.surface === 'fog' ||
+      section.surface === 'mint' ||
+      section.surface === 'deep' ||
+      section.surface === 'blue'
+        ? section.surface
+        : 'white'
 
     if (mediaKind === 'image' && !image) return []
     if (mediaKind === 'video' && !videoUrl) return []
@@ -2674,6 +2687,8 @@ const productContentSectionsFromSanity = (
         key,
         editPath,
         mediaKind,
+        mediaSide,
+        surface,
         ...(image && mediaKind === 'image'
           ? {image: {...image, editPath: `${editPath}.image`}}
           : {}),

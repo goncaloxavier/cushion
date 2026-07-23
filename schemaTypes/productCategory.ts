@@ -126,6 +126,38 @@ export const productCategory = defineType({
           type: 'object',
           fields: [
             defineField({
+              name: 'mediaSide',
+              title: 'Composição',
+              description: 'Escolha onde aparece a imagem ou o vídeo no computador.',
+              type: 'string',
+              initialValue: 'left',
+              options: {
+                list: [
+                  {title: 'Visual à esquerda', value: 'left'},
+                  {title: 'Visual à direita', value: 'right'},
+                  {title: 'Visual acima', value: 'top'},
+                ],
+                layout: 'radio',
+              },
+            }),
+            defineField({
+              name: 'surface',
+              title: 'Fundo da secção',
+              description: 'As cores do texto adaptam-se automaticamente ao fundo.',
+              type: 'string',
+              initialValue: 'white',
+              options: {
+                list: [
+                  {title: 'Branco', value: 'white'},
+                  {title: 'Névoa', value: 'fog'},
+                  {title: 'Verde claro', value: 'mint'},
+                  {title: 'Verde profundo', value: 'deep'},
+                  {title: 'Azul mineral', value: 'blue'},
+                ],
+                layout: 'radio',
+              },
+            }),
+            defineField({
               name: 'mediaKind',
               title: 'Conteúdo visual',
               description: 'Escolha uma imagem ou um vídeo.',
@@ -219,13 +251,13 @@ export const productCategory = defineType({
             defineField({
               name: 'title',
               title: 'Título',
-              description: 'Opcional. Aparece por baixo da imagem ou do vídeo.',
+              description: 'Opcional.',
               type: 'localizedString',
             }),
             defineField({
               name: 'text',
               title: 'Texto',
-              description: 'Opcional. Aparece por baixo da imagem ou do vídeo.',
+              description: 'Opcional.',
               type: 'localizedText',
             }),
             defineField({

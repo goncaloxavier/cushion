@@ -378,6 +378,8 @@ const collectionsQuery = `{
       _key,
       _type,
       mediaKind,
+      mediaSide,
+      surface,
       image {
         asset -> {
           url,

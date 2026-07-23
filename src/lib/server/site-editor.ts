@@ -705,6 +705,12 @@ const validateDocument = (document: SiteEditorDocument) => {
       }
       const section = item as Record<string, unknown>
       const mediaKind = section.mediaKind
+      if (!['left', 'right', 'top'].includes(String(section.mediaSide || 'left'))) {
+        throw new Error('Escolha uma composição válida em todas as secções adicionais.')
+      }
+      if (!['white', 'fog', 'mint', 'deep', 'blue'].includes(String(section.surface || 'white'))) {
+        throw new Error('Escolha um fundo válido em todas as secções adicionais.')
+      }
       const image = section.image as {asset?: {_ref?: unknown}} | undefined
       const video = section.video as
         | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}

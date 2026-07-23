@@ -126,6 +126,32 @@ const productContentSectionItem: SiteEditorField = {
   type: 'object',
   fields: [
     {
+      name: 'mediaSide',
+      label: 'Composição',
+      description: 'Posição da imagem ou do vídeo no computador',
+      type: 'select',
+      required: true,
+      options: [
+        {label: 'Visual à esquerda', value: 'left'},
+        {label: 'Visual à direita', value: 'right'},
+        {label: 'Visual acima', value: 'top'},
+      ],
+    },
+    {
+      name: 'surface',
+      label: 'Fundo',
+      description: 'O contraste do texto é ajustado automaticamente',
+      type: 'select',
+      required: true,
+      options: [
+        {label: 'Branco', value: 'white'},
+        {label: 'Névoa', value: 'fog'},
+        {label: 'Verde claro', value: 'mint'},
+        {label: 'Verde profundo', value: 'deep'},
+        {label: 'Azul mineral', value: 'blue'},
+      ],
+    },
+    {
       name: 'mediaKind',
       label: 'Conteúdo visual',
       type: 'select',
@@ -161,13 +187,13 @@ const productContentSectionItem: SiteEditorField = {
     },
     localizedString(
       'title',
-      'Título por baixo',
+      'Título',
       'Opcional',
       'Ex.: Planeie o seu espaço',
     ),
     localizedText(
       'text',
-      'Texto por baixo',
+      'Texto',
       'Opcional',
       'Ex.: Veja a aplicação em contexto e conheça as opções disponíveis.',
     ),
@@ -808,7 +834,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
     {
       id: 'content-sections',
       label: 'Conteúdo adicional',
-      description: 'Imagem ou vídeo, com texto e botão opcionais por baixo',
+      description: 'Secções com imagem ou vídeo, texto e botão opcionais',
       fields: [
         {
           name: 'contentSections',

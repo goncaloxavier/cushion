@@ -258,6 +258,8 @@ test.describe('Sanity Studio content contract', () => {
               _key: 'image-section',
               _type: 'productContentSection',
               mediaKind: 'image',
+              mediaSide: 'right',
+              surface: 'mint',
               image: {
                 _type: 'image',
                 asset: {
@@ -275,6 +277,8 @@ test.describe('Sanity Studio content contract', () => {
               _key: 'video-section',
               _type: 'productContentSection',
               mediaKind: 'video',
+              mediaSide: 'top',
+              surface: 'deep',
               video: {
                 kind: 'upload',
                 fileUrl: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
@@ -300,6 +304,8 @@ test.describe('Sanity Studio content contract', () => {
       key: 'image-section',
       editPath: 'contentSections[_key=="image-section"]',
       mediaKind: 'image',
+      mediaSide: 'right',
+      surface: 'mint',
       title: 'A real application',
       text: 'Texto por baixo da imagem.',
       buttonLabel: 'Saber mais',
@@ -313,6 +319,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(product.contentSections?.[1]).toMatchObject({
       key: 'video-section',
       mediaKind: 'video',
+      mediaSide: 'top',
+      surface: 'deep',
       text: 'Texto opcional por baixo do vídeo.',
       video: {
         url: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
@@ -868,6 +876,8 @@ test.describe('Sanity Studio content contract', () => {
 
   test('editable collection documents support uploaded images', () => {
     const productSchema = read('schemaTypes/productCategory.ts')
+    const productSections = read('src/lib/components/ProductContentSections.svelte')
+    const editorModel = read('src/lib/site-editor/model.ts')
     const storeSchema = read('schemaTypes/storeProduct.ts')
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const blogSchema = read('schemaTypes/blogPost.ts')
@@ -901,8 +911,17 @@ test.describe('Sanity Studio content contract', () => {
     expect(productSchema).toContain("name: 'contentSections'")
     expect(productSchema).toContain("name: 'productContentSection'")
     expect(productSchema).toContain("name: 'mediaKind'")
+    expect(productSchema).toContain("name: 'mediaSide'")
+    expect(productSchema).toContain("name: 'surface'")
     expect(productSchema).toContain("name: 'buttonLabel'")
     expect(productSchema).toContain("name: 'buttonUrl'")
+    expect(editorModel).toContain("label: 'Visual à esquerda'")
+    expect(editorModel).toContain("label: 'Visual à direita'")
+    expect(editorModel).toContain("label: 'Visual acima'")
+    expect(editorModel).toContain("label: 'Verde profundo'")
+    expect(editorModel).toContain("label: 'Azul mineral'")
+    expect(productSections).toContain('is-${section.mediaSide}')
+    expect(productSections).toContain('is-${section.surface}')
     expect(caseSchema).toContain("name: 'galleryVideo'")
     expect(caseSchema).toContain("type: 'file'")
     expect(blogSchema).toContain("name: 'galleryVideo'")
