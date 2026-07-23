@@ -975,10 +975,6 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('https://www.iubenda.com/privacy-policy/56295339')
     expect(contentModel).toContain('https://www.iubenda.com/privacy-policy/56295339/cookie-policy')
     expect(contentModel).toContain('https://www.youtube.com/watch?v=h1wVIZRj0Hc')
-    expect(contentModel).toContain('https://www.youtube.com/watch?v=VIUVlk51iN0')
-    expect(contentModel).toContain(
-      'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-    )
     expect(contentModel).toContain('/images/partners/abaae.png')
     expect(contentModel).toContain('partnersFromSanity')
     expect(contentModel).toContain('localizedArticle')

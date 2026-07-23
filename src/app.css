@@ -5080,129 +5080,6 @@ body.lightbox-open {
 }
 
 /* Product support: institutional video + external tool, in the editorial language. */
-.product-editorial-support {
-  display: grid;
-  grid-template-columns: minmax(0, 1.34fr) minmax(16.5rem, 0.66fr);
-  gap: clamp(1rem, 2.6vw, 1.8rem);
-  align-items: stretch;
-  padding: clamp(1.4rem, 3.4vw, 3rem) max(1.25rem, calc((100% - var(--max)) / 2));
-}
-
-.product-editorial-support.is-single {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.product-support-video {
-  display: grid;
-  gap: 0.9rem;
-  min-width: 0;
-  margin: 0;
-}
-
-.product-support-frame {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--brand-deep);
-  border: 1px solid rgba(17, 57, 60, 0.16);
-  border-radius: 12px;
-  box-shadow: 0 1.2rem 3rem rgba(10, 48, 55, 0.16);
-}
-
-.product-support-frame iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.product-support-video figcaption {
-  margin: 0;
-  padding-left: 0.95rem;
-  color: #3a4a43;
-  font-size: 0.98rem;
-  font-weight: 600;
-  line-height: 1.45;
-  border-left: 2px solid var(--green);
-}
-
-.product-support-tool {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  padding: clamp(1.5rem, 2.6vw, 2.1rem);
-  overflow: hidden;
-  color: #fff;
-  background: var(--brand-deep);
-  border-radius: 12px;
-  box-shadow: 0 1.2rem 3rem rgba(10, 48, 55, 0.2);
-}
-
-.product-support-tool::before {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background: radial-gradient(circle at 88% 0%, rgba(16, 90, 112, 0.55), transparent 62%);
-  pointer-events: none;
-}
-
-.product-support-tool-body {
-  position: relative;
-  display: grid;
-  gap: 0.7rem;
-}
-
-.product-support-tool h2 {
-  margin: 0;
-  color: #fff;
-  font-family: inherit;
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
-  line-height: 1.05;
-  letter-spacing: 0;
-}
-
-.product-support-tool p {
-  max-width: 30rem;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.product-support-tool-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: auto;
-  padding: 0.9rem 1.2rem;
-  color: var(--brand-deep);
-  font-size: 1.02rem;
-  font-weight: 820;
-  text-decoration: none;
-  background: #fff;
-  border-radius: 9px;
-  transition:
-    transform 0.2s var(--ease-snap),
-    background 0.2s ease;
-}
-
-.product-support-tool-link:hover {
-  background: var(--brand-fog);
-}
-
-.product-support-tool-arrow {
-  font-size: 1.15rem;
-  transition: transform 0.2s var(--ease-snap);
-}
-
-.product-support-tool-link:hover .product-support-tool-arrow {
-  transform: translateX(0.3rem);
-}
-
-/* Repeatable product chapters use the established Decking support composition. */
 .product-content-sections {
   border-top: 1px solid rgba(17, 57, 60, 0.12);
 }
@@ -5214,7 +5091,7 @@ body.lightbox-open {
   --product-section-muted: rgba(255, 255, 255, 0.82);
   --product-section-action-bg: #ffffff;
   --product-section-action-text: var(--brand-deep);
-  --product-section-caption: #24352e;
+  --product-section-caption: #3a4a43;
   position: relative;
   padding: clamp(2.5rem, 5vw, 4.6rem) max(1.25rem, calc((100% - var(--max)) / 2));
   color: var(--product-section-text);
@@ -5363,9 +5240,9 @@ body.lightbox-open {
 .product-content-label.is-caption {
   padding-left: 0.95rem;
   color: var(--product-section-caption);
-  font-size: 0.92rem;
+  font-size: 0.98rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
   border-left: 2px solid var(--brand-leaf);
 }
 
@@ -7069,29 +6946,6 @@ html.reduce-motion {
   }
 
   .product-stage-cta .button.primary {
-    width: 100%;
-  }
-
-  .product-editorial-support {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.1rem;
-    padding: 1.6rem var(--mobile-gutter);
-  }
-
-  .product-support-video {
-    gap: 0.7rem;
-  }
-
-  .product-support-tool {
-    gap: 1rem;
-    padding: 1.4rem;
-  }
-
-  .product-support-tool h2 {
-    font-size: clamp(1.7rem, 8vw, 2.1rem);
-  }
-
-  .product-support-tool-link {
     width: 100%;
   }
 

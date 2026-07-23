@@ -377,46 +377,21 @@ test.describe('public website routes', () => {
       }
     })
 
-    test('decking detail preserves the product video and deck builder tool', async ({page}) => {
-      await page.goto('/produtos/decking?lang=pt&fromPage=2', {waitUntil: 'domcontentloaded'})
-      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
-
-      await expect(page.locator('h1')).toContainText(/Decking/)
-      await expect(page.locator('.product-support-frame iframe')).toHaveAttribute(
-        'src',
-        /youtube-nocookie\.com\/embed\/VIUVlk51iN0/,
-      )
-      await expect(page.locator('.product-support-tool')).toContainText('Planeie o seu deck')
-      await expect(page.getByRole('link', {name: 'Construir o meu deck'})).toHaveAttribute(
-        'href',
-        'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-      )
-    })
-
-    test('product CTA placement follows whether the product has following content', async ({
+    test('product CTA stays with the gallery when there are no content sections', async ({
       page,
     }) => {
-      // Products without supporting content keep the quote action with the
-      // gallery. Decking moves it after its dedicated support section.
+      // The fallback dataset (used when SANITY_DISABLE_REMOTE=true, as in this
+      // suite) never defines contentSections — that content is editor-authored
+      // in Sanity only, covered by the productContentSectionsFromSanity unit
+      // coverage in sanity-contract.spec.ts. This checks the fallback path
+      // keeps the quote action with the gallery when there is none.
       await page.goto('/produtos/vedacoes-divisorias-resguardos?lang=pt', {
         waitUntil: 'domcontentloaded',
       })
       await page.locator('.page-transition.entered').waitFor({state: 'visible'})
       await expect(page.locator('.product-stage-cta .button')).toBeVisible()
-      await expect(page.locator('.product-editorial-support')).toHaveCount(0)
       await expect(page.locator('.product-content-sections')).toHaveCount(0)
       await expect(page.locator('.product-editorial-cta')).toHaveCount(0)
-
-      await page.goto('/produtos/decking-pavimentos-passadicos?lang=pt', {
-        waitUntil: 'domcontentloaded',
-      })
-      await page.locator('.page-transition.entered').waitFor({state: 'visible'})
-      await expect(page.locator('.product-stage-cta')).toHaveCount(0)
-      await expect(page.locator('.product-editorial-support')).toBeVisible()
-      await expect(page.locator('.product-editorial-support')).not.toHaveClass(/is-single/)
-      await expect(page.locator('.product-support-frame iframe')).toHaveCount(1)
-      await expect(page.locator('.product-support-tool-link')).toHaveCount(1)
-      await expect(page.locator('.product-editorial-cta .button')).toBeVisible()
     })
 
     test('blog index links every fallback post to a detail page', async ({page}) => {
