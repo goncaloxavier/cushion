@@ -51,13 +51,15 @@ export const actions: Actions = {
       return fail(403, {message: 'Atualize a página e tente novamente.'})
     }
     const note = String(data.get('note') ?? '')
-    await appendOrderNote(params.id, note, locals.staff.username)
-    await logStaffActivity({
-      staff: locals.staff,
-      action: 'order.note',
-      entityType: 'order',
-      entityId: params.id,
-      detail: note.slice(0, 200),
-    })
+    if (note.trim()) {
+      await appendOrderNote(params.id, note, locals.staff.username)
+      await logStaffActivity({
+        staff: locals.staff,
+        action: 'order.note',
+        entityType: 'order',
+        entityId: params.id,
+        detail: note.slice(0, 200),
+      })
+    }
   },
 }

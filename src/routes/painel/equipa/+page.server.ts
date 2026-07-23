@@ -2,6 +2,7 @@ import {error, fail} from '@sveltejs/kit'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
 import {canManageStaff, createStaff, findStaffByUsername, listStaff} from '$lib/server/staff-auth'
 import {logStaffActivity} from '$lib/server/staff-activity'
+import {roleLabels} from '$lib/painel'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -41,7 +42,7 @@ export const actions: Actions = {
       entityType: 'staff',
       entityId: created.id,
       entityLabel: `${created.name} (@${created.username})`,
-      detail: role === 'admin' ? 'Administrador' : 'Equipa',
+      detail: roleLabels[role],
     })
     return {ok: true}
   },

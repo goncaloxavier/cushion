@@ -26,12 +26,12 @@
     <table class="painel-table">
       <thead>
         <tr>
-          <th>Número</th>
-          <th>Cliente</th>
-          <th>Zona</th>
-          <th data-num>Total</th>
-          <th>Estado</th>
-          <th>Recebida</th>
+          <th scope="col">Número</th>
+          <th scope="col">Cliente</th>
+          <th scope="col">Zona</th>
+          <th scope="col" data-num>Total</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Recebida</th>
         </tr>
       </thead>
       <tbody>

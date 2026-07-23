@@ -7,7 +7,7 @@
   --p-ink: #14231f;
   --p-muted: #53635d;
   --p-border: #d9e1de;
-  --p-border-strong: #b9c8c2;
+  --p-border-strong: #7e938c;
   --p-accent: #155f77;
   --p-accent-hover: #104b5e;
   --p-accent-ink: #ffffff;
@@ -50,6 +50,26 @@
 .painel-builder-root *::before,
 .painel-builder-root *::after {
   box-sizing: border-box;
+}
+
+.painel-skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 0.7rem;
+  left: 1rem;
+  padding: 0.65rem 1rem;
+  color: var(--p-accent-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--p-accent);
+  border-radius: 5px;
+  transform: translateY(-180%);
+  transition: transform 160ms ease;
+}
+
+.painel-skip-link:focus {
+  transform: translateY(0);
 }
 
 /* Sidebar */
@@ -478,15 +498,6 @@
   border-radius: 5px;
 }
 
-.painel-section {
-  margin-top: 1rem;
-}
-
-.painel-section h2 {
-  margin: 0 0 0.8rem;
-  font-size: 1rem;
-}
-
 .painel-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18.5rem, 21rem);
@@ -531,8 +542,7 @@
   min-width: 0;
 }
 
-.painel-field-wide,
-.painel-field-block {
+.painel-field-wide {
   grid-column: 1 / -1;
 }
 
@@ -848,9 +858,7 @@
 .painel-input,
 .painel-select,
 .painel-textarea,
-.painel-toolbar input,
-.painel-form-row select,
-.painel-form-row input {
+.painel-toolbar input {
   min-height: 2.55rem;
   padding: 0.58rem 0.7rem;
   color: var(--p-ink);
@@ -864,11 +872,9 @@
 .painel-input:focus,
 .painel-select:focus,
 .painel-textarea:focus,
-.painel-toolbar input:focus,
-.painel-form-row select:focus,
-.painel-form-row input:focus {
+.painel-toolbar input:focus {
   border-color: var(--p-accent);
-  outline: 2px solid rgba(21, 95, 119, 0.2);
+  outline: 2px solid rgba(21, 95, 119, 0.55);
   outline-offset: 1px;
 }
 
@@ -877,23 +883,6 @@
   min-height: 6.5rem;
   line-height: 1.5;
   resize: vertical;
-}
-
-.painel-form-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  margin-bottom: 0.75rem;
-}
-
-.painel-form-row:last-child {
-  margin-bottom: 0;
-}
-
-.painel-form-row input {
-  min-width: 12rem;
-  flex: 1;
 }
 
 .painel-form-stack {
@@ -934,7 +923,6 @@
 }
 
 .painel-btn,
-.painel-form-row button,
 .painel-toolbar button {
   display: inline-flex;
   min-height: 2.45rem;
@@ -957,13 +945,11 @@
 }
 
 .painel-btn:hover,
-.painel-form-row button:hover,
 .painel-toolbar button:hover {
   border-color: var(--p-ink);
 }
 
 .painel-btn-primary,
-.painel-form-row button,
 .painel-toolbar button {
   color: var(--p-accent-ink);
   background: var(--p-accent);
@@ -971,7 +957,6 @@
 }
 
 .painel-btn-primary:hover,
-.painel-form-row button:hover,
 .painel-toolbar button:hover {
   background: var(--p-accent-hover);
   border-color: var(--p-accent-hover);
@@ -1256,13 +1241,13 @@
   color: #14231f;
   font: inherit;
   background: #ffffff;
-  border: 1px solid #b9c8c2;
+  border: 1px solid #7e938c;
   border-radius: 5px;
 }
 
 .painel-login-card input:focus {
   border-color: #155f77;
-  outline: 2px solid rgba(21, 95, 119, 0.2);
+  outline: 2px solid rgba(21, 95, 119, 0.55);
   outline-offset: 1px;
 }
 
@@ -1448,7 +1433,15 @@
   }
 
   .painel-table thead {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .painel-table tbody {
@@ -1498,16 +1491,6 @@
 
   .painel-panel-head {
     align-items: flex-start;
-  }
-
-  .painel-form-row {
-    align-items: stretch;
-  }
-
-  .painel-form-row > *,
-  .painel-form-row input,
-  .painel-form-row select {
-    width: 100%;
   }
 }
 

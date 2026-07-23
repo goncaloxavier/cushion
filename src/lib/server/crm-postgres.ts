@@ -140,6 +140,28 @@ export const listSubmissions = async (
   return result.rows.map(mapSubmission)
 }
 
+export const listSubmissionsByStatus = async (statuses: string[], limit = 8): Promise<SubmissionRow[]> => {
+  if (!databaseConfigured() || statuses.length === 0) return []
+  const result = await query<SubmissionDbRow>(
+    `select ${submissionColumns}
+     from crm_form_submissions
+     where status = any($1)
+     order by submitted_at desc
+     limit $2`,
+    [statuses, limit],
+  )
+  return result.rows.map(mapSubmission)
+}
+
+export const countSubmissionsByStatus = async (statuses: string[]): Promise<number> => {
+  if (!databaseConfigured() || statuses.length === 0) return 0
+  const result = await query<{count: string}>(
+    `select count(*)::text as count from crm_form_submissions where status = any($1)`,
+    [statuses],
+  )
+  return Number(result.rows[0]?.count ?? '0')
+}
+
 export const getSubmission = async (id: string): Promise<SubmissionRow | null> => {
   if (!databaseConfigured()) return null
   const result = await query<SubmissionDbRow>(

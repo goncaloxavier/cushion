@@ -1,22 +1,7 @@
 <script lang="ts">
-  import {fmtDateTime, roleLabels, roleTone} from '$lib/painel'
+  import {activityActionLabels, fmtDateTime, roleLabels, roleTone} from '$lib/painel'
 
   let {data} = $props()
-
-  const actionLabels: Record<string, string> = {
-    'order.status': 'Alterou o estado da encomenda',
-    'order.note': 'Adicionou uma nota à encomenda',
-    'lead.status': 'Alterou o estado do pedido de contacto',
-    'lead.note': 'Adicionou uma nota ao pedido de contacto',
-    'profile.status': 'Alterou o estado do perfil',
-    'profile.note': 'Adicionou uma nota ao perfil',
-    'site.publish': 'Publicou conteúdo do site',
-    'site.delete': 'Eliminou conteúdo do site',
-    'staff.create': 'Criou uma conta de equipa',
-    'staff.role': 'Alterou a função de uma conta',
-    'staff.active': 'Alterou o estado de uma conta',
-    'staff.password': 'Repôs a palavra-passe de uma conta',
-  }
 
   const entityHref = (entityType: string, entityId: string | null) => {
     if (!entityId) return undefined
@@ -46,11 +31,11 @@
     <table class="painel-table">
       <thead>
         <tr>
-          <th>Data/Hora</th>
-          <th>Autor</th>
-          <th>Ação</th>
-          <th>Entidade</th>
-          <th>Detalhe</th>
+          <th scope="col">Data/Hora</th>
+          <th scope="col">Autor</th>
+          <th scope="col">Ação</th>
+          <th scope="col">Entidade</th>
+          <th scope="col">Detalhe</th>
         </tr>
       </thead>
       <tbody>
@@ -64,7 +49,7 @@
                 {roleLabels[entry.staffRole] ?? entry.staffRole}
               </span>
             </td>
-            <td data-label="Ação">{actionLabels[entry.action] ?? entry.action}</td>
+            <td data-label="Ação">{activityActionLabels[entry.action] ?? entry.action}</td>
             <td data-label="Entidade">
               {#if href}
                 <a {href}>{entry.entityLabel || entry.entityId}</a>

@@ -38,12 +38,12 @@
       <table class="painel-table">
       <thead>
         <tr>
-          <th>Nome</th>
-          <th>Email</th>
-          <th>Local</th>
-          <th data-num>Pedidos</th>
-          <th>Último</th>
-          <th>Estado</th>
+          <th scope="col">Nome</th>
+          <th scope="col">Email</th>
+          <th scope="col">Local</th>
+          <th scope="col" data-num>Pedidos</th>
+          <th scope="col">Último</th>
+          <th scope="col">Estado</th>
         </tr>
       </thead>
       <tbody>

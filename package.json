@@ -53,7 +53,9 @@
     "sanity"
   ],
   "overrides": {
-    "adm-zip": "^0.6.0"
+    "deepl-node": {
+      "adm-zip": "^0.6.0"
+    }
   },
   "dependencies": {
     "@emnapi/core": "1.11.1",

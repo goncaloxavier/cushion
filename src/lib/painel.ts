@@ -103,6 +103,25 @@ export const roleDescriptions: Record<string, string> = {
 // state" case already renders in this tag system.
 export const roleTone = (role: string): StatusTone => (role === 'admin' ? 'accent' : undefined)
 
+export const activeTone = (active: boolean): StatusTone => (active ? 'done' : 'danger')
+
+export const activityActionLabels: Record<string, string> = {
+  'order.status': 'Alterou o estado da encomenda',
+  'order.note': 'Adicionou uma nota à encomenda',
+  'lead.status': 'Alterou o estado do pedido de contacto',
+  'lead.note': 'Adicionou uma nota ao pedido de contacto',
+  'profile.status': 'Alterou o estado do perfil',
+  'profile.note': 'Adicionou uma nota ao perfil',
+  'site.publish': 'Publicou conteúdo do site',
+  'site.delete': 'Eliminou conteúdo do site',
+  'staff.create': 'Criou uma conta de equipa',
+  'staff.role': 'Alterou a função de uma conta',
+  'staff.active': 'Alterou o estado de uma conta',
+  'staff.password': 'Repôs a palavra-passe de uma conta',
+  'settings.deepl_key': 'Definiu a chave da DeepL',
+  'settings.deepl_key_clear': 'Removeu a chave da DeepL',
+}
+
 export const sourceLabel = (source: string) => {
   if (source === 'catalogue') return 'Catálogo'
   if (source === 'store') return 'Loja'

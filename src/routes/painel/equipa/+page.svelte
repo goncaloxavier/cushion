@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
+  import {activeTone, fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
 
   let {data, form} = $props()
 </script>
@@ -25,11 +25,11 @@
     <table class="painel-table">
       <thead>
         <tr>
-          <th>Nome</th>
-          <th>Utilizador</th>
-          <th>Função</th>
-          <th>Estado</th>
-          <th>Último acesso</th>
+          <th scope="col">Nome</th>
+          <th scope="col">Utilizador</th>
+          <th scope="col">Função</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Último acesso</th>
         </tr>
       </thead>
       <tbody>
@@ -43,7 +43,7 @@
               </span>
             </td>
             <td data-label="Estado">
-              <span class="painel-tag" data-tone={member.active ? 'done' : 'danger'}>
+              <span class="painel-tag" data-tone={activeTone(member.active)}>
                 {member.active ? 'Ativa' : 'Inativa'}
               </span>
             </td>

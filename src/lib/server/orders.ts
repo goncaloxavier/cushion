@@ -840,6 +840,23 @@ export const listOrdersForPainel = async (limit = 200): Promise<OrderRow[]> => {
   return result.rows.map(mapOrder)
 }
 
+export const listOrdersExcludingStatus = async (excludeStatuses: string[], limit = 8): Promise<OrderRow[]> => {
+  if (!databaseConfigured()) return []
+  const result = await query(`${orderSelect} where status != all($1) order by created_at desc limit $2`, [
+    excludeStatuses,
+    limit,
+  ])
+  return result.rows.map(mapOrder)
+}
+
+export const countOrdersExcludingStatus = async (excludeStatuses: string[]): Promise<number> => {
+  if (!databaseConfigured()) return 0
+  const result = await query<{count: string}>(`select count(*)::text as count from orders where status != all($1)`, [
+    excludeStatuses,
+  ])
+  return Number(result.rows[0]?.count ?? '0')
+}
+
 export const getOrderDetail = async (id: string, customerId?: string | null): Promise<OrderDetail | null> => {
   if (!databaseConfigured()) return null
   const where = customerId ? 'where id = $1 and customer_id = $2' : 'where id = $1'
@@ -873,8 +890,15 @@ export const setOrderStatus = async (id: string, status: string, actorLabel: str
   ])
   if (!allowed.has(status)) return
 
+  const unpaidStatuses = new Set(['cancelled', 'pending_payment_link', 'payment_link_sent'])
+  const paymentStatus = unpaidStatuses.has(status) ? status : 'paid'
+
   await withTransaction(async (client) => {
-    await client.query('update orders set status = $1, updated_at = now() where id = $2', [status, id])
+    await client.query('update orders set status = $1, payment_status = $2, updated_at = now() where id = $3', [
+      status,
+      paymentStatus,
+      id,
+    ])
     await client.query(
       `insert into order_status_events (order_id, status, note, actor_type, actor_label)
        values ($1, $2, '', 'staff', $3)`,

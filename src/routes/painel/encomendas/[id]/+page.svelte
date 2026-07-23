@@ -45,7 +45,7 @@
   <p class="painel-alert" data-tone="error" role="alert">{form.message}</p>
 {/if}
 
-<div class="painel-detail-layout painel-order-detail">
+<div class="painel-detail-layout">
   <div class="painel-detail-main">
     <section class="painel-panel">
       <header class="painel-panel-head">
@@ -107,12 +107,12 @@
         <table class="painel-table">
           <thead>
             <tr>
-              <th>Produto</th>
-              <th>Variante</th>
-              <th>Acabamento</th>
-              <th data-num>Qtd.</th>
-              <th data-num>Preço un.</th>
-              <th data-num>Total</th>
+              <th scope="col">Produto</th>
+              <th scope="col">Variante</th>
+              <th scope="col">Acabamento</th>
+              <th scope="col" data-num>Qtd.</th>
+              <th scope="col" data-num>Preço un.</th>
+              <th scope="col" data-num>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -157,7 +157,7 @@
       <button type="submit" class="painel-btn painel-btn-primary" disabled={readOnly}>Guardar estado</button>
     </form>
 
-    <section class="painel-panel painel-order-summary">
+    <section class="painel-panel">
       <h2 class="painel-panel-title">Resumo</h2>
       <dl class="painel-totals">
         <div><dt>Produtos s/ IVA</dt><dd>{money.format(order.productNet)}</dd></div>

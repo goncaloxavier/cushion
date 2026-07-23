@@ -51,6 +51,7 @@
   </div>
 {:else if staff}
   <div class="painel">
+    <a class="painel-skip-link" href="#painel-main-content">Saltar para o conteúdo</a>
     <aside class="painel-side" class:open={mobileMenuOpen}>
       <div class="painel-side-head">
         <a class="painel-brand" href="/painel" aria-label="Início do painel">
@@ -104,7 +105,7 @@
         onclick={() => (mobileMenuOpen = false)}
       ></button>
     {/if}
-    <main class="painel-main">
+    <main class="painel-main" id="painel-main-content" tabindex="-1">
       <div class="painel-main-inner">
         {@render children()}
       </div>

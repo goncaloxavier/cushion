@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
+  import {activeTone, fmtDateTime, roleDescriptions, roleLabels, roleTone} from '$lib/painel'
 
   let {data, form} = $props()
   const member = $derived(data.member)
@@ -20,7 +20,7 @@
     <span class="painel-tag" data-tone={roleTone(member.role)}>
       {roleLabels[member.role] ?? member.role}
     </span>
-    <span class="painel-tag" data-tone={member.active ? 'done' : 'danger'}>
+    <span class="painel-tag" data-tone={activeTone(member.active)}>
       {member.active ? 'Ativa' : 'Inativa'}
     </span>
   </div>
@@ -33,7 +33,7 @@
   <p class="painel-alert" data-tone="success">Palavra-passe redefinida. As sessões desta conta foram terminadas.</p>
 {/if}
 
-<div class="painel-detail-layout painel-staff-detail">
+<div class="painel-detail-layout">
   <div class="painel-detail-main">
     <section class="painel-panel">
       <header class="painel-panel-head">

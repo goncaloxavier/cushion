@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    activityActionLabels,
     fmtDateTime,
     orderStatusLabels,
     orderStatusTone,
@@ -11,21 +12,6 @@
   } from '$lib/painel'
 
   let {data} = $props()
-
-  const actionLabels: Record<string, string> = {
-    'order.status': 'alterou o estado de uma encomenda',
-    'order.note': 'adicionou uma nota a uma encomenda',
-    'lead.status': 'alterou o estado de um pedido de contacto',
-    'lead.note': 'adicionou uma nota a um pedido de contacto',
-    'profile.status': 'alterou o estado de um perfil',
-    'profile.note': 'adicionou uma nota a um perfil',
-    'site.publish': 'publicou conteúdo do site',
-    'site.delete': 'eliminou conteúdo do site',
-    'staff.create': 'criou uma conta de equipa',
-    'staff.role': 'alterou a função de uma conta',
-    'staff.active': 'alterou o estado de uma conta',
-    'staff.password': 'repôs a palavra-passe de uma conta',
-  }
 </script>
 
 <svelte:head>
@@ -67,10 +53,10 @@
         <table class="painel-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Origem</th>
-              <th>Estado</th>
-              <th>Recebido</th>
+              <th scope="col">Nome</th>
+              <th scope="col">Origem</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Recebido</th>
             </tr>
           </thead>
           <tbody>
@@ -107,10 +93,10 @@
         <table class="painel-table">
           <thead>
             <tr>
-              <th>Número</th>
-              <th>Cliente</th>
-              <th>Estado</th>
-              <th>Recebida</th>
+              <th scope="col">Número</th>
+              <th scope="col">Cliente</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Recebida</th>
             </tr>
           </thead>
           <tbody>
@@ -150,9 +136,9 @@
       <table class="painel-table">
         <thead>
           <tr>
-            <th>Data/Hora</th>
-            <th>Autor</th>
-            <th>Ação</th>
+            <th scope="col">Data/Hora</th>
+            <th scope="col">Autor</th>
+            <th scope="col">Ação</th>
           </tr>
         </thead>
         <tbody>
@@ -165,7 +151,7 @@
                   {roleLabels[entry.staffRole] ?? entry.staffRole}
                 </span>
               </td>
-              <td data-label="Ação">{actionLabels[entry.action] ?? entry.action}</td>
+              <td data-label="Ação">{activityActionLabels[entry.action] ?? entry.action}</td>
             </tr>
           {/each}
         </tbody>
