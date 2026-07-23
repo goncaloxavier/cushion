@@ -1,6 +1,8 @@
 import {error, fail} from '@sveltejs/kit'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
 import {canManageStaff, createStaff, findStaffByUsername, listStaff} from '$lib/server/staff-auth'
+import {logStaffActivity} from '$lib/server/staff-activity'
+import {roleLabels} from '$lib/painel'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -33,7 +35,15 @@ export const actions: Actions = {
     if (password.length < 10) return fail(400, {message: 'A palavra-passe deve ter pelo menos 10 caracteres.'})
     if (await findStaffByUsername(username)) return fail(400, {message: 'Já existe uma conta com esse utilizador.'})
 
-    await createStaff({name, username, password, role})
+    const created = await createStaff({name, username, password, role})
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'staff.create',
+      entityType: 'staff',
+      entityId: created.id,
+      entityLabel: `${created.name} (@${created.username})`,
+      detail: roleLabels[role],
+    })
     return {ok: true}
   },
 }

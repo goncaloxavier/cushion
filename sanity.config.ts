@@ -3,12 +3,11 @@ import {structureTool} from 'sanity/structure'
 import {defineLocations, presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
 import {RetranslateAction} from './sanity.actions'
-import {crmSchemaTypes, websiteSchemaTypes} from './schemaTypes'
-import {crmStructure, managedTypes, websiteStructure} from './sanity.structure'
+import {websiteSchemaTypes} from './schemaTypes'
+import {managedTypes, websiteStructure} from './sanity.structure'
 
 const projectId = 'u4uyfix8'
 const localPreviewOrigin = 'http://localhost:5173'
-const enableCrmWorkspace = process.env.SANITY_STUDIO_ENABLE_CRM === 'true'
 
 const collectionLocation = (basePath: string, fallbackTitle: string) =>
   defineLocations({
@@ -37,79 +36,59 @@ const collectionLocation = (basePath: string, fallbackTitle: string) =>
     },
   })
 
-export default defineConfig([
-  {
-    name: 'website',
-    basePath: '/website',
-    title: 'DaFábrica4You - Website',
+export default defineConfig({
+  name: 'website',
+  basePath: '/website',
+  title: 'DaFábrica4You - Website',
 
-    projectId,
-    // Local `sanity dev` can target a separate dataset via SANITY_STUDIO_DATASET
-    // (e.g. `development`); defaults to `production` for the deployed Studio.
-    dataset: process.env.SANITY_STUDIO_DATASET || 'production',
+  projectId,
+  // Local `sanity dev` can target a separate dataset via SANITY_STUDIO_DATASET
+  // (e.g. `development`); defaults to `production` for the deployed Studio.
+  dataset: process.env.SANITY_STUDIO_DATASET || 'production',
 
-    plugins: [
-      // Visual Editing: embeds the live site with click-to-edit overlays.
-      presentationTool({
-        previewUrl: {
-          origin: process.env.SANITY_STUDIO_PREVIEW_ORIGIN || localPreviewOrigin,
-          previewMode: {
-            enable: '/preview/enable',
-          },
+  plugins: [
+    // Visual Editing: embeds the live site with click-to-edit overlays.
+    presentationTool({
+      previewUrl: {
+        origin: process.env.SANITY_STUDIO_PREVIEW_ORIGIN || localPreviewOrigin,
+        previewMode: {
+          enable: '/preview/enable',
         },
-        resolve: {
-          locations: {
-            siteLanding: defineLocations({
-              locations: [
-                {title: 'Início', href: '/'},
-                {title: 'Sobre', href: '/sobre-nos'},
-                {title: 'Produtos', href: '/produtos'},
-                {title: 'Loja', href: '/loja'},
-                {title: 'Catálogo', href: '/catalogo'},
-                {title: 'Casos', href: '/casos-de-estudo'},
-                {title: 'Blog', href: '/blog'},
-                {title: 'Contacto', href: '/contacto'},
-              ],
-            }),
-            productCategory: collectionLocation('/produtos', 'Produto'),
-            storeCategory: defineLocations({
-              locations: [{title: 'Categorias da Loja', href: '/loja'}],
-            }),
-            storeProduct: collectionLocation('/loja', 'Produto da loja'),
-            caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo'),
-            blogPost: collectionLocation('/blog', 'Artigo do blog'),
-          },
+      },
+      resolve: {
+        locations: {
+          siteLanding: defineLocations({
+            locations: [
+              {title: 'Início', href: '/'},
+              {title: 'Sobre', href: '/sobre-nos'},
+              {title: 'Produtos', href: '/produtos'},
+              {title: 'Loja', href: '/loja'},
+              {title: 'Catálogo', href: '/catalogo'},
+              {title: 'Casos', href: '/casos-de-estudo'},
+              {title: 'Blog', href: '/blog'},
+              {title: 'Contacto', href: '/contacto'},
+            ],
+          }),
+          productCategory: collectionLocation('/produtos', 'Produto'),
+          storeCategory: defineLocations({
+            locations: [{title: 'Categorias da Loja', href: '/loja'}],
+          }),
+          storeProduct: collectionLocation('/loja', 'Produto da loja'),
+          caseStudy: collectionLocation('/casos-de-estudo', 'Caso de estudo'),
+          blogPost: collectionLocation('/blog', 'Artigo do blog'),
         },
-      }),
-      structureTool({structure: websiteStructure}),
-      visionTool(),
-    ],
+      },
+    }),
+    structureTool({structure: websiteStructure}),
+    visionTool(),
+  ],
 
-    schema: {
-      types: websiteSchemaTypes,
-    },
-
-    document: {
-      actions: (prev, context) =>
-        managedTypes.includes(context.schemaType) ? [...prev, RetranslateAction] : prev,
-    },
+  schema: {
+    types: websiteSchemaTypes,
   },
-  ...(enableCrmWorkspace
-    ? [
-        {
-          name: 'crm',
-          basePath: '/crm',
-          title: 'DaFábrica4You - Pedidos',
 
-          projectId,
-          dataset: 'crm',
-
-          plugins: [structureTool({structure: crmStructure})],
-
-          schema: {
-            types: crmSchemaTypes,
-          },
-        },
-      ]
-    : []),
-])
+  document: {
+    actions: (prev, context) =>
+      managedTypes.includes(context.schemaType) ? [...prev, RetranslateAction] : prev,
+  },
+})

@@ -1,8 +1,9 @@
 import {fail, type Action, type RequestEvent} from '@sveltejs/kit'
 import {canManageStaff} from '$lib/server/staff-auth'
-import type {ProfileStatus, SubmissionStatus} from '$lib/painel'
+import {profileStatusLabels, submissionStatusLabels, type ProfileStatus, type SubmissionStatus} from '$lib/painel'
 import {appendProfileNote, appendSubmissionNote, setProfileStatus, setSubmissionStatus} from './crm-postgres'
 import {csrfOk, sameOriginOk} from './form-guard'
+import {logStaffActivity} from './staff-activity'
 
 // Shared SvelteKit form actions for the /painel management pages. Every action
 // re-checks locals.staff (defense in depth on top of the hooks guard).
@@ -36,7 +37,16 @@ const setSubmissionStatusAction: Action = async (event) => {
   const {data} = guarded
   const id = String(data.get('id') ?? '')
   const status = String(data.get('status') ?? '') as SubmissionStatus
-  if (id) await setSubmissionStatus(id, status)
+  if (id) {
+    await setSubmissionStatus(id, status)
+    await logStaffActivity({
+      staff: event.locals.staff!,
+      action: 'lead.status',
+      entityType: 'submission',
+      entityId: id,
+      entityLabel: submissionStatusLabels[status] ?? status,
+    })
+  }
   return {ok: true}
 }
 
@@ -46,7 +56,16 @@ const addSubmissionNoteAction: Action = async (event) => {
   const {data} = guarded
   const id = String(data.get('id') ?? '')
   const note = String(data.get('note') ?? '').slice(0, 2000)
-  if (id && note.trim()) await appendSubmissionNote(id, note, event.locals.staff!.name)
+  if (id && note.trim()) {
+    await appendSubmissionNote(id, note, event.locals.staff!.name)
+    await logStaffActivity({
+      staff: event.locals.staff!,
+      action: 'lead.note',
+      entityType: 'submission',
+      entityId: id,
+      detail: note.slice(0, 200),
+    })
+  }
   return {ok: true}
 }
 
@@ -61,7 +80,16 @@ const setProfileStatusAction: Action = async (event) => {
   const {data} = guarded
   const id = String(data.get('id') ?? '')
   const status = String(data.get('status') ?? '') as ProfileStatus
-  if (id) await setProfileStatus(id, status)
+  if (id) {
+    await setProfileStatus(id, status)
+    await logStaffActivity({
+      staff: event.locals.staff!,
+      action: 'profile.status',
+      entityType: 'profile',
+      entityId: id,
+      entityLabel: profileStatusLabels[status] ?? status,
+    })
+  }
   return {ok: true}
 }
 
@@ -71,7 +99,16 @@ const addProfileNoteAction: Action = async (event) => {
   const {data} = guarded
   const id = String(data.get('id') ?? '')
   const note = String(data.get('note') ?? '').slice(0, 2000)
-  if (id && note.trim()) await appendProfileNote(id, note, event.locals.staff!.name)
+  if (id && note.trim()) {
+    await appendProfileNote(id, note, event.locals.staff!.name)
+    await logStaffActivity({
+      staff: event.locals.staff!,
+      action: 'profile.note',
+      entityType: 'profile',
+      entityId: id,
+      detail: note.slice(0, 200),
+    })
+  }
   return {ok: true}
 }
 

@@ -1,8 +1,9 @@
 import {error, fail} from '@sveltejs/kit'
 import {appendOrderNote, getOrderDetail, setOrderStatus} from '$lib/server/orders'
 import {canManageStaff} from '$lib/server/staff-auth'
-import {orderStatuses} from '$lib/painel'
+import {orderStatusLabels, orderStatuses} from '$lib/painel'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
+import {logStaffActivity} from '$lib/server/staff-activity'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -29,6 +30,13 @@ export const actions: Actions = {
     const status = String(data.get('status') ?? '')
     if (orderStatuses.includes(status as (typeof orderStatuses)[number])) {
       await setOrderStatus(params.id, status, locals.staff.username)
+      await logStaffActivity({
+        staff: locals.staff,
+        action: 'order.status',
+        entityType: 'order',
+        entityId: params.id,
+        entityLabel: orderStatusLabels[status as (typeof orderStatuses)[number]] ?? status,
+      })
     }
   },
   addNote: async ({cookies, locals, params, request, url}) => {
@@ -42,6 +50,16 @@ export const actions: Actions = {
     if (!csrfOk(cookies.get(csrfCookieName), csrfToken)) {
       return fail(403, {message: 'Atualize a página e tente novamente.'})
     }
-    await appendOrderNote(params.id, String(data.get('note') ?? ''), locals.staff.username)
+    const note = String(data.get('note') ?? '')
+    if (note.trim()) {
+      await appendOrderNote(params.id, note, locals.staff.username)
+      await logStaffActivity({
+        staff: locals.staff,
+        action: 'order.note',
+        entityType: 'order',
+        entityId: params.id,
+        detail: note.slice(0, 200),
+      })
+    }
   },
 }

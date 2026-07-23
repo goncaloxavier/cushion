@@ -27,19 +27,28 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
   const site = contentFromSanity(await getSanityCollections())
   const content = site[defaultLanguage]
 
-  const paths = [
-    ...staticPaths,
-    ...content.products.map((item) => `/produtos/${item.slug}`),
-    ...content.storeProducts.map((item) => `/loja/${item.slug}`),
-    ...content.caseStudies.map((item) => `/casos-de-estudo/${item.slug}`),
-    ...content.blogPosts.map((item) => `/blog/${item.slug}`),
+  // lastmod is only emitted when we have a real Sanity _updatedAt for that item —
+  // fallback-sourced content (no live Sanity connection) has none, and a made-up
+  // date would be worse than omitting the tag entirely.
+  const entries = [
+    ...staticPaths.map((path) => ({path, lastmod: content.updatedAt})),
+    ...content.products.map((item) => ({path: `/produtos/${item.slug}`, lastmod: item.updatedAt})),
+    ...content.storeProducts.map((item) => ({
+      path: `/loja/${item.slug}`,
+      lastmod: item.updatedAt,
+    })),
+    ...content.caseStudies.map((item) => ({
+      path: `/casos-de-estudo/${item.slug}`,
+      lastmod: item.updatedAt,
+    })),
+    ...content.blogPosts.map((item) => ({path: `/blog/${item.slug}`, lastmod: item.updatedAt})),
   ]
 
   const hrefFor = (path: string, code: string) =>
     escapeXml(`${url.origin}${path}${code === defaultLanguage ? '' : `?lang=${code}`}`)
 
-  const body = paths
-    .map((path) => {
+  const body = entries
+    .map(({path, lastmod}) => {
       const alternates = [
         ...languages.map(
           (option) =>
@@ -47,8 +56,9 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
         ),
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(`${url.origin}${path}`)}"/>`,
       ].join('\n')
+      const lastmodTag = lastmod ? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>` : ''
 
-      return `  <url>\n    <loc>${escapeXml(`${url.origin}${path}`)}</loc>\n${alternates}\n  </url>`
+      return `  <url>\n    <loc>${escapeXml(`${url.origin}${path}`)}</loc>${lastmodTag}\n${alternates}\n  </url>`
     })
     .join('\n')
 

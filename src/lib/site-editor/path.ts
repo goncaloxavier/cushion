@@ -72,11 +72,3 @@ export const setEditorValue = <T>(source: T, path: string, value: unknown): T =>
 
   return root as T
 }
-
-export const editorPathLabel = (path: string) => {
-  const last = editorPathSegments(path).at(-1)
-  if (typeof last !== 'string') return 'Conteúdo selecionado'
-  return last
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/^./, (character) => character.toUpperCase())
-}

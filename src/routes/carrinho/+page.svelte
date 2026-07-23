@@ -13,6 +13,7 @@
     removeCartItem,
     setCartItemQuantity,
     storeVariantForCartItem,
+    writeCart,
     type StoreCartItem,
   } from '$lib/cart'
   import {
@@ -97,7 +98,7 @@
       {transportMultiplier: content.storePage.transportMultiplier},
     ),
   )
-  const itemCount = $derived(cartTotalQuantity(items))
+  const itemCount = $derived(cartTotalQuantity(rows.map((row) => row.item)))
   const deliveryZone = $derived(postalZoneFor(deliveryPostalCode))
   const deliveryZonePrefix = $derived(postalZonePrefixFor(deliveryPostalCode))
   const transportStatus = $derived(
@@ -109,6 +110,11 @@
   const refreshCart = () => {
     items = readCart()
   }
+
+  $effect(() => {
+    if (!browser || items.length === 0 || rows.length === items.length) return
+    items = writeCart(rows.map((row) => row.item))
+  })
 
   onMount(() => {
     const refreshDelivery = () => {

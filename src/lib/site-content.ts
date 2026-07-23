@@ -94,6 +94,23 @@ export type StoreProductMedia =
       editPath?: string
     })
 
+export type ProductContentSection = {
+  key: string
+  editPath: string
+  mediaKind: 'image' | 'video'
+  mediaSide: 'left' | 'right' | 'top'
+  surface: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
+  image?: ContentImage
+  video?: ContentVideo
+  label: string
+  labelStyle: 'caption' | 'pill' | 'eyebrow'
+  title: string
+  text: string
+  buttonLabel: string
+  buttonUrl: string
+  textAppearance?: TextAppearanceMap
+}
+
 export type PartnerItem = {
   name: string
   url: string
@@ -104,9 +121,9 @@ export type PartnerItem = {
 
 export type ProductItem = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
-  summary: string
   description: string
   image?: ContentImage
   images?: ContentImage[]
@@ -117,11 +134,19 @@ export type ProductItem = {
   toolTitle?: string
   toolText?: string
   toolLabel?: string
+  contentSections?: ProductContentSection[]
+  specs?: {
+    dimensions: string[]
+    materials: string[]
+    specifications: string[]
+    advantages: string[]
+  }
   textAppearance?: TextAppearanceMap
 }
 
 export type CaseStudy = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   location: string
@@ -138,6 +163,7 @@ export type CaseStudy = {
 
 export type BlogPost = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   excerpt: string
@@ -212,6 +238,7 @@ export type StoreProductVariant = {
 
 export type StoreProduct = {
   studioDocumentId?: string
+  updatedAt?: string
   title: string
   slug: string
   category: StoreCategory
@@ -229,6 +256,7 @@ export type StoreProduct = {
 }
 
 export type SiteContent = {
+  updatedAt?: string
   textAppearance?: Record<string, TextAppearance>
   navigation?: SiteNavigationItem[]
   nav: {
@@ -291,7 +319,7 @@ export type SiteContent = {
   home: {
     hero: CopyBlock
     heroImage: ContentImage
-    heroVideoUrl: string
+    heroVideo: {kind: 'upload' | 'youtube'; url: string}
     heroVideoLabel: string
     heroVideoCloseLabel: string
     intro: CopyBlock
@@ -406,16 +434,48 @@ export type SiteContent = {
 
 type SanityProduct = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
-  summary?: LocalizedValue
   description?: LocalizedValue
+  contentSections?: SanityProductContentSection[]
+  specs?: {
+    dimensions?: LocalizedValue[]
+    materials?: LocalizedValue[]
+    specifications?: LocalizedValue[]
+    advantages?: LocalizedValue[]
+  }
+}
+
+type SanityProductContentSection = {
+  _key?: string
+  _type?: string
+  mediaKind?: 'image' | 'video'
+  mediaSide?: 'left' | 'right' | 'top'
+  surface?: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
+  image?: SanityImage
+  video?: {
+    kind?: 'upload' | 'youtube'
+    youtubeUrl?: string
+    fileUrl?: string
+    fileName?: string
+    mimeType?: string
+  }
+  poster?: SanityImage
+  videoTitle?: LocalizedValue
+  label?: LocalizedValue
+  labelStyle?: 'caption' | 'pill' | 'eyebrow'
+  title?: LocalizedValue
+  text?: LocalizedValue
+  buttonLabel?: LocalizedValue
+  buttonUrl?: string
 }
 
 type SanityCaseStudy = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -430,6 +490,7 @@ type SanityCaseStudy = {
 
 type SanityBlogPost = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -453,6 +514,7 @@ type SanityStoreProductVariant = {
 
 type SanityStoreProduct = {
   _id?: string
+  _updatedAt?: string
   title?: LocalizedValue
   slug?: {current?: string}
   category?: string
@@ -507,6 +569,7 @@ type SanityCommonContent = SanityLocalizedRecord<Omit<SiteContent['common'], Com
   Partial<Pick<SiteContent['common'], CommonPlainFields>>
 
 type SanitySiteContent = {
+  _updatedAt?: string
   navigation?: Array<{
     _key?: string
     label?: LocalizedValue
@@ -520,7 +583,7 @@ type SanitySiteContent = {
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
-    heroVideoUrl?: string
+    heroVideo?: {kind?: string; youtubeUrl?: string; fileUrl?: string}
     heroVideoLabel?: LocalizedValue
     heroVideoCloseLabel?: LocalizedValue
     impact?: {
@@ -765,124 +828,96 @@ const productCategories = {
     {
       title: 'Decking, pavimentos e passadiços',
       slug: 'decking-pavimentos-passadicos',
-      summary:
-        'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer.',
       description:
-        'Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
+        'Superfícies exteriores em plástico reciclado para circulação, zonas húmidas e espaços de lazer. Uma alternativa à madeira para decks, passadiços, rampas e zonas de permanência onde a resistência à humidade e a baixa manutenção contam.',
     },
     {
       title: 'Vedações, divisórias e resguardos',
       slug: 'vedacoes-divisorias-resguardos',
-      summary:
-        'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável.',
       description:
-        'Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
+        'Perfis para delimitar, proteger e organizar espaços exteriores com um material durável. Soluções para vedações, divisórias de terreno, resguardos de ecopontos e proteção de zonas técnicas.',
     },
     {
       title: 'Mobiliário urbano e jardim',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados.',
       description:
-        'Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
+        'Bancos, mesas, floreiras e peças para utilização intensiva em espaços públicos ou privados. Equipamentos robustos para locais onde a durabilidade, a limpeza simples e a presença discreta são decisivas.',
     },
     {
       title: 'Abrigos, telheiros e pérgolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado.',
       description:
-        'Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
+        'Estruturas exteriores para sombra, proteção e organização com perfis em plástico reciclado. Produtos para criar zonas de apoio e permanência sem depender da manutenção típica da madeira tradicional.',
     },
     {
       title: 'Compostores, caixas de cultivo e bordaduras',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Soluções para agricultura, compostagem e organização de canteiros em material reciclado.',
       description:
-        'Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
+        'Soluções para agricultura, compostagem e organização de canteiros em material reciclado. Peças pensadas para hortas, compostagem urbana, caixas de cultivo e separação limpa de zonas verdes.',
     },
   ],
   en: [
     {
       title: 'Decking, flooring and walkways',
       slug: 'decking-pavimentos-passadicos',
-      summary: 'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces.',
       description:
-        'An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
+        'Outdoor recycled-plastic surfaces for circulation, wet areas and leisure spaces. An alternative to timber for decks, walkways, ramps and outdoor areas where moisture resistance and low maintenance matter.',
     },
     {
       title: 'Fencing, dividers and screens',
       slug: 'vedacoes-divisorias-resguardos',
-      summary: 'Profiles to define, protect and organize outdoor spaces with a durable material.',
       description:
-        'Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
+        'Profiles to define, protect and organize outdoor spaces with a durable material. Solutions for fences, land dividers, recycling-point screens and technical-area protection.',
     },
     {
       title: 'Urban and garden furniture',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Benches, tables, planters and pieces for intensive use in public or private spaces.',
       description:
-        'Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
+        'Benches, tables, planters and pieces for intensive use in public or private spaces. Robust equipment for places where durability, simple cleaning and a quiet visual presence matter.',
     },
     {
       title: 'Shelters, canopies and pergolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Outdoor structures for shade, protection and organization using recycled-plastic profiles.',
       description:
-        'Products that create support and stay areas without the maintenance routine of traditional timber.',
+        'Outdoor structures for shade, protection and organization using recycled-plastic profiles. Products that create support and stay areas without the maintenance routine of traditional timber.',
     },
     {
       title: 'Composters, grow boxes and borders',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Solutions for agriculture, composting and garden organization in recycled material.',
       description:
-        'Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
+        'Solutions for agriculture, composting and garden organization in recycled material. Pieces designed for vegetable gardens, urban composting, grow boxes and clean separation of green areas.',
     },
   ],
   es: [
     {
       title: 'Tarimas, pavimentos y pasarelas',
       slug: 'decking-pavimentos-passadicos',
-      summary:
-        'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio.',
       description:
-        'Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
+        'Superficies exteriores de plástico reciclado para circulación, zonas húmedas y ocio. Una alternativa a la madera para tarimas, pasarelas, rampas y zonas exteriores donde importan la humedad y el bajo mantenimiento.',
     },
     {
       title: 'Vallas, divisorias y resguardos',
       slug: 'vedacoes-divisorias-resguardos',
-      summary:
-        'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero.',
       description:
-        'Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
+        'Perfiles para delimitar, proteger y organizar espacios exteriores con material duradero. Soluciones para vallas, divisorias de terreno, resguardos de ecopuntos y protección de zonas técnicas.',
     },
     {
       title: 'Mobiliario urbano y jardín',
       slug: 'mobiliario-urbano-jardim',
-      summary:
-        'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados.',
       description:
-        'Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
+        'Bancos, mesas, jardineras y piezas para uso intensivo en espacios públicos o privados. Equipamientos robustos para lugares donde la durabilidad, la limpieza sencilla y una presencia discreta son decisivas.',
     },
     {
       title: 'Refugios, cubiertas y pérgolas',
       slug: 'abrigos-telheiros-pergolas',
-      summary:
-        'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado.',
       description:
-        'Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
+        'Estructuras exteriores para sombra, protección y organización con perfiles de plástico reciclado. Productos para crear zonas de apoyo y estancia sin depender del mantenimiento típico de la madera tradicional.',
     },
     {
       title: 'Compostadores, cajas de cultivo y borduras',
       slug: 'compostores-cultivo-bordaduras',
-      summary:
-        'Soluciones para agricultura, compostaje y organización de canteros en material reciclado.',
       description:
-        'Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
+        'Soluciones para agricultura, compostaje y organización de canteros en material reciclado. Piezas pensadas para huertos, compostaje urbano, cajas de cultivo y separación limpia de zonas verdes.',
     },
   ],
 } satisfies Record<LanguageCode, ProductItem[]>
@@ -1192,7 +1227,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'A DaFábrica4You transforma embalagens, Tetra Pak e latas do fluxo amarelo em soluções exteriores duráveis, laváveis e pensadas para pouca manutenção.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Ver vídeo institucional',
       heroVideoCloseLabel: 'Fechar vídeo',
       intro: {
@@ -1535,7 +1570,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'DaFábrica4You transforms packaging, Tetra Pak and cans from the yellow-bin stream into durable, washable outdoor solutions designed for low maintenance.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Watch the company video',
       heroVideoCloseLabel: 'Close video',
       intro: {
@@ -1878,7 +1913,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'DaFábrica4You transforma envases, Tetra Pak y latas del flujo amarillo en soluciones exteriores duraderas, lavables y de bajo mantenimiento.',
       },
       heroImage: fallbackImages.home,
-      heroVideoUrl: institutionalVideoUrl,
+      heroVideo: {kind: 'youtube', url: institutionalVideoUrl},
       heroVideoLabel: 'Ver el vídeo institucional',
       heroVideoCloseLabel: 'Cerrar vídeo',
       intro: {
@@ -2225,6 +2260,22 @@ const copyBlockFromSanity = (
     lead: source?.lead,
   }),
 })
+
+const heroVideoFromSanity = (
+  source: {kind?: string; youtubeUrl?: string; fileUrl?: string} | undefined,
+  fallback: {kind: 'upload' | 'youtube'; url: string},
+) => {
+  const youtubeUrl = source?.youtubeUrl?.trim()
+  const fileUrl = source?.fileUrl
+  if (source?.kind === 'upload' && fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  if (source?.kind === 'youtube' && youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
+  // `kind` can drift from the populated field (e.g. touching the other tab after
+  // uploading re-stamps kind without clearing the file) — prefer whichever source
+  // actually has content instead of silently falling back to placeholder copy.
+  if (fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  if (youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
+  return fallback
+}
 
 const contentCardsFromSanity = (
   items: SanityContentCard[] | undefined,
@@ -2603,6 +2654,77 @@ const exclusiveProductExtrasForSlug = (
     ? deckingProductExtras[language]
     : {}
 
+const productContentSectionsFromSanity = (
+  sections: SanityProductContentSection[] | undefined,
+  language: LanguageCode,
+): ProductContentSection[] =>
+  (sections ?? []).flatMap((section, index) => {
+    const key = section._key || `section-${index + 1}`
+    const editPath = section._key
+      ? `contentSections[_key=="${section._key.replace(/"/g, '\\"')}"]`
+      : `contentSections[${index}]`
+    const image = optionalImageFromSanity(section.image, language)
+    const fileUrl = stegaClean(section.video?.fileUrl ?? '').trim()
+    const youtubeUrl = stegaClean(section.video?.youtubeUrl ?? '').trim()
+    const videoUrl = fileUrl || youtubeUrl
+    const cleanMediaKind = stegaClean(section.mediaKind ?? '').trim()
+    const inferredKind = videoUrl ? 'video' : image ? 'image' : cleanMediaKind
+    const mediaKind = cleanMediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
+    const cleanMediaSide = stegaClean(section.mediaSide ?? '').trim()
+    const mediaSide = cleanMediaSide === 'right' || cleanMediaSide === 'top' ? cleanMediaSide : 'left'
+    const cleanSurface = stegaClean(section.surface ?? '').trim()
+    const surface =
+      cleanSurface === 'fog' || cleanSurface === 'mint' || cleanSurface === 'deep' || cleanSurface === 'blue'
+        ? cleanSurface
+        : 'white'
+    const cleanLabelStyle = stegaClean(section.labelStyle ?? '').trim()
+    const labelStyle =
+      cleanLabelStyle === 'pill' || cleanLabelStyle === 'eyebrow' ? cleanLabelStyle : 'caption'
+
+    if (mediaKind === 'image' && !image) return []
+    if (mediaKind === 'video' && !videoUrl) return []
+
+    const title = localized(section.title, language, '')
+    const text = localized(section.text, language, '')
+    const videoTitle = localized(section.videoTitle, language, title || 'Vídeo do produto')
+    const label = localized(section.label, language, '')
+
+    return [
+      {
+        key,
+        editPath,
+        mediaKind,
+        mediaSide,
+        surface,
+        ...(image && mediaKind === 'image'
+          ? {image: {...image, editPath: `${editPath}.image`}}
+          : {}),
+        ...(videoUrl && mediaKind === 'video'
+          ? {
+              video: {
+                url: videoUrl,
+                title: videoTitle,
+                mimeType: section.video?.mimeType,
+                sourceName: section.video?.fileName,
+                poster: optionalImageFromSanity(section.poster, language),
+              },
+            }
+          : {}),
+        label,
+        labelStyle,
+        title,
+        text,
+        buttonLabel: localized(section.buttonLabel, language, ''),
+        buttonUrl: stegaClean(section.buttonUrl ?? '').trim(),
+        textAppearance: appearanceMap({
+          title: section.title,
+          text: section.text,
+          buttonLabel: section.buttonLabel,
+        }),
+      },
+    ]
+  })
+
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
@@ -2630,23 +2752,29 @@ const productsFromSanity = (
         ),
       )
       const productMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
+      const contentSections = productContentSectionsFromSanity(product.contentSections, language)
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
+        updatedAt: product._updatedAt,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
         images: productImages,
         media: productMedia,
-        summary: cleanProductMaterialCopy(
-          localized(product.summary, language, fallbackProduct?.summary ?? ''),
-        ),
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
+        contentSections:
+          product.contentSections === undefined ? fallbackProduct?.contentSections ?? [] : contentSections,
+        specs: {
+          dimensions: localizedListFromSanity(product.specs?.dimensions, language, []),
+          materials: localizedListFromSanity(product.specs?.materials, language, []),
+          specifications: localizedListFromSanity(product.specs?.specifications, language, []),
+          advantages: localizedListFromSanity(product.specs?.advantages, language, []),
+        },
         textAppearance: appearanceMap({
           title: product.title,
-          summary: product.summary,
           description: product.description,
         }),
         ...exclusiveExtras,
@@ -2748,6 +2876,7 @@ const storeProductsFromSanity = (
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
+        updatedAt: product._updatedAt,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Produto'),
         slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
         category: cleanStoreCategory(product.category ?? fallbackProduct?.category ?? 'bancos'),
@@ -2787,6 +2916,7 @@ const casesFromSanity = (
 
       return {
         studioDocumentId: item._id?.replace(/^drafts\./, ''),
+        updatedAt: item._updatedAt,
         title: localized(item.title, language, fallbackCase?.title ?? 'Case study'),
         slug: slug || fallbackCase?.slug || `case-${index + 1}`,
         image: images[0],
@@ -2831,6 +2961,7 @@ const postsFromSanity = (
 
       return {
         studioDocumentId: post._id?.replace(/^drafts\./, ''),
+        updatedAt: post._updatedAt,
         title: localized(post.title, language, fallbackPost?.title ?? 'Blog post'),
         slug: slug || fallbackPost?.slug || `post-${index + 1}`,
         image: images[0],
@@ -2889,7 +3020,7 @@ const applySiteContentFromSanity = (
   target.home = {
     hero: copyBlockFromSanity(source.home?.hero, language, fallback.home.hero),
     heroImage: fallback.home.heroImage,
-    heroVideoUrl: source.home?.heroVideoUrl?.trim() || fallback.home.heroVideoUrl,
+    heroVideo: heroVideoFromSanity(source.home?.heroVideo, fallback.home.heroVideo),
     heroVideoLabel: localized(source.home?.heroVideoLabel, language, fallback.home.heroVideoLabel),
     heroVideoCloseLabel: localized(
       source.home?.heroVideoCloseLabel,
@@ -3113,6 +3244,7 @@ export const contentFromSanity = (
       language,
       fallbackContent[language],
     )
+    next[language].updatedAt = collections.siteContent?._updatedAt
     applyStoreCategoriesFromSanity(next[language], collections.storeCategories, language)
     next[language].products = productsFromSanity(
       collections.products,

@@ -73,6 +73,7 @@ export const previewSecretClient = sanityClient.withConfig({
 
 const collectionsQuery = `{
   "siteContent": coalesce(*[_id == "siteContent"][0], *[_type == "siteLanding"][0]) {
+    _updatedAt,
     navigation[] {
       _key,
       label,
@@ -132,7 +133,11 @@ const collectionsQuery = `{
       hero {
         title
       },
-      heroVideoUrl,
+      heroVideo{
+        kind,
+        youtubeUrl,
+        "fileUrl": file.asset->url
+      },
       heroVideoLabel,
       heroVideoCloseLabel,
       impact {
@@ -304,6 +309,7 @@ const collectionsQuery = `{
   },
   "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
+    _updatedAt,
     title,
     slug,
     image {
@@ -367,8 +373,60 @@ const collectionsQuery = `{
         alt
       },
     },
-    summary,
-    description
+    description,
+    contentSections[] {
+      _key,
+      _type,
+      mediaKind,
+      mediaSide,
+      surface,
+      image {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            lqip,
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      video {
+        kind,
+        youtubeUrl,
+        "fileUrl": file.asset->url,
+        "fileName": file.asset->originalFilename,
+        "mimeType": file.asset->mimeType
+      },
+      poster {
+        asset -> {
+          url,
+          originalFilename,
+          metadata {
+            lqip,
+            dimensions {
+              aspectRatio
+            }
+          }
+        },
+        alt
+      },
+      videoTitle,
+      label,
+      labelStyle,
+      title,
+      text,
+      buttonLabel,
+      buttonUrl
+    },
+    "specs": {
+      "dimensions": dimensions[],
+      "materials": materials[],
+      "specifications": specifications[],
+      "advantages": advantages[]
+    }
   },
   "storeCategories": *[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
@@ -382,6 +440,7 @@ const collectionsQuery = `{
     ($includeInactive || coalesce(active, true))
   ] | order(orderRank asc, title.pt asc) {
     _id,
+    _updatedAt,
     title,
     slug,
     category,
@@ -461,6 +520,7 @@ const collectionsQuery = `{
   },
   "caseStudies": *[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
+    _updatedAt,
     title,
     slug,
     image {
@@ -532,6 +592,7 @@ const collectionsQuery = `{
   },
   "blogPosts": *[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
     _id,
+    _updatedAt,
     title,
     slug,
     image {

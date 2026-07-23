@@ -32,7 +32,8 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - Public text content should meet comfortable low-vision readability expectations: strong contrast, body copy at readable sizes, generous line-height, and support for OS high-contrast preferences.
 - Product detail pages should not render the product summary and description as two competing text blocks; use one focused detail description, optionally followed by a separated resistance/maintenance paragraph.
 - Product detail pages should not render generic `Características`/`Aplicações` chip or list bands when they duplicate obvious sales points already present in the detail copy.
-- The Decking detail page has an exclusive, code-managed support section using `https://www.youtube.com/watch?v=VIUVlk51iN0` and the temporary deck calculator URL `https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m`. These are not generic product fields in Sanity and must not appear on other product details.
+- The Decking detail page keeps its code-managed support section using `https://www.youtube.com/watch?v=VIUVlk51iN0` and the temporary deck calculator URL `https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m`.
+- Every product category may additionally use repeatable Sanity-backed content sections. Each section accepts an image or video, optional title/text/button, a `left`/`right`/`top` arrangement, and a controlled accessible colour preset. Media must remain uncropped and must stack before text on mobile.
 - Case-study detail pages should fold the description into the hero lead and should not render a separate standalone description band below the hero.
 - Product list cards and product detail copy should avoid repeating generic material-origin badges such as "100% plástico reciclado" when that claim already appears in the surrounding product/site copy.
 - Product-category pricing is not confirmed. Present catalogue/request guidance there instead of pretending to have final product prices.
@@ -96,7 +97,7 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 - `/painel/site` requires a valid staff session. Builder writes additionally require same-origin and CSRF validation; global theme/publish/delete operations are admin-only. Its signed draft-preview cookie is short-lived, httpOnly, same-origin, and iframe-only.
 - CRM and backoffice-staff access is handled by Postgres row data (`crm_form_submissions`/`crm_client_profiles`/`staff_users`) plus `/painel` session auth; staff roles (`admin`/`staff`) gate write actions via `canManageStaff`.
 - The public SvelteKit app writes CRM data only through server-side Postgres code (`DATABASE_URL`); no database credential should ever be bundled into client-side code.
-- Required private runtime variable for live CRM writes and the backoffice: `DATABASE_URL` (same Postgres database as ecommerce). `SANITY_CRM_WRITE_TOKEN` (optionally with `SANITY_CRM_DATASET`) is only needed to run the one-off `scripts/migrate-crm-to-postgres.ts` against the legacy Sanity `crm` dataset.
+- Required private runtime variable for live CRM writes and the backoffice: `DATABASE_URL` (same Postgres database as ecommerce). There is no Sanity CRM dataset or token anymore.
 - Required private/runtime variables for Visual Editing preview: `SANITY_VIEWER_TOKEN`, `SANITY_STUDIO_PREVIEW_ORIGIN`, and `SANITY_STUDIO_URL`.
 - Required private/runtime variables for ecommerce orders/accounts: `DATABASE_URL`; run `npm run db:migrate` after provisioning.
 - Required private/runtime variables for production ecommerce email: `RESEND_API_KEY`, `EMAIL_FROM`, `ORDERS_TO_EMAIL`, and `APP_ORIGIN`.
@@ -114,7 +115,6 @@ Only document rules that exist in code, tests, user requirements, or confirmed d
 
 - Sanity project id `u4uyfix8`.
 - Sanity public dataset `production`.
-- Sanity private CRM dataset `crm`.
 - Public impact metrics, client-facing product claims, and contact details.
 - Social links, WhatsApp number/link, complaints-book link, privacy/cookie policy links, and marketing-consent wording.
 - Institutional video URL, partner names/links/logos, and claims about partnerships/projects.

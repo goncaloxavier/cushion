@@ -35,7 +35,10 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {UlistIcon} from '@sanity/icons/Ulist'
 import {UndoIcon} from '@sanity/icons/Undo'
 import {VideoIcon} from '@sanity/icons/Video'
+import type {SiteEditorUploadProgress} from './api'
 import {editorKey, sanityAssetUrl} from './asset'
+import {ConfirmDialog} from './ConfirmDialog'
+import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
 
 type ArticleObject = PortableTextObject & {
   asset?: {_ref?: string}
@@ -58,7 +61,11 @@ type Props = {
   projectId: string
   dataset: string
   onChange: (value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<{id: string; url: string}>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<{id: string; url: string}>
 }
 
 const schemaDefinition = defineSchema({
@@ -298,6 +305,7 @@ function ArticleObjectCard({
   const editor = useEditor()
   const node = props.value as ArticleObject
   const isEditing = selected?.node._key === node._key
+  const [pendingRemoval, setPendingRemoval] = useState(false)
   const currentNode = isEditing ? selected.node : node
   const imageUrl =
     node._type === 'image' ? sanityAssetUrl(node.asset?._ref, projectId, dataset) : ''
@@ -370,7 +378,7 @@ function ArticleObjectCard({
             <button
               type="button"
               onMouseDown={keepEditorSelection}
-              onClick={() => editor.send({type: 'delete.block', at: props.path})}
+              onClick={() => setPendingRemoval(true)}
               aria-label={`Eliminar ${objectLabel(node).toLowerCase()}`}
               title={`Eliminar ${objectLabel(node).toLowerCase()}`}
             >
@@ -432,6 +440,16 @@ function ArticleObjectCard({
           <p className="site-editor-rich-object-empty">Este conteúdo está preservado.</p>
         )}
       </div>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title={`Eliminar ${objectLabel(node).toLowerCase()}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          editor.send({type: 'delete.block', at: props.path})
+          setPendingRemoval(false)
+        }}
+      />
     </div>
   )
 }
@@ -454,6 +472,7 @@ function ArticleToolbar({
   const [link, setLink] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [videoTitle, setVideoTitle] = useState('')
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
 
   const preserveSelection = (event: React.MouseEvent) => event.preventDefault()
   const refocus = () => editor.send({type: 'focus'})
@@ -493,6 +512,30 @@ function ArticleToolbar({
       if (!inserted?._key) return
       onObjectInserted({node: inserted, path: [{_key: inserted._key}]})
     })
+  }
+
+  const uploadImage = async (file: File) => {
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
+    try {
+      const asset = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus(undefined)
+      insertObject('image', {asset: {_type: 'reference', _ref: asset.id}, alt: '', caption: ''})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+    }
   }
 
   return (
@@ -600,22 +643,19 @@ function ArticleToolbar({
           </span>
 
           <span className="site-editor-rich-toolbar-group is-media" aria-label="Inserir conteúdo">
-            <label aria-label="Adicionar imagem" title="Adicionar imagem">
+            <label
+              aria-label="Adicionar imagem"
+              title="Adicionar imagem"
+              aria-disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
+            >
               <ImageIcon /> <span>Imagem</span>
               <input
                 type="file"
                 accept="image/*"
+                disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0]
-                  if (file) {
-                    void onUpload(file, 'image').then((asset) => {
-                      insertObject('image', {
-                        asset: {_type: 'reference', _ref: asset.id},
-                        alt: '',
-                        caption: '',
-                      })
-                    })
-                  }
+                  if (file) void uploadImage(file)
                   event.currentTarget.value = ''
                 }}
               />
@@ -649,6 +689,8 @@ function ArticleToolbar({
           </span>
         </div>
       </div>
+
+      <MediaUploadProgress status={uploadStatus} />
 
       {openForm === 'link' ? (
         <form
@@ -702,6 +744,7 @@ function ArticleToolbar({
               type="url"
               value={videoUrl}
               onChange={(event) => setVideoUrl(event.currentTarget.value)}
+              placeholder="https://www.youtube.com/watch?v=…"
               autoFocus
             />
           </label>
@@ -710,6 +753,7 @@ function ArticleToolbar({
             <input
               value={videoTitle}
               onChange={(event) => setVideoTitle(event.currentTarget.value)}
+              placeholder="Ex.: Instalação de decking em 5 passos"
             />
           </label>
           <button type="submit">Adicionar</button>
@@ -735,6 +779,8 @@ function TableFields({
   const rows = Array.isArray(node.rows) ? node.rows : []
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<{row: number; column: number}>()
+  const [pendingColumnRemoval, setPendingColumnRemoval] = useState<number>()
+  const [pendingRowRemoval, setPendingRowRemoval] = useState<number>()
 
   useEffect(() => {
     const target = pendingFocus.current
@@ -856,6 +902,7 @@ function TableFields({
                     data-table-field="true"
                     data-table-row="heading"
                     data-table-column={columnIndex}
+                    placeholder={`Ex.: Coluna ${columnIndex + 1}`}
                     value={column}
                     onKeyDown={moveBetweenFields}
                     onChange={(event) => {
@@ -866,7 +913,7 @@ function TableFields({
                   />
                   <button
                     type="button"
-                    onClick={() => removeColumn(columnIndex)}
+                    onClick={() => setPendingColumnRemoval(columnIndex)}
                     disabled={columns.length <= 1}
                     aria-label={`Eliminar coluna ${columnIndex + 1}`}
                     title={
@@ -885,7 +932,7 @@ function TableFields({
                   <span>{rowIndex + 1}</span>
                   <button
                     type="button"
-                    onClick={() => onChange({rows: rows.filter((_, index) => index !== rowIndex)})}
+                    onClick={() => setPendingRowRemoval(rowIndex)}
                     aria-label={`Eliminar linha ${rowIndex + 1}`}
                     title="Eliminar linha"
                   >
@@ -926,6 +973,28 @@ function TableFields({
           A tabela ainda não tem linhas. Adicionar a primeira linha
         </button>
       ) : null}
+      <ConfirmDialog
+        open={pendingColumnRemoval !== undefined}
+        title={`Eliminar a coluna ${(pendingColumnRemoval ?? 0) + 1}?`}
+        description="Remove essa coluna em todas as linhas. Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingColumnRemoval(undefined)}
+        onConfirm={() => {
+          if (pendingColumnRemoval === undefined) return
+          removeColumn(pendingColumnRemoval)
+          setPendingColumnRemoval(undefined)
+        }}
+      />
+      <ConfirmDialog
+        open={pendingRowRemoval !== undefined}
+        title={`Eliminar a linha ${(pendingRowRemoval ?? 0) + 1}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRowRemoval(undefined)}
+        onConfirm={() => {
+          if (pendingRowRemoval === undefined) return
+          onChange({rows: rows.filter((_, index) => index !== pendingRowRemoval)})
+          setPendingRowRemoval(undefined)
+        }}
+      />
     </div>
   )
 }
@@ -940,6 +1009,7 @@ function ArticleObjectEditor({
   onUpload: Props['onUpload']
 }) {
   const editor = useEditor()
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
 
   useEffect(() => {
     if (!selected) return
@@ -957,6 +1027,30 @@ function ArticleObjectEditor({
     setSelected((current) => (current ? {...current, node: {...current.node, ...props}} : current))
   }
 
+  const uploadImage = async (file: File) => {
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
+    try {
+      const asset = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus(undefined)
+      patch({asset: {_type: 'reference', _ref: asset.id}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+    }
+  }
+
   return (
     <section className="site-editor-rich-object-editor">
       <header>
@@ -971,26 +1065,28 @@ function ArticleObjectEditor({
       <div>
         {selected.node._type === 'image' ? (
           <div className="site-editor-form-stack">
-            <label className="site-editor-upload-button">
+            <label
+              className="site-editor-upload-button"
+              aria-disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
+            >
               <ImageIcon /> Substituir imagem
               <input
                 type="file"
                 accept="image/*"
+                disabled={Boolean(uploadStatus) && uploadStatus.phase !== 'error'}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0]
-                  if (file) {
-                    void onUpload(file, 'image').then((asset) =>
-                      patch({asset: {_type: 'reference', _ref: asset.id}}),
-                    )
-                  }
+                  if (file) void uploadImage(file)
                   event.currentTarget.value = ''
                 }}
               />
             </label>
+            <MediaUploadProgress status={uploadStatus} />
             <label>
               <span>Descrição da imagem</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: Banco em plástico reciclado num jardim público"
                 value={String(selected.node.alt || '')}
                 onChange={(event) => patch({alt: event.currentTarget.value})}
               />
@@ -999,6 +1095,7 @@ function ArticleObjectEditor({
               <span>Legenda</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: O banco Gavião instalado no Parque da Cidade"
                 value={String(selected.node.caption || '')}
                 onChange={(event) => patch({caption: event.currentTarget.value})}
               />
@@ -1010,6 +1107,7 @@ function ArticleObjectEditor({
               <span>Link do YouTube</span>
               <input
                 type="url"
+                placeholder="https://www.youtube.com/watch?v=…"
                 value={String(selected.node.url || '')}
                 onChange={(event) => patch({url: event.currentTarget.value})}
               />
@@ -1017,6 +1115,7 @@ function ArticleObjectEditor({
             <label>
               <span>Título do vídeo</span>
               <input
+                placeholder="Ex.: Instalação de decking em 5 passos"
                 value={String(selected.node.title || '')}
                 onChange={(event) => patch({title: event.currentTarget.value})}
               />
@@ -1025,6 +1124,7 @@ function ArticleObjectEditor({
               <span>Legenda</span>
               <textarea
                 rows={3}
+                placeholder="Ex.: Veja o processo completo de instalação"
                 value={String(selected.node.caption || '')}
                 onChange={(event) => patch({caption: event.currentTarget.value})}
               />

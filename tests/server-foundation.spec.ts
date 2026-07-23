@@ -12,7 +12,12 @@ import {
 } from '../src/lib/server/customer-auth'
 import {databaseConfigured, query} from '../src/lib/server/db'
 import {appendOrderNote, getOrderDetail, setOrderStatus} from '../src/lib/server/orders'
-import {authenticate as authenticateStaff, createSession as createStaffSession} from '../src/lib/server/staff-auth'
+import {
+  authenticate as authenticateStaff,
+  createSession as createStaffSession,
+  createStaff,
+  sessionCookieName,
+} from '../src/lib/server/staff-auth'
 import {syncPreviewAdminPolicy} from '../src/lib/server/preview-admin'
 import {storeContactSubmission} from '../src/lib/server/crm'
 import {deleteSetting, getSetting, getSettingMeta, setSetting} from '../src/lib/server/app-settings'
@@ -117,6 +122,116 @@ test.describe('server foundations', () => {
       const session = await createStaffSession(staffId, {ipHash: 'audit-ip', userAgent: 'Playwright'})
       expect(session.token.length).toBeGreaterThan(20)
     } finally {
+      if (staffId) {
+        await query('delete from staff_sessions where staff_id = $1', [staffId])
+        await query('delete from staff_users where id = $1', [staffId])
+      }
+    }
+  })
+
+  test('painel dashboard lands after login, an order status change is logged, and the activity log is admin-only', async ({
+    page,
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    let adminId = ''
+    let staffId = ''
+    let orderId = ''
+
+    const loginAs = async (token: string) => {
+      await page.context().clearCookies()
+      await page.goto('/painel/login')
+      const url = new URL(page.url())
+      await page.context().addCookies([
+        {
+          name: sessionCookieName,
+          value: token,
+          domain: url.hostname,
+          path: '/painel',
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+        },
+      ])
+    }
+
+    try {
+      const admin = await createStaff({
+        name: 'Audit Admin',
+        username: `audit-admin-${suffix}`,
+        password: 'Audit-password-123!',
+        role: 'admin',
+      })
+      adminId = admin.id
+      const staffMember = await createStaff({
+        name: 'Audit Staff',
+        username: `audit-staff-${suffix}`,
+        password: 'Audit-password-123!',
+        role: 'staff',
+      })
+      staffId = staffMember.id
+
+      const inserted = await query<{id: string}>(
+        `insert into orders (
+          order_number, language, customer_name, email, phone, nif, purchase_type,
+          billing_address, billing_postal_code, billing_locality,
+          delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
+          product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
+          privacy_consent_at
+        ) values (
+          $1, 'pt', 'Audit customer', $2, '', '', 'individual',
+          'Rua de teste', '1000-001', 'Lisboa',
+          'Rua de teste', '1000-001', 'Lisboa', 'Lisboa',
+          10, 2, 2.76, 14.76, 1, 2.5, now()
+        ) returning id`,
+        [`AUDIT-DASH-${suffix}`, `audit-dash-${suffix}@example.test`],
+      )
+      orderId = inserted.rows[0]!.id
+
+      const adminSession = await createStaffSession(adminId, {ipHash: 'audit-ip', userAgent: 'Playwright'})
+      await loginAs(adminSession.token)
+
+      // Bare /painel lands on the dashboard (regression coverage for the
+      // removed hardcoded /painel -> /painel/pedidos redirect).
+      await page.goto('/painel')
+      await expect(page.getByRole('heading', {name: 'Painel de controlo'})).toBeVisible()
+
+      // Change the order's status through the real rendered form so the
+      // setStatus action's logStaffActivity call is exercised end-to-end.
+      await page.goto(`/painel/encomendas/${orderId}`)
+      await page.locator('#order-status').selectOption('payment_link_sent')
+      await page.getByRole('button', {name: 'Guardar estado'}).click()
+      await expect(page.locator('#order-status')).toHaveValue('payment_link_sent')
+
+      await page.goto('/painel/atividade')
+      await expect(page.getByRole('cell', {name: 'Alterou o estado da encomenda'})).toBeVisible()
+
+      const activityRow = await query<{id: string}>(
+        `select id from staff_activity_log where staff_id = $1 and action = 'order.status' and entity_id = $2`,
+        [adminId, orderId],
+      )
+      expect(activityRow.rows.length).toBe(1)
+
+      // A non-admin staff account is gated out of the activity log server-side.
+      const staffSession = await createStaffSession(staffId, {ipHash: 'audit-ip', userAgent: 'Playwright'})
+      await loginAs(staffSession.token)
+      await page.goto('/painel/atividade')
+      await expect(page.getByRole('heading', {name: 'Acesso restrito'})).toBeVisible()
+    } finally {
+      if (adminId || staffId) {
+        await query('delete from staff_activity_log where staff_id = any($1)', [[adminId, staffId].filter(Boolean)])
+      }
+      if (orderId) {
+        await query('delete from order_status_events where order_id = $1', [orderId])
+        await query('delete from orders where id = $1', [orderId])
+      }
+      if (adminId) {
+        await query('delete from staff_sessions where staff_id = $1', [adminId])
+        await query('delete from staff_users where id = $1', [adminId])
+      }
       if (staffId) {
         await query('delete from staff_sessions where staff_id = $1', [staffId])
         await query('delete from staff_users where id = $1', [staffId])

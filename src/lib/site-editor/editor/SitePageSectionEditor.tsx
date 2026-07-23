@@ -17,11 +17,12 @@ import type {
   BuilderTypography,
   LocalizedValue,
 } from '$lib/builder/types'
+import type {Asset} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
+import {Toggle} from './Toggle'
 
-type Asset = {id: string; url: string}
 type UploadAsset = (
   file: File,
   kind: 'image' | 'video',
@@ -62,10 +63,12 @@ const fileSize = (value: number) =>
 function Field({
   label,
   help,
+  localized = false,
   children,
 }: {
   label: string
   help?: string
+  localized?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -73,6 +76,7 @@ function Field({
       <span>{label}</span>
       {children}
       {help ? <small>{help}</small> : null}
+      {localized ? <small className="site-editor-translation-note">Português · EN e ES automáticos</small> : null}
     </label>
   )
 }
@@ -86,16 +90,13 @@ function Switch({
   checked: boolean
   onChange: (checked: boolean) => void
 }) {
+  // Same widget as every other on/off toggle in the editor, not a bespoke
+  // checkbox — see Toggle.tsx.
   return (
-    <label className="site-page-switch">
+    <span className="site-page-switch">
       <span>{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-      />
-      <i aria-hidden="true" />
-    </label>
+      <Toggle checked={checked} label={label} onChange={onChange} />
+    </span>
   )
 }
 
@@ -257,6 +258,7 @@ function ActionsEditor({
   actions: BuilderLink[]
   onChange: (actions: BuilderLink[]) => void
 }) {
+  const [pendingRemovalKey, setPendingRemovalKey] = useState<string>()
   return (
     <details className="site-page-editor-group">
       <summary>
@@ -271,13 +273,14 @@ function ActionsEditor({
               <button
                 type="button"
                 aria-label={`Eliminar botão ${index + 1}`}
-                onClick={() => onChange(actions.filter((candidate) => candidate._key !== action._key))}
+                onClick={() => setPendingRemovalKey(action._key)}
               >
                 <TrashIcon />
               </button>
             </header>
-            <Field label="Texto">
+            <Field label="Texto" localized>
               <input
+                placeholder="Ex.: Pedir orçamento"
                 value={action.label?.pt ?? ''}
                 onChange={(event) =>
                   onChange(actions.map((candidate) =>
@@ -290,6 +293,7 @@ function ActionsEditor({
             </Field>
             <Field label="Destino" help="Exemplo: /contacto ou https://exemplo.pt">
               <input
+                placeholder="/contacto"
                 value={action.href ?? ''}
                 onChange={(event) =>
                   onChange(actions.map((candidate) =>
@@ -330,6 +334,17 @@ function ActionsEditor({
           <AddIcon /> Adicionar botão
         </button>
       </div>
+      <ConfirmDialog
+        open={pendingRemovalKey !== undefined}
+        title="Eliminar este botão?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRemovalKey(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalKey === undefined) return
+          onChange(actions.filter((candidate) => candidate._key !== pendingRemovalKey))
+          setPendingRemovalKey(undefined)
+        }}
+      />
     </details>
   )
 }
@@ -344,8 +359,8 @@ function RepeatersEditor({section, onUpdate}: {section: BuilderSection; onUpdate
           {stats.map((stat, index) => (
             <div className="site-page-repeater" key={stat._key}>
               <header><strong>Número {index + 1}</strong><button type="button" onClick={() => onUpdate({...section, items: stats.filter((item) => item._key !== stat._key)})}><TrashIcon /></button></header>
-              <Field label="Valor"><input value={stat.value?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, value: localizedValue(item.value, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
-              <Field label="Explicação"><input value={stat.label?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, label: localizedValue(item.label, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Valor" localized><input placeholder="Ex.: 15" value={stat.value?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, value: localizedValue(item.value, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Explicação" localized><input placeholder="Ex.: anos de garantia" value={stat.label?.pt ?? ''} onChange={(event) => onUpdate({...section, items: stats.map((item) => item._key === stat._key ? {...item, label: localizedValue(item.label, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
             </div>
           ))}
           <button className="site-page-add-row" type="button" onClick={() => onUpdate({...section, items: [...stats, {_type: 'builderStat', _key: createBuilderKey(), value: localizedValue(undefined, '0', 'localizedString'), label: localizedValue(undefined, 'Novo indicador', 'localizedString')}]})}><AddIcon /> Adicionar número</button>
@@ -363,8 +378,8 @@ function RepeatersEditor({section, onUpdate}: {section: BuilderSection; onUpdate
           {cards.map((card, index) => (
             <div className="site-page-repeater" key={card._key}>
               <header><strong>Cartão {index + 1}</strong><button type="button" onClick={() => onUpdate({...section, items: cards.filter((item) => item._key !== card._key)})}><TrashIcon /></button></header>
-              <Field label="Título"><input value={card.title?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, title: localizedValue(item.title, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
-              <Field label="Texto"><textarea rows={4} value={card.body?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, body: localizedValue(item.body, event.currentTarget.value, 'localizedText')} : item)})} /></Field>
+              <Field label="Título" localized><input placeholder="Ex.: Feito para durar" value={card.title?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, title: localizedValue(item.title, event.currentTarget.value, 'localizedString')} : item)})} /></Field>
+              <Field label="Texto" localized><textarea rows={4} placeholder="Ex.: Resistente a chuva, sol e variações de temperatura, sem necessidade de manutenção." value={card.body?.pt ?? ''} onChange={(event) => onUpdate({...section, items: cards.map((item) => item._key === card._key ? {...item, body: localizedValue(item.body, event.currentTarget.value, 'localizedText')} : item)})} /></Field>
             </div>
           ))}
           <button className="site-page-add-row" type="button" onClick={() => onUpdate({...section, items: [...cards, {_type: 'builderCard', _key: createBuilderKey(), title: localizedValue(undefined, 'Novo cartão', 'localizedString'), body: localizedValue(undefined, '', 'localizedText')}]})}><AddIcon /> Adicionar cartão</button>
@@ -487,7 +502,12 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         />
         {kind === 'youtube' ? (
           <Field label="Link do YouTube">
-            <input type="url" value={media.youtubeUrl ?? ''} onChange={(event) => apply({...media, youtubeUrl: event.currentTarget.value})} />
+            <input
+              type="url"
+              placeholder="https://www.youtube.com/watch?v=…"
+              value={media.youtubeUrl ?? ''}
+              onChange={(event) => apply({...media, youtubeUrl: event.currentTarget.value})}
+            />
           </Field>
         ) : (
           <MediaUpload
@@ -517,7 +537,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         {kind === 'video' ? (
           <MediaUpload
             label="Adicionar imagem de capa"
-            help="Aparece antes do vídeo e na miniatura da galeria."
+            help="Aparece antes do vídeo e na miniatura da galeria"
             accept="image/*"
             hasAsset={Boolean(posterRef)}
             disabled={uploadBusy}
@@ -525,8 +545,12 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
             onFile={(file) => void uploadPoster(file, media, apply)}
           />
         ) : null}
-        <Field label="Descrição acessível" help="Descreva o que é importante na imagem ou no vídeo.">
-          <textarea rows={3} value={media.alt?.pt ?? ''} onChange={(event) => apply({...media, alt: localizedValue(media.alt, event.currentTarget.value, 'localizedString')})} />
+        <Field
+          label="Descrição acessível"
+          help="Descreva o que é importante na imagem ou no vídeo"
+          localized
+        >
+          <textarea rows={3} placeholder="Ex.: Banco em plástico reciclado instalado num jardim público." value={media.alt?.pt ?? ''} onChange={(event) => apply({...media, alt: localizedValue(media.alt, event.currentTarget.value, 'localizedString')})} />
         </Field>
         <details className="site-page-subdetails">
           <summary>Opções de apresentação</summary>
@@ -566,16 +590,16 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         <section className="site-page-editor-group is-open">
           <header><span><strong>Conteúdo</strong><small>O texto que aparece nesta secção</small></span></header>
           <div className="site-page-editor-group-body">
-            {'eyebrow' in section ? <Field label="Etiqueta"><input value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
-            {'title' in section ? <Field label="Título"><textarea rows={3} value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field> : null}
-            {'body' in section && !Array.isArray(section.body) ? <Field label="Texto"><textarea rows={6} value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
+            {'eyebrow' in section ? <Field label="Etiqueta" localized><input placeholder="Ex.: Sobre nós" value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
+            {'title' in section ? <Field label="Título" localized><textarea rows={3} placeholder="Ex.: Feito para durar no exterior" value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field> : null}
+            {'body' in section && !Array.isArray(section.body) ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
             {Array.isArray(section.body) ? (
               <button
                 className="site-page-article-button"
                 type="button"
                 onClick={(event) => onOpenArticle?.(`sections[_key=="${section._key}"].body`, event.currentTarget)}
               >
-                <EditIcon /> <span><strong>Editar texto editorial</strong><small>Abre o editor completo para títulos, listas, imagens e tabelas.</small></span>
+                <EditIcon /> <span><strong>Editar texto editorial</strong><small>Abre o editor completo para títulos, listas, imagens e tabelas</small></span>
               </button>
             ) : null}
           </div>
@@ -621,7 +645,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           <summary><span><strong>Galeria</strong><small>Imagens e vídeos pela ordem apresentada</small></span><b>{galleryItems.length}</b></summary>
           <div className="site-page-editor-group-body">
             <label className={`site-page-gallery-add${uploadBusy ? ' is-disabled' : ''}`}>
-              <UploadIcon /> <span><strong>Adicionar à galeria</strong><small>Pode selecionar vários ficheiros.</small></span>
+              <UploadIcon /> <span><strong>Adicionar à galeria</strong><small>Pode selecionar vários ficheiros</small></span>
               <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple disabled={uploadBusy} onChange={(event) => { if (event.currentTarget.files?.length) void uploadGallery(event.currentTarget.files); event.currentTarget.value = '' }} />
             </label>
             {uploadStatus?.key.startsWith('gallery-') ? <MediaUploadProgress status={uploadStatus} /> : null}
@@ -637,7 +661,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
                     <nav aria-label={`Ordenar item ${index + 1}`}>
                       <button type="button" disabled={index === 0} aria-label="Mover para cima" onClick={() => { const next = [...galleryItems]; const [moved] = next.splice(index, 1); next.splice(index - 1, 0, moved); onUpdate({...section, items: next}) }}><ArrowUpIcon /></button>
                       <button type="button" disabled={index === galleryItems.length - 1} aria-label="Mover para baixo" onClick={() => { const next = [...galleryItems]; const [moved] = next.splice(index, 1); next.splice(index + 1, 0, moved); onUpdate({...section, items: next}) }}><ArrowDownIcon /></button>
-                      <button type="button" aria-label="Eliminar da galeria" onClick={() => setPendingMediaDelete(item)}><TrashIcon /></button>
+                      <button type="button" aria-label="Remover da galeria" onClick={() => setPendingMediaDelete(item)}><TrashIcon /></button>
                     </nav>
                   </div>
                 )
@@ -671,8 +695,8 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
       <details className="site-page-editor-group is-advanced">
         <summary><span><strong>Organização</strong><small>Nome interno e ligação direta</small></span></summary>
         <div className="site-page-editor-group-body">
-          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção."><input value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
-          <Field label="Ligação direta" help="Opcional. Exemplo: impacto"><input value={section.anchor ?? ''} onChange={(event) => onUpdate({...section, anchor: event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} /></Field>
+          <Field label="Nome no editor" help="Só ajuda a reconhecer esta secção"><input placeholder="Ex.: Destaque principal" value={section.internalLabel ?? ''} onChange={(event) => onUpdate({...section, internalLabel: event.currentTarget.value})} /></Field>
+          <Field label="Ligação direta" help="Opcional. Exemplo: impacto"><input placeholder="impacto" value={section.anchor ?? ''} onChange={(event) => onUpdate({...section, anchor: event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} /></Field>
         </div>
       </details>
 

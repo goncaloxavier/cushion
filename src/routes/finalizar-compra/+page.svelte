@@ -304,8 +304,9 @@
   const estimateStatus = $derived(
     estimate.transportIssue === 'overweight' ? labels.transportOverweight : labels.toConfirm,
   )
-  const cartPayload = $derived(JSON.stringify(cart))
-  const itemCount = $derived(cartTotalQuantity(cart))
+  const validCartItems = $derived(rows.map((row) => row.item))
+  const cartPayload = $derived(JSON.stringify(validCartItems))
+  const itemCount = $derived(cartTotalQuantity(validCartItems))
 
   $effect(() => {
     const nextPaymentMethod = values.paymentMethod || 'mbway'

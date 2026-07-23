@@ -56,7 +56,12 @@ export const getDeeplUsage = async (): Promise<DeeplUsage | null> => {
   if (!key) return null
   try {
     return await usageFor(key)
-  } catch {
+  } catch (error) {
+    // Falls back to the same "no usage to show" state as an unconfigured key —
+    // logged so a revoked key or DeepL outage doesn't look identical to that.
+    console.warn(
+      `[deepl] usage check failed: ${error instanceof Error ? error.message : String(error)}`,
+    )
     return null
   }
 }

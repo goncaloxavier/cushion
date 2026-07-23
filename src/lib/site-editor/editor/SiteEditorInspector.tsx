@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {Suspense, useCallback, useEffect, useMemo, useState} from 'react'
 import {ArrowLeftIcon} from '@sanity/icons/ArrowLeft'
 import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {CogIcon} from '@sanity/icons/Cog'
@@ -7,6 +7,7 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {panelsForEditorNode} from '../model'
 import {getEditorValue} from '../path'
 import type {
+  Asset,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
@@ -15,13 +16,16 @@ import type {
   SitePageDocument,
 } from '../types'
 import {SiteEditorFieldInput} from './SiteEditorField'
-import {ArticleWorkspace} from './ArticleWorkspace'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
-import {StoreCategoryManager} from './StoreCategoryManager'
 import type {SiteEditorUploadProgress} from './api'
 import type {BuilderViewport} from '$lib/builder/types'
 
-type Asset = {id: string; url: string}
+const ArticleWorkspace = React.lazy(() =>
+  import('./ArticleWorkspace').then((module) => ({default: module.ArticleWorkspace})),
+)
+const StoreCategoryManager = React.lazy(() =>
+  import('./StoreCategoryManager').then((module) => ({default: module.StoreCategoryManager})),
+)
 
 type Props = {
   node?: SiteEditorNode
@@ -37,7 +41,7 @@ type Props = {
   mode: 'focused' | 'all'
   nodes: SiteEditorNode[]
   optionSources: Record<string, Array<{label: string; value: string}>>
-  onChange: (path: string, value: unknown) => void
+  onChange: (path: string, value: unknown, immediate?: boolean) => void
   onReplace: (document: SiteEditorDocument) => void
   onSelectSection: (key?: string) => void
   onUpload: (
@@ -156,6 +160,21 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'gallery') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ficheiro', 'ficheiros')
   }
+  if (field.type === 'video') {
+    const video =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined
+    const hasFile = Boolean(
+      video?.file && typeof video.file === 'object' && (video.file as {asset?: unknown}).asset,
+    )
+    const hasYoutubeUrl = Boolean(
+      typeof video?.youtubeUrl === 'string' && (video.youtubeUrl as string).trim(),
+    )
+    if (hasFile) return 'Vídeo carregado'
+    if (hasYoutubeUrl) return 'Link do YouTube'
+    return emptyFieldSummary(field)
+  }
   if (field.type === 'navigation') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ligação', 'ligações')
   }
@@ -196,7 +215,7 @@ const scrollPanelWithWheel = (event: React.WheelEvent<HTMLDivElement>) => {
   }
 }
 
-export function SiteEditorInspector({
+function SiteEditorInspectorComponent({
   node,
   document,
   loading,
@@ -380,18 +399,20 @@ export function SiteEditorInspector({
           ) : null}
 
           {document._type === 'storeCategory' && mode === 'all' ? (
-            <StoreCategoryManager
-              document={document}
-              products={categoryProducts}
-              pendingProducts={categoryPendingProducts}
-              selectedPath={selectedPath}
-              projectId={projectId}
-              dataset={dataset}
-              viewport={viewport}
-              onChange={onChange}
-              onUpload={onUpload}
-              onOpenProduct={(product) => onOpenNode(product, 'category')}
-            />
+            <Suspense fallback={null}>
+              <StoreCategoryManager
+                document={document}
+                products={categoryProducts}
+                pendingProducts={categoryPendingProducts}
+                selectedPath={selectedPath}
+                projectId={projectId}
+                dataset={dataset}
+                viewport={viewport}
+                onChange={onChange}
+                onUpload={onUpload}
+                onOpenProduct={(product) => onOpenNode(product, 'category')}
+              />
+            </Suspense>
           ) : focusedSection ? (
             <SitePageSectionsEditor
               page={document as SitePageDocument}
@@ -537,20 +558,24 @@ export function SiteEditorInspector({
         </div>
       )}
       {articleWorkspace && document && node ? (
-        <ArticleWorkspace
-          document={document}
-          documentTitle={node.title}
-          fieldLabel={articleWorkspace.field.label}
-          path={articleWorkspace.path}
-          projectId={projectId}
-          dataset={dataset}
-          saveState={saveState}
-          returnFocus={articleWorkspace.returnFocus}
-          onChange={onChange}
-          onUpload={onUpload}
-          onClose={closeArticleWorkspace}
-        />
+        <Suspense fallback={null}>
+          <ArticleWorkspace
+            document={document}
+            documentTitle={node.title}
+            fieldLabel={articleWorkspace.field.label}
+            path={articleWorkspace.path}
+            projectId={projectId}
+            dataset={dataset}
+            saveState={saveState}
+            returnFocus={articleWorkspace.returnFocus}
+            onChange={onChange}
+            onUpload={onUpload}
+            onClose={closeArticleWorkspace}
+          />
+        </Suspense>
       ) : null}
     </aside>
   )
 }
+
+export const SiteEditorInspector = React.memo(SiteEditorInspectorComponent)

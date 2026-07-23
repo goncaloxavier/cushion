@@ -5,7 +5,6 @@ import {ArrowRightIcon} from '@sanity/icons/ArrowRight'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
 import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {BoldIcon} from '@sanity/icons/Bold'
-import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DesktopIcon} from '@sanity/icons/Desktop'
 import {EditIcon} from '@sanity/icons/Edit'
 import {ImageIcon} from '@sanity/icons/Image'
@@ -19,15 +18,14 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {UploadIcon} from '@sanity/icons/Upload'
 import {VideoIcon} from '@sanity/icons/Video'
 import {getEditorValue} from '../path'
-import type {SiteEditorDocumentType, SiteEditorField} from '../types'
+import type {Asset, SiteEditorDocumentType, SiteEditorField} from '../types'
 import type {BuilderViewport} from '$lib/builder/types'
 import {textAppearanceFields, type TextAppearance} from '$lib/text-appearance'
 import {editorKey, sanityAssetUrl, slugify} from './asset'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
-
-type Asset = {id: string; url: string}
+import {Toggle} from './Toggle'
 
 type Props = {
   field: SiteEditorField
@@ -38,7 +36,7 @@ type Props = {
   projectId: string
   dataset: string
   viewport: BuilderViewport
-  onChange: (path: string, value: unknown) => void
+  onChange: (path: string, value: unknown, immediate?: boolean) => void
   onUpload: (
     file: File,
     kind: 'image' | 'video',
@@ -187,6 +185,7 @@ const arrayItemPath = (path: string, item: unknown, index: number) => {
 const defaultObjectType = (path: string) => {
   if (path.endsWith('navigation')) return 'navigationItem'
   if (path.endsWith('variants')) return 'storeProductVariant'
+  if (path.endsWith('contentSections')) return 'productContentSection'
   if (path.endsWith('stats') || path.endsWith('timeline')) return 'contentCard'
   if (path.endsWith('partners.items')) return 'partnerItem'
   return 'object'
@@ -205,6 +204,9 @@ const defaultValue = (field: SiteEditorField, path: string): unknown => {
   )
     return []
   if (field.type === 'slug') return {_type: 'slug', current: ''}
+  if (field.type === 'select') return field.options?.[0]?.value ?? ''
+  if (field.type === 'image') return null
+  if (field.type === 'video') return {kind: 'youtube', youtubeUrl: ''}
   if (field.type === 'object') {
     const value: Record<string, unknown> = {_type: defaultObjectType(path)}
     for (const child of field.fields ?? [])
@@ -229,30 +231,6 @@ const arrayItemTitle = (item: unknown, index: number, fallback: string) => {
   return name || `${fallback} ${index + 1}`
 }
 
-function Toggle({
-  checked,
-  label = 'Ativar opção',
-  onChange,
-}: {
-  checked: boolean
-  label?: string
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      className={`site-editor-toggle${checked ? ' is-on' : ''}`}
-      onClick={() => onChange(!checked)}
-    >
-      <i>{checked ? <CheckmarkIcon /> : null}</i>
-      <span>{checked ? 'Sim' : 'Não'}</span>
-    </button>
-  )
-}
-
 function NavigationEditor({
   value,
   viewport,
@@ -267,6 +245,7 @@ function NavigationEditor({
     [value],
   )
   const [activeKey, setActiveKey] = useState<string>()
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number>()
 
   useEffect(() => {
     if (!items.length) {
@@ -363,6 +342,7 @@ function NavigationEditor({
                     <span>Nome</span>
                     <textarea
                       rows={2}
+                      placeholder="Ex.: Sustentabilidade"
                       value={String(label.pt || '')}
                       onChange={(event) =>
                         update(index, {...item, label: {...label, pt: event.currentTarget.value}})
@@ -430,7 +410,7 @@ function NavigationEditor({
                   <button
                     type="button"
                     className="site-editor-navigation-remove"
-                    onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}
+                    onClick={() => setPendingRemovalIndex(index)}
                   >
                     <TrashIcon /> Remover ligação
                   </button>
@@ -443,6 +423,18 @@ function NavigationEditor({
       <button className="site-editor-array-add" type="button" onClick={add}>
         <AddIcon /> Adicionar ligação
       </button>
+      <ConfirmDialog
+        open={pendingRemovalIndex !== undefined}
+        title="Remover esta ligação do menu?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemovalIndex(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalIndex === undefined) return
+          onChange(items.filter((_, itemIndex) => itemIndex !== pendingRemovalIndex))
+          setPendingRemovalIndex(undefined)
+        }}
+      />
     </div>
   )
 }
@@ -461,6 +453,8 @@ function ImageEditor({
   onUpload: Props['onUpload']
 }) {
   const [busy, setBusy] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const [pendingRemoval, setPendingRemoval] = useState(false)
   const image = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
   const asset = image.asset as {_ref?: string} | undefined
   const url = sanityAssetUrl(asset?._ref, projectId, dataset)
@@ -468,9 +462,26 @@ function ImageEditor({
 
   const upload = async (file: File) => {
     setBusy(true)
+    setUploadStatus({key: 'image', phase: 'preparing', fileName: file.name, percent: 0})
     try {
-      const next = await onUpload(file, 'image')
+      const next = await onUpload(file, 'image', (progress) =>
+        setUploadStatus({
+          key: 'image',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: file.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus({key: 'image', phase: 'done', fileName: file.name, percent: 100})
       onChange({...image, _type: 'image', asset: {_type: 'reference', _ref: next.id}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'image',
+        phase: 'error',
+        fileName: file.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
     } finally {
       setBusy(false)
     }
@@ -500,19 +511,155 @@ function ImageEditor({
           />
         </label>
         {url ? (
-          <button type="button" onClick={() => onChange(null)}>
+          <button type="button" onClick={() => setPendingRemoval(true)}>
             <TrashIcon /> Remover
           </button>
         ) : null}
       </div>
+      <MediaUploadProgress status={uploadStatus} />
       <label>
         <span>Descrição da imagem</span>
         <textarea
           rows={2}
+          placeholder="Ex.: Banco em plástico reciclado num jardim público"
           value={String(alt.pt || '')}
           onChange={(event) => onChange({...image, alt: {...alt, pt: event.currentTarget.value}})}
         />
       </label>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title="Remover esta imagem?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          onChange(null)
+          setPendingRemoval(false)
+        }}
+      />
+    </div>
+  )
+}
+
+function VideoEditor({
+  value,
+  projectId,
+  dataset,
+  onChange,
+  onUpload,
+}: {
+  value: unknown
+  projectId: string
+  dataset: string
+  onChange: (value: unknown) => void
+  onUpload: Props['onUpload']
+}) {
+  const [busy, setBusy] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const [pendingRemoval, setPendingRemoval] = useState(false)
+  const video = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
+  const file = video.file as {asset?: {_ref?: string}} | undefined
+  const fileUrl = sanityAssetUrl(file?.asset?._ref, projectId, dataset)
+  const youtubeUrl = typeof video.youtubeUrl === 'string' ? video.youtubeUrl : ''
+
+  // The uploaded file always wins when both are present, so there is never a
+  // separate "which source is active" toggle to fall out of sync with the
+  // actual data — what's here is what plays.
+  const commit = (next: Record<string, unknown>) => {
+    const nextFile = next.file as {asset?: {_ref?: string}} | undefined
+    const nextYoutubeUrl = typeof next.youtubeUrl === 'string' ? next.youtubeUrl.trim() : ''
+    onChange({
+      ...next,
+      kind: nextFile?.asset?._ref ? 'upload' : nextYoutubeUrl ? 'youtube' : video.kind,
+    })
+  }
+
+  const upload = async (uploadFile: File) => {
+    setBusy(true)
+    setUploadStatus({key: 'video', phase: 'preparing', fileName: uploadFile.name, percent: 0})
+    try {
+      const next = await onUpload(uploadFile, 'video', (progress) =>
+        setUploadStatus({
+          key: 'video',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: uploadFile.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus({key: 'video', phase: 'done', fileName: uploadFile.name, percent: 100})
+      commit({...video, file: {_type: 'file', asset: {_type: 'reference', _ref: next.id}}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'video',
+        phase: 'error',
+        fileName: uploadFile.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar o ficheiro',
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="site-editor-video-field">
+      <div className="site-editor-video-upload">
+        {fileUrl ? (
+          <video src={fileUrl} controls muted />
+        ) : (
+          <div className="site-editor-video-empty">
+            <VideoIcon />
+          </div>
+        )}
+        <div className="site-editor-media-actions">
+          <label className="site-editor-upload-button">
+            <UploadIcon /> {busy ? 'A carregar…' : fileUrl ? 'Substituir' : 'Carregar vídeo'}
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              disabled={busy}
+              onChange={(event) => {
+                const uploadFile = event.currentTarget.files?.[0]
+                if (uploadFile) void upload(uploadFile)
+                event.currentTarget.value = ''
+              }}
+            />
+          </label>
+          {fileUrl ? (
+            <button type="button" onClick={() => setPendingRemoval(true)}>
+              <TrashIcon /> Remover
+            </button>
+          ) : null}
+        </div>
+        <MediaUploadProgress status={uploadStatus} />
+      </div>
+
+      <div className="site-editor-video-divider">
+        <span>ou</span>
+      </div>
+
+      <label>
+        <span>Link do YouTube</span>
+        <input
+          type="url"
+          placeholder="https://www.youtube.com/watch?v=…"
+          value={youtubeUrl}
+          disabled={Boolean(fileUrl)}
+          onChange={(event) => commit({...video, youtubeUrl: event.currentTarget.value})}
+        />
+        {fileUrl ? <small>Remova o vídeo carregado acima para usar este link</small> : null}
+      </label>
+      <ConfirmDialog
+        open={pendingRemoval}
+        title="Remover este vídeo?"
+        description="Pode anular com Ctrl+Z antes de guardar."
+        confirmLabel="Remover"
+        onCancel={() => setPendingRemoval(false)}
+        onConfirm={() => {
+          commit({...video, file: undefined})
+          setPendingRemoval(false)
+        }}
+      />
     </div>
   )
 }
@@ -824,6 +971,11 @@ function GalleryEditor({
             <span>{activeIsVideo ? 'Título do vídeo' : 'Descrição da imagem'}</span>
             <textarea
               rows={3}
+              placeholder={
+                activeIsVideo
+                  ? 'Ex.: Instalação de decking num terraço exterior'
+                  : 'Ex.: Banco em plástico reciclado num jardim público'
+              }
               value={String((activeIsVideo ? activeTitle.pt : activeAlt.pt) || '')}
               onChange={(event) =>
                 commitItem(activeIndex, {
@@ -839,7 +991,7 @@ function GalleryEditor({
             <div className="site-editor-gallery-poster">
               <span>
                 <strong>Imagem de capa</strong>
-                <small>Aparece na miniatura e antes de o vídeo começar.</small>
+                <small>Aparece na miniatura e antes de o vídeo começar</small>
               </span>
               {activePosterUrl ? <img src={activePosterUrl} alt="" /> : <VideoIcon />}
               <label className="site-editor-upload-button">
@@ -885,7 +1037,7 @@ function GalleryEditor({
           <ImagesIcon />{' '}
           <span>
             <strong>Galeria vazia</strong>
-            <small>Adicione a primeira imagem ou vídeo.</small>
+            <small>Adicione a primeira imagem ou vídeo</small>
           </span>
         </div>
       )}
@@ -923,6 +1075,7 @@ export function SiteEditorFieldInput({
   const articleLauncher = useRef<HTMLButtonElement>(null)
   const value = getEditorValue(source, path)
   const [activeArrayKey, setActiveArrayKey] = useState<string>()
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number>()
   const selected = Boolean(
     selectedPath &&
     (selectedPath === path ||
@@ -945,6 +1098,11 @@ export function SiteEditorFieldInput({
   }, [field.type, path, selectedPath])
 
   if (field.type === 'object') {
+    const visibleFields = (field.fields ?? []).filter(
+      (child) =>
+        !child.visibleWhen ||
+        getEditorValue(source, `${path}.${child.visibleWhen.sibling}`) === child.visibleWhen.equals,
+    )
     return (
       <div ref={container} className={`site-editor-object${selected ? ' is-selected' : ''}`}>
         <div className="site-editor-object-title">
@@ -952,7 +1110,7 @@ export function SiteEditorFieldInput({
           {field.description ? <small>{field.description}</small> : null}
         </div>
         <div className="site-editor-object-fields">
-          {(field.fields ?? []).map((child) => (
+          {visibleFields.map((child) => (
             <SiteEditorFieldInput
               key={child.name}
               {...{
@@ -1014,6 +1172,19 @@ export function SiteEditorFieldInput({
       )
       setActiveArrayKey(undefined)
     }
+    const removalDialog = (
+      <ConfirmDialog
+        open={pendingRemovalIndex !== undefined}
+        title={`Eliminar ${field.item?.label?.toLocaleLowerCase('pt') || 'este item'}?`}
+        description="Pode anular com Ctrl+Z antes de guardar."
+        onCancel={() => setPendingRemovalIndex(undefined)}
+        onConfirm={() => {
+          if (pendingRemovalIndex === undefined) return
+          removeItem(pendingRemovalIndex)
+          setPendingRemovalIndex(undefined)
+        }}
+      />
+    )
     const addItem = () => {
       const next = defaultValue(field.item ?? {name: 'item', label: 'Item', type: 'string'}, path)
       const keyed =
@@ -1059,7 +1230,11 @@ export function SiteEditorFieldInput({
                 >
                   <ArrowDownIcon />
                 </button>
-                <button type="button" onClick={() => removeItem(activeIndex)} aria-label="Eliminar">
+                <button
+                  type="button"
+                  onClick={() => setPendingRemovalIndex(activeIndex)}
+                  aria-label="Eliminar"
+                >
                   <TrashIcon />
                 </button>
               </div>
@@ -1078,6 +1253,7 @@ export function SiteEditorFieldInput({
             onUpload={onUpload}
             onOpenArticle={onOpenArticle}
           />
+          {removalDialog}
         </div>
       )
     }
@@ -1118,7 +1294,11 @@ export function SiteEditorFieldInput({
                     >
                       <ArrowDownIcon />
                     </button>
-                    <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                    <button
+                      type="button"
+                      onClick={() => setPendingRemovalIndex(index)}
+                      aria-label="Eliminar"
+                    >
                       <TrashIcon />
                     </button>
                   </div>
@@ -1129,6 +1309,7 @@ export function SiteEditorFieldInput({
           <button className="site-editor-array-add" type="button" onClick={addItem}>
             <AddIcon /> Adicionar {field.item.label.toLocaleLowerCase('pt')}
           </button>
+          {removalDialog}
         </div>
       )
     }
@@ -1165,7 +1346,11 @@ export function SiteEditorFieldInput({
                   >
                     <ArrowDownIcon />
                   </button>
-                  <button type="button" onClick={() => removeItem(index)} aria-label="Eliminar">
+                  <button
+                    type="button"
+                    onClick={() => setPendingRemovalIndex(index)}
+                    aria-label="Eliminar"
+                  >
                     <TrashIcon />
                   </button>
                 </div>
@@ -1191,6 +1376,7 @@ export function SiteEditorFieldInput({
         <button className="site-editor-array-add" type="button" onClick={addItem}>
           <AddIcon /> Adicionar
         </button>
+        {removalDialog}
       </div>
     )
   }
@@ -1203,6 +1389,24 @@ export function SiteEditorFieldInput({
           {field.description ? <small>{field.description}</small> : null}
         </div>
         <ImageEditor
+          value={value}
+          projectId={projectId}
+          dataset={dataset}
+          onChange={(next) => onChange(path, next)}
+          onUpload={onUpload}
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'video') {
+    return (
+      <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <VideoEditor
           value={value}
           projectId={projectId}
           dataset={dataset}
@@ -1269,7 +1473,7 @@ export function SiteEditorFieldInput({
           </span>
           <div>
             <strong>{blocks.length ? 'Conteúdo estruturado' : 'Artigo vazio'}</strong>
-            <small>{text || 'Abra o editor para começar a escrever.'}</small>
+            <small>{text || 'Abra o editor para começar a escrever'}</small>
           </div>
           <button
             ref={articleLauncher}
@@ -1291,8 +1495,12 @@ export function SiteEditorFieldInput({
     ? localized(value, field.type as 'localizedString' | 'localizedText')
     : undefined
   const plainValue = localizedType ? String(localizedValue?.pt || '') : value
+  // Discrete choices (a select, a toggle) fire once per click, not per
+  // keystroke, so there's no typing burst to protect against — save right
+  // away instead of waiting out the same debounce that shields text fields.
+  const isDiscreteChoice = field.type === 'boolean' || field.type === 'select'
   const commit = (next: unknown) =>
-    onChange(path, localizedType ? {...localizedValue, pt: next} : next)
+    onChange(path, localizedType ? {...localizedValue, pt: next} : next, isDiscreteChoice)
 
   return (
     <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
@@ -1311,6 +1519,7 @@ export function SiteEditorFieldInput({
         <textarea
           aria-label={field.label}
           rows={field.rows ?? 5}
+          placeholder={field.placeholder}
           value={String(plainValue || '')}
           onChange={(event) => commit(event.currentTarget.value)}
         />
@@ -1344,19 +1553,25 @@ export function SiteEditorFieldInput({
           <input
             aria-label={field.label}
             value={String((value as {current?: string} | undefined)?.current || '')}
-            onChange={(event) =>
-              commit({_type: 'slug', current: slugify(event.currentTarget.value)})
+            readOnly={field.readOnly}
+            disabled={field.readOnly}
+            onChange={
+              field.readOnly
+                ? undefined
+                : (event) => commit({_type: 'slug', current: slugify(event.currentTarget.value)})
             }
           />
-          <button
-            type="button"
-            onClick={() => {
-              const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
-              commit({_type: 'slug', current: slugify(title)})
-            }}
-          >
-            Gerar
-          </button>
+          {field.readOnly ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                const title = getEditorValue<{pt?: string}>(source, 'title')?.pt || ''
+                commit({_type: 'slug', current: slugify(title)})
+              }}
+            >
+              Gerar
+            </button>
+          )}
         </div>
       ) : (
         <input
@@ -1370,6 +1585,7 @@ export function SiteEditorFieldInput({
                   ? 'date'
                   : 'text'
           }
+          placeholder={field.placeholder}
           value={String(plainValue || '')}
           onChange={(event) => commit(event.currentTarget.value)}
         />

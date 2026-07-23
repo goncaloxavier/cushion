@@ -37,7 +37,7 @@
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredProducts = $derived(
     content.products.filter((product) =>
-      [product.title, product.summary, product.description]
+      [product.title, product.description]
         .join(' ')
         .toLowerCase()
         .includes(normalizedQuery),
@@ -96,7 +96,7 @@
   description={seoDescription(
     data.language,
     content.productsPage.hero.lead,
-    content.products.map((product) => product.summary).join(' '),
+    content.products.map((product) => product.description).join(' '),
   )}
   image={content.productsPage.heroImage}
 />

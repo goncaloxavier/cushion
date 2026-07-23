@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react'
+import React, {useMemo, useRef, useState} from 'react'
 import {AddIcon} from '@sanity/icons/Add'
 import {ChevronDownIcon} from '@sanity/icons/ChevronDown'
 import {CloseIcon} from '@sanity/icons/Close'
@@ -61,7 +61,7 @@ const scrollPanelWithWheel = (event: React.WheelEvent<HTMLDivElement>) => {
   }
 }
 
-export function SiteEditorSidebar({
+function SiteEditorSidebarComponent({
   nodes,
   selectedNodeId,
   area,
@@ -71,6 +71,28 @@ export function SiteEditorSidebar({
   onClose,
 }: Props) {
   const [query, setQuery] = useState('')
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const lastIndex = areaLabels.length - 1
+    const nextIndex =
+      event.key === 'ArrowRight'
+        ? index === lastIndex
+          ? 0
+          : index + 1
+        : event.key === 'ArrowLeft'
+          ? index === 0
+            ? lastIndex
+            : index - 1
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? lastIndex
+              : undefined
+    if (nextIndex === undefined) return
+    event.preventDefault()
+    onAreaChange(areaLabels[nextIndex].value)
+    tabRefs.current[nextIndex]?.focus()
+  }
   const [collapsed, setCollapsed] = useState<Set<string>>(
     () =>
       new Set(
@@ -156,7 +178,11 @@ export function SiteEditorSidebar({
           <strong>{node.title}</strong>
           <small>{subtitle}</small>
         </span>
-        {node.draft ? <i className="site-editor-draft-dot" title="Rascunho" /> : null}
+        {node.draft ? (
+          <i className="site-editor-draft-dot" title="Rascunho">
+            <span className="site-editor-visually-hidden">Rascunho, por publicar</span>
+          </i>
+        ) : null}
         {collection ? (
           <span className={`site-editor-tree-chevron${isCollapsed ? '' : ' is-open'}`}>
             <ChevronDownIcon />
@@ -207,14 +233,21 @@ export function SiteEditorSidebar({
       </div>
 
       <div className="site-editor-area-tabs" role="tablist" aria-label="Áreas do editor">
-        {areaLabels.map((item) => (
+        {areaLabels.map((item, index) => (
           <button
             key={item.value}
+            ref={(el) => {
+              tabRefs.current[index] = el
+            }}
+            id={`site-editor-area-tab-${item.value}`}
             type="button"
             role="tab"
             aria-selected={area === item.value}
+            aria-controls="site-editor-area-panel"
+            tabIndex={area === item.value ? 0 : -1}
             className={area === item.value ? 'is-active' : ''}
             onClick={() => onAreaChange(item.value)}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
           >
             {item.label}
           </button>
@@ -232,7 +265,13 @@ export function SiteEditorSidebar({
         />
       </label>
 
-      <div className="site-editor-tree" onWheel={scrollPanelWithWheel}>
+      <div
+        className="site-editor-tree"
+        id="site-editor-area-panel"
+        role="tabpanel"
+        aria-labelledby={`site-editor-area-tab-${area}`}
+        onWheel={scrollPanelWithWheel}
+      >
         {roots.map((node) => renderNode(node))}
         {!roots.length ? (
           <div className="site-editor-sidebar-empty">Nenhum conteúdo encontrado.</div>
@@ -248,3 +287,5 @@ export function SiteEditorSidebar({
     </aside>
   )
 }
+
+export const SiteEditorSidebar = React.memo(SiteEditorSidebarComponent)

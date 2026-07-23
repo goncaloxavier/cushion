@@ -3,13 +3,12 @@ import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {StackCompactIcon} from '@sanity/icons/StackCompact'
 import type {BuilderViewport} from '$lib/builder/types'
 import type {
+  Asset,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
 } from '$lib/site-editor/types'
 import {SiteEditorFieldInput} from './SiteEditorField'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   document: SiteEditorDocument
@@ -27,15 +26,25 @@ type Props = {
 const titleField: SiteEditorField = {
   name: 'title',
   label: 'Nome da categoria',
-  description: 'É o nome apresentado nos filtros e junto aos produtos.',
+  description: 'É o nome apresentado nos filtros e junto aos produtos',
+  placeholder: 'Ex.: Decking',
   type: 'localizedString',
   required: true,
+}
+
+const slugField: SiteEditorField = {
+  name: 'slug',
+  label: 'Endereço',
+  type: 'slug',
+  readOnly: true,
+  description:
+    'Gerado a partir do nome na primeira vez que a categoria é guardada. Fica estável depois para não quebrar os produtos associados',
 }
 
 const orderField: SiteEditorField = {
   name: 'orderRank',
   label: 'Posição na Loja',
-  description: 'Os números mais baixos aparecem primeiro.',
+  description: 'Os números mais baixos aparecem primeiro',
   type: 'number',
   min: 0,
   step: 1,
@@ -105,6 +114,18 @@ export function StoreCategoryManager({
         <SiteEditorFieldInput
           field={titleField}
           path="title"
+          source={document}
+          documentType={document._type}
+          selectedPath={selectedPath}
+          projectId={projectId}
+          dataset={dataset}
+          viewport={viewport}
+          onChange={onChange}
+          onUpload={onUpload}
+        />
+        <SiteEditorFieldInput
+          field={slugField}
+          path="slug"
           source={document}
           documentType={document._type}
           selectedPath={selectedPath}

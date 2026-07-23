@@ -1197,10 +1197,7 @@ test.describe('visual website editor', () => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Parallel drawers are verified once')
     await openEditor(page, testInfo)
 
-    await expect(page.getByRole('link', {name: 'Voltar ao backoffice'})).toHaveAttribute(
-      'href',
-      '/painel/pedidos',
-    )
+    await expect(page.getByRole('link', {name: 'Voltar ao backoffice'})).toHaveAttribute('href', '/painel')
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     const navigation = page.locator('.site-editor-drawer.is-navigation')
     await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
@@ -1246,6 +1243,10 @@ test.describe('visual website editor', () => {
     await expect(manager.locator('article')).toHaveCount(10)
     await expect(manager.getByRole('textbox', {name: 'Nome'})).toHaveValue('Nova ligação')
     await manager.getByRole('button', {name: 'Remover ligação'}).click()
+    await page
+      .getByRole('alertdialog', {name: 'Remover esta ligação do menu?'})
+      .getByRole('button', {name: 'Remover', exact: true})
+      .click()
     await expect(manager.locator('article')).toHaveCount(9)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 

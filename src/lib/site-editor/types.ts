@@ -1,6 +1,8 @@
 import type {SanityDocument} from '@sanity/client'
 import type {BuilderSection} from '$lib/builder/types'
 
+export type Asset = {id: string; url: string}
+
 export type SiteEditorDocumentType =
   | 'siteLanding'
   | 'productCategory'
@@ -77,6 +79,7 @@ export type SiteEditorFieldType =
   | 'select'
   | 'image'
   | 'gallery'
+  | 'video'
   | 'navigation'
   | 'article'
   | 'sections'
@@ -88,6 +91,7 @@ export type SiteEditorField = {
   label: string
   type: SiteEditorFieldType
   description?: string
+  placeholder?: string
   fields?: SiteEditorField[]
   item?: SiteEditorField
   options?: SiteEditorOption[]
@@ -96,8 +100,13 @@ export type SiteEditorField = {
   max?: number
   step?: number
   required?: boolean
+  readOnly?: boolean
   rows?: number
   collapsed?: boolean
+  visibleWhen?: {
+    sibling: string
+    equals: string
+  }
 }
 
 export type SiteEditorPanel = {

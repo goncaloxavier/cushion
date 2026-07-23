@@ -1,6 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import ProductContentSections from '$lib/components/ProductContentSections.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -13,45 +14,41 @@
     productImagesFor,
     productMediaFor,
     withLanguage,
+    type LanguageCode,
   } from '$lib/site-content'
 
-  const productResistancePattern =
-    /\b(resiste|resistem|resistente|resistentes|resistant|withstands?|weatherproof|water-resistant|uv-resistant|rot-proof|maintenance-free|low maintenance|no maintenance|sem manutenção|manutenção|mantenimiento|sin mantenimiento|apodrec|pudr|rot|rots|pintura|painting|paint|água|agua|water|humidade|humedad|damp|chuva|lluvia|rain|sol|sun|uv|compressão|compression|duradour|duração|long-lasting|estável|stable)\b/i
-
-  const splitSentences = (value: string) =>
-    value
-      .match(/[^.!?]+(?:[.!?]+|$)/g)
-      ?.map((sentence) => sentence.trim())
-      .filter(Boolean) ?? []
-
-  const productDetailCopy = (description: string) => {
-    const source = cleanProductMaterialCopy(description)
-    const sentences = splitSentences(source)
-    const introSentences: string[] = []
-    const resistanceSentences: string[] = []
-
-    sentences.forEach((sentence, index) => {
-      if (index > 0 && productResistancePattern.test(sentence)) {
-        resistanceSentences.push(sentence)
-        return
-      }
-
-      introSentences.push(sentence)
-    })
-
-    return {
-      intro: introSentences.join(' ') || source,
-      resistance: resistanceSentences.join(' '),
+  const specsLabels: Record<
+    LanguageCode,
+    {
+      heading: string
+      dimensions: string
+      materials: string
+      specifications: string
+      advantages: string
     }
+  > = {
+    pt: {
+      heading: 'Informação técnica',
+      dimensions: 'Dimensões',
+      materials: 'Materiais',
+      specifications: 'Especificações',
+      advantages: 'Vantagens',
+    },
+    en: {
+      heading: 'Technical information',
+      dimensions: 'Dimensions',
+      materials: 'Materials',
+      specifications: 'Specifications',
+      advantages: 'Advantages',
+    },
+    es: {
+      heading: 'Información técnica',
+      dimensions: 'Dimensiones',
+      materials: 'Materiales',
+      specifications: 'Especificaciones',
+      advantages: 'Ventajas',
+    },
   }
-
-  const comparableCopy = (value: string) =>
-    value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/gi, ' ')
-      .trim()
-      .toLowerCase()
 
   let {data} = $props()
   const content = $derived(data.site)
@@ -71,19 +68,26 @@
   const imageDataAttribute = $derived(
     productDataAttribute ? (path: string) => productDataAttribute(path) : undefined,
   )
-  const summaryCopy = $derived(cleanProductMaterialCopy(data.product.summary))
-  const descriptionCopy = $derived(productDetailCopy(data.product.description))
-  const descriptionIntroIsDistinct = $derived(
-    Boolean(
-      descriptionCopy.intro &&
-        (!summaryCopy || comparableCopy(descriptionCopy.intro) !== comparableCopy(summaryCopy)),
-    ),
+  const leadCopy = $derived(cleanProductMaterialCopy(data.product.description))
+  const specsCopy = $derived(specsLabels[data.language] ?? specsLabels.pt)
+  const specs = $derived(
+    data.product.specs ?? {dimensions: [], materials: [], specifications: [], advantages: []},
   )
-  const leadCopy = $derived(summaryCopy || descriptionCopy.intro)
-  const leadFieldPath = $derived(summaryCopy ? 'summary.pt' : 'description.pt')
+  const specGroups = $derived(
+    [
+      {key: 'dimensions', label: specsCopy.dimensions, items: specs.dimensions},
+      {key: 'materials', label: specsCopy.materials, items: specs.materials},
+      {key: 'specifications', label: specsCopy.specifications, items: specs.specifications},
+      {key: 'advantages', label: specsCopy.advantages, items: specs.advantages},
+    ].filter((group) => group.items.length > 0),
+  )
+  const hasSpecs = $derived(specGroups.length > 0)
   const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
   const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
   const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
+  const contentSections = $derived(data.product.contentSections ?? [])
+  const hasContentSections = $derived(contentSections.length > 0)
+  const hasFollowingContent = $derived(hasProductSupport || hasContentSections)
   const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
@@ -127,31 +131,11 @@
         {#if leadCopy}
           <p
             class="article-lead cms-styled-text"
-            style={textAppearanceStyle(
-              data.product.textAppearance?.[leadFieldPath.startsWith('summary') ? 'summary' : 'description'],
-            )}
+            style={textAppearanceStyle(data.product.textAppearance?.description)}
             data-df4y-editor-field="true"
-            data-df4y-editor-label={summaryCopy ? 'Resumo do produto' : 'Descrição do produto'}
-            data-sanity={productDataAttribute?.(leadFieldPath)}
+            data-df4y-editor-label="Descrição do produto"
+            data-sanity={productDataAttribute?.('description.pt')}
           >{leadCopy}</p>
-        {/if}
-        {#if descriptionIntroIsDistinct}
-          <p
-            class="product-editorial-description cms-styled-text"
-            style={textAppearanceStyle(data.product.textAppearance?.description)}
-            data-df4y-editor-field="true"
-            data-df4y-editor-label="Descrição do produto"
-            data-sanity={productDataAttribute?.('description.pt')}
-          >{descriptionCopy.intro}</p>
-        {/if}
-        {#if descriptionCopy.resistance}
-          <p
-            class="product-editorial-proof cms-styled-text"
-            style={textAppearanceStyle(data.product.textAppearance?.description)}
-            data-df4y-editor-field="true"
-            data-df4y-editor-label="Descrição do produto"
-            data-sanity={productDataAttribute?.('description.pt')}
-          >{descriptionCopy.resistance}</p>
         {/if}
       </div>
     </section>
@@ -170,12 +154,42 @@
         dataAttribute={imageDataAttribute}
         fallbackEditPath="image"
       />
-      {#if !hasProductSupport}
+      {#if !hasFollowingContent}
         <div class="product-stage-cta">
           {@render quoteButton()}
         </div>
       {/if}
     </section>
+
+    {#if hasSpecs}
+      <section
+        class="product-editorial-specs"
+        class:has-following-support={hasFollowingContent}
+        aria-labelledby="product-specs-heading"
+      >
+        <header class="product-specs-header">
+          <h2 id="product-specs-heading">{specsCopy.heading}</h2>
+        </header>
+
+        <div class="product-specs-grid">
+          {#each specGroups as group (group.key)}
+            <section
+              class="product-spec-block"
+              data-df4y-editor-field="true"
+              data-df4y-editor-label={group.label}
+              data-sanity={productDataAttribute?.(group.key)}
+            >
+              <h3>{group.label}</h3>
+              <ul class="product-spec-list">
+                {#each group.items as item}
+                  <li>{item}</li>
+                {/each}
+              </ul>
+            </section>
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     {#if hasProductSupport}
       <section
@@ -224,7 +238,11 @@
       </section>
     {/if}
 
-    {#if hasProductSupport}
+    {#if hasContentSections}
+      <ProductContentSections sections={contentSections} dataAttribute={imageDataAttribute} />
+    {/if}
+
+    {#if hasFollowingContent}
       <section class="product-editorial-cta">
         {@render quoteButton()}
       </section>

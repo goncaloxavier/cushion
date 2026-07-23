@@ -20,12 +20,13 @@ import {
   createBuilderSiteSettings,
 } from '../src/lib/builder/defaults'
 import {validateBuilderPage, validateBuilderSettings} from '../src/lib/builder/validation'
-import {siteScopePanels} from '../src/lib/site-editor/model'
+import {documentPanels, siteScopePanels} from '../src/lib/site-editor/model'
 import {
   contentFromSanity,
   type SanityCollections,
 } from '../src/lib/site-content'
 import {textAppearanceStyle} from '../src/lib/text-appearance'
+import {breadcrumbListSchema} from '../src/lib/seo'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -51,7 +52,6 @@ test.describe('Sanity Studio content contract', () => {
     const schemaIndex = read('schemaTypes/index.ts')
 
     expect(schemaIndex).toContain('websiteSchemaTypes')
-    expect(schemaIndex).toContain('crmSchemaTypes')
     expect(schemaIndex).toContain('siteLanding')
     expect(schemaIndex).toContain('productCategory')
     expect(schemaIndex).toContain('storeCategory')
@@ -59,8 +59,47 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).toContain('caseStudy')
     expect(schemaIndex).toContain('blogPost')
     expect(schemaIndex).toContain('partnerItem')
-    expect(schemaIndex).toContain('clientProfile')
-    expect(schemaIndex).toContain('formSubmission')
+  })
+
+  test('every editable field the site editor exposes is in the server save allowlist', () => {
+    // src/lib/server/site-editor.ts's `editableFields` allowlist filters every save/publish —
+    // a field the UI lets someone edit but that's missing from that allowlist gets silently
+    // dropped (the UI shows "Guardado" but Sanity never receives it). This test catches that
+    // class of bug for any field declared in model.ts's documentPanels/siteScopePanels.
+    const siteEditorSource = read('src/lib/server/site-editor.ts')
+    const allowlistFor = (typeKey: string): string[] => {
+      const match = siteEditorSource.match(new RegExp(`\\b${typeKey}:\\s*\\[([^\\]]*)\\]`, 's'))
+      if (!match) throw new Error(`editableFields.${typeKey} not found in site-editor.ts`)
+      return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1])
+    }
+    const topLevelFieldNames = (panels: (typeof documentPanels)[string]) =>
+      panels.flatMap((panel) => panel.fields.map((field) => field.name))
+
+    for (const [type, panels] of Object.entries(documentPanels)) {
+      const allowlist = allowlistFor(type)
+      for (const name of topLevelFieldNames(panels)) {
+        expect(allowlist, `${type}.${name} is editable but missing from editableFields`).toContain(name)
+      }
+    }
+
+    // siteLanding is scoped by top-level field (navigation/home/about/…), not documentPanels —
+    // each siteScopePanels key IS the document-level field name that must be in the allowlist.
+    const siteLandingAllowlist = allowlistFor('siteLanding')
+    for (const rootField of Object.keys(siteScopePanels)) {
+      expect(
+        siteLandingAllowlist,
+        `siteLanding.${rootField} is editable but missing from editableFields`,
+      ).toContain(rootField)
+    }
+
+    // storeCategory has no documentPanels entry (StoreCategoryManager.tsx renders it directly
+    // with its own hardcoded fields instead of the generic panel system) — check those by hand.
+    const storeCategoryAllowlist = allowlistFor('storeCategory')
+    for (const name of ['title', 'slug', 'orderRank']) {
+      expect(storeCategoryAllowlist, `storeCategory.${name} is editable but missing from editableFields`).toContain(
+        name,
+      )
+    }
   })
 
   test('Loja settings expose only clear, used groups in the site editor', () => {
@@ -119,6 +158,216 @@ test.describe('Sanity Studio content contract', () => {
     expect(textAppearanceStyle(content.home.hero.textAppearance?.title)).toContain(
       'font-family:Georgia, serif',
     )
+  })
+
+  test('hero video prefers whichever source matches kind, then whichever is actually populated', () => {
+    // This is the exact drift bug fixed earlier: the site-editor's upload/YouTube tabs
+    // could leave `kind` pointing at an empty field while the other field held real
+    // content (e.g. uploading a file after previously picking YouTube re-stamps `kind`
+    // without clearing youtubeUrl, or vice versa). heroVideoFromSanity must recover by
+    // preferring whichever field is actually populated over a stale `kind`.
+    const heroVideoWith = (heroVideo: Record<string, unknown>) =>
+      contentFromSanity({
+        siteContent: {home: {heroVideo}},
+      } as unknown as SanityCollections).pt.home.heroVideo
+
+    expect(heroVideoWith({kind: 'upload', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'})).toEqual(
+      {kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'},
+    )
+    expect(
+      heroVideoWith({kind: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=abc123'}),
+    ).toEqual({kind: 'youtube', url: 'https://www.youtube.com/watch?v=abc123'})
+
+    // Drift: kind says youtube but only a file was actually uploaded — the file wins.
+    expect(
+      heroVideoWith({kind: 'youtube', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'}),
+    ).toEqual({kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'})
+    // Drift: kind says upload but only a YouTube link was actually set — the link wins.
+    expect(
+      heroVideoWith({kind: 'upload', youtubeUrl: 'https://www.youtube.com/watch?v=abc123'}),
+    ).toEqual({kind: 'youtube', url: 'https://www.youtube.com/watch?v=abc123'})
+
+    // Neither field populated — falls back to the built-in placeholder video, not a blank hero.
+    const empty = heroVideoWith({kind: 'upload'})
+    expect(empty.kind).toBe('youtube')
+    expect(empty.url).toContain('youtube.com')
+  })
+
+  test('productCategory specs fields localize with PT fallback and default to empty lists', () => {
+    const collections = {
+      products: [
+        {
+          _id: 'product.with-specs',
+          slug: {current: 'produto-com-especificacoes'},
+          title: {_type: 'localizedString', pt: 'Produto com especificações'},
+          specs: {
+            dimensions: [{_type: 'localizedString', pt: '20 x 30 x 10 cm'}],
+            materials: [
+              {_type: 'localizedString', pt: 'Plástico reciclado', en: 'Recycled plastic'},
+            ],
+            specifications: [{_type: 'localizedString', pt: 'Resistente a UV'}],
+            advantages: [
+              {_type: 'localizedString', pt: 'Sem manutenção'},
+              {_type: 'localizedString', pt: 'Fabrico nacional'},
+            ],
+          },
+        },
+        {
+          _id: 'product.without-specs',
+          slug: {current: 'produto-sem-especificacoes'},
+          title: {_type: 'localizedString', pt: 'Produto sem especificações'},
+        },
+      ],
+    } as unknown as SanityCollections
+
+    const withSpecs = contentFromSanity(collections).pt.products[0]
+    expect(withSpecs.specs).toEqual({
+      dimensions: ['20 x 30 x 10 cm'],
+      materials: ['Plástico reciclado'],
+      specifications: ['Resistente a UV'],
+      advantages: ['Sem manutenção', 'Fabrico nacional'],
+    })
+
+    // A field only translated into EN should still resolve for the EN reader.
+    const withSpecsEn = contentFromSanity(collections).en.products[0]
+    expect(withSpecsEn.specs?.materials).toEqual(['Recycled plastic'])
+    // Fields with no EN translation fall back to the PT copy rather than going blank.
+    expect(withSpecsEn.specs?.dimensions).toEqual(['20 x 30 x 10 cm'])
+
+    // A product with no specs object at all must not throw and must expose
+    // empty lists (matching what the /produtos/[slug] page checks before
+    // deciding whether to render the specs section), not undefined.
+    const withoutSpecs = contentFromSanity(collections).pt.products[1]
+    expect(withoutSpecs.specs).toEqual({
+      dimensions: [],
+      materials: [],
+      specifications: [],
+      advantages: [],
+    })
+  })
+
+  test('product content sections support image, uploaded video, copy, and optional actions', () => {
+    const collections = {
+      products: [
+        {
+          _id: 'product.with-content-sections',
+          slug: {current: 'produto-com-conteudo'},
+          title: {_type: 'localizedString', pt: 'Produto com conteúdo'},
+          contentSections: [
+            {
+              _key: 'image-section',
+              _type: 'productContentSection',
+              mediaKind: 'image',
+              mediaSide: 'right',
+              surface: 'mint',
+              image: {
+                _type: 'image',
+                asset: {
+                  url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
+                  metadata: {dimensions: {aspectRatio: 1.5}},
+                },
+                alt: {_type: 'localizedString', pt: 'Produto instalado num jardim'},
+              },
+              label: {_type: 'localizedString', pt: 'Decking aplicado em exterior'},
+              labelStyle: 'pill',
+              title: {_type: 'localizedString', pt: 'Uma aplicação real', en: 'A real application'},
+              text: {_type: 'localizedText', pt: 'Texto por baixo da imagem.'},
+              buttonLabel: {_type: 'localizedString', pt: 'Saber mais'},
+              buttonUrl: '/contacto',
+            },
+            {
+              _key: 'video-section',
+              _type: 'productContentSection',
+              mediaKind: 'video',
+              mediaSide: 'top',
+              surface: 'deep',
+              video: {
+                kind: 'upload',
+                fileUrl: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
+                fileName: 'example.mp4',
+                mimeType: 'video/mp4',
+              },
+              poster: {
+                _type: 'image',
+                asset: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
+                alt: {_type: 'localizedString', pt: 'Capa do vídeo'},
+              },
+              videoTitle: {_type: 'localizedString', pt: 'Demonstração do produto'},
+              text: {_type: 'localizedText', pt: 'Texto opcional por baixo do vídeo.'},
+            },
+          ],
+        },
+      ],
+    } as unknown as SanityCollections
+
+    const product = contentFromSanity(collections).en.products[0]
+    expect(product.contentSections).toHaveLength(2)
+    expect(product.contentSections?.[0]).toMatchObject({
+      key: 'image-section',
+      editPath: 'contentSections[_key=="image-section"]',
+      mediaKind: 'image',
+      mediaSide: 'right',
+      surface: 'mint',
+      label: 'Decking aplicado em exterior',
+      labelStyle: 'pill',
+      title: 'A real application',
+      text: 'Texto por baixo da imagem.',
+      buttonLabel: 'Saber mais',
+      buttonUrl: '/contacto',
+      image: {
+        url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
+        alt: 'Produto instalado num jardim',
+        aspectRatio: 1.5,
+      },
+    })
+    expect(product.contentSections?.[1]).toMatchObject({
+      key: 'video-section',
+      mediaKind: 'video',
+      mediaSide: 'top',
+      surface: 'deep',
+      labelStyle: 'caption',
+      text: 'Texto opcional por baixo do vídeo.',
+      video: {
+        url: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
+        title: 'Demonstração do produto',
+        mimeType: 'video/mp4',
+        poster: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
+      },
+    })
+  })
+
+  test('breadcrumbListSchema builds a positioned, schema.org-shaped ItemList', () => {
+    const schema = breadcrumbListSchema([
+      {name: 'Início', url: 'https://dafabrica4you.pt/'},
+      {name: 'Produtos', url: 'https://dafabrica4you.pt/produtos'},
+      {name: 'Decking e Pavimentos', url: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos'},
+    ])
+
+    expect(schema['@context']).toBe('https://schema.org')
+    expect(schema['@type']).toBe('BreadcrumbList')
+
+    const items = schema.itemListElement as Array<Record<string, unknown>>
+    expect(items).toHaveLength(3)
+    expect(items.map((item) => item.position)).toEqual([1, 2, 3])
+    expect(items.map((item) => item['@type'])).toEqual(['ListItem', 'ListItem', 'ListItem'])
+    expect(items[2]).toEqual({
+      '@type': 'ListItem',
+      position: 3,
+      name: 'Decking e Pavimentos',
+      item: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos',
+    })
+
+    // Names run through the same stega-stripping/whitespace-collapse as other
+    // schema builders, so a crumb label copied from the CMS can't leak
+    // zero-width markers or raw newlines into the structured data.
+    const stegaEncoded = vercelStegaCombine('Loja  \n  Online', {
+      origin: 'sanity.io',
+      href: 'http://localhost:3333/intent/edit/id=siteContent;path=nav.store',
+    })
+    const [dirty] = breadcrumbListSchema([{name: stegaEncoded, url: '/loja'}]).itemListElement as Array<
+      Record<string, unknown>
+    >
+    expect(dirty.name).toBe('Loja Online')
   })
 
   test('standalone builder keeps Sanity credentials and publishing behind the staff server', () => {
@@ -345,24 +594,22 @@ test.describe('Sanity Studio content contract', () => {
     expect(cleanupScript).toContain('_type == "storeCategory" && defined(active)')
   })
 
-  test('private CRM content is isolated from the public website workspace', () => {
+  test('CRM leads/profiles live only in Postgres, not Sanity Studio', () => {
     const studioConfig = read('sanity.config.ts')
     const studioStructure = read('sanity.structure.ts')
+    const schemaIndex = read('schemaTypes/index.ts')
     const crmServer = read('src/lib/server/crm.ts')
     const contactAction = read('src/routes/contacto/+page.server.ts')
     const formGuard = read('src/lib/server/form-guard.ts')
 
-    expect(studioConfig).toContain("name: 'crm'")
-    expect(studioConfig).toContain("basePath: '/crm'")
-    expect(studioConfig).toContain("dataset: 'crm'")
-    expect(studioConfig).toContain('types: crmSchemaTypes')
-    expect(studioStructure).toContain('crmStructure')
-    expect(studioStructure).toContain("'Novos pedidos'")
-    expect(studioStructure).toContain("'Pedidos em acompanhamento'")
-    expect(studioStructure).toContain("'Perfis de clientes'")
-    // Leads/profiles themselves moved to Postgres (crm.ts) — only the legacy
-    // Studio workspace for already-migrated Sanity CRM docs stays isolated
-    // here until the deferred Sanity cleanup.
+    // The legacy private Sanity `crm` dataset/workspace was retired after the
+    // Postgres migration — leads/profiles/staff accounts live only in
+    // Postgres now, and Studio only edits the public website content.
+    expect(studioConfig).not.toContain("name: 'crm'")
+    expect(studioConfig).not.toContain("basePath: '/crm'")
+    expect(studioConfig).not.toContain("dataset: 'crm'")
+    expect(studioStructure).not.toContain('crmStructure')
+    expect(schemaIndex).not.toContain('crmSchemaTypes')
     expect(crmServer).toContain('databaseConfigured')
     expect(crmServer).toContain('withTransaction')
     expect(crmServer).toContain('insert into crm_client_profiles')
@@ -410,7 +657,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('cookieNoticeAccept')
     expect(sanityClient).toContain('marketingConsent')
     expect(sanityClient).toContain('formLabels')
-    expect(sanityClient).toContain('heroVideoUrl')
+    expect(sanityClient).toContain('heroVideo')
     expect(sanityClient).not.toContain('videoUrl')
     expect(sanityClient).not.toContain('toolUrl')
     expect(sanityClient).toContain('storePage')
@@ -422,6 +669,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('hasFinishChoice')
     expect(sanityClient).toContain('flatTransportPrice')
     expect(sanityClient).toContain('gallery[]')
+    expect(sanityClient).toContain('contentSections[]')
+    expect(sanityClient).toContain('"fileUrl": file.asset->url')
     expect(storeProductsImport).toContain('createIfNotExists(document)')
     expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
     expect(storeProductsImport).toContain('setIfMissing(fields)')
@@ -501,7 +750,6 @@ test.describe('Sanity Studio content contract', () => {
     const storeDetailRoute = read('src/routes/loja/[slug]/+page.svelte')
     const storeMediaGallery = read('src/lib/components/StoreMediaGallery.svelte')
     const siteEditorOverlay = read('src/lib/components/SiteEditorOverlay.svelte')
-    const imageGallery = read('src/lib/components/ImageGallery.svelte')
     const productListRoute = read('src/routes/produtos/+page.svelte')
     const productDetailRoute = read('src/routes/produtos/[slug]/+page.svelte')
     const caseDetailRoute = read('src/routes/casos-de-estudo/[slug]/+page.svelte')
@@ -570,19 +818,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('editPath?: string')
     expect(contentModel).toContain("imageFromSanity(mainImage, language, fallback, 'image')")
     expect(contentModel).toContain('gallery[_key==')
-    expect(imageGallery).toContain('dataAttribute?: (path: string) => string | undefined')
-    expect(imageGallery).toContain('image?.editPath && dataAttribute')
-    expect(imageGallery).toContain('data-sanity={activeDataAttribute}')
-    expect(imageGallery).toContain('data-sanity={thumbAttr}')
     expect(productDetailRoute).toContain('@sanity/visual-editing/create-data-attribute')
     expect(productDetailRoute).toContain("type: 'productCategory'")
     expect(productDetailRoute).toContain('data.preview || data.builderPreview')
     expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
-    expect(productDetailRoute).toContain('data-sanity={productDataAttribute?.(leadFieldPath)}')
     expect(productDetailRoute).toContain("data-sanity={productDataAttribute?.('description.pt')}")
-    expect(productDetailRoute.indexOf('>{leadCopy}</p>')).toBeLessThan(
-      productDetailRoute.indexOf('>{descriptionCopy.intro}</p>'),
-    )
+    expect(productDetailRoute).toContain('>{leadCopy}</p>')
     expect(productDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(productListRoute).toContain("siteContentDataAttribute?.('productsPage.heroImage')")
     expect(productListRoute).toContain('data.preview || data.builderPreview')
@@ -640,6 +881,8 @@ test.describe('Sanity Studio content contract', () => {
 
   test('editable collection documents support uploaded images', () => {
     const productSchema = read('schemaTypes/productCategory.ts')
+    const productSections = read('src/lib/components/ProductContentSections.svelte')
+    const editorModel = read('src/lib/site-editor/model.ts')
     const storeSchema = read('schemaTypes/storeProduct.ts')
     const caseSchema = read('schemaTypes/caseStudy.ts')
     const blogSchema = read('schemaTypes/blogPost.ts')
@@ -670,6 +913,20 @@ test.describe('Sanity Studio content contract', () => {
     expect(productSchema).toContain("name: 'galleryImage'")
     expect(productSchema).toContain("name: 'galleryVideo'")
     expect(productSchema).toContain("type: 'file'")
+    expect(productSchema).toContain("name: 'contentSections'")
+    expect(productSchema).toContain("name: 'productContentSection'")
+    expect(productSchema).toContain("name: 'mediaKind'")
+    expect(productSchema).toContain("name: 'mediaSide'")
+    expect(productSchema).toContain("name: 'surface'")
+    expect(productSchema).toContain("name: 'buttonLabel'")
+    expect(productSchema).toContain("name: 'buttonUrl'")
+    expect(editorModel).toContain("label: 'Visual à esquerda'")
+    expect(editorModel).toContain("label: 'Visual à direita'")
+    expect(editorModel).toContain("label: 'Visual acima'")
+    expect(editorModel).toContain("label: 'Verde profundo'")
+    expect(editorModel).toContain("label: 'Azul mineral'")
+    expect(productSections).toContain('is-${section.mediaSide}')
+    expect(productSections).toContain('is-${section.surface}')
     expect(caseSchema).toContain("name: 'galleryVideo'")
     expect(caseSchema).toContain("type: 'file'")
     expect(blogSchema).toContain("name: 'galleryVideo'")
@@ -803,8 +1060,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(importScript).toContain('case-study-import.ndjson')
   })
 
-  test('shared image galleries lock background scroll', () => {
-    const gallery = read('src/lib/components/ImageGallery.svelte')
+  test('the shared media gallery locks background scroll', () => {
+    const gallery = read('src/lib/components/StoreMediaGallery.svelte')
     const styles = read('src/app.css')
 
     expect(gallery).toContain("classList.add('lightbox-open')")

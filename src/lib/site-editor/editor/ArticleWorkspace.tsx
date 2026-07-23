@@ -3,10 +3,9 @@ import {createPortal} from 'react-dom'
 import {CheckmarkIcon} from '@sanity/icons/Checkmark'
 import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 import {getEditorValue} from '../path'
-import type {SiteEditorDocument, SiteEditorSaveState} from '../types'
+import type {Asset, SiteEditorDocument, SiteEditorSaveState} from '../types'
+import type {SiteEditorUploadProgress} from './api'
 import {ArticleEditor} from './ArticleEditor'
-
-type Asset = {id: string; url: string}
 
 type Props = {
   document: SiteEditorDocument
@@ -18,7 +17,11 @@ type Props = {
   saveState: SiteEditorSaveState
   returnFocus?: HTMLElement
   onChange: (path: string, value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
+  onUpload: (
+    file: File,
+    kind: 'image' | 'video',
+    onProgress?: (progress: SiteEditorUploadProgress) => void,
+  ) => Promise<Asset>
   onClose: () => void
 }
 
@@ -68,6 +71,20 @@ export function ArticleWorkspace({
         event.preventDefault()
         event.stopPropagation()
         onClose()
+        return
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        // The mounted rich-text canvas only reads the document's article value once,
+        // at mount — it never picks up a later whole-document undo/redo. Keep native
+        // undo working inside the canvas (and in any plain input here) but swallow
+        // the keystroke everywhere else in the workspace so it can't reach the
+        // document-level history and desync from what the canvas is still showing.
+        const target = event.target as HTMLElement | null
+        const tag = target?.tagName
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !target?.isContentEditable) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
         return
       }
       if (event.key !== 'Tab' || !workspace.current) return

@@ -72,7 +72,10 @@
   })
 
   const resolveNode = (value: SanityNode | SanityStegaNode) => {
-    if ('id' in value) return value
+    // The data-sanity DOM attribute (set by beginEditing) holds the encoded
+    // string form, not the decoded object — `'id' in value` throws on a
+    // string primitive, so the type has to be checked before that lookup.
+    if (typeof value === 'object' && value !== null && 'id' in value) return value
     const decoded = decodeSanityNodeData(value)
     return decoded && 'id' in decoded ? decoded : undefined
   }
@@ -473,7 +476,28 @@
     }
     const current = {rect: rectFor(element), sanity, element}
     elements.set(id, current)
+    ensureFocusable(element, node)
     return {id, current, node}
+  }
+
+  // Most editable elements are discovered by the overlay controller purely by
+  // scanning rendered text for stega markers (no data-sanity DOM attribute is
+  // ever written for them), so this has to hook the same element/register and
+  // element/update messages the controller already sends, not a DOM query.
+  const ensureFocusable = (element: HTMLElement | SVGElement, node: SanityNode | undefined) => {
+    if (!(element instanceof HTMLElement) || !node) return
+    if (element.tabIndex < 0 && !element.hasAttribute('tabindex')) {
+      element.setAttribute('tabindex', '0')
+      element.dataset.df4yFocusable = 'true'
+    }
+    if (element.dataset.df4yFocusable !== 'true') return
+    // The overlay controller's own MutationObserver watches every attribute
+    // (not just data-sanity), so an unconditional setAttribute here would
+    // re-trigger element/update on every registration, which calls back into
+    // this function forever. Only write when the value actually changes.
+    if (element.getAttribute('role') !== 'button') element.setAttribute('role', 'button')
+    const label = hoverLabelFor(element, kindFor(element), canEditInline(element, node))
+    if (element.getAttribute('aria-label') !== label) element.setAttribute('aria-label', label)
   }
 
   const clearActiveSelection = (notifyParent: boolean, commit = true) => {
@@ -599,6 +623,7 @@
       }
       elements.set(message.id, current)
       const node = resolveNode(message.sanity)
+      ensureFocusable(current.element, node)
       if (
         matchesSelection(node) &&
         (selectedElement === current.element || !isRenderableElement(selectedElement))
@@ -615,6 +640,7 @@
         })
         const next = elements.get(message.id)
         const node = resolveNode(message.sanity)
+        if (next) ensureFocusable(next.element, node)
         if (
           next &&
           matchesSelection(node) &&
@@ -802,6 +828,50 @@
       hoveredId = undefined
       hoveredRect = null
     }
+    // Keyboard equivalent of the pointer-hover/click pair above, so the canvas is
+    // operable without a mouse. Unlike directElementFor (used by click/pointer,
+    // where the event target can be a descendant of the tagged element), the
+    // focused element IS the exact element ensureFocusable put tabindex on, so
+    // this looks it up directly — that also covers elements the overlay
+    // controller registered itself, which never get a data-sanity DOM attribute
+    // and so are invisible to directElementFor's [data-sanity] closest() walk.
+    const focusableTarget = (target: EventTarget | null) =>
+      target instanceof HTMLElement || target instanceof SVGElement ? target : undefined
+    const handleDirectFocusIn = (event: FocusEvent) => {
+      const element = focusableTarget(event.target)
+      if (!element) return
+      const direct = ensureDirectElement(element)
+      if (!direct?.node) return
+      if (matchesSelection(direct.node)) {
+        if (selectedElement !== element && !isVisibleElement(selectedElement)) {
+          activateElement(direct.id, direct.current, direct.node, true)
+        }
+        return
+      }
+      hoveredId = direct.id
+      hoveredRect = rectFor(element)
+      const kind = kindFor(element)
+      hoveredInline = canEditInline(element, direct.node)
+      hoveredLabel = hoverLabelFor(element, kind, hoveredInline)
+    }
+    const handleDirectFocusOut = (event: FocusEvent) => {
+      const element = focusableTarget(event.target)
+      if (!element) return
+      const direct = ensureDirectElement(element)
+      if (!direct || hoveredId !== direct.id) return
+      hoveredId = undefined
+      hoveredRect = null
+    }
+    const handleDirectKeydown = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      const element = focusableTarget(event.target)
+      if (!element || editing?.element === element) return
+      const direct = ensureDirectElement(element)
+      if (!direct?.node) return
+      event.preventDefault()
+      event.stopPropagation()
+      selectElement(direct.id, direct.current, direct.node)
+    }
     window.addEventListener('message', handleParentMessage)
     window.addEventListener('scroll', scheduleRectSync, true)
     window.addEventListener('resize', scheduleRectSync)
@@ -809,6 +879,9 @@
     document.addEventListener('click', handleDirectClick, true)
     document.addEventListener('pointerover', handleDirectPointerOver, true)
     document.addEventListener('pointerout', handleDirectPointerOut, true)
+    document.addEventListener('focusin', handleDirectFocusIn, true)
+    document.addEventListener('focusout', handleDirectFocusOut, true)
+    document.addEventListener('keydown', handleDirectKeydown, true)
     const mutationObserver = new MutationObserver(scheduleRectSync)
     mutationObserver.observe(document.body, {
       childList: true,
@@ -829,6 +902,9 @@
       document.removeEventListener('click', handleDirectClick, true)
       document.removeEventListener('pointerover', handleDirectPointerOver, true)
       document.removeEventListener('pointerout', handleDirectPointerOut, true)
+      document.removeEventListener('focusin', handleDirectFocusIn, true)
+      document.removeEventListener('focusout', handleDirectFocusOut, true)
+      document.removeEventListener('keydown', handleDirectKeydown, true)
       controller.destroy()
     }
   })
@@ -934,6 +1010,10 @@
 </div>
 
 <style>
+  :global([data-df4y-focusable='true']:focus) {
+    outline: none;
+  }
+
   :global(.df4y-inline-editing) {
     min-width: 1ch;
     outline: 0;

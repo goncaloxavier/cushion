@@ -16,7 +16,15 @@ export const GET: RequestHandler = async ({cookies, getClientAddress, request, u
   const limited = customerRateLimit(`verify-ip:${ipHash}`, 10, 15 * 60 * 1000)
 
   if (databaseConfigured() && token && !limited) {
-    const verification = await verifyCustomerEmailToken(token).catch(() => ({ok: false as const, customerId: ''}))
+    const verification = await verifyCustomerEmailToken(token).catch((error) => {
+      // A real DB/transaction failure here looks identical to "expired or
+      // garbage token" to the user — log it so a spike in verification
+      // failures during a DB hiccup doesn't get mistaken for bad links.
+      console.error(
+        `[customer email verification] token check failed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      return {ok: false as const, customerId: ''}
+    })
     if (verification.ok) {
       const session = await createCustomerSession(verification.customerId, {
         ipHash: tokenHashOf(`ip:${getClientAddress()}`),

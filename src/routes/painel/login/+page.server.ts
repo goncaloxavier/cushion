@@ -6,14 +6,11 @@ import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_login_csrf'
 
-const safeNext = (value: string) => {
-  if (!value.startsWith('/painel')) return '/painel/pedidos'
-  return value === '/painel' ? '/painel/pedidos' : value
-}
+const safeNext = (value: string) => (value.startsWith('/painel') ? value : '/painel')
 
 export const load: PageServerLoad = async ({cookies, url}) => {
   return {
-    next: safeNext(url.searchParams.get('next') ?? '/painel/pedidos'),
+    next: safeNext(url.searchParams.get('next') ?? '/painel'),
     csrfToken: issueCsrfToken(cookies, csrfCookieName, '/painel/login', url.protocol === 'https:'),
   }
 }

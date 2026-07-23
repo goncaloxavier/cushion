@@ -26,11 +26,7 @@ export const handle: Handle = async ({event, resolve}) => {
       redirect(303, `/painel/login?next=${encodeURIComponent(pathname)}`)
     }
     if (staff && isLogin) {
-      redirect(303, '/painel/pedidos')
-    }
-    // There is no dashboard at bare /painel — pedidos is the default landing page.
-    if (staff && pathname === '/painel') {
-      redirect(303, '/painel/pedidos')
+      redirect(303, '/painel')
     }
   } else {
     event.locals.staff = null

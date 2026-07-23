@@ -30,6 +30,7 @@ import type {
   SiteEditorSaveState,
 } from '../types'
 import {createSiteEditorApi} from './api'
+import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SiteEditorCanvas} from './SiteEditorCanvas'
 import {SiteEditorInspector} from './SiteEditorInspector'
@@ -64,6 +65,10 @@ type CreateState = {
 
 const snapshot = <T,>(value: T): T => structuredClone(value)
 
+// Edits made within this window of each other collapse into one undo step
+// instead of one per keystroke — see replaceDocument.
+const historyCoalesceWindowMs = 900
+
 const initialCreateState: CreateState = {
   open: false,
   documentType: 'sitePage',
@@ -88,32 +93,32 @@ const createTypeDetails: Record<
   {description: string; nameLabel: string; placeholder: string}
 > = {
   sitePage: {
-    description: 'Uma página nova que pode montar com secções.',
+    description: 'Uma página nova que pode montar com secções',
     nameLabel: 'Nome da página',
     placeholder: 'Ex.: Sustentabilidade',
   },
   productCategory: {
-    description: 'Uma solução apresentada na página Produtos.',
+    description: 'Uma solução apresentada na página Produtos',
     nameLabel: 'Nome do produto',
     placeholder: 'Ex.: Bancos para exterior',
   },
   storeCategory: {
-    description: 'Um grupo para organizar os produtos da Loja.',
+    description: 'Um grupo para organizar os produtos da Loja',
     nameLabel: 'Nome da categoria',
     placeholder: 'Ex.: Decking',
   },
   storeProduct: {
-    description: 'Um artigo da Loja com preço, peso e opções.',
+    description: 'Um artigo da Loja com preço, peso e opções',
     nameLabel: 'Nome do produto da Loja',
     placeholder: 'Ex.: Banco Gavião',
   },
   caseStudy: {
-    description: 'Um projeto realizado, com texto e galeria.',
+    description: 'Um projeto realizado, com texto e galeria',
     nameLabel: 'Nome do caso',
     placeholder: 'Ex.: Proteção de piscina na Trofa',
   },
   blogPost: {
-    description: 'Um artigo com resumo, imagens e editor de texto.',
+    description: 'Um artigo com resumo, imagens e editor de texto',
     nameLabel: 'Título do artigo',
     placeholder: 'Ex.: Como escolher materiais para exterior',
   },
@@ -201,6 +206,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const [history, setHistory] = useState<SiteEditorDocument[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const historyIndexRef = useRef(-1)
+  const lastHistoryPushAt = useRef(0)
+  const builderStateTimer = useRef<number>()
+  const builderStateLastSentAt = useRef(0)
+  const latestBuilderState = useRef<{page: SiteEditorDocument; selectedSectionKey?: string}>()
   const [refreshToken, setRefreshToken] = useState(0)
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null)
   const previewRouteRef = useRef('/')
@@ -279,15 +288,26 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const replaceDocument = useCallback(
     (next: SiteEditorDocument, record = true, previewIsAuthoritative = false) => {
-      const copy = snapshot(next)
-      documentRef.current = copy
-      setDocument(copy)
+      // `next` always comes from setEditorValue (or an equivalent object-spread
+      // update), which already builds a fresh tree with structural sharing —
+      // nothing downstream mutates it in place, so re-cloning the whole document
+      // here on every keystroke would just be wasted work.
+      documentRef.current = next
+      setDocument(next)
       dirtyVersion.current += 1
       if (!previewIsAuthoritative) previewNeedsRefresh.current = true
       if (record) {
+        // Coalesce checkpoints made within the same short burst of typing into one
+        // undo step instead of recording a full-document snapshot per keystroke —
+        // that keeps undo granularity the same everywhere an edit can be made,
+        // matching the "commit on pause" feel inline canvas editing already has.
+        const now = Date.now()
+        const coalesce = now - lastHistoryPushAt.current < historyCoalesceWindowMs
+        lastHistoryPushAt.current = now
         setHistory((current) => {
           const trimmed = current.slice(0, historyIndexRef.current + 1)
-          const result = [...trimmed, snapshot(copy)]
+          const result =
+            coalesce && trimmed.length ? [...trimmed.slice(0, -1), next] : [...trimmed, next]
           const bounded = result.length > 80 ? result.slice(-80) : result
           const nextIndex = bounded.length - 1
           historyIndexRef.current = nextIndex
@@ -302,11 +322,33 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   useEffect(() => {
     if (!frame?.contentWindow || document?._type !== 'sitePage') return
-    frame.contentWindow.postMessage(
-      {type: 'df4y:builder-state', page: document, selectedSectionKey},
-      window.location.origin,
-    )
+    latestBuilderState.current = {page: document, selectedSectionKey}
+    // Trailing-edge throttle: the free-page canvas needs the live unsaved
+    // document to preview edits as they happen, but posting (and structured-
+    // cloning) the whole page on every single keystroke is wasted work once
+    // typing is faster than the canvas can usefully redraw. Send immediately
+    // if we haven't sent recently; otherwise let one already-scheduled send
+    // pick up whatever is latest when its window closes.
+    const throttleMs = 120
+    const send = () => {
+      const target = frame.contentWindow
+      const payload = latestBuilderState.current
+      if (!target || !payload) return
+      builderStateLastSentAt.current = Date.now()
+      target.postMessage({type: 'df4y:builder-state', ...payload}, window.location.origin)
+    }
+    const elapsed = Date.now() - builderStateLastSentAt.current
+    if (elapsed >= throttleMs) {
+      send()
+    } else if (!builderStateTimer.current) {
+      builderStateTimer.current = window.setTimeout(() => {
+        builderStateTimer.current = undefined
+        send()
+      }, throttleMs - elapsed)
+    }
   }, [document, frame, selectedSectionKey])
+
+  useEffect(() => () => window.clearTimeout(builderStateTimer.current), [])
 
   const openDocument = useCallback(
     async (node: SiteEditorNode, path?: string) => {
@@ -363,6 +405,49 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       }
     },
     [api, pushNotice],
+  )
+
+  const selectSidebarNode = useCallback(
+    (node: SiteEditorNode) => {
+      // Global content and Loja categories open straight into settings (there's
+      // no canvas element to click for them); everything else closes both
+      // drawers so the canvas itself stays directly hoverable/clickable.
+      clearCanvasSelection(false)
+      setInspectorMode('all')
+      const keepNavigationOpen = node.documentType === 'storeCategory'
+      if (!keepNavigationOpen) setNavigationOpen(false)
+      void openDocument(node).then(() => {
+        if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
+      })
+    },
+    [clearCanvasSelection, openDocument],
+  )
+
+  const closeSidebar = useCallback(() => setNavigationOpen(false), [])
+
+  // Stable references for the memoized SiteEditorInspector's callback props —
+  // inline arrow functions here would be recreated on every SiteEditorApp
+  // render (e.g. a toast, a save-state tick), defeating its React.memo.
+  const inspectorOnReplace = useCallback(
+    (next: SiteEditorDocument) => replaceDocument(next, true, next._type === 'sitePage'),
+    [replaceDocument],
+  )
+  const inspectorOnUpload = useCallback(
+    async (
+      file: File,
+      kind: 'image' | 'video',
+      onProgress?: (progress: SiteEditorUploadProgress) => void,
+    ) => (await api.uploadAsset(file, kind, onProgress)).asset,
+    [api],
+  )
+  const inspectorOnDelete = useCallback(() => setDeleteState({open: true, busy: false}), [])
+  const inspectorOnShowAll = useCallback(() => setInspectorMode('all'), [])
+  const inspectorOnOpenNode = useCallback(
+    (node: SiteEditorNode, path?: string) => {
+      setInspectorMode(path ? 'focused' : 'all')
+      void openDocument(node, path)
+    },
+    [openDocument],
   )
 
   const loadManifest = useCallback(
@@ -668,20 +753,25 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (event.key.toLowerCase() === 's') {
         event.preventDefault()
         void saveNow().catch(() => undefined)
-      } else if (event.key.toLowerCase() === 'z' && event.shiftKey) {
-        event.preventDefault()
-        redo()
-      } else if (event.key.toLowerCase() === 'z') {
-        event.preventDefault()
-        undo()
+        return
       }
+      if (event.key.toLowerCase() !== 'z') return
+      // Let a focused text input keep its own native undo/redo (e.g. mid-word,
+      // before the field has even committed a change) instead of hijacking the
+      // keystroke for whole-document history, which uses coarser checkpoints.
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
     }
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
   }, [redo, saveNow, undo])
 
   const updatePath = useCallback(
-    (path: string, value: unknown, record = true) => {
+    (path: string, value: unknown, record = true, immediate = false) => {
       const current = documentRef.current
       if (!current) return
       const next = setEditorValue(current, path, value)
@@ -704,6 +794,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       // server-loaded data. Reconcile every non-builder preview after save so
       // a later component update can never restore the stale value.
       replaceDocument(next, record, current._type === 'sitePage')
+      // Discrete choices (selects, toggles) have no matching data-sanity node
+      // to text-patch and often drive class/conditional rendering the patcher
+      // can't touch anyway — waiting out the typing debounce before the
+      // preview reconciles would make the change look like it did nothing.
+      // There's no keystroke stream to protect here, so save right away.
+      if (immediate) void saveNowRef.current?.().catch(() => undefined)
     },
     [frame, replaceDocument],
   )
@@ -926,6 +1022,25 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     frame.contentWindow.postMessage(message, window.location.origin)
   }, [document, frame, selectedPath, viewport])
 
+  // Return focus to whatever triggered the drawer once it closes, matching
+  // ConfirmDialog/ArticleWorkspace — otherwise keyboard users are stranded
+  // at <body> after every open/close of the two most-used drawers.
+  useEffect(() => {
+    if (!navigationOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    return () => previous?.focus()
+    // document.activeElement is a one-time snapshot read at open time, not a
+    // reactive dependency — including it would refocus on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationOpen])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    return () => previous?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsOpen])
+
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -1105,7 +1220,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         <div className="site-editor-command-start">
           <a
             className="site-editor-backoffice-link"
-            href="/painel/pedidos"
+            href="/painel"
             aria-label="Voltar ao backoffice"
             title="Voltar ao backoffice"
           >
@@ -1260,17 +1375,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           selectedNodeId={selectedNode?.id}
           area={area}
           onAreaChange={setArea}
-          onSelect={(node) => {
-            clearCanvasSelection(false)
-            setInspectorMode('all')
-            const keepNavigationOpen = node.documentType === 'storeCategory'
-            if (!keepNavigationOpen) setNavigationOpen(false)
-            void openDocument(node).then(() => {
-              if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
-            })
-          }}
+          onSelect={selectSidebarNode}
           onCreate={openCreate}
-          onClose={() => setNavigationOpen(false)}
+          onClose={closeSidebar}
         />
       </aside>
 
@@ -1301,17 +1408,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           nodes={manifest.nodes}
           optionSources={manifest.optionSources}
           onChange={updatePath}
-          onReplace={(next) => replaceDocument(next, true, next._type === 'sitePage')}
+          onReplace={inspectorOnReplace}
           onSelectSection={setSelectedSectionKey}
-          onUpload={async (file, kind, onProgress) =>
-            (await api.uploadAsset(file, kind, onProgress)).asset
-          }
-          onDelete={() => setDeleteState({open: true, busy: false})}
-          onShowAll={() => setInspectorMode('all')}
-          onOpenNode={(node, path) => {
-            setInspectorMode(path ? 'focused' : 'all')
-            void openDocument(node, path)
-          }}
+          onUpload={inspectorOnUpload}
+          onDelete={inspectorOnDelete}
+          onShowAll={inspectorOnShowAll}
+          onOpenNode={inspectorOnOpenNode}
         />
       </aside>
 
@@ -1425,7 +1527,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                         setCreateState((current) => ({...current, route}))
                       }}
                     />
-                    <small>Opcional. Só precisa de alterar se quiser outro endereço.</small>
+                    <small>Opcional. Só precisa de alterar se quiser outro endereço</small>
                   </label>
                 ) : null}
               </div>
@@ -1434,7 +1536,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               ) : null}
             </div>
             <div className="site-editor-modal-actions">
-              <small>Depois de criar, pode completar tudo antes de publicar.</small>
+              <small>Depois de criar, pode completar tudo antes de publicar</small>
               <span>
                 <button type="button" onClick={() => setCreateState(initialCreateState)}>
                   Cancelar

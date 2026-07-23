@@ -8,6 +8,7 @@ import {
   getDeeplUsage,
   setDeeplApiKeyOverride,
 } from '$lib/server/deepl-settings'
+import {logStaffActivity} from '$lib/server/staff-activity'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -43,6 +44,12 @@ export const actions: Actions = {
     }
 
     await setDeeplApiKeyOverride(key, locals.staff.username)
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'settings.deepl_key',
+      entityType: 'settings',
+      entityLabel: 'Chave DeepL',
+    })
     return {ok: true, saved: true}
   },
 
@@ -60,6 +67,12 @@ export const actions: Actions = {
     }
 
     await clearDeeplApiKeyOverride()
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'settings.deepl_key_clear',
+      entityType: 'settings',
+      entityLabel: 'Chave DeepL',
+    })
     return {ok: true, cleared: true}
   },
 }
