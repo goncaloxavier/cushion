@@ -2663,16 +2663,15 @@ const productContentSectionsFromSanity = (
     const fileUrl = stegaClean(section.video?.fileUrl ?? '').trim()
     const youtubeUrl = stegaClean(section.video?.youtubeUrl ?? '').trim()
     const videoUrl = fileUrl || youtubeUrl
-    const inferredKind = videoUrl ? 'video' : image ? 'image' : section.mediaKind
-    const mediaKind = section.mediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
-    const mediaSide =
-      section.mediaSide === 'right' || section.mediaSide === 'top' ? section.mediaSide : 'left'
+    const cleanMediaKind = stegaClean(section.mediaKind ?? '').trim()
+    const inferredKind = videoUrl ? 'video' : image ? 'image' : cleanMediaKind
+    const mediaKind = cleanMediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
+    const cleanMediaSide = stegaClean(section.mediaSide ?? '').trim()
+    const mediaSide = cleanMediaSide === 'right' || cleanMediaSide === 'top' ? cleanMediaSide : 'left'
+    const cleanSurface = stegaClean(section.surface ?? '').trim()
     const surface =
-      section.surface === 'fog' ||
-      section.surface === 'mint' ||
-      section.surface === 'deep' ||
-      section.surface === 'blue'
-        ? section.surface
+      cleanSurface === 'fog' || cleanSurface === 'mint' || cleanSurface === 'deep' || cleanSurface === 'blue'
+        ? cleanSurface
         : 'white'
 
     if (mediaKind === 'image' && !image) return []
