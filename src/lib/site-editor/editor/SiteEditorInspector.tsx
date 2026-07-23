@@ -41,7 +41,7 @@ type Props = {
   mode: 'focused' | 'all'
   nodes: SiteEditorNode[]
   optionSources: Record<string, Array<{label: string; value: string}>>
-  onChange: (path: string, value: unknown) => void
+  onChange: (path: string, value: unknown, immediate?: boolean) => void
   onReplace: (document: SiteEditorDocument) => void
   onSelectSection: (key?: string) => void
   onUpload: (

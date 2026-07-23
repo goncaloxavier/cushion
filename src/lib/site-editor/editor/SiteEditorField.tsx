@@ -36,7 +36,7 @@ type Props = {
   projectId: string
   dataset: string
   viewport: BuilderViewport
-  onChange: (path: string, value: unknown) => void
+  onChange: (path: string, value: unknown, immediate?: boolean) => void
   onUpload: (
     file: File,
     kind: 'image' | 'video',
@@ -1495,8 +1495,12 @@ export function SiteEditorFieldInput({
     ? localized(value, field.type as 'localizedString' | 'localizedText')
     : undefined
   const plainValue = localizedType ? String(localizedValue?.pt || '') : value
+  // Discrete choices (a select, a toggle) fire once per click, not per
+  // keystroke, so there's no typing burst to protect against — save right
+  // away instead of waiting out the same debounce that shields text fields.
+  const isDiscreteChoice = field.type === 'boolean' || field.type === 'select'
   const commit = (next: unknown) =>
-    onChange(path, localizedType ? {...localizedValue, pt: next} : next)
+    onChange(path, localizedType ? {...localizedValue, pt: next} : next, isDiscreteChoice)
 
   return (
     <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>

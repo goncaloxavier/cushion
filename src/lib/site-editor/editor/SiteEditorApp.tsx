@@ -771,7 +771,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   }, [redo, saveNow, undo])
 
   const updatePath = useCallback(
-    (path: string, value: unknown, record = true) => {
+    (path: string, value: unknown, record = true, immediate = false) => {
       const current = documentRef.current
       if (!current) return
       const next = setEditorValue(current, path, value)
@@ -794,6 +794,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       // server-loaded data. Reconcile every non-builder preview after save so
       // a later component update can never restore the stale value.
       replaceDocument(next, record, current._type === 'sitePage')
+      // Discrete choices (selects, toggles) have no matching data-sanity node
+      // to text-patch and often drive class/conditional rendering the patcher
+      // can't touch anyway — waiting out the typing debounce before the
+      // preview reconciles would make the change look like it did nothing.
+      // There's no keystroke stream to protect here, so save right away.
+      if (immediate) void saveNowRef.current?.().catch(() => undefined)
     },
     [frame, replaceDocument],
   )
