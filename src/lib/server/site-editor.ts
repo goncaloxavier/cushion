@@ -229,13 +229,18 @@ const writeToken = () => env.SANITY_WRITE_TOKEN || ''
 const requireReadClient = () => {
   const token = readToken()
   if (!token)
-    throw new Error('Configure SANITY_VIEWER_TOKEN ou SANITY_WRITE_TOKEN para abrir o editor.')
+    throw new SiteEditorValidationError(
+      'O editor não está configurado corretamente. Contacte o suporte técnico.',
+    )
   return clientFor(token)
 }
 
 const requireWriteClient = () => {
   const token = writeToken()
-  if (!token) throw new Error('Configure SANITY_WRITE_TOKEN para guardar alterações.')
+  if (!token)
+    throw new SiteEditorValidationError(
+      'Não é possível guardar alterações neste momento. Contacte o suporte técnico.',
+    )
   return clientFor(token)
 }
 
@@ -414,10 +419,10 @@ const buildCollectionNodes = (
                   : 'produtos'
               }`
             : item._type === 'blogPost'
-            ? item.publishedAt
-            : item._type === 'caseStudy'
-              ? item.location
-              : undefined,
+              ? item.publishedAt
+              : item._type === 'caseStudy'
+                ? item.location
+                : undefined,
         route:
           item._type === 'storeCategory'
             ? definition.routePrefix
@@ -439,7 +444,7 @@ const buildCollectionNodes = (
             : undefined,
         count:
           item._type === 'storeCategory'
-            ? lookups.storeProductCounts.get(item.slug || '') ?? 0
+            ? (lookups.storeProductCounts.get(item.slug || '') ?? 0)
             : undefined,
       })
     }
@@ -532,7 +537,7 @@ export const getSiteEditorManifest = async (
 
 const assertDocumentType = (value: unknown): SiteEditorDocumentType => {
   if (typeof value !== 'string' || !documentTypes.has(value as SiteEditorDocumentType)) {
-    throw new Error('Tipo de conteúdo não suportado pelo editor.')
+    throw new SiteEditorValidationError('Este tipo de conteúdo não está disponível no editor.')
   }
   return value as SiteEditorDocumentType
 }
@@ -540,13 +545,19 @@ const assertDocumentType = (value: unknown): SiteEditorDocumentType => {
 export const getSiteEditorDocument = async (id: string, scope = 'default') => {
   if (siteEditorE2eEnabled()) return getSiteEditorE2eDocument(id, scope)
   const publishedId = normalizeEditorDocumentId(id)
-  if (!publishedId || publishedId.length > 180) throw new Error('Identificador inválido.')
+  if (!publishedId || publishedId.length > 180)
+    throw new SiteEditorValidationError(
+      'Não foi possível identificar este conteúdo. Atualize a página e tente novamente.',
+    )
   const documents = await requireReadClient().fetch<SiteEditorDocument[]>(
     `*[_id in [$publishedId, $draftId] && _type in $types && !(_id in path("versions.**"))]`,
     {publishedId, draftId: editorDraftId(publishedId), types: [...documentTypes]},
   )
   const document = documents.find((item) => isDraft(item._id)) ?? documents[0]
-  if (!document) throw new Error('Conteúdo não encontrado.')
+  if (!document)
+    throw new SiteEditorValidationError(
+      'Este conteúdo já não existe — pode ter sido eliminado por outra pessoa. Atualize a página.',
+    )
   if (
     document._type === 'siteLanding' &&
     (!Array.isArray(document.navigation) || document.navigation.length === 0)
@@ -557,17 +568,26 @@ export const getSiteEditorDocument = async (id: string, scope = 'default') => {
 }
 
 const validateStructuredValue = (value: unknown, depth = 0): void => {
-  if (depth > 24) throw new Error('O conteúdo tem demasiados níveis.')
+  if (depth > 24)
+    throw new SiteEditorValidationError(
+      'Este conteúdo ficou demasiado complexo para guardar. Simplifique-o ou contacte o suporte técnico.',
+    )
   if (value === null || ['string', 'number', 'boolean', 'undefined'].includes(typeof value)) return
   if (Array.isArray(value)) {
-    if (value.length > 2000) throw new Error('Uma lista excede o limite permitido.')
+    if (value.length > 2000)
+      throw new SiteEditorValidationError(
+        'Uma das listas deste conteúdo tem itens a mais. Remova alguns e tente novamente.',
+      )
     for (const item of value) validateStructuredValue(item, depth + 1)
     return
   }
-  if (!value || typeof value !== 'object') throw new Error('O conteúdo contém um valor inválido.')
+  if (!value || typeof value !== 'object')
+    throw new SiteEditorValidationError(
+      'Este conteúdo tem um valor que o editor não reconhece. Atualize a página e tente novamente.',
+    )
   for (const [key, child] of Object.entries(value)) {
     if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
-      throw new Error('O conteúdo contém uma propriedade inválida.')
+      throw new SiteEditorValidationError('Este conteúdo não pôde ser guardado por segurança.')
     }
     validateStructuredValue(child, depth + 1)
   }
@@ -575,8 +595,14 @@ const validateStructuredValue = (value: unknown, depth = 0): void => {
 
 const validateArticleValue = (document: SiteEditorDocument) => {
   if (document._type !== 'blogPost' || document.article === undefined) return
-  if (!document.article || typeof document.article !== 'object' || Array.isArray(document.article)) {
-    throw new SiteEditorValidationError('O artigo tem um formato inválido. Reabra o editor antes de guardar.')
+  if (
+    !document.article ||
+    typeof document.article !== 'object' ||
+    Array.isArray(document.article)
+  ) {
+    throw new SiteEditorValidationError(
+      'O artigo tem um formato inválido. Reabra o editor antes de guardar.',
+    )
   }
   const blocks = (document.article as {pt?: unknown}).pt
   if (!Array.isArray(blocks)) {
@@ -592,14 +618,19 @@ const validateArticleValue = (document: SiteEditorDocument) => {
         typeof (block as {_type?: unknown})._type !== 'string',
     )
   ) {
-    throw new SiteEditorValidationError('O artigo contém um bloco inválido.')
+    throw new SiteEditorValidationError(
+      'Um dos blocos do artigo ficou corrompido. Feche e reabra o artigo antes de guardar.',
+    )
   }
 }
 
 const editableDocument = (input: SiteEditorDocument) => {
   const type = assertDocumentType(input?._type)
   const id = normalizeEditorDocumentId(String(input?._id || ''))
-  if (!id || id.length > 180) throw new Error('Identificador inválido.')
+  if (!id || id.length > 180)
+    throw new SiteEditorValidationError(
+      'Não foi possível guardar. Atualize a página e tente novamente.',
+    )
   const result: Record<string, unknown> = {_id: id, _type: type}
   for (const field of editableFields[type]) {
     if (Object.prototype.hasOwnProperty.call(input, field)) result[field] = input[field]
@@ -609,16 +640,16 @@ const editableDocument = (input: SiteEditorDocument) => {
 }
 
 const safeUrlSchemes = new Set(['http:', 'https:', 'mailto:', 'tel:'])
-const linkFieldNames = new Set([
-  'href',
-  'whatsappUrl',
-  'instagramUrl',
-  'facebookUrl',
-  'youtubeUrl',
-  'buttonUrl',
-  'complaintsUrl',
-  'privacyPolicyUrl',
-  'cookiePolicyUrl',
+const linkFieldLabels = new Map([
+  ['href', 'Destino'],
+  ['whatsappUrl', 'WhatsApp'],
+  ['instagramUrl', 'Instagram'],
+  ['facebookUrl', 'Facebook'],
+  ['youtubeUrl', 'YouTube'],
+  ['buttonUrl', 'Destino do botão'],
+  ['complaintsUrl', 'Ligação do Livro de Reclamações'],
+  ['privacyPolicyUrl', 'Ligação da Política de Privacidade'],
+  ['cookiePolicyUrl', 'Ligação da Política de Cookies'],
 ])
 
 const isSafeLinkValue = (value: string): boolean => {
@@ -638,8 +669,11 @@ const validateLinkSchemes = (value: unknown, depth = 0): void => {
     return
   }
   for (const [key, child] of Object.entries(value)) {
-    if (linkFieldNames.has(key) && typeof child === 'string' && !isSafeLinkValue(child)) {
-      throw new SiteEditorValidationError('Uma ligação usa um protocolo não permitido.')
+    const fieldLabel = linkFieldLabels.get(key)
+    if (fieldLabel && typeof child === 'string' && !isSafeLinkValue(child)) {
+      throw new SiteEditorValidationError(
+        `O campo "${fieldLabel}" tem uma ligação inválida. Use um endereço que comece por http://, https://, mailto: ou tel:.`,
+      )
     }
     validateLinkSchemes(child, depth + 1)
   }
@@ -655,89 +689,114 @@ const validateDocument = (document: SiteEditorDocument) => {
         ? localizedTitle.pt.trim()
         : ''
   if (document._type !== 'siteLanding' && !title)
-    throw new Error('Preencha o título antes de publicar.')
+    throw new SiteEditorValidationError('Preencha o título antes de publicar.')
 
   if (document._type === 'sitePage') {
     const route = String(document.route || '')
     if (!/^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
-      throw new Error('Use um endereço válido, por exemplo /sustentabilidade.')
+      throw new SiteEditorValidationError('Use um endereço válido, por exemplo /sustentabilidade.')
     }
   } else if (document._type !== 'siteLanding') {
     const slug = (document.slug as {current?: unknown} | undefined)?.current
-    if (typeof slug !== 'string' || !slug.trim()) throw new Error('Preencha o endereço da página.')
+    if (typeof slug !== 'string' || !slug.trim())
+      throw new SiteEditorValidationError('Preencha o endereço da página.')
   }
 
   if (document._type === 'storeProduct') {
     if (typeof document.category !== 'string' || !document.category.trim()) {
-      throw new Error('Escolha uma categoria da Loja.')
+      throw new SiteEditorValidationError('Escolha uma categoria da Loja.')
     }
     const variants = document.variants
     if (!Array.isArray(variants) || variants.length === 0) {
-      throw new Error('Adicione pelo menos uma opção comprável.')
+      throw new SiteEditorValidationError('Adicione pelo menos uma opção comprável.')
     }
-    for (const variant of variants) {
+    variants.forEach((variant, index) => {
+      const position = `A opção ${index + 1}`
       if (!variant || typeof variant !== 'object') {
-        throw new Error('Uma das opções do produto está incompleta.')
+        throw new SiteEditorValidationError(`${position} do produto está incompleta.`)
       }
       const value = variant as Record<string, unknown>
       const label = value.label as {pt?: unknown} | undefined
-      if (typeof label?.pt !== 'string' || !label.pt.trim()) {
-        throw new Error('Dê um nome a todas as opções do produto.')
+      const name = typeof label?.pt === 'string' ? label.pt.trim() : ''
+      const named = name ? `A opção "${name}"` : position
+      if (!name) {
+        throw new SiteEditorValidationError(`${position} do produto ainda não tem nome.`)
       }
-      if (typeof value.weightKg !== 'number' || !Number.isFinite(value.weightKg) || value.weightKg <= 0) {
-        throw new Error('Indique um peso superior a zero em todas as opções.')
+      if (
+        typeof value.weightKg !== 'number' ||
+        !Number.isFinite(value.weightKg) ||
+        value.weightKg <= 0
+      ) {
+        throw new SiteEditorValidationError(`${named} precisa de um peso superior a zero.`)
       }
       for (const field of ['priceNatural', 'priceDark'] as const) {
-        if (typeof value[field] !== 'number' || !Number.isFinite(value[field]) || value[field] <= 0) {
-          throw new Error('Indique preços superiores a zero em todas as opções.')
+        if (
+          typeof value[field] !== 'number' ||
+          !Number.isFinite(value[field]) ||
+          value[field] <= 0
+        ) {
+          throw new SiteEditorValidationError(`${named} precisa de um preço superior a zero.`)
         }
       }
-    }
+    })
   }
 
   if (document._type === 'productCategory' && document.contentSections !== undefined) {
     if (!Array.isArray(document.contentSections) || document.contentSections.length > 12) {
-      throw new Error('Adicione no máximo 12 secções de conteúdo adicional.')
+      throw new SiteEditorValidationError('Adicione no máximo 12 secções de conteúdo adicional.')
     }
-    for (const item of document.contentSections) {
+    document.contentSections.forEach((item, index) => {
+      const position = `a secção ${index + 1} de conteúdo adicional`
       if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        throw new Error('Uma das secções de conteúdo está incompleta.')
+        throw new SiteEditorValidationError(
+          `Falta preencher ${position} — abra-a e verifique os campos.`,
+        )
       }
       const section = item as Record<string, unknown>
+      const sectionTitle = section.title as {pt?: unknown} | undefined
+      const name = typeof sectionTitle?.pt === 'string' ? sectionTitle.pt.trim() : ''
+      const named = name ? `a secção "${name}"` : position
       const mediaKind = section.mediaKind
       if (!['left', 'right', 'top'].includes(String(section.mediaSide || 'left'))) {
-        throw new Error('Escolha uma composição válida em todas as secções adicionais.')
+        throw new SiteEditorValidationError(`Escolha uma composição válida em ${named}.`)
       }
       if (!['white', 'fog', 'mint', 'deep', 'blue'].includes(String(section.surface || 'white'))) {
-        throw new Error('Escolha um fundo válido em todas as secções adicionais.')
+        throw new SiteEditorValidationError(`Escolha um fundo válido em ${named}.`)
       }
       if (!['caption', 'pill', 'eyebrow'].includes(String(section.labelStyle || 'caption'))) {
-        throw new Error('Escolha um estilo de rótulo válido em todas as secções adicionais.')
+        throw new SiteEditorValidationError(`Escolha um estilo de rótulo válido em ${named}.`)
       }
       const image = section.image as {asset?: {_ref?: unknown}} | undefined
       const video = section.video as
         | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}
         | undefined
       if (mediaKind === 'image' && typeof image?.asset?._ref !== 'string') {
-        throw new Error('Adicione a imagem de todas as secções com imagem.')
+        throw new SiteEditorValidationError(
+          `Adicione uma imagem a ${named} — está marcada como imagem mas ainda não tem nenhuma.`,
+        )
       }
       if (
         mediaKind === 'video' &&
         typeof video?.file?.asset?._ref !== 'string' &&
         (typeof video?.youtubeUrl !== 'string' || !video.youtubeUrl.trim())
       ) {
-        throw new Error('Carregue um vídeo ou indique um link do YouTube em cada secção com vídeo.')
+        throw new SiteEditorValidationError(
+          `Carregue um vídeo ou indique um link do YouTube em ${named}.`,
+        )
       }
       if (mediaKind !== 'image' && mediaKind !== 'video') {
-        throw new Error('Escolha imagem ou vídeo em todas as secções adicionais.')
+        throw new SiteEditorValidationError(`Escolha imagem ou vídeo em ${named}.`)
       }
       const buttonLabel = section.buttonLabel as {pt?: unknown} | undefined
       const hasButtonLabel = typeof buttonLabel?.pt === 'string' && Boolean(buttonLabel.pt.trim())
-      const hasButtonUrl = typeof section.buttonUrl === 'string' && Boolean(section.buttonUrl.trim())
+      const hasButtonUrl =
+        typeof section.buttonUrl === 'string' && Boolean(section.buttonUrl.trim())
       if (hasButtonLabel !== hasButtonUrl) {
-        throw new Error('Preencha o texto e o destino de cada botão, ou deixe ambos vazios.')
+        throw new SiteEditorValidationError(
+          `Em ${named}, preencha o texto e o destino do botão, ou deixe os dois campos vazios.`,
+        )
       }
-    }
+    })
   }
 }
 
@@ -759,7 +818,10 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     }
   }
   const publishedId = normalizeEditorDocumentId(String(input?._id || ''))
-  if (!publishedId || publishedId.length > 180) throw new Error('Identificador inválido.')
+  if (!publishedId || publishedId.length > 180)
+    throw new SiteEditorValidationError(
+      'Não foi possível guardar. Atualize a página e tente novamente.',
+    )
   const draftId = editorDraftId(publishedId)
   const client = requireWriteClient()
   const [published, draft] = await Promise.all([
@@ -784,7 +846,7 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     const existingSlug = documentSlug(draft ?? published)
     const nextSlug = documentSlug(document)
     if (existingSlug && nextSlug !== existingSlug) {
-      throw new Error(
+      throw new SiteEditorValidationError(
         'O identificador da categoria é estável para proteger os produtos associados. Altere apenas o nome apresentado.',
       )
     }
@@ -845,7 +907,10 @@ export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope
     ...(published?._rev ? {ifPublishedRevisionId: published._rev} : {}),
   })
   const result = await client.getDocument<SiteEditorDocument>(publishedId)
-  if (!result) throw new Error('A publicação terminou sem devolver o conteúdo.')
+  if (!result)
+    throw new SiteEditorValidationError(
+      'A publicação não foi confirmada. Tente novamente — se persistir, contacte o suporte técnico.',
+    )
   invalidateSanityCollectionsCache()
   return result
 }
@@ -865,7 +930,7 @@ const sitePageRoute = (value: unknown, fallbackSlug: string) => {
   const input = String(value || `/${fallbackSlug}`).trim()
   const route = input.startsWith('/') ? input : `/${input}`
   if (!sitePageRoutePattern.test(route)) {
-    throw new Error('Use um endereço válido, por exemplo /sustentabilidade.')
+    throw new SiteEditorValidationError('Use um endereço válido, por exemplo /sustentabilidade.')
   }
   return route
 }
@@ -877,10 +942,11 @@ export const createSiteEditorDocument = async (
   scope = 'default',
 ) => {
   const type = assertDocumentType(typeValue)
-  if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
+  if (type === 'siteLanding')
+    throw new SiteEditorValidationError('Já existe conteúdo global — não é possível criar outro.')
   const title = String(titleValue || '').trim()
   if (title.length < 2 || title.length > 100)
-    throw new Error('Indique um nome entre 2 e 100 caracteres.')
+    throw new SiteEditorValidationError('Indique um nome com entre 2 e 100 caracteres.')
   const slug = slugFromTitle(title)
   const normalizedRoute = type === 'sitePage' ? sitePageRoute(routeValue, slug) : undefined
   if (siteEditorE2eEnabled()) {
@@ -896,9 +962,7 @@ export const createSiteEditorDocument = async (
     if (type === 'storeCategory') {
       throw new SiteEditorDuplicateError('Já existe uma categoria com este nome.')
     }
-    throw new SiteEditorDuplicateError(
-      'Já existe conteúdo deste tipo com o mesmo endereço.',
-    )
+    throw new SiteEditorDuplicateError('Já existe conteúdo deste tipo com o mesmo endereço.')
   }
   // Sanity treats every ID containing a dot as a private sub-path. Keep
   // published website content at the root so anonymous visitors can read it.
@@ -929,12 +993,11 @@ export const createSiteEditorDocument = async (
         ? ((await requireReadClient().fetch<string | null>(
             `*[_type == "storeCategory" && defined(slug.current) && !(_id in path("versions.**"))]
               | order(orderRank asc, title.pt asc)[0].slug.current`,
-          )) ?? defaultStoreCategoryOptions[0]?.value ?? 'bancos')
+          )) ??
+          defaultStoreCategoryOptions[0]?.value ??
+          'bancos')
         : undefined
-    Object.assign(
-      base,
-      createSiteEditorStarterFields({type, title, slug, storeCategory}),
-    )
+    Object.assign(base, createSiteEditorStarterFields({type, title, slug, storeCategory}))
   }
 
   validateStructuredValue(base)
@@ -945,14 +1008,17 @@ export const deleteSiteEditorDocument = async (id: string, scope = 'default') =>
   if (siteEditorE2eEnabled()) return deleteSiteEditorE2eDocument(id, scope)
   const publishedId = normalizeEditorDocumentId(id)
   if (!publishedId || publishedId === 'siteContent' || publishedId.length > 180) {
-    throw new Error('Este conteúdo não pode ser eliminado.')
+    throw new SiteEditorValidationError('Este conteúdo não pode ser eliminado.')
   }
   const document = await getSiteEditorDocument(publishedId)
-  if (document._type === 'siteLanding') throw new Error('O conteúdo global não pode ser eliminado.')
+  if (document._type === 'siteLanding')
+    throw new SiteEditorValidationError('O conteúdo global não pode ser eliminado.')
   if (document._type === 'storeCategory') {
     const slug = (document.slug as {current?: unknown} | undefined)?.current
     if (typeof slug !== 'string' || !slug.trim()) {
-      throw new Error('A categoria não tem um identificador válido.')
+      throw new SiteEditorValidationError(
+        'Esta categoria não tem um identificador válido e não pode ser eliminada. Contacte o suporte técnico.',
+      )
     }
     const assigned = await requireReadClient().fetch<Array<{_id: string; title?: string}>>(
       `*[_type == "storeProduct" && category == $category && !(_id in path("versions.**"))] {

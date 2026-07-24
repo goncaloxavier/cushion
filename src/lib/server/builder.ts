@@ -37,7 +37,7 @@ const writeToken = () => env.SANITY_WRITE_TOKEN || ''
 const requireReadClient = () => {
   const token = readToken()
   if (!token) {
-    throw new Error('Configure SANITY_VIEWER_TOKEN ou SANITY_WRITE_TOKEN para abrir o gestor do site.')
+    throw new Error('O editor não está configurado corretamente. Contacte o suporte técnico.')
   }
   return clientFor(token)
 }
@@ -45,7 +45,7 @@ const requireReadClient = () => {
 const requireWriteClient = () => {
   const token = writeToken()
   if (!token) {
-    throw new Error('Configure SANITY_WRITE_TOKEN para guardar ou publicar alterações.')
+    throw new Error('Não é possível guardar alterações neste momento. Contacte o suporte técnico.')
   }
   return clientFor(token)
 }
@@ -74,9 +74,7 @@ export const getBuilderPreviewPage = async (route: string) => {
     {route},
   )
 
-  return (
-    documents.find((document) => document._id.startsWith('drafts.')) ?? documents[0] ?? null
-  )
+  return documents.find((document) => document._id.startsWith('drafts.')) ?? documents[0] ?? null
 }
 
 export const getBuilderPreviewSettings = async () => {
@@ -111,7 +109,9 @@ export const publishBuilderPage = async (page: BuilderPage) => {
   const pages = await loadBuilderPages(requireReadClient())
   const issues = validateBuilderPage(page, pages)
   if (hasBuilderErrors(issues)) {
-    throw new Error(issues.find((issue) => issue.level === 'error')?.message || 'A página tem erros.')
+    throw new Error(
+      issues.find((issue) => issue.level === 'error')?.message || 'A página tem erros.',
+    )
   }
 
   const saved = await saveBuilderPageDraft(requireWriteClient(), page)
@@ -145,11 +145,22 @@ export const uploadBuilderAsset = async (file: File, kind: 'image' | 'video') =>
   const maxBytes = kind === 'video' ? 250 * 1024 * 1024 : 25 * 1024 * 1024
   // Explicit allowlist, not a startsWith('image/') check — that pattern also
   // accepts image/svg+xml, which can carry inline <script>/event handlers.
-  const validType = kind === 'image' ? allowedImageTypes.has(file.type) : allowedVideoTypes.has(file.type)
+  const validType =
+    kind === 'image' ? allowedImageTypes.has(file.type) : allowedVideoTypes.has(file.type)
 
-  if (!validType) throw new Error(kind === 'image' ? 'Escolha uma imagem válida.' : 'Escolha um vídeo válido.')
+  if (!validType) {
+    throw new Error(
+      kind === 'image'
+        ? 'Este ficheiro não é uma imagem aceite. Use JPEG, PNG, WebP, GIF ou AVIF.'
+        : 'Este ficheiro não é um vídeo aceite. Use MP4, WebM ou QuickTime.',
+    )
+  }
   if (file.size <= 0 || file.size > maxBytes) {
-    throw new Error(kind === 'image' ? 'A imagem excede 25 MB.' : 'O vídeo excede 250 MB.')
+    throw new Error(
+      kind === 'image'
+        ? 'Esta imagem é maior do que 25 MB. Escolha um ficheiro mais pequeno.'
+        : 'Este vídeo é maior do que 250 MB. Escolha um ficheiro mais pequeno.',
+    )
   }
 
   const bytes = Buffer.from(await file.arrayBuffer())

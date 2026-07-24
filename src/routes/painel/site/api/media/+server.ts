@@ -22,9 +22,18 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
     error(400, 'Escolha uma imagem ou vídeo válido.')
   }
 
-  const asset = siteEditorE2eEnabled()
-    ? uploadSiteEditorE2eAsset(file, kind)
-    : await uploadBuilderAsset(file, kind)
+  let asset
+  try {
+    asset = siteEditorE2eEnabled()
+      ? uploadSiteEditorE2eAsset(file, kind)
+      : await uploadBuilderAsset(file, kind)
+  } catch (cause) {
+    // uploadBuilderAsset's own validation messages (file type, size limits) are
+    // written for the toast, not the server log — an unclassified throw here
+    // would otherwise fall through to SvelteKit's generic, message-less 500.
+    if (cause instanceof Error && cause.message) error(400, cause.message)
+    throw cause
+  }
   return json({
     asset: {
       id: '_id' in asset ? asset._id : asset.id,

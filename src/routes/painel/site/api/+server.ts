@@ -58,6 +58,10 @@ const runMutation = async <T>(operation: () => Promise<T>) => {
     if (cause instanceof SiteEditorDuplicateError) error(409, cause.message)
     if (cause instanceof SiteEditorCategoryInUseError) error(409, cause.message)
     if (cause instanceof SiteEditorValidationError) error(400, cause.message)
+    // Anything else is unclassified, but its message was still written by a
+    // developer to be read by a person — surfacing it beats SvelteKit's
+    // generic, message-less 500 that this whole helper exists to avoid.
+    if (cause instanceof Error && cause.message) error(500, cause.message)
     throw cause
   }
 }
@@ -66,8 +70,10 @@ export const GET: RequestHandler = async ({locals, request, url}) => {
   if (!locals.staff) error(401, 'Inicie sessão para abrir o editor do site.')
   const scope = siteEditorE2eScope(request.headers)
   const documentId = url.searchParams.get('document')?.trim()
-  if (documentId) return json({document: await getSiteEditorDocument(documentId, scope)})
-  return json(await getSiteEditorManifest(canManageStaff(locals.staff), scope))
+  if (documentId) {
+    return json({document: await runMutation(() => getSiteEditorDocument(documentId, scope))})
+  }
+  return json(await runMutation(() => getSiteEditorManifest(canManageStaff(locals.staff), scope)))
 }
 
 export const PUT: RequestHandler = async ({request, url, cookies, locals}) => {
@@ -118,6 +124,11 @@ export const DELETE: RequestHandler = async ({request, url, cookies, locals}) =>
   const id = url.searchParams.get('id')?.trim()
   if (!id) error(400, 'Identificador em falta.')
   await runMutation(() => deleteSiteEditorDocument(id, siteEditorE2eScope(request.headers)))
-  await logStaffActivity({staff: locals.staff, action: 'site.delete', entityType: 'siteDocument', entityId: id})
+  await logStaffActivity({
+    staff: locals.staff,
+    action: 'site.delete',
+    entityType: 'siteDocument',
+    entityId: id,
+  })
   return json({ok: true})
 }
