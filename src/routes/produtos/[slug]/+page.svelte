@@ -5,7 +5,6 @@
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
-  import {youtubeEmbedUrl} from '$lib/media'
   import {absoluteUrl, breadcrumbListSchema, productSchema} from '$lib/seo'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import {
@@ -82,12 +81,9 @@
     ].filter((group) => group.items.length > 0),
   )
   const hasSpecs = $derived(specGroups.length > 0)
-  const videoEmbedUrl = $derived(youtubeEmbedUrl(data.product.videoUrl, {quality: 'highres'}))
-  const hasProductSupport = $derived(Boolean(videoEmbedUrl || data.product.toolUrl))
-  const toolButtonLabel = $derived(data.product.toolLabel || data.product.toolTitle || data.product.title)
   const contentSections = $derived(data.product.contentSections ?? [])
   const hasContentSections = $derived(contentSections.length > 0)
-  const hasFollowingContent = $derived(hasProductSupport || hasContentSections)
+  const hasFollowingContent = $derived(hasContentSections)
   const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
@@ -188,53 +184,6 @@
             </section>
           {/each}
         </div>
-      </section>
-    {/if}
-
-    {#if hasProductSupport}
-      <section
-        class="product-editorial-support"
-        class:is-single={!(videoEmbedUrl && data.product.toolUrl)}
-        aria-label={data.product.videoTitle || toolButtonLabel}
-      >
-        {#if videoEmbedUrl}
-          <figure class="product-support-video">
-            <div class="product-support-frame">
-              <iframe
-                src={videoEmbedUrl}
-                title={data.product.videoTitle || data.product.title}
-                loading="lazy"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-              ></iframe>
-            </div>
-            {#if data.product.videoTitle}
-              <figcaption>{data.product.videoTitle}</figcaption>
-            {/if}
-          </figure>
-        {/if}
-
-        {#if data.product.toolUrl}
-          <aside class="product-support-tool">
-            <div class="product-support-tool-body">
-              {#if data.product.toolTitle}
-                <h2>{data.product.toolTitle}</h2>
-              {/if}
-              {#if data.product.toolText}
-                <p>{data.product.toolText}</p>
-              {/if}
-            </div>
-            <a
-              class="product-support-tool-link"
-              href={data.product.toolUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>{toolButtonLabel}</span>
-              <span class="product-support-tool-arrow" aria-hidden="true">→</span>
-            </a>
-          </aside>
-        {/if}
       </section>
     {/if}
 

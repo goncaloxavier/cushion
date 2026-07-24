@@ -128,12 +128,6 @@ export type ProductItem = {
   image?: ContentImage
   images?: ContentImage[]
   media?: StoreProductMedia[]
-  videoUrl?: string
-  videoTitle?: string
-  toolUrl?: string
-  toolTitle?: string
-  toolText?: string
-  toolLabel?: string
   contentSections?: ProductContentSection[]
   specs?: {
     dimensions: string[]
@@ -2610,49 +2604,11 @@ const localizedList = (
     .filter(Boolean)
 }
 
-const deckingProductExtras = {
-  pt: {
-    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-    videoTitle: 'Decking aplicado em exterior',
-    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-    toolTitle: 'Planeie o seu deck',
-    toolText:
-      'Abra o simulador para preparar medidas e opções antes de avançar para o pedido de orçamento.',
-    toolLabel: 'Construir o meu deck',
-  },
-  en: {
-    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-    videoTitle: 'Decking installed outdoors',
-    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-    toolTitle: 'Plan your deck',
-    toolText:
-      'Open the simulator to prepare measurements and options before moving to a quote request.',
-    toolLabel: 'Build my deck',
-  },
-  es: {
-    videoUrl: 'https://www.youtube.com/watch?v=VIUVlk51iN0',
-    videoTitle: 'Decking instalado en exterior',
-    toolUrl: 'https://claculo-de-deck-production.up.railway.app/4NPPcI82N5FpJ7-iqURGm0uMdUpVBy-m',
-    toolTitle: 'Planifica tu deck',
-    toolText:
-      'Abre el simulador para preparar medidas y opciones antes de avanzar con la solicitud de presupuesto.',
-    toolLabel: 'Construir mi deck',
-  },
-} satisfies Record<LanguageCode, Partial<ProductItem>>
-
 const productFallbackForSlug = (
   slug: string,
   language: LanguageCode,
   fallback: ProductItem[],
 ): Partial<ProductItem> | undefined => fallback.find((item) => item.slug === slug)
-
-const exclusiveProductExtrasForSlug = (
-  slug: string,
-  language: LanguageCode,
-): Partial<ProductItem> =>
-  slug === 'decking' || slug === 'decking-pavimentos-passadicos'
-    ? deckingProductExtras[language]
-    : {}
 
 const productContentSectionsFromSanity = (
   sections: SanityProductContentSection[] | undefined,
@@ -2731,10 +2687,7 @@ const productsFromSanity = (
   fallback: ProductItem[],
 ) => {
   if (!products?.length) {
-    return fallback.map((product) => ({
-      ...product,
-      ...exclusiveProductExtrasForSlug(product.slug, language),
-    }))
+    return fallback
   }
 
   return products
@@ -2742,7 +2695,6 @@ const productsFromSanity = (
     .map((product, index) => {
       const slug = product.slug?.current ?? ''
       const fallbackProduct = productFallbackForSlug(slug, language, fallback)
-      const exclusiveExtras = exclusiveProductExtrasForSlug(slug, language)
       const productImages = prioritizeProductImages(
         imagesFromSanity(
           product.image,
@@ -2777,7 +2729,6 @@ const productsFromSanity = (
           title: product.title,
           description: product.description,
         }),
-        ...exclusiveExtras,
       }
     })
 }
