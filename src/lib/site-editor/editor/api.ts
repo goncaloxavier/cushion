@@ -1,8 +1,4 @@
-import type {
-  SiteEditorDocument,
-  SiteEditorDocumentType,
-  SiteEditorManifest,
-} from '../types'
+import type {SiteEditorDocument, SiteEditorDocumentType, SiteEditorManifest} from '../types'
 
 type DocumentResponse = {document: SiteEditorDocument}
 const requestTimeoutMs = 30_000
@@ -14,13 +10,31 @@ export type SiteEditorUploadProgress = {
   percent: number
 }
 
+// The server already classifies failures — a save that lost a race throws
+// SiteEditorConflictError and comes back as 409. Keeping the status on the
+// error lets callers branch on that fact instead of pattern-matching the
+// Portuguese message, which silently stops working the moment someone
+// rewords it.
+export class SiteEditorRequestError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'SiteEditorRequestError'
+    this.status = status
+  }
+}
+
+export const isConflictError = (error: unknown) =>
+  error instanceof SiteEditorRequestError && error.status === 409
+
 const responseError = async (response: Response) => {
   const fallback = `O servidor respondeu com o estado ${response.status}.`
   try {
     const payload = (await response.json()) as {message?: string}
-    return new Error(payload.message || fallback)
+    return new SiteEditorRequestError(payload.message || fallback, response.status)
   } catch {
-    return new Error(fallback)
+    return new SiteEditorRequestError(fallback, response.status)
   }
 }
 
@@ -52,11 +66,8 @@ const request = async <T>(url: string, init: RequestInit = {}): Promise<T> => {
 export const createSiteEditorApi = (csrfToken: string) => ({
   manifest: () => request<SiteEditorManifest>('/painel/site/api'),
   document: async (id: string) =>
-    (
-      await request<DocumentResponse>(
-        `/painel/site/api?document=${encodeURIComponent(id)}`,
-      )
-    ).document,
+    (await request<DocumentResponse>(`/painel/site/api?document=${encodeURIComponent(id)}`))
+      .document,
   save: async (document: SiteEditorDocument) =>
     (
       await request<DocumentResponse>('/painel/site/api', {
@@ -142,7 +153,9 @@ export const createSiteEditorApi = (csrfToken: string) => ({
         reject(new Error('A ligação falhou durante o carregamento. Tente novamente.')),
       )
       upload.addEventListener('timeout', () =>
-        reject(new Error('O carregamento demorou demasiado. Verifique a internet e tente novamente.')),
+        reject(
+          new Error('O carregamento demorou demasiado. Verifique a internet e tente novamente.'),
+        ),
       )
       upload.addEventListener('abort', () => reject(new Error('O carregamento foi cancelado.')))
       upload.send(body)

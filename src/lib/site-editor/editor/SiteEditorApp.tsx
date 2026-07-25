@@ -29,7 +29,7 @@ import type {
   SiteEditorNode,
   SiteEditorSaveState,
 } from '../types'
-import {createSiteEditorApi} from './api'
+import {createSiteEditorApi, isConflictError} from './api'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SiteEditorCanvas} from './SiteEditorCanvas'
@@ -692,7 +692,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     } catch (error) {
       if (refreshPreview) previewNeedsRefresh.current = true
       const message = error instanceof Error ? error.message : 'Não foi possível guardar.'
-      const conflict = /conflito|alterado noutra|recarregue|revision/i.test(message)
+      // Prefer the server's own classification (409). The message check stays
+      // only as a fallback for failures that never made it through HTTP.
+      const conflict = isConflictError(error) || /alterado noutra|recarregue/i.test(message)
       setSaveState(conflict ? 'conflict' : 'error')
       pushNotice({
         tone: conflict ? 'warning' : 'error',
@@ -1353,28 +1355,38 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       )
       setCreateState(initialCreateState)
       let openedFromManifest = false
+      // A manifest that resolves without the new document is just as stale as
+      // one that failed to load — the sidebar ends up missing an item that the
+      // editor is already showing. Both cases have to say so, otherwise the
+      // content looks like it was never created and gets created twice.
+      let staleList: string | undefined
       try {
         const target = await loadManifest(created._id)
         openedFromManifest = Boolean(target)
+        if (!target) staleList = 'Atualize a página para o ver na lista.'
       } catch (refreshError) {
-        pushNotice({
-          tone: 'warning',
-          title: 'Conteúdo criado, mas a lista não atualizou',
-          description:
-            refreshError instanceof Error
-              ? refreshError.message
-              : 'Atualize a página para o ver na lista.',
-        })
+        staleList =
+          refreshError instanceof Error
+            ? refreshError.message
+            : 'Atualize a página para o ver na lista.'
       }
       if (!openedFromManifest) {
         openCreatedDraft(created, createState.title, createState.route)
       }
       setRefreshToken((token) => token + 1)
-      pushNotice({
-        tone: 'success',
-        title: 'Conteúdo criado',
-        description: 'Fica como rascunho até publicar.',
-      })
+      pushNotice(
+        staleList
+          ? {
+              tone: 'warning',
+              title: 'Conteúdo criado, mas a lista não atualizou',
+              description: staleList,
+            }
+          : {
+              tone: 'success',
+              title: 'Conteúdo criado',
+              description: 'Fica como rascunho até publicar.',
+            },
+      )
     } catch (error) {
       setCreateState((current) => ({
         ...current,
