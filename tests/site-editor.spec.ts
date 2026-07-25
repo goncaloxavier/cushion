@@ -427,7 +427,7 @@ test.describe('visual website editor', () => {
 
     await nameField.fill('Nome local em conflito')
     const notice = page.locator('.site-editor-notice')
-    await expect(notice).toContainText('Conflito de edição')
+    await expect(notice).toContainText('editado noutra janela')
     await notice.getByRole('button', {name: 'Resolver conflito'}).click()
 
     const dialog = page.getByRole('alertdialog')
@@ -837,7 +837,7 @@ test.describe('visual website editor', () => {
     await modal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(modal).toHaveCount(0)
     await expect(page.locator('.site-editor-shell')).toBeVisible()
-    await expect(page.locator('.site-editor-notice')).toContainText('Conteúdo criado como rascunho')
+    await expect(page.locator('.site-editor-notice')).toContainText('Conteúdo criado')
     await expandCollection(navigation, /Artigos do Blog/)
     await expect(navigation.getByRole('button', {name: /Artigo criado no editor/})).toBeVisible()
 

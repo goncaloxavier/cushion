@@ -183,7 +183,15 @@ const saveLabels: Record<SiteEditorSaveState, string> = {
   saving: 'A guardar…',
   saved: 'Guardado automaticamente',
   error: 'Erro ao guardar',
-  conflict: 'Conflito de edição',
+  conflict: 'Editado noutra janela',
+}
+
+// Shown from five different places, so it lives here instead of being retyped
+// each time — and it says why the editor is read-only, not just that it is.
+const readOnlyNotice = {
+  tone: 'warning' as const,
+  title: 'Não pode guardar alterações',
+  description: 'Esta sessão abriu em modo de consulta. Contacte o suporte técnico.',
 }
 
 export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Props) {
@@ -488,7 +496,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const inspectorOnReplace = useCallback(
     (next: SiteEditorDocument) => {
       if (!canWrite) {
-        pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+        pushNotice(readOnlyNotice)
         return
       }
       replaceDocument(next, true, next._type === 'sitePage')
@@ -501,7 +509,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       kind: 'image' | 'video',
       onProgress?: (progress: SiteEditorUploadProgress) => void,
     ) => {
-      if (!canWrite) throw new Error('Esta sessão está em modo de leitura.')
+      if (!canWrite) throw new Error('Esta sessão abriu em modo de consulta.')
       return (await api.uploadAsset(file, kind, onProgress)).asset
     },
     [api, canWrite],
@@ -510,10 +518,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const inspectorOnShowAll = useCallback(() => setInspectorMode('all'), [])
   const inspectorOnOpenNode = useCallback(
     (node: SiteEditorNode, path?: string) => {
-      if (
-        node.route &&
-        editorRouteKey(node.route) !== editorRouteKey(previewRouteRef.current)
-      ) {
+      if (node.route && editorRouteKey(node.route) !== editorRouteKey(previewRouteRef.current)) {
         expectedPreviewRoute.current = node.route
       }
       void openDocument(node, path).then((opened) => {
@@ -550,11 +555,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           : undefined
       if (routeExpectation) expectedPreviewRoute.current = routeExpectation
       const opened = await openDocument(target)
-      if (
-        !opened &&
-        routeExpectation &&
-        expectedPreviewRoute.current === routeExpectation
-      ) {
+      if (!opened && routeExpectation && expectedPreviewRoute.current === routeExpectation) {
         expectedPreviewRoute.current = undefined
       }
       return opened ? target : undefined
@@ -601,7 +602,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     if (publishing.current) await publishing.current.catch(() => undefined)
     const current = documentRef.current
     if (!current || !canWrite) {
-      if (!canWrite) pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+      if (!canWrite) pushNotice(readOnlyNotice)
       throw new Error('Não existe acesso de escrita.')
     }
     if (saving.current) await saving.current
@@ -695,7 +696,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       setSaveState(conflict ? 'conflict' : 'error')
       pushNotice({
         tone: conflict ? 'warning' : 'error',
-        title: conflict ? 'Conflito de edição' : 'Não foi possível guardar',
+        title: conflict ? 'Este conteúdo foi editado noutra janela' : 'Não foi possível guardar',
         description: message,
         ...(conflict
           ? {
@@ -733,7 +734,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const publish = useCallback(async () => {
     if (!canPublish || !documentRef.current) {
-      pushNotice({tone: 'warning', title: 'Apenas administradores podem publicar'})
+      pushNotice({
+        tone: 'warning',
+        title: 'Não tem permissão para publicar',
+        description: 'As alterações ficam guardadas como rascunho até um administrador publicar.',
+      })
       return
     }
     if (publishing.current || deleting.current) return
@@ -748,15 +753,16 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const published = await request
       const latest = documentRef.current
       const hasNewerChanges = dirtyVersion.current !== version
-      const copy = hasNewerChanges && latest
-        ? {
-            ...latest,
-            _id: published._id,
-            _rev: published._rev,
-            _createdAt: published._createdAt,
-            _updatedAt: published._updatedAt,
-          }
-        : snapshot(published)
+      const copy =
+        hasNewerChanges && latest
+          ? {
+              ...latest,
+              _id: published._id,
+              _rev: published._rev,
+              _createdAt: published._createdAt,
+              _updatedAt: published._updatedAt,
+            }
+          : snapshot(published)
       documentRef.current = copy
       setDocument(copy)
       savedVersion.current = version
@@ -874,7 +880,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const updatePath = useCallback(
     (path: string, value: unknown, record = true, immediate = false) => {
       if (!canWrite) {
-        pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+        pushNotice(readOnlyNotice)
         return
       }
       const current = documentRef.current
@@ -883,7 +889,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const appearancePath = appearanceObjectPath(path)
       const patchPath = appearancePath ?? path
       const patchValue = appearancePath ? getEditorValue(next, appearancePath) : value
-      const canPatchPreview = current._type === 'sitePage' || Boolean(appearancePath) || typeof value === 'string'
+      const canPatchPreview =
+        current._type === 'sitePage' || Boolean(appearancePath) || typeof value === 'string'
       if (canPatchPreview && current._type !== 'sitePage') {
         frame?.contentWindow?.postMessage(
           {
@@ -1072,8 +1079,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (event.data.type === 'df4y:site-editor:preview-refresh-error') {
         pushNotice({
           tone: 'warning',
-          title: 'Conteúdo guardado; pré-visualização por atualizar',
-          description: 'Use “Atualizar página” para voltar a carregar a pré-visualização.',
+          title: 'A pré-visualização não acompanhou',
+          description:
+            'As alterações ficaram guardadas. Clique em “Atualizar página” para as ver aqui.',
         })
         return
       }
@@ -1260,7 +1268,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const openCreate = useCallback(
     (documentType?: SiteEditorDocumentType) => {
       if (!canWrite) {
-        pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+        pushNotice(readOnlyNotice)
         return
       }
       setCreateState({
@@ -1330,7 +1338,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const createDocument = async () => {
     if (!canWrite) {
       setCreateState(initialCreateState)
-      pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+      pushNotice(readOnlyNotice)
       return
     }
     setCreateState((current) => ({...current, busy: true, error: undefined}))
@@ -1351,15 +1359,22 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       } catch (refreshError) {
         pushNotice({
           tone: 'warning',
-          title: 'Conteúdo criado; a lista será atualizada em breve',
-          description: refreshError instanceof Error ? refreshError.message : undefined,
+          title: 'Conteúdo criado, mas a lista não atualizou',
+          description:
+            refreshError instanceof Error
+              ? refreshError.message
+              : 'Atualize a página para o ver na lista.',
         })
       }
       if (!openedFromManifest) {
         openCreatedDraft(created, createState.title, createState.route)
       }
       setRefreshToken((token) => token + 1)
-      pushNotice({tone: 'success', title: 'Conteúdo criado como rascunho'})
+      pushNotice({
+        tone: 'success',
+        title: 'Conteúdo criado',
+        description: 'Fica como rascunho até publicar.',
+      })
     } catch (error) {
       setCreateState((current) => ({
         ...current,
@@ -1396,8 +1411,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       } catch (refreshError) {
         pushNotice({
           tone: 'warning',
-          title: 'Conteúdo eliminado; lista por atualizar',
-          description: refreshError instanceof Error ? refreshError.message : undefined,
+          title: 'Conteúdo eliminado, mas a lista não atualizou',
+          description:
+            refreshError instanceof Error
+              ? refreshError.message
+              : 'Atualize a página para ver a lista correta.',
         })
       }
     } catch (error) {
@@ -1702,11 +1720,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             <strong>{notice.title}</strong>
             {notice.description ? <small>{notice.description}</small> : null}
             {notice.actionLabel && notice.onAction ? (
-              <button
-                className="site-editor-notice-action"
-                type="button"
-                onClick={notice.onAction}
-              >
+              <button className="site-editor-notice-action" type="button" onClick={notice.onAction}>
                 {notice.actionLabel}
               </button>
             ) : null}
@@ -1855,7 +1869,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         open={conflictState.open}
         busy={conflictState.busy}
         tone="warning"
-        eyebrow="Conflito de edição"
+        eyebrow="Editado noutra janela"
         title="Carregar a versão mais recente?"
         description="As alterações locais que não foram guardadas serão substituídas pelo conteúdo mais recente. Esta é a forma segura de continuar sem sobrescrever o trabalho de outra pessoa."
         confirmLabel="Carregar versão"
