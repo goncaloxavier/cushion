@@ -5,6 +5,8 @@ import type {
 } from '../types'
 
 type DocumentResponse = {document: SiteEditorDocument}
+const requestTimeoutMs = 30_000
+const uploadTimeoutMs = 10 * 60_000
 
 export type SiteEditorUploadProgress = {
   loaded: number
@@ -23,13 +25,28 @@ const responseError = async (response: Response) => {
 }
 
 const request = async <T>(url: string, init: RequestInit = {}): Promise<T> => {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    ...init,
-    headers: {accept: 'application/json', ...init.headers},
-  })
-  if (!response.ok) throw await responseError(response)
-  return response.json() as Promise<T>
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs)
+  const abortFromCaller = () => controller.abort()
+  init.signal?.addEventListener('abort', abortFromCaller, {once: true})
+  try {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      ...init,
+      signal: controller.signal,
+      headers: {accept: 'application/json', ...init.headers},
+    })
+    if (!response.ok) throw await responseError(response)
+    return response.json() as Promise<T>
+  } catch (error) {
+    if (controller.signal.aborted && !init.signal?.aborted) {
+      throw new Error('A ligação demorou demasiado. Verifique a internet e tente novamente.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+    init.signal?.removeEventListener('abort', abortFromCaller)
+  }
 }
 
 export const createSiteEditorApi = (csrfToken: string) => ({
@@ -90,6 +107,7 @@ export const createSiteEditorApi = (csrfToken: string) => ({
     return new Promise<ResponsePayload>((resolve, reject) => {
       const upload = new XMLHttpRequest()
       upload.open('POST', '/painel/site/api/media')
+      upload.timeout = uploadTimeoutMs
       upload.withCredentials = true
       upload.setRequestHeader('accept', 'application/json')
       upload.setRequestHeader('x-csrf-token', csrfToken)
@@ -122,6 +140,9 @@ export const createSiteEditorApi = (csrfToken: string) => ({
       })
       upload.addEventListener('error', () =>
         reject(new Error('A ligação falhou durante o carregamento. Tente novamente.')),
+      )
+      upload.addEventListener('timeout', () =>
+        reject(new Error('O carregamento demorou demasiado. Verifique a internet e tente novamente.')),
       )
       upload.addEventListener('abort', () => reject(new Error('O carregamento foi cancelado.')))
       upload.send(body)

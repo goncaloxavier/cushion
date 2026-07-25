@@ -42,13 +42,16 @@ Use this to help agents avoid accidental damage.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, privacy/cookie policy, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
-- The Decking video/tool support block is code-managed and slug-gated. Do not reintroduce generic product-category fields or let it appear on other product details.
+- Product detail support blocks, including the migrated Decking video/tool content, are Sanity-backed `contentSections`. Do not restore a slug-gated frontend exception. Keep section validation, editor controls, query projection, public rendering, and mobile/media behavior aligned.
 - Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
 - Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable full-screen overlay menu with account/cart/language actions inside the menu.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
 - Public Lenis/page-reset behavior must not mount under `/painel`. The editor canvas and each side panel own separate scroll containers; reintroducing public smooth-scroll there breaks mouse-wheel ownership and can reset the selected canvas element.
 - Canvas selection is identified by Sanity document id plus field path, not by a one-time DOM rectangle. The overlay must re-resolve its element and rectangle after scroll/resize and restore when an off-screen selection returns.
+- A document switch must flush any pending edit before replacing local state. Failed saves keep the current document open; stale document responses cannot replace a newer selection; publication and deletion cannot race a switch.
+- Revision conflicts must remain visible until resolved and offer a safe in-app reload of the latest document. Never overwrite another editor's revision or rely on a full browser refresh as conflict recovery.
+- The iframe must receive the current write capability. Read-only sessions may inspect content but must not expose inline typing, creation, upload, undo/redo, or publication controls that appear functional.
 - Numeric Loja fields use `data-df4y-editor-field` to open their typed inspector input. Do not make them inline-editable strings or values such as `52 kg` can be written back into numeric Sanity fields.
 
 ## User-Facing Workflows

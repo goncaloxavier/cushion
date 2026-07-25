@@ -43,6 +43,7 @@
   let activeKind = $state<ElementKind>('text')
   let activeSelection = $state<SelectionIdentity>()
   let formatEnabled = $state(false)
+  let canWrite = $state(false)
   let appearance = $state<Appearance>({})
   let viewport = $state<Viewport>('desktop')
   let toolbarLeft = $state(8)
@@ -123,6 +124,11 @@
     const explicitLabel = element
       .closest<HTMLElement>('[data-df4y-editor-label]')
       ?.dataset.df4yEditorLabel?.trim()
+    if (!canWrite) {
+      if (kind === 'image') return explicitLabel || 'Ver imagem'
+      if (kind === 'video') return explicitLabel || 'Ver vídeo'
+      return explicitLabel ? `Ver campo: ${explicitLabel}` : 'Ver campo'
+    }
     if (inline) {
       if (kind === 'link') return 'Editar ligação'
       if (kind === 'button') return 'Editar botão'
@@ -146,7 +152,7 @@
     element: HTMLElement | SVGElement,
     node: SanityNode | undefined,
   ): element is HTMLElement => {
-    if (!(element instanceof HTMLElement) || !node?.path) return false
+    if (!canWrite || !(element instanceof HTMLElement) || !node?.path) return false
     if (/(^|\.)article\.(pt|en|es)$/.test(node.path)) return false
     if (element.hasAttribute('data-df4y-editor-field')) return false
     if (
@@ -215,6 +221,7 @@
   }
 
   const beginEditing = (id: string, element: HTMLElement, node: SanityNode) => {
+    if (!canWrite) return
     if (editing?.id === id) return
     releaseEditing(true)
 
@@ -582,6 +589,7 @@
   }
 
   const changeAppearance = (field: string, value: string | number | undefined) => {
+    if (!canWrite) return
     appearance = {...appearance, [field]: value || undefined}
     applyAppearance()
     const current = activeId ? elements.get(activeId) : undefined
@@ -732,6 +740,9 @@
               }),
             ),
         )
+        .catch(() => {
+          post({type: 'df4y:site-editor:preview-refresh-error'})
+        })
         .finally(() => {
           refreshPromise = undefined
           if (queuedRefresh) {
@@ -742,6 +753,15 @@
     }
     const handleParentMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== window.parent) return
+      if (event.data?.type === 'df4y:site-editor:permissions') {
+        canWrite = event.data.canWrite === true
+        if (!canWrite) {
+          releaseEditing(false)
+          activeInline = false
+          hoveredInline = false
+        }
+        return
+      }
       if (event.data?.type === 'df4y:site-editor:clear-selection') {
         clearActiveSelection(false)
         return
@@ -949,10 +969,10 @@
       bind:this={toolbarElement}
       style:left={`${toolbarLeft}px`}
       style:top={`${toolbarTop}px`}
-      aria-label={`Editar ${activeLabel}`}
+      aria-label={canWrite ? `Editar ${activeLabel}` : `Ver ${activeLabel}`}
     >
-      <strong class="site-editor-inline-kind">{actionLabelFor(activeKind)}</strong>
-      {#if activeInline && formatEnabled}
+      <strong class="site-editor-inline-kind">{canWrite ? actionLabelFor(activeKind) : 'Leitura'}</strong>
+      {#if canWrite && activeInline && formatEnabled}
         <select
           aria-label="Fonte"
           title="Fonte"
@@ -996,7 +1016,7 @@
         ><i>I</i></button>
       {/if}
       <button type="button" class="site-editor-inline-more" onclick={openSettings} title="Abrir definições">
-        <span>Editar</span>
+        <span>{canWrite ? 'Editar' : 'Ver'}</span>
       </button>
       <button
         type="button"

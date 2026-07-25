@@ -22,7 +22,7 @@ export const siteEditorE2eRequestStaff = (headers: Headers): StaffUser | null =>
   const expected = process.env.SITE_EDITOR_E2E_KEY || ''
   if (!siteEditorE2eEnabled() || !expected || headers.get(requestHeader) !== expected) return null
   return {
-    id: 'site-editor-e2e-admin',
+    id: '00000000-0000-4000-8000-000000000001',
     name: 'Editor Playwright',
     username: 'site-editor-e2e',
     role: 'admin',

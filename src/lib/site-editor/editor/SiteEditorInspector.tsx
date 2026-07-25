@@ -37,6 +37,7 @@ type Props = {
   projectId: string
   dataset: string
   viewport: BuilderViewport
+  canWrite: boolean
   canDelete: boolean
   mode: 'focused' | 'all'
   nodes: SiteEditorNode[]
@@ -126,6 +127,17 @@ const itemCountLabel = (count: number, singular: string, plural: string) =>
 const emptyFieldSummary = (field: SiteEditorField) =>
   field.required ? 'Preenchimento obrigatório' : 'Opcional'
 
+const hasMeaningfulValue = (value: unknown): boolean => {
+  if (typeof value === 'string') return Boolean(value.trim())
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (typeof value === 'boolean') return value
+  if (Array.isArray(value)) return value.some(hasMeaningfulValue)
+  if (!value || typeof value !== 'object') return false
+  return Object.entries(value as Record<string, unknown>).some(
+    ([key, item]) => !key.startsWith('_') && hasMeaningfulValue(item),
+  )
+}
+
 const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'localizedString' || field.type === 'localizedText') {
     const text =
@@ -192,13 +204,7 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'item', 'itens')
   }
   if (field.type === 'object') {
-    const count =
-      value && typeof value === 'object' && !Array.isArray(value)
-        ? Object.values(value as Record<string, unknown>).filter(
-            (item) => item !== undefined && item !== null && item !== '',
-          ).length
-        : 0
-    return count ? 'Configurado' : emptyFieldSummary(field)
+    return hasMeaningfulValue(value) ? 'Configurado' : emptyFieldSummary(field)
   }
   return String(value || '').trim() || emptyFieldSummary(field)
 }
@@ -225,6 +231,7 @@ function SiteEditorInspectorComponent({
   projectId,
   dataset,
   viewport,
+  canWrite,
   canDelete,
   mode,
   nodes,
@@ -371,6 +378,14 @@ function SiteEditorInspectorComponent({
         <div className="site-editor-inspector-empty">
           Clique numa página ou num elemento da pré-visualização para o editar.
         </div>
+      ) : !canWrite ? (
+        <div className="site-editor-inspector-readonly" role="status">
+          <strong>Editor em modo de leitura</strong>
+          <p>
+            Pode consultar a página na pré-visualização, mas esta sessão não tem acesso para
+            alterar o conteúdo.
+          </p>
+        </div>
       ) : (
         <div className="site-editor-inspector-scroll" onWheel={scrollPanelWithWheel}>
           {mode === 'focused' ? (
@@ -399,7 +414,13 @@ function SiteEditorInspectorComponent({
           ) : null}
 
           {document._type === 'storeCategory' && mode === 'all' ? (
-            <Suspense fallback={null}>
+            <Suspense
+              fallback={
+                <div className="site-editor-inspector-loading" role="status">
+                  <span /> A preparar categorias…
+                </div>
+              }
+            >
               <StoreCategoryManager
                 document={document}
                 products={categoryProducts}
@@ -558,7 +579,13 @@ function SiteEditorInspectorComponent({
         </div>
       )}
       {articleWorkspace && document && node ? (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <div className="site-editor-workspace-loading" role="status">
+              <span /> A preparar o editor do artigo…
+            </div>
+          }
+        >
           <ArticleWorkspace
             document={document}
             documentTitle={node.title}

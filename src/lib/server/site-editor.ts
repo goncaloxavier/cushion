@@ -528,10 +528,11 @@ export const getSiteEditorManifest = async (
     ...buildFreePageNodes(preferred),
   ]
 
+  const capabilities = siteEditorCapabilities()
   return {
     nodes,
     optionSources: {storeCategories: [...lookups.storeCategoryOptions.values()]},
-    capabilities: {...siteEditorCapabilities(), canPublish},
+    capabilities: {...capabilities, canPublish: canPublish && capabilities.canWrite},
   }
 }
 

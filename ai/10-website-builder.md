@@ -153,9 +153,12 @@ No builder schema deployment by itself changes the live website.
   ids, protected server boundaries, and renderer-version behavior.
 - The application build validates the standalone React editor and Svelte renderer; the Studio build
   validates the shared builder schemas.
-- `tests/site-editor.spec.ts` covers focused editing, autosave without iframe reload, selection
-  persistence across scroll, panel-wheel ownership, closing behavior, typed numeric fields, gallery
-  upload/removal, navigation changes, responsive containment, and CSRF rejection on desktop/mobile.
+- `tests/site-editor.spec.ts` covers focused editing, autosave without iframe reload, pending-save and
+  publish/document-switch races, failed-save protection, conflict recovery, out-of-order document
+  responses, undo continuity, read-only shell/iframe behavior, selection persistence across scroll,
+  panel-wheel ownership, closing behavior, typed numeric fields, gallery upload/removal, structured
+  articles and tables, navigation/category changes, responsive containment, and CSRF/malformed
+  content rejection on desktop/mobile.
 - Typography tests cover desktop and mobile overrides, publish the edited fixture, then leave the
   editor and assert the saved text and appearance on a standalone page. Structured-article tests
   assert the persisted Portable Text shape and the soft preview refresh.

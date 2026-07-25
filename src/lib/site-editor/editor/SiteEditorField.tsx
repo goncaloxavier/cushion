@@ -5,6 +5,7 @@ import {ArrowRightIcon} from '@sanity/icons/ArrowRight'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
 import {ArrowUpIcon} from '@sanity/icons/ArrowUp'
 import {BoldIcon} from '@sanity/icons/Bold'
+import {ChevronDownIcon} from '@sanity/icons/ChevronDown'
 import {DesktopIcon} from '@sanity/icons/Desktop'
 import {EditIcon} from '@sanity/icons/Edit'
 import {ImageIcon} from '@sanity/icons/Image'
@@ -166,6 +167,42 @@ function TextAppearanceEditor({
       <button type="button" aria-label="Repor aparência" title="Repor aparência" onClick={reset}>
         <ResetIcon />
       </button>
+    </div>
+  )
+}
+
+// Every text field carries this, so it defaults closed — most edits are just
+// retyping copy, and the font/size/align controls are only needed rarely.
+// `resetKey` closes it again whenever the field being edited changes, so it
+// never opens automatically because a previous field left it open.
+function TextAppearanceDisclosure({
+  value,
+  viewport,
+  onChange,
+  resetKey,
+}: {
+  value: Record<string, unknown>
+  viewport: BuilderViewport
+  onChange: (value: Record<string, unknown>) => void
+  resetKey: unknown
+}) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => setOpen(false), [resetKey])
+
+  return (
+    <div className="site-editor-appearance-disclosure">
+      <button
+        type="button"
+        className="site-editor-appearance-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>Formatação</span>
+        <span className={`site-editor-tree-chevron${open ? ' is-open' : ''}`} aria-hidden="true">
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open ? <TextAppearanceEditor value={value} viewport={viewport} onChange={onChange} /> : null}
     </div>
   )
 }
@@ -349,10 +386,11 @@ function NavigationEditor({
                       }
                     />
                   </label>
-                  <TextAppearanceEditor
+                  <TextAppearanceDisclosure
                     value={label}
                     viewport={viewport}
                     onChange={(next) => update(index, {...item, label: next})}
+                    resetKey={key}
                   />
                   <label>
                     <span>Destino</span>
@@ -1591,10 +1629,11 @@ export function SiteEditorFieldInput({
         />
       )}
       {localizedType && localizedValue ? (
-        <TextAppearanceEditor
+        <TextAppearanceDisclosure
           value={localizedValue}
           viewport={viewport}
           onChange={(next) => onChange(path, next)}
+          resetKey={path}
         />
       ) : null}
       {localizedType ? (
