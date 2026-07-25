@@ -20,6 +20,21 @@
   --editor-ink: #142d27;
   --editor-ink-soft: #263d36;
   --editor-muted: #52655e;
+
+  /* Keyboard focus ring. 9.9:1 on white and 8.6:1 on the hover tints, so it
+     stays visible wherever it lands (WCAG 1.4.11 asks for 3:1). */
+  --editor-focus: #0a4b4e;
+}
+
+/* One ring for the whole editor. Components used to group :focus-visible with
+   :hover and then set outline:none, which left keyboard focus looking exactly
+   like a mouse hover — a faint tint at ~1.05:1 — or invisible entirely. This
+   is deliberately a low-specificity catch-all so any new control inherits it
+   without having to remember. */
+.site-editor-shell :focus-visible,
+.site-editor-article-workspace :focus-visible {
+  outline: 2px solid var(--editor-focus);
+  outline-offset: 2px;
 }
 
 .site-editor-shell,
@@ -131,7 +146,6 @@
   color: #0a4b4e;
   background: #e2f1eb;
   border-color: #b8d3c9;
-  outline: none;
 }
 
 .site-editor-sidebar-close svg {
@@ -271,7 +285,6 @@
   color: #fff;
   background: #0a4b4e;
   border-color: #0a4b4e;
-  outline: none;
 }
 
 .site-editor-tree-add svg {
@@ -907,7 +920,6 @@
 .site-editor-panel-index > button:focus-visible {
   color: #0b5a50;
   background: #f1f8f5;
-  outline: none;
 }
 
 .site-editor-panel-index > button > span {
@@ -983,7 +995,6 @@
 .site-editor-field-index > button:focus-visible {
   color: #0b5a50;
   background: #f3f8f6;
-  outline: none;
 }
 
 .site-editor-field-index > button > span {
@@ -1039,7 +1050,6 @@
 .site-editor-panel-workspace-head > button:hover,
 .site-editor-panel-workspace-head > button:focus-visible {
   color: #073f45;
-  outline: none;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1510,7 +1520,6 @@
 .site-editor-array-index > div > button:focus-visible {
   color: #0b5a50;
   background: #f3f8f6;
-  outline: none;
 }
 
 .site-editor-array-index > div > button > span {
@@ -2095,7 +2104,6 @@
 .site-editor-article-workspace-actions > button:focus-visible {
   background: #0f5045;
   border-color: #0f5045;
-  outline: 0;
   transform: translateY(-1px);
 }
 
@@ -2364,7 +2372,6 @@
   color: #0e5e4d;
   background: #e1efea;
   border-color: #c4dcd3;
-  outline: 0;
 }
 
 .site-editor-rich-toolbar-group svg {
@@ -3240,7 +3247,6 @@
 .site-editor-section-main:focus-visible {
   color: #0a4b4e;
   background: #f2f8f5;
-  outline: none;
 }
 
 .site-editor-section-main > i {
@@ -3290,7 +3296,6 @@
 .site-editor-section-menu-button[aria-expanded='true'] {
   color: #0a4b4e;
   background: #e8f2ee;
-  outline: none;
 }
 
 .site-editor-section-menu {
@@ -3328,7 +3333,6 @@
 .site-editor-section-menu button:focus-visible {
   color: #0a4b4e;
   background: #edf6f2;
-  outline: none;
 }
 
 .site-editor-section-menu button:disabled {
@@ -3378,7 +3382,6 @@
 .site-page-add-row:focus-visible {
   background: #0a4b4e;
   border-color: #0a4b4e;
-  outline: none;
 }
 
 .site-editor-section-add-trigger svg,
@@ -3433,7 +3436,6 @@
 .site-editor-section-picker > button:focus-visible {
   color: #0a4b4e;
   background: #edf6f2;
-  outline: none;
 }
 
 .site-editor-section-picker > button > span {
@@ -3496,7 +3498,6 @@
 .site-editor-section-back:focus-visible {
   color: #073f45;
   background: #f3f8f6;
-  outline: none;
 }
 
 .site-page-section-editor {
@@ -3789,7 +3790,6 @@
   color: #0a4b4e;
   background: #edf7f3;
   border-color: #6fa895;
-  outline: none;
 }
 
 .site-page-media-upload.has-asset {
@@ -4342,7 +4342,6 @@
 .site-editor-category-product-list > button:focus-visible {
   color: #0b5a50;
   background: #f1f8f5;
-  outline: none;
 }
 
 .site-editor-category-product-list > button > span:first-child {
@@ -4584,7 +4583,6 @@
 .site-editor-modal-head button:focus-visible {
   color: #0a4b4e;
   background: #e8f2ee;
-  outline: none;
 }
 
 .site-editor-modal-backdrop {
@@ -4692,7 +4690,6 @@
 .site-editor-create-types button:focus-visible {
   background: #f5faf7;
   border-color: #87b6a8;
-  outline: none;
 }
 
 .site-editor-create-types button.is-active {
@@ -4792,7 +4789,6 @@
   color: #0b514b;
   background: #edf7f3;
   border-color: #8db9ab;
-  outline: none;
 }
 
 .site-editor-modal-actions button[type='submit'] {
@@ -4984,7 +4980,6 @@
   color: #0a4b4e;
   background: #e2f1eb;
   border-color: #b8d3c9;
-  outline: none;
 }
 
 .site-editor-backoffice-link svg {

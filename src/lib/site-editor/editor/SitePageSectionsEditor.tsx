@@ -5,10 +5,7 @@ import {EditIcon} from '@sanity/icons/Edit'
 import {EyeClosedIcon} from '@sanity/icons/EyeClosed'
 import {EyeOpenIcon} from '@sanity/icons/EyeOpen'
 import {TrashIcon} from '@sanity/icons/Trash'
-import {
-  createBuilderSection,
-  duplicateBuilderSection,
-} from '$lib/builder/defaults'
+import {createBuilderSection, duplicateBuilderSection} from '$lib/builder/defaults'
 import type {BuilderSection, BuilderSectionType} from '$lib/builder/types'
 import type {Asset, SitePageDocument} from '../types'
 import type {SiteEditorUploadProgress} from './api'
@@ -34,15 +31,51 @@ const sectionTypes: Array<{
   label: string
   description: string
 }> = [
-  {value: 'builderHeroSection', label: 'Destaque principal', description: 'Abertura com título, botão e imagem ou vídeo'},
-  {value: 'builderMediaSection', label: 'Texto com imagem', description: 'Texto e media apresentados lado a lado'},
-  {value: 'builderRichTextSection', label: 'Texto editorial', description: 'Texto longo com títulos, listas, imagens e tabelas'},
-  {value: 'builderGallerySection', label: 'Galeria', description: 'Conjunto ordenado de imagens e vídeos'},
-  {value: 'builderCardsSection', label: 'Cartões', description: 'Vários conteúdos curtos numa grelha'},
-  {value: 'builderStatsSection', label: 'Números', description: 'Indicadores e resultados em destaque'},
-  {value: 'builderCollectionSection', label: 'Lista automática', description: 'Produtos, loja, casos ou artigos do CMS'},
-  {value: 'builderCtaSection', label: 'Chamada para ação', description: 'Mensagem curta com um ou mais botões'},
-  {value: 'builderContactSection', label: 'Formulário', description: 'Contacto, orçamento ou pedido de catálogo'},
+  {
+    value: 'builderHeroSection',
+    label: 'Destaque principal',
+    description: 'Abertura com título, botão e imagem ou vídeo',
+  },
+  {
+    value: 'builderMediaSection',
+    label: 'Texto com imagem',
+    description: 'Texto e media apresentados lado a lado',
+  },
+  {
+    value: 'builderRichTextSection',
+    label: 'Texto editorial',
+    description: 'Texto longo com títulos, listas, imagens e tabelas',
+  },
+  {
+    value: 'builderGallerySection',
+    label: 'Galeria',
+    description: 'Conjunto ordenado de imagens e vídeos',
+  },
+  {
+    value: 'builderCardsSection',
+    label: 'Cartões',
+    description: 'Vários conteúdos curtos numa grelha',
+  },
+  {
+    value: 'builderStatsSection',
+    label: 'Números',
+    description: 'Indicadores e resultados em destaque',
+  },
+  {
+    value: 'builderCollectionSection',
+    label: 'Lista automática',
+    description: 'Produtos, loja, casos de estudo ou artigos do blog',
+  },
+  {
+    value: 'builderCtaSection',
+    label: 'Chamada para ação',
+    description: 'Mensagem curta com um ou mais botões',
+  },
+  {
+    value: 'builderContactSection',
+    label: 'Formulário',
+    description: 'Contacto, orçamento ou pedido de catálogo',
+  },
 ]
 
 const definitionFor = (section: BuilderSection) =>
@@ -135,7 +168,9 @@ export function SitePageSectionsEditor({
                 className="site-editor-section-main"
                 onClick={() => onSelectSection(section._key)}
               >
-                <i aria-hidden="true"><EditIcon /></i>
+                <i aria-hidden="true">
+                  <EditIcon />
+                </i>
                 <span>
                   <strong>{labelFor(section)}</strong>
                   <small>{definition?.label}</small>
@@ -150,27 +185,59 @@ export function SitePageSectionsEditor({
                   type="button"
                   aria-label={`Ações de ${labelFor(section)}`}
                   aria-expanded={actionsFor === section._key}
-                  onClick={() => setActionsFor((current) => current === section._key ? undefined : section._key)}
+                  onClick={() =>
+                    setActionsFor((current) =>
+                      current === section._key ? undefined : section._key,
+                    )
+                  }
                 >
                   <span aria-hidden="true">•••</span>
                 </button>
                 {actionsFor === section._key ? (
                   <div className="site-editor-section-menu">
-                    <button type="button" disabled={index === 0} onClick={() => move(index, -1)}>Mover para cima</button>
-                    <button type="button" disabled={index === sections.length - 1} onClick={() => move(index, 1)}>Mover para baixo</button>
-                    <button type="button" onClick={() => { updateSection({...section, enabled: section.enabled === false}); setActionsFor(undefined) }}>
+                    <button type="button" disabled={index === 0} onClick={() => move(index, -1)}>
+                      Mover para cima
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === sections.length - 1}
+                      onClick={() => move(index, 1)}
+                    >
+                      Mover para baixo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSection({...section, enabled: section.enabled === false})
+                        setActionsFor(undefined)
+                      }}
+                    >
                       {section.enabled === false ? <EyeOpenIcon /> : <EyeClosedIcon />}
                       {section.enabled === false ? 'Mostrar no site' : 'Ocultar do site'}
                     </button>
-                    <button type="button" onClick={() => {
-                      const clone = duplicateBuilderSection(section)
-                      const next = [...sections]
-                      next.splice(index + 1, 0, clone)
-                      commitSections(next)
-                      setActionsFor(undefined)
-                      onSelectSection(clone._key)
-                    }}><CopyIcon /> Duplicar</button>
-                    <button className="is-danger" type="button" onClick={() => { setPendingDelete(section); setActionsFor(undefined) }}><TrashIcon /> Eliminar</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const clone = duplicateBuilderSection(section)
+                        const next = [...sections]
+                        next.splice(index + 1, 0, clone)
+                        commitSections(next)
+                        setActionsFor(undefined)
+                        onSelectSection(clone._key)
+                      }}
+                    >
+                      <CopyIcon /> Duplicar
+                    </button>
+                    <button
+                      className="is-danger"
+                      type="button"
+                      onClick={() => {
+                        setPendingDelete(section)
+                        setActionsFor(undefined)
+                      }}
+                    >
+                      <TrashIcon /> Eliminar
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -211,7 +278,10 @@ export function SitePageSectionsEditor({
                   onSelectSection(section._key)
                 }}
               >
-                <span><strong>{type.label}</strong><small>{type.description}</small></span>
+                <span>
+                  <strong>{type.label}</strong>
+                  <small>{type.description}</small>
+                </span>
                 <AddIcon />
               </button>
             ))}
