@@ -20,6 +20,7 @@ import {
   saveSiteEditorE2eDocument,
   siteEditorE2eEnabled,
 } from './site-editor-e2e'
+import {carryMachineOwned, editorContentSignature} from './site-editor-conflict'
 import {
   SiteEditorCategoryInUseError,
   SiteEditorDuplicateError,
@@ -208,6 +209,18 @@ type ManifestDocument = {
 }
 
 export class SiteEditorConflictError extends Error {}
+
+const editorSignature = (document: SiteEditorDocument | null | undefined) =>
+  document ? editorContentSignature(document, editableFields[document._type]) : ''
+
+// Returned alongside every document the editor loads or saves, and echoed back
+// on the next save as the baseline to compare against. Not persisted.
+export const signatureField = '_editorSignature'
+
+const withSignature = (document: SiteEditorDocument): SiteEditorDocument => ({
+  ...document,
+  [signatureField]: editorSignature(document),
+})
 
 export const siteEditorDataset = () =>
   siteEditorE2eEnabled() ? 'site-editor-e2e' : env.SANITY_DATASET || 'production'
@@ -563,9 +576,9 @@ export const getSiteEditorDocument = async (id: string, scope = 'default') => {
     document._type === 'siteLanding' &&
     (!Array.isArray(document.navigation) || document.navigation.length === 0)
   ) {
-    return {...document, navigation: defaultNavigationDocuments()}
+    return withSignature({...document, navigation: defaultNavigationDocuments()})
   }
-  return document
+  return withSignature(document)
 }
 
 const validateStructuredValue = (value: unknown, depth = 0): void => {
@@ -853,8 +866,19 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     }
   }
 
+  // A moved _rev on its own is not a conflict. The translation webhook patches
+  // every published document seconds after it is published, and the editor is
+  // usually still open on it — under a plain _rev check that guarantees a
+  // "recarregue a página" the first time the user types afterwards, over a
+  // change to fields the editor does not even own. Only treat it as a conflict
+  // when the editor-owned content actually moved away from the baseline the
+  // client last saw.
+  const baseline = typeof input[signatureField] === 'string' ? input[signatureField] : ''
+  const matchesBaseline = (existing: SiteEditorDocument | null | undefined) =>
+    Boolean(baseline) && baseline === editorSignature(existing)
+
   if (draft) {
-    if (!isDraft(input._id) || input._rev !== draft._rev) {
+    if ((!isDraft(input._id) || input._rev !== draft._rev) && !matchesBaseline(draft)) {
       throw new SiteEditorConflictError(
         'Este conteúdo foi alterado noutra janela. Recarregue antes de continuar.',
       )
@@ -862,13 +886,16 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     const values = {...document} as Record<string, unknown>
     delete values._id
     delete values._type
-    let patch = client.patch(draftId).set(values).ifRevisionId(draft._rev)
+    let patch = client
+      .patch(draftId)
+      .set(carryMachineOwned(values, draft) as Record<string, unknown>)
+      .ifRevisionId(draft._rev)
     const missing = unsetMissingFields(document)
     if (missing.length) patch = patch.unset(missing)
-    return patch.commit({returnDocuments: true}) as Promise<SiteEditorDocument>
+    return withSignature((await patch.commit({returnDocuments: true})) as SiteEditorDocument)
   }
 
-  if (published && input._rev !== published._rev) {
+  if (published && input._rev !== published._rev && !matchesBaseline(published)) {
     throw new SiteEditorConflictError(
       'A versão publicada mudou enquanto editava. Recarregue antes de continuar.',
     )
@@ -877,15 +904,16 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   const source = published ? structuredClone(published) : {}
   const draftDocument = {
     ...source,
-    ...document,
+    ...(carryMachineOwned(document, published) as Record<string, unknown>),
     _id: draftId,
     _type: document._type,
   } as Record<string, unknown>
   delete draftDocument._rev
   delete draftDocument._createdAt
   delete draftDocument._updatedAt
+  delete draftDocument[signatureField]
   for (const field of unsetMissingFields(document)) delete draftDocument[field]
-  return client.create(draftDocument as SiteEditorDocument)
+  return withSignature(await client.create(draftDocument as SiteEditorDocument))
 }
 
 export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
@@ -913,7 +941,7 @@ export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope
       'A publicação não foi confirmada. Tente novamente — se persistir, contacte o suporte técnico.',
     )
   invalidateSanityCollectionsCache()
-  return result
+  return withSignature(result)
 }
 
 const slugFromTitle = (title: string) =>
@@ -1007,7 +1035,7 @@ export const createSiteEditorDocument = async (
   if (created._type !== type) {
     throw new SiteEditorDuplicateError('Já existe conteúdo com este endereço.')
   }
-  return created
+  return withSignature(created)
 }
 
 export const deleteSiteEditorDocument = async (id: string, scope = 'default') => {

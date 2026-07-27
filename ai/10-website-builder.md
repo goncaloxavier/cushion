@@ -108,7 +108,9 @@ layouts, and content that cannot be migrated later.
 - Local undo/redo is available before and after autosave.
 - Publishing validates required page data before replacing the published document.
 - A published document is never silently deleted or overwritten by an import.
-- Concurrent remote edits must surface as a conflict instead of being silently discarded.
+- Concurrent remote edits must surface as a conflict instead of being silently discarded — but only
+  when the editor-owned content actually diverged. A revision that moved because the translation
+  pipeline wrote `en`/`es`/`translationHash` is not a conflict; see `site-editor-conflict.ts`.
 - Media uploads pass through a protected same-origin server endpoint; write tokens never enter the
   browser bundle.
 - Builder mutations require the staff session, same-origin validation, and the backoffice CSRF token.

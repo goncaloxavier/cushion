@@ -629,6 +629,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           ...latest,
           _id: saved._id,
           _rev: saved._rev,
+          // The server's baseline for the next save's conflict check. It has to
+          // travel with the document, not be recomputed here — see
+          // signatureField in server/site-editor.ts.
+          _editorSignature: saved._editorSignature,
           _createdAt: saved._createdAt,
           _updatedAt: saved._updatedAt,
         }
@@ -761,6 +765,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               ...latest,
               _id: published._id,
               _rev: published._rev,
+              _editorSignature: published._editorSignature,
               _createdAt: published._createdAt,
               _updatedAt: published._updatedAt,
             }
