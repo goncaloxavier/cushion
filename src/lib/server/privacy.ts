@@ -142,11 +142,19 @@ export const exportCustomerData = async (customerId: string) => {
        order by item.created_at asc`,
       [customerId],
     ),
+    // Staff notes are written into this same table as status='internal_note'
+    // (see appendOrderNote), and actor_label names the staff member who acted.
+    // Neither belongs in a subject access export: the notes are internal
+    // commentary about the customer, and the label is another person's data.
+    // orders.internal_notes is excluded above for the same reason — this is
+    // the second place that content lives.
     query(
-      `select event.*
+      `select event.id, event.order_id, event.status, event.note,
+              event.actor_type, event.created_at
        from order_status_events event
        join orders on orders.id = event.order_id
        where orders.customer_id = $1
+         and event.status <> 'internal_note'
        order by event.created_at asc`,
       [customerId],
     ),
@@ -246,10 +254,9 @@ export const updatePrivacyRequest = async (input: {
            where lower(email) = $1`,
           [normalizedEmail],
         )
-        await client.query(
-          `delete from crm_client_profiles where email_normalized = $1`,
-          [normalizedEmail],
-        )
+        await client.query(`delete from crm_client_profiles where email_normalized = $1`, [
+          normalizedEmail,
+        ])
         await client.query('delete from customers where id = $1', [request.customer_id])
         await client.query(
           `update privacy_requests
