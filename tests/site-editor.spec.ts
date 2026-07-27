@@ -1585,4 +1585,29 @@ test.describe('visual website editor', () => {
     expect(result.status).toBe(400)
     expect(result.body).toContain('perdeu a estrutura')
   })
+
+  test('surfaces a way out instead of waiting forever when the editor bundle stalls', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Boot timeout runs once')
+    // The boot gives up after 25s, deliberately generous for a slow connection.
+    test.setTimeout(90_000)
+
+    const scope = `boot-stall-${testInfo.workerIndex}-${Date.now()}`
+    await page.setExtraHTTPHeaders({
+      'x-df4y-site-editor-e2e': e2eKey,
+      'x-df4y-site-editor-scope': scope,
+    })
+    // A chunk request that hangs rather than fails never rejects the dynamic
+    // import, so nothing else on this screen can clear the boot message.
+    await page.route(/SiteEditorApp|site-editor/, () => {
+      // Deliberately never resolved: the request hangs instead of failing.
+    })
+    await page.goto('/painel/site')
+
+    const boot = page.locator('.standalone-builder-boot')
+    await expect(boot).toContainText('A preparar o editor do site')
+    await expect(boot).toContainText('demorar mais do que o normal', {timeout: 40_000})
+    await expect(boot.getByRole('button', {name: 'Tentar novamente'})).toBeVisible()
+  })
 })

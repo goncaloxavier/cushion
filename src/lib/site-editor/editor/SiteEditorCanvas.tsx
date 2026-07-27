@@ -60,6 +60,16 @@ export function SiteEditorCanvas({
     setSource(requestedSource)
   }, [refreshToken, requestedSource])
 
+  // `loading` is cleared by the iframe's onLoad, which never fires if the
+  // preview request hangs or the frame is never actually renavigated. Without a
+  // stop the overlay covers the canvas indefinitely and the editor reads as
+  // frozen. Uncovering a frame that is still painting is the better failure.
+  useEffect(() => {
+    if (!loading) return
+    const timer = window.setTimeout(() => setLoading(false), 20_000)
+    return () => window.clearTimeout(timer)
+  }, [loading, source])
+
   return (
     <main className="site-editor-canvas">
       <div className={`site-editor-frame-stage is-${viewport}`}>

@@ -225,6 +225,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null)
   const previewRouteRef = useRef('/')
   const expectedPreviewRoute = useRef<string>()
+  // Route whose preview-recovery reload has already been attempted — see
+  // syncPreviewRoute. Cleared as soon as any route syncs successfully.
+  const failedPreviewRoute = useRef<string>()
   const [notice, setNotice] = useState<Notice>()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -990,24 +993,39 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const current = selectedNodeRef.current
       if (current?.route && editorRouteKey(current.route) === editorRouteKey(route)) {
         previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
         return true
       }
 
       const target = nodeForPreviewRoute(route)
       if (!target || target.id === current?.id) {
         previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
         return true
       }
       const opened = await openDocument(target)
       if (opened) {
         previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
         clearCanvasSelection(false)
         setInspectorMode('all')
         return true
       }
 
       previewRouteRef.current = previousRoute
-      setRefreshToken((token) => token + 1)
+      // Bumping the refresh token reloads the preview so it lands back on the
+      // document that is actually open. But the reload's onLoad reports its
+      // route straight back into this function, so when the recovery cannot
+      // change anything the whole thing re-triggers itself — the preview
+      // reloads forever and the editor looks stuck on "A atualizar a página…".
+      // Recover at most once per route, and only when the reload has somewhere
+      // different to go.
+      const routeKey = editorRouteKey(route)
+      const alreadyRecovered = failedPreviewRoute.current === routeKey
+      failedPreviewRoute.current = routeKey
+      if (!alreadyRecovered && editorRouteKey(previousRoute) !== routeKey) {
+        setRefreshToken((token) => token + 1)
+      }
       return false
     },
     [clearCanvasSelection, nodeForPreviewRoute, openDocument],
