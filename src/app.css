@@ -951,22 +951,6 @@ main {
   width: min(38rem, 92%);
 }
 
-.home-hero-copy::before {
-  width: clamp(4.5rem, 12vw, 8rem);
-  height: 2px;
-  margin-bottom: 1.35rem;
-  content: '';
-  background: linear-gradient(
-    90deg,
-    var(--material-yellow),
-    var(--brand-leaf),
-    rgba(255, 255, 255, 0.18)
-  );
-  transform: scaleX(0.34);
-  transform-origin: left;
-  animation: hero-line 680ms var(--ease) 120ms both;
-}
-
 /* Opens the full video player with sound/fullscreen controls */
 .home-hero-play {
   position: absolute;
@@ -1069,12 +1053,6 @@ main {
   }
   to {
     transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-@keyframes hero-line {
-  to {
-    transform: scaleX(1);
   }
 }
 
@@ -1329,22 +1307,8 @@ dt {
   max-width: 860px;
 }
 
-.page-hero-copy::after {
-  display: block;
-  width: min(18rem, 42vw);
-  height: 1px;
-  margin-top: 1.35rem;
-  content: '';
-  background: linear-gradient(90deg, var(--green), rgba(34, 95, 120, 0));
-}
-
 .page-hero-center .page-hero-copy {
   margin: 0 auto;
-}
-
-.page-hero-center .page-hero-copy::after {
-  margin-right: auto;
-  margin-left: auto;
 }
 
 .page-hero h1 {
@@ -1396,10 +1360,6 @@ dt {
   color: #aed4df;
 }
 
-.page-transition.route-catalogue .page-hero-copy::after {
-  background: linear-gradient(90deg, #8fc0cf, rgba(255, 255, 255, 0.08));
-}
-
 .page-transition.route-cases .page-hero {
   background: linear-gradient(135deg, rgba(34, 111, 136, 0.16), transparent 48%), #e7f0f1;
 }
@@ -1418,11 +1378,6 @@ dt {
 
 .page-transition.route-blog .page-hero-copy {
   margin: 0 auto;
-}
-
-.page-transition.route-blog .page-hero-copy::after {
-  margin-right: auto;
-  margin-left: auto;
 }
 
 .page-transition.route-blog .collection-section {
@@ -4896,8 +4851,6 @@ body.lightbox-open {
 .product-editorial-copy {
   display: grid;
   gap: 1.35rem;
-  padding-top: 1.1rem;
-  border-top: 2px solid rgba(45, 123, 87, 0.28);
 }
 
 .product-editorial-specs {
@@ -4908,17 +4861,6 @@ body.lightbox-open {
   align-items: start;
   padding: clamp(3.8rem, 7vw, 6rem) max(1.25rem, calc((100% - var(--max)) / 2))
     clamp(4.8rem, 8vw, 7rem);
-}
-
-.product-editorial-specs::before {
-  position: absolute;
-  top: 0;
-  right: max(1.25rem, calc((100% - var(--max)) / 2));
-  left: max(1.25rem, calc((100% - var(--max)) / 2));
-  height: 2px;
-  content: '';
-  background: linear-gradient(90deg, var(--brand-leaf), var(--brand-sea), var(--material-yellow));
-  opacity: 0.72;
 }
 
 .product-editorial-specs.has-following-support {
@@ -5007,11 +4949,6 @@ body.lightbox-open {
 
   .product-editorial-specs.has-following-support {
     padding-bottom: 3.5rem;
-  }
-
-  .product-editorial-specs::before {
-    right: var(--mobile-gutter);
-    left: var(--mobile-gutter);
   }
 
   .product-specs-header {
@@ -6523,10 +6460,6 @@ html.reduce-motion {
 
   .product-editorial-intro .article-lead {
     font-size: 1.12rem;
-  }
-
-  .product-editorial-copy {
-    padding-top: 0.9rem;
   }
 
   .product-editorial-cta {
