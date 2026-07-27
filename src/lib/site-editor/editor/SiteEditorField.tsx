@@ -19,7 +19,12 @@ import {TrashIcon} from '@sanity/icons/Trash'
 import {UploadIcon} from '@sanity/icons/Upload'
 import {VideoIcon} from '@sanity/icons/Video'
 import {getEditorValue} from '../path'
-import type {Asset, SiteEditorDocumentType, SiteEditorField} from '../types'
+import type {
+  Asset,
+  SiteEditorAssetKind,
+  SiteEditorDocumentType,
+  SiteEditorField,
+} from '../types'
 import type {BuilderViewport} from '$lib/builder/types'
 import {textAppearanceFields, type TextAppearance} from '$lib/text-appearance'
 import {editorKey, sanityAssetUrl, slugify} from './asset'
@@ -40,7 +45,7 @@ type Props = {
   onChange: (path: string, value: unknown, immediate?: boolean) => void
   onUpload: (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onOpenArticle?: (field: SiteEditorField, path: string, trigger: HTMLButtonElement) => void
@@ -598,6 +603,8 @@ function VideoEditor({
   const video = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
   const file = video.file as {asset?: {_ref?: string}} | undefined
   const fileUrl = sanityAssetUrl(file?.asset?._ref, projectId, dataset)
+  const captions = video.captions as {asset?: {_ref?: string}} | undefined
+  const captionsUrl = sanityAssetUrl(captions?.asset?._ref, projectId, dataset)
   const youtubeUrl = typeof video.youtubeUrl === 'string' ? video.youtubeUrl : ''
 
   // The uploaded file always wins when both are present, so there is never a
@@ -639,11 +646,42 @@ function VideoEditor({
     }
   }
 
+  const uploadCaptions = async (captionsFile: File) => {
+    setBusy(true)
+    setUploadStatus({key: 'captions', phase: 'preparing', fileName: captionsFile.name, percent: 0})
+    try {
+      const next = await onUpload(captionsFile, 'file', (progress) =>
+        setUploadStatus({
+          key: 'captions',
+          phase: progress.percent >= 100 ? 'processing' : 'uploading',
+          fileName: captionsFile.name,
+          percent: progress.percent,
+        }),
+      )
+      setUploadStatus({key: 'captions', phase: 'done', fileName: captionsFile.name, percent: 100})
+      commit({...video, captions: {_type: 'file', asset: {_type: 'reference', _ref: next.id}}})
+    } catch (error) {
+      setUploadStatus({
+        key: 'captions',
+        phase: 'error',
+        fileName: captionsFile.name,
+        percent: 0,
+        message: error instanceof Error ? error.message : 'Não foi possível carregar as legendas',
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="site-editor-video-field">
       <div className="site-editor-video-upload">
         {fileUrl ? (
-          <video src={fileUrl} controls muted />
+          <video src={fileUrl} controls muted>
+            {captionsUrl ? (
+              <track kind="captions" src={captionsUrl} srcLang="pt" label="Português" default />
+            ) : null}
+          </video>
         ) : (
           <div className="site-editor-video-empty">
             <VideoIcon />
@@ -670,6 +708,28 @@ function VideoEditor({
           ) : null}
         </div>
         <MediaUploadProgress status={uploadStatus} />
+        {fileUrl ? (
+          <div className="site-editor-media-actions">
+            <label className="site-editor-upload-button">
+              <UploadIcon /> {captionsUrl ? 'Substituir legendas' : 'Adicionar legendas'}
+              <input
+                type="file"
+                accept=".vtt,text/vtt"
+                disabled={busy}
+                onChange={(event) => {
+                  const captionsFile = event.currentTarget.files?.[0]
+                  if (captionsFile) void uploadCaptions(captionsFile)
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+            {captionsUrl ? (
+              <button type="button" onClick={() => commit({...video, captions: undefined})}>
+                <TrashIcon /> Remover legendas
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="site-editor-video-divider">
@@ -770,7 +830,7 @@ function GalleryEditor({
     onChange(next)
   }
 
-  const uploadAsset = async (file: File, kind: 'image' | 'video', key: string) => {
+  const uploadAsset = async (file: File, kind: SiteEditorAssetKind, key: string) => {
     setUploadStatus({key, phase: 'preparing', fileName: file.name, percent: 0})
     try {
       const asset = await onUpload(file, kind, (progress) =>
@@ -833,6 +893,7 @@ function GalleryEditor({
             ? {
                 title: current.title || replacement.title,
                 ...(current.poster ? {poster: current.poster} : {}),
+                ...(current.captions ? {captions: current.captions} : {}),
               }
             : {alt: current.alt || replacement.alt}),
         }
@@ -879,6 +940,25 @@ function GalleryEditor({
     }
   }
 
+  const uploadCaptions = async (file: File) => {
+    if (!activeItem || !activeIsVideo) return
+    setBusy(true)
+    try {
+      const asset = await uploadAsset(file, 'file', `captions-${activeIndex}`)
+      commitItem(activeIndex, {
+        ...activeItem,
+        captions: {
+          _type: 'file',
+          asset: {_type: 'reference', _ref: asset.id},
+        },
+      })
+    } catch {
+      // The progress panel carries the actionable upload error.
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const activeItem = items[activeIndex]
   const activeType = String(activeItem?._type || 'image')
   const activeAsset = activeItem?.asset as {_ref?: string} | undefined
@@ -889,6 +969,8 @@ function GalleryEditor({
   const activePoster = activeItem?.poster as Record<string, unknown> | undefined
   const activePosterAsset = activePoster?.asset as {_ref?: string} | undefined
   const activePosterUrl = sanityAssetUrl(activePosterAsset?._ref, projectId, dataset)
+  const activeCaptions = activeItem?.captions as {asset?: {_ref?: string}} | undefined
+  const activeCaptionsUrl = sanityAssetUrl(activeCaptions?.asset?._ref, projectId, dataset)
 
   return (
     <div className="site-editor-gallery-field">
@@ -962,7 +1044,17 @@ function GalleryEditor({
                 loop
                 playsInline
                 preload="metadata"
-              />
+              >
+                {activeCaptionsUrl ? (
+                  <track
+                    kind="captions"
+                    src={activeCaptionsUrl}
+                    srcLang="pt"
+                    label="Português"
+                    default
+                  />
+                ) : null}
+              </video>
             ) : activeUrl ? (
               <img src={activeUrl} alt="" />
             ) : (
@@ -1026,26 +1118,56 @@ function GalleryEditor({
             />
           </label>
           {activeIsVideo ? (
-            <div className="site-editor-gallery-poster">
-              <span>
-                <strong>Imagem de capa</strong>
-                <small>Aparece na miniatura e antes de o vídeo começar</small>
-              </span>
-              {activePosterUrl ? <img src={activePosterUrl} alt="" /> : <VideoIcon />}
-              <label className="site-editor-upload-button">
-                <UploadIcon /> {activePosterUrl ? 'Substituir capa' : 'Adicionar capa'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={busy}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0]
-                    if (file) void uploadPoster(file)
-                    event.currentTarget.value = ''
-                  }}
-                />
-              </label>
-            </div>
+            <>
+              <div className="site-editor-gallery-poster">
+                <span>
+                  <strong>Imagem de capa</strong>
+                  <small>Aparece na miniatura e antes de o vídeo começar</small>
+                </span>
+                {activePosterUrl ? <img src={activePosterUrl} alt="" /> : <VideoIcon />}
+                <label className="site-editor-upload-button">
+                  <UploadIcon /> {activePosterUrl ? 'Substituir capa' : 'Adicionar capa'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={busy}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0]
+                      if (file) void uploadPoster(file)
+                      event.currentTarget.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="site-editor-gallery-poster">
+                <span>
+                  <strong>Legendas</strong>
+                  <small>Opcional. Ficheiro WebVTT para quem não ouve o áudio</small>
+                </span>
+                <label className="site-editor-upload-button">
+                  <UploadIcon /> {activeCaptionsUrl ? 'Substituir legendas' : 'Adicionar legendas'}
+                  <input
+                    type="file"
+                    accept=".vtt,text/vtt"
+                    disabled={busy}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0]
+                      if (file) void uploadCaptions(file)
+                      event.currentTarget.value = ''
+                    }}
+                  />
+                </label>
+                {activeCaptionsUrl ? (
+                  <button
+                    type="button"
+                    className="site-editor-upload-button"
+                    onClick={() => commitItem(activeIndex, {...activeItem, captions: undefined})}
+                  >
+                    <TrashIcon /> Remover
+                  </button>
+                ) : null}
+              </div>
+            </>
           ) : null}
           <div className="site-editor-media-actions">
             <label className="site-editor-upload-button">

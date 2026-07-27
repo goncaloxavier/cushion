@@ -1,4 +1,9 @@
-import type {SiteEditorDocument, SiteEditorDocumentType, SiteEditorManifest} from '../types'
+import type {
+  SiteEditorAssetKind,
+  SiteEditorDocument,
+  SiteEditorDocumentType,
+  SiteEditorManifest,
+} from '../types'
 
 type DocumentResponse = {document: SiteEditorDocument}
 const requestTimeoutMs = 30_000
@@ -99,7 +104,7 @@ export const createSiteEditorApi = (csrfToken: string) => ({
     }),
   uploadAsset: async (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => {
     const body = new FormData()

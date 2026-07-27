@@ -1,7 +1,7 @@
 import {fail, redirect} from '@sveltejs/kit'
 import {authenticate, createSession, normalizeUsername, setStaffSessionCookie} from '$lib/server/staff-auth'
 import {csrfOk, issueCsrfToken, sameOriginOk} from '$lib/server/form-guard'
-import {rateLimit, rateLimitKey} from '$lib/server/rate-limit'
+import {distributedRateLimit, rateLimitKey} from '$lib/server/rate-limit'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_login_csrf'
@@ -31,7 +31,10 @@ export const actions: Actions = {
     }
 
     const ipHash = rateLimitKey('login-ip', getClientAddress())
-    if (rateLimit(ipHash, 10, 15 * 60 * 1000) || rateLimit(rateLimitKey('login-user', username), 5, 15 * 60 * 1000)) {
+    if (
+      (await distributedRateLimit(ipHash, 10, 15 * 60 * 1000)) ||
+      (await distributedRateLimit(rateLimitKey('login-user', username), 5, 15 * 60 * 1000))
+    ) {
       return fail(429, {message: 'Demasiadas tentativas. Tente novamente dentro de alguns minutos.', username})
     }
 

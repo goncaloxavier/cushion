@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {createHash, randomUUID} from 'node:crypto'
 import type {StaffUser} from './staff-auth'
 import type {
   SiteEditorDocument,
@@ -591,8 +591,9 @@ export const createSiteEditorE2eDocument = (
   scope = 'default',
 ) => {
   if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
-  const id = `${type}-${randomUUID()}`
   const slug = fixtureSlug(title)
+  const identity = type === 'sitePage' ? (route ?? `/${slug}`) : `${type}:${slug}`
+  const id = `${type}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
   const duplicate = [...stateFor(scope).documents.values()].some((document) =>
     type === 'sitePage'
       ? document._type === 'sitePage' && document.route === route
@@ -670,7 +671,7 @@ export const deleteSiteEditorE2eDocument = (id: string, scope = 'default') => {
   state.publishedDocuments.delete(normalizedId)
 }
 
-export const uploadSiteEditorE2eAsset = (file: File, kind: 'image' | 'video') => {
+export const uploadSiteEditorE2eAsset = (file: File, kind: 'image' | 'video' | 'file') => {
   const extension =
     file.name
       .split('.')

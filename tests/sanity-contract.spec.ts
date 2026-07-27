@@ -27,6 +27,7 @@ import {
 } from '../src/lib/site-content'
 import {textAppearanceStyle} from '../src/lib/text-appearance'
 import {breadcrumbListSchema} from '../src/lib/seo'
+import {errorCopy} from '../src/lib/error-copy'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -46,6 +47,13 @@ test.describe('Sanity Studio content contract', () => {
     expect(rateLimit(key, 2, 1_000, 100)).toBe(true)
     expect(rateLimit(key, 2, 1_000, 1_100)).toBe(false)
     expect(rateLimitKey('checkout', 'visitor')).not.toBe(rateLimitKey('register', 'visitor'))
+  })
+
+  test('error copy distinguishes missing pages from unexpected failures in every language', () => {
+    expect(errorCopy(404, 'pt').title).toBe('Página não encontrada')
+    expect(errorCopy(500, 'pt').title).toBe('Algo correu mal')
+    expect(errorCopy(404, 'en').title).toBe('Page not found')
+    expect(errorCopy(503, 'es').title).toBe('Algo salió mal')
   })
 
   test('collection documents are registered in Studio', () => {
@@ -286,6 +294,7 @@ test.describe('Sanity Studio content contract', () => {
                 fileUrl: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
                 fileName: 'example.mp4',
                 mimeType: 'video/mp4',
+                captionsUrl: 'https://cdn.sanity.io/files/project/dataset/example.vtt',
               },
               poster: {
                 _type: 'image',
@@ -331,6 +340,7 @@ test.describe('Sanity Studio content contract', () => {
         url: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
         title: 'Demonstração do produto',
         mimeType: 'video/mp4',
+        captionsUrl: 'https://cdn.sanity.io/files/project/dataset/example.vtt',
         poster: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
       },
     })
@@ -388,14 +398,51 @@ test.describe('Sanity Studio content contract', () => {
     expect(builderApi).toContain('SiteEditorConflictError')
     expect(builderServer).toContain("from '$env/dynamic/private'")
     expect(builderServer).toContain('SANITY_WRITE_TOKEN')
-    expect(builderServer).toContain('const id = `${type}-${randomUUID()}`')
-    expect(builderServer).not.toContain('const id = `${type}.${randomUUID()}`')
-    expect(editorFixture).toContain('const id = `${type}-${randomUUID()}`')
+    expect(builderServer).toContain("createHash('sha256')")
+    expect(builderServer).toContain('createIfNotExists')
+    expect(editorFixture).toContain("createHash('sha256')")
     expect(editorFixture).toContain("process.env.NODE_ENV !== 'production'")
     expect(editorFixture).toContain('SITE_EDITOR_E2E_KEY')
     expect(builderPreview).toContain('httpOnly: true')
     expect(builderPreview).toContain("sameSite: 'lax'")
     expect(builderPreview).toContain("headers.get('sec-fetch-dest') !== 'document'")
+  })
+
+  test('the live preview uses one sitePage document model and route-scoped collection queries', () => {
+    const layoutServer = read('src/routes/+layout.server.ts')
+    const layout = read('src/routes/+layout.svelte')
+    const builderServer = read('src/lib/server/builder.ts')
+    const sanity = read('src/lib/sanity.ts')
+
+    expect(layoutServer).not.toContain('getBuilderPreviewPage')
+    expect(layoutServer).not.toContain('builderRenderMode')
+    expect(layout).not.toContain('data.builderRenderMode')
+    expect(builderServer).not.toContain('_type == "builderPage"')
+    expect(sanity).toContain('includeProducts')
+    expect(sanity).toContain('includeStore')
+    expect(sanity).toContain('includeCases')
+    expect(sanity).toContain('includeBlog')
+  })
+
+  test('Sanity editing attributes load only inside preview sessions', () => {
+    const helper = read('src/lib/sanity-edit-attributes.ts')
+    const publicRoutes = [
+      'src/routes/produtos/+page.svelte',
+      'src/routes/produtos/[slug]/+page.svelte',
+      'src/routes/loja/+page.svelte',
+      'src/routes/loja/[slug]/+page.svelte',
+      'src/routes/blog/[slug]/+page.svelte',
+      'src/routes/casos-de-estudo/[slug]/+page.svelte',
+    ]
+
+    expect(helper).toContain("import('@sanity/visual-editing/create-data-attribute')")
+    for (const route of publicRoutes) {
+      const source = read(route)
+      expect(source).toContain('loadSanityDataAttributeFactory')
+      expect(source).not.toContain(
+        "from '@sanity/visual-editing/create-data-attribute'",
+      )
+    }
   })
 
   test('builder validation blocks unsafe routes, duplicate pages, links, video, and low contrast', () => {
@@ -575,7 +622,9 @@ test.describe('Sanity Studio content contract', () => {
     expect(categorySchema).not.toContain("name: 'active'")
     expect(storeSchema).toContain("name: 'category'")
     expect(storeSchema).not.toContain("value: 'bancos'")
-    expect(sanityClient).toContain('"storeCategories": *[_type == "storeCategory"')
+    expect(sanityClient).toContain(
+      '"storeCategories": select($includeStore => (*[_type == "storeCategory"',
+    )
     expect(contentModel).toContain('export const cleanStoreCategory =')
     expect(contentModel).toContain('category: cleanStoreCategory(')
     expect(contentModel).toContain('export const storeCategoryLabel =')
@@ -774,7 +823,7 @@ test.describe('Sanity Studio content contract', () => {
     )
     expect(studioConfig).toContain("blogPost: collectionLocation('/blog', 'Artigo do blog')")
     expect(layoutServer).toContain('isPreview(cookies, request.headers)')
-    expect(layoutServer).toContain('getSanityCollections(preview || builderPreview)')
+    expect(layoutServer).toContain('getSanityCollections(')
     expect(layoutServer).toContain('studioUrl: preview || builderPreview ? sanityStudioUrl :')
     // The preview cookie persists for an hour across any request from that
     // browser, so a plain top-level visit outside Studio must not inherit
@@ -798,10 +847,10 @@ test.describe('Sanity Studio content contract', () => {
     expect(layout).toContain('const plainNavigationLabel =')
     expect(layout).toContain('{plainNavigationLabel(item.label)}')
     expect(siteEditorModel).toContain("type: 'navigation'")
-    expect(storeListRoute).toContain('@sanity/visual-editing/create-data-attribute')
+    expect(storeListRoute).toContain('$lib/sanity-edit-attributes')
     expect(storeListRoute).toContain("storeProductFieldDataAttribute(product, 'image')")
     expect(storeListRoute).toContain('data-sanity={cardImageDataAttribute}')
-    expect(storeDetailRoute).toContain('@sanity/visual-editing/create-data-attribute')
+    expect(storeDetailRoute).toContain('$lib/sanity-edit-attributes')
     expect(storeDetailRoute).toContain('StoreMediaGallery')
     expect(storeDetailRoute).toContain("storeProductDataAttribute('image')")
     expect(storeDetailRoute).toContain('imageDataAttribute = $derived')
@@ -818,7 +867,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(contentModel).toContain('editPath?: string')
     expect(contentModel).toContain("imageFromSanity(mainImage, language, fallback, 'image')")
     expect(contentModel).toContain('gallery[_key==')
-    expect(productDetailRoute).toContain('@sanity/visual-editing/create-data-attribute')
+    expect(productDetailRoute).toContain('$lib/sanity-edit-attributes')
     expect(productDetailRoute).toContain("type: 'productCategory'")
     expect(productDetailRoute).toContain('data.preview || data.builderPreview')
     expect(productDetailRoute).toContain("productDataAttribute?.('title.pt')")
@@ -854,7 +903,8 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('previewSecretClient')
     expect(sanityClient).toContain("perspective: 'drafts'")
     expect(sanityClient).toContain('stega: {enabled: true, studioUrl}')
-    expect(sanityClient).toContain('getSanityCollections = async (preview = false)')
+    expect(sanityClient).toContain('export const getSanityCollections = async (')
+    expect(sanityClient).toContain('requestedScope: SanityCollectionScope = allCollections')
     expect(sanityClient).toContain('getBlogPostDetail')
     expect(previewHelpers).toContain("url.protocol === 'https:'")
     expect(previewHelpers).toContain("sameSite: secure ? ('none' as const) : ('lax' as const)")
@@ -1364,22 +1414,17 @@ test.describe('Sanity Studio content contract', () => {
     expect(translateContent).toContain('structuredClone')
     expect(translateContent).toContain('_key==')
 
-    // Both the automatic (Sanity webhook) and manual (Studio button) trigger
-    // paths must converge on the same orchestrator, and the manual path
-    // needs CORS since it's a genuine cross-origin browser request from the
-    // Studio's own origin.
+    // Translation is webhook-only. The request must carry Sanity's signed
+    // body and pass its own rate-limit before it can reach the orchestrator.
+    // Keeping browser-triggered secrets out of the Studio bundle avoids
+    // presenting a public value as though it were a credential.
     expect(translateEndpoint).toContain('isValidSignature')
-    expect(translateEndpoint).toContain('x-sanity-translate-secret')
-    expect(translateEndpoint).toContain('access-control-allow-origin')
+    expect(translateEndpoint).toContain('SIGNATURE_HEADER_NAME')
+    expect(translateEndpoint).toContain('env.SANITY_WEBHOOK_SECRET')
+    expect(translateEndpoint).toContain("rateLimitKey('sanity-translate'")
     expect(translateEndpoint).toContain('translateDocument(')
-    expect(translateEndpoint).toContain('force: Boolean(viaStudioButton)')
-
-    // The manual-trigger secret is baked into a public Studio JS bundle, so
-    // it can't be treated as a real secret the way the signed webhook can —
-    // it gets its own, much tighter rate-limit bucket so a copied-out secret
-    // can't be hammered to exhaust DeepL quota.
-    expect(translateEndpoint).toContain('sanity-translate-manual')
-    expect(translateEndpoint).toContain('viaStudioButton &&')
+    expect(translateEndpoint).not.toContain('access-control-allow-origin')
+    expect(translateEndpoint).not.toContain('x-sanity-translate-secret')
     expect(translateDocument).toContain('translationHash')
 
     // A field's hash must only be stamped once BOTH languages succeed, so a
@@ -1387,11 +1432,10 @@ test.describe('Sanity Studio content contract', () => {
     // being silently marked done.
     expect(translateDocument).toContain('enSlice && esSlice')
 
-    // The manual Studio action and the one-off backfill script must both
-    // exist and reuse the same managed-types list / tree-walker rather than
-    // duplicating detection logic.
+    // The webhook and one-off backfill script reuse the same managed-types
+    // list and tree-walker rather than duplicating detection logic.
     expect(structure).toContain('export const managedTypes')
-    expect(config).toContain('RetranslateAction')
+    expect(config).not.toContain('RetranslateAction')
     expect(backfillScript).toContain('findLocalizedFields')
     expect(backfillScript).toContain('!task.currentHash')
     expect(backfillScript).not.toContain('patchPath}.en')
@@ -1401,6 +1445,6 @@ test.describe('Sanity Studio content contract', () => {
     expect(envExample).toContain('DEEPL_GLOSSARY_EN')
     expect(envExample).toContain('DEEPL_GLOSSARY_ES')
     expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
-    expect(envExample).toContain('SANITY_STUDIO_TRANSLATE_SECRET')
+    expect(envExample).not.toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })
 })

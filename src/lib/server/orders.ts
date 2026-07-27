@@ -16,6 +16,7 @@ import type {
 } from '$lib/site-content'
 import {prepareIfthenpayPayByLink} from './payment'
 import {logEmailFailure, ordersRecipient, sendTransactionalEmail, type EmailSendResult} from './email'
+import {recordOperationalIncident} from './incidents'
 
 export type CheckoutCartItem = {
   slug: string
@@ -553,6 +554,14 @@ export const createOrder = async (input: CheckoutCustomerInput, draft: OrderDraf
       console.error(
         `[orders] payment_attempts insert failed for order ${created.order.id}: ${error instanceof Error ? error.message : String(error)}`,
       )
+      return recordOperationalIncident({
+        fingerprint: 'payment-attempt-write',
+        category: 'payment',
+        severity: 'error',
+        title: 'Falha ao registar tentativa de pagamento',
+        detail: error,
+        context: {orderId: created.order.id, orderNumber: created.order.orderNumber},
+      })
     })
   }
 
@@ -579,6 +588,14 @@ export const recordOutboundEmail = async (
     console.error(
       `[orders] outbound_emails insert failed for order ${input.orderId}: ${error instanceof Error ? error.message : String(error)}`,
     )
+    return recordOperationalIncident({
+      fingerprint: 'outbound-email-log-write',
+      category: 'email',
+      severity: 'error',
+      title: 'Falha ao registar histórico de email',
+      detail: error,
+      context: {orderId: input.orderId},
+    })
   })
 }
 
@@ -890,8 +907,16 @@ export const setOrderStatus = async (id: string, status: string, actorLabel: str
   ])
   if (!allowed.has(status)) return
 
-  const unpaidStatuses = new Set(['cancelled', 'pending_payment_link', 'payment_link_sent'])
-  const paymentStatus = unpaidStatuses.has(status) ? status : 'paid'
+  const paymentStatusByOrderStatus: Record<string, string> = {
+    pending_payment_link: 'pending',
+    payment_link_sent: 'payment_link_created',
+    paid: 'paid',
+    in_preparation: 'paid',
+    shipped: 'paid',
+    completed: 'paid',
+    cancelled: 'cancelled',
+  }
+  const paymentStatus = paymentStatusByOrderStatus[status]
 
   await withTransaction(async (client) => {
     await client.query('update orders set status = $1, payment_status = $2, updated_at = now() where id = $3', [

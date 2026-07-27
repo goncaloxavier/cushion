@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {videoCaptionsField} from './components/videoCaptionsField'
 
 export const productCategory = defineType({
   name: 'productCategory',
@@ -84,6 +85,7 @@ export const productCategory = defineType({
               description: 'Identifica o vídeo no player.',
               type: 'localizedString',
             }),
+            videoCaptionsField(),
             defineField({
               name: 'poster',
               title: 'Imagem de capa',
@@ -216,6 +218,10 @@ export const productCategory = defineType({
                   options: {accept: 'video/mp4,video/webm,video/quicktime'},
                   hidden: ({parent}) => parent?.kind !== 'upload',
                 }),
+                {
+                  ...videoCaptionsField(),
+                  hidden: ({parent}: {parent?: {kind?: string}}) => parent?.kind !== 'upload',
+                },
                 defineField({
                   name: 'youtubeUrl',
                   title: 'Link do YouTube',

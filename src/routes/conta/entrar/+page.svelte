@@ -36,7 +36,8 @@
       verified: 'Email confirmado. Já pode entrar.',
       invalidLink: 'O link de confirmação expirou ou já foi usado.',
       reset: 'Password atualizada. Entre com a nova password.',
-      registered: 'Conta criada. Confirme o email para poder entrar.',
+      registered:
+        'Se o email puder ser registado, receberá uma mensagem de confirmação. Verifique também o spam.',
       registrationEmailFailed: 'Conta criada, mas não foi possível enviar o email de confirmação. Confirme a configuração de email.',
     },
     en: {
@@ -53,7 +54,8 @@
       verified: 'Email confirmed. You can sign in now.',
       invalidLink: 'The confirmation link expired or has already been used.',
       reset: 'Password updated. Sign in with your new password.',
-      registered: 'Account created. Confirm your email before signing in.',
+      registered:
+        'If the email can be registered, you will receive a confirmation message. Check your spam folder too.',
       registrationEmailFailed: 'Account created, but the confirmation email could not be sent. Check the email configuration.',
     },
     es: {
@@ -70,7 +72,8 @@
       verified: 'Email confirmado. Ya puedes entrar.',
       invalidLink: 'El enlace de confirmación ha expirado o ya fue usado.',
       reset: 'Contraseña actualizada. Entra con la nueva contraseña.',
-      registered: 'Cuenta creada. Confirma tu email antes de entrar.',
+      registered:
+        'Si el email puede registrarse, recibirás un mensaje de confirmación. Revisa también el spam.',
       registrationEmailFailed: 'Cuenta creada, pero no fue posible enviar el email de confirmación. Comprueba la configuración de email.',
     },
   }

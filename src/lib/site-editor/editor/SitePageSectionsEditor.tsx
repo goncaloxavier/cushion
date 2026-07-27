@@ -7,7 +7,7 @@ import {EyeOpenIcon} from '@sanity/icons/EyeOpen'
 import {TrashIcon} from '@sanity/icons/Trash'
 import {createBuilderSection, duplicateBuilderSection} from '$lib/builder/defaults'
 import type {BuilderSection, BuilderSectionType} from '$lib/builder/types'
-import type {Asset, SitePageDocument} from '../types'
+import type {Asset, SiteEditorAssetKind, SitePageDocument} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SitePageSectionEditor} from './SitePageSectionEditor'
@@ -20,7 +20,7 @@ type Props = {
   onChange: (page: SitePageDocument) => void
   onUpload: (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onOpenArticle?: (path: string, returnFocus: HTMLButtonElement) => void

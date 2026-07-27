@@ -1,6 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import ProductContentSections from '$lib/components/ProductContentSections.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -50,6 +50,12 @@
   }
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
   const content = $derived(data.site)
   const langQuery = $derived(`?lang=${data.language}`)
   const backHref = $derived(collectionListHref('/produtos', data.language, data.returnPage))
@@ -57,7 +63,7 @@
   const media = $derived(productMediaFor(data.product, productImageFallback))
   const productDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl && data.product.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: data.product.studioDocumentId,
           type: 'productCategory',

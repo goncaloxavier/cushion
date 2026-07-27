@@ -37,7 +37,12 @@ const hoverEditableTarget = async (
 
 const expandCollection = async (navigation: Locator, name: string | RegExp) => {
   const collection = navigation.getByRole('button', {name})
-  if ((await collection.getAttribute('aria-expanded')) === 'false') await collection.click()
+  await collection.evaluate((element) => {
+    if (element.getAttribute('aria-expanded') === 'false') {
+      ;(element as HTMLButtonElement).click()
+    }
+  })
+  await expect(collection).toHaveAttribute('aria-expanded', 'true')
   return collection
 }
 
@@ -800,7 +805,7 @@ test.describe('visual website editor', () => {
     await expect(gallery.locator('.site-editor-gallery-description textarea')).toBeVisible()
     await expect(gallery.getByRole('status', {name: /Ficheiro pronto/})).toBeVisible()
     await expect(gallery.getByText('Imagem de capa', {exact: true})).toBeVisible()
-    await gallery.locator('.site-editor-gallery-poster input').setInputFiles({
+    await gallery.locator('.site-editor-gallery-poster input[accept="image/*"]').setInputFiles({
       name: 'capa-video.png',
       mimeType: 'image/png',
       buffer: tinyPng,

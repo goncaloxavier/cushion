@@ -18,6 +18,12 @@ export default defineConfig({
     command: `npm run dev -- --host 127.0.0.1 --port ${port}`,
     env: {
       ...process.env,
+      // Browser tests must never contact the live transactional-email provider.
+      // Server routes still exercise their explicit "email unavailable" branch.
+      RESEND_API_KEY: '',
+      EMAIL_FROM: '',
+      ORDERS_TO_EMAIL: '',
+      CONTACTS_TO_EMAIL: '',
       SANITY_DISABLE_REMOTE: 'true',
       SITE_EDITOR_E2E: 'true',
       SITE_EDITOR_E2E_KEY: siteEditorE2eKey,

@@ -1,5 +1,6 @@
 <script lang="ts">
   import {youtubeEmbedUrl} from '$lib/media'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import type {ProductContentSection} from '$lib/site-content'
 
@@ -50,7 +51,9 @@
           >
             {#if section.mediaKind === 'image' && section.image}
               <img
-                src={section.image.url}
+                src={sizedImage(section.image.url, 1400, 76)}
+                srcset={imageSrcset(section.image.url, [640, 900, 1200, 1600], 76)}
+                sizes={section.mediaSide === 'top' ? '(max-width: 1100px) 100vw, 1210px' : '(max-width: 900px) 100vw, 50vw'}
                 alt={section.image.alt}
                 loading="lazy"
                 decoding="async"
@@ -65,7 +68,7 @@
                   allowfullscreen
                 ></iframe>
               {:else}
-                <!-- svelte-ignore a11y_media_has_caption: uploaded product videos do not yet collect caption tracks in the CMS. -->
+                <!-- svelte-ignore a11y_media_has_caption (the optional CMS caption track is rendered below when supplied) -->
                 <video
                   src={section.video.url}
                   poster={section.video.poster?.url}
@@ -73,7 +76,17 @@
                   controls
                   playsinline
                   preload="metadata"
-                ></video>
+                >
+                  {#if section.video.captionsUrl}
+                    <track
+                      kind="captions"
+                      src={section.video.captionsUrl}
+                      srclang="pt"
+                      label="Português"
+                      default
+                    />
+                  {/if}
+                </video>
               {/if}
             {/if}
             {#if section.label && section.labelStyle === 'pill'}

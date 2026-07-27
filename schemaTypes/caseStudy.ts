@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {videoCaptionsField} from './components/videoCaptionsField'
 
 export const caseStudy = defineType({
   name: 'caseStudy',
@@ -77,6 +78,7 @@ export const caseStudy = defineType({
               description: 'Identifica o vídeo no player e para leitores de ecrã.',
               type: 'localizedString',
             }),
+            videoCaptionsField(),
             defineField({
               name: 'poster',
               title: 'Imagem de capa',

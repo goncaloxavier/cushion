@@ -81,6 +81,7 @@ export type ContentVideo = {
   mimeType?: string
   sourceName?: string
   poster?: ContentImage
+  captionsUrl?: string
 }
 
 export type StoreProductMedia =
@@ -313,7 +314,7 @@ export type SiteContent = {
   home: {
     hero: CopyBlock
     heroImage: ContentImage
-    heroVideo: {kind: 'upload' | 'youtube'; url: string}
+    heroVideo: {kind: 'upload' | 'youtube'; url: string; captionsUrl?: string}
     heroVideoLabel: string
     heroVideoCloseLabel: string
     intro: CopyBlock
@@ -456,6 +457,7 @@ type SanityProductContentSection = {
     fileUrl?: string
     fileName?: string
     mimeType?: string
+    captionsUrl?: string
   }
   poster?: SanityImage
   videoTitle?: LocalizedValue
@@ -577,7 +579,7 @@ type SanitySiteContent = {
   common?: SanityCommonContent
   home?: {
     hero?: SanityCopyBlock
-    heroVideo?: {kind?: string; youtubeUrl?: string; fileUrl?: string}
+    heroVideo?: {kind?: string; youtubeUrl?: string; fileUrl?: string; captionsUrl?: string}
     heroVideoLabel?: LocalizedValue
     heroVideoCloseLabel?: LocalizedValue
     impact?: {
@@ -711,6 +713,11 @@ type SanityVideoFile = {
   }
   title?: LocalizedValue
   poster?: SanityImage
+  captions?: {
+    asset?: {
+      url?: string
+    }
+  }
 }
 
 type SanityStoreProductGalleryItem = SanityImage | SanityVideoFile
@@ -2256,17 +2263,22 @@ const copyBlockFromSanity = (
 })
 
 const heroVideoFromSanity = (
-  source: {kind?: string; youtubeUrl?: string; fileUrl?: string} | undefined,
-  fallback: {kind: 'upload' | 'youtube'; url: string},
+  source:
+    | {kind?: string; youtubeUrl?: string; fileUrl?: string; captionsUrl?: string}
+    | undefined,
+  fallback: {kind: 'upload' | 'youtube'; url: string; captionsUrl?: string},
 ) => {
   const youtubeUrl = source?.youtubeUrl?.trim()
   const fileUrl = source?.fileUrl
-  if (source?.kind === 'upload' && fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  const captionsUrl = source?.captionsUrl
+  if (source?.kind === 'upload' && fileUrl) {
+    return {kind: 'upload' as const, url: fileUrl, ...(captionsUrl ? {captionsUrl} : {})}
+  }
   if (source?.kind === 'youtube' && youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
   // `kind` can drift from the populated field (e.g. touching the other tab after
   // uploading re-stamps kind without clearing the file) — prefer whichever source
   // actually has content instead of silently falling back to placeholder copy.
-  if (fileUrl) return {kind: 'upload' as const, url: fileUrl}
+  if (fileUrl) return {kind: 'upload' as const, url: fileUrl, ...(captionsUrl ? {captionsUrl} : {})}
   if (youtubeUrl) return {kind: 'youtube' as const, url: youtubeUrl}
   return fallback
 }
@@ -2496,6 +2508,7 @@ const videoFromSanity = (
     mimeType: item.asset.mimeType,
     sourceName: item.asset.originalFilename,
     poster: optionalImageFromSanity(item.poster, language),
+    captionsUrl: item.captions?.asset?.url,
     ...(editPath ? {editPath} : {}),
   }
 }
@@ -2663,6 +2676,7 @@ const productContentSectionsFromSanity = (
                 mimeType: section.video?.mimeType,
                 sourceName: section.video?.fileName,
                 poster: optionalImageFromSanity(section.poster, language),
+                captionsUrl: section.video?.captionsUrl,
               },
             }
           : {}),
@@ -2777,8 +2791,9 @@ const storeProductsFromSanity = (
   products: SanityStoreProduct[] | undefined,
   language: LanguageCode,
   fallback: StoreProduct[],
+  strictPricing = false,
 ) => {
-  if (!products?.length) return fallback
+  if (!products?.length) return strictPricing ? [] : fallback
 
   const normalized = products
     .filter((product) => product.slug?.current)
@@ -2788,8 +2803,10 @@ const storeProductsFromSanity = (
       const variants = (product.variants ?? [])
         .map<StoreProductVariant | null>((variant, variantIndex) => {
           const fallbackVariant = fallbackProduct?.variants[variantIndex]
-          const natural = variant.priceNatural ?? fallbackVariant?.prices.natural
-          const dark = variant.priceDark ?? fallbackVariant?.prices.dark
+          const natural =
+            variant.priceNatural ?? (strictPricing ? undefined : fallbackVariant?.prices.natural)
+          const dark =
+            variant.priceDark ?? (strictPricing ? undefined : fallbackVariant?.prices.dark)
 
           if (typeof natural !== 'number' || typeof dark !== 'number') return null
 
@@ -2804,7 +2821,8 @@ const storeProductsFromSanity = (
             ),
             prices: {natural, dark},
           }
-          const weightKg = variant.weightKg ?? fallbackVariant?.weightKg
+          const weightKg =
+            variant.weightKg ?? (strictPricing ? undefined : fallbackVariant?.weightKg)
           const note = localized(variant.note, language, fallbackVariant?.note ?? '')
 
           if (typeof weightKg === 'number') nextVariant.weightKg = weightKg
@@ -2832,8 +2850,12 @@ const storeProductsFromSanity = (
         slug: slug || fallbackProduct?.slug || `store-product-${index + 1}`,
         category: cleanStoreCategory(product.category ?? fallbackProduct?.category ?? 'bancos'),
         summary: localized(product.summary, language, fallbackProduct?.summary ?? ''),
-        hasFinishChoice: product.hasFinishChoice ?? fallbackProduct?.hasFinishChoice ?? true,
-        flatTransportPrice: product.flatTransportPrice ?? fallbackProduct?.flatTransportPrice,
+        hasFinishChoice:
+          product.hasFinishChoice ??
+          (strictPricing ? true : (fallbackProduct?.hasFinishChoice ?? true)),
+        flatTransportPrice:
+          product.flatTransportPrice ??
+          (strictPricing ? undefined : fallbackProduct?.flatTransportPrice),
         image: images[0],
         images,
         media,
@@ -2843,7 +2865,7 @@ const storeProductsFromSanity = (
     })
     .filter((product) => product.variants.length)
 
-  return normalized.length ? normalized : fallback
+  return normalized.length ? normalized : strictPricing ? [] : fallback
 }
 
 const casesFromSanity = (
@@ -3171,6 +3193,7 @@ const applySiteContentFromSanity = (
 
 export const contentFromSanity = (
   collections: SanityCollections | null,
+  options: {strictStorePricing?: boolean} = {},
 ): Record<LanguageCode, SiteContent> => {
   if (!collections) {
     const next = structuredClone(fallbackContent)
@@ -3206,6 +3229,7 @@ export const contentFromSanity = (
       collections.storeProducts,
       language,
       fallbackContent[language].storeProducts,
+      options.strictStorePricing,
     )
     next[language].caseStudies = casesFromSanity(
       collections.caseStudies,

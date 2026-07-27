@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {videoCaptionsField} from './components/videoCaptionsField'
 
 const localizedStringField = (
   name: string,
@@ -283,6 +284,10 @@ export const siteLanding = defineType({
               options: {accept: 'video/mp4,video/webm,video/quicktime'},
               hidden: ({parent}) => parent?.kind !== 'upload',
             }),
+            {
+              ...videoCaptionsField(),
+              hidden: ({parent}: {parent?: {kind?: string}}) => parent?.kind !== 'upload',
+            },
             defineField({
               name: 'youtubeUrl',
               title: 'Link do YouTube',

@@ -1,7 +1,7 @@
 import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
 import {findLocalizedFields, reinsertLeaves, type PortableTextBlock} from './translate-content'
-import {logTranslationFailure, translateBatch} from './translate'
+import {deeplConfigured, logTranslationFailure, translateBatch} from './translate'
 import {buildTranslationContext} from './translation-fidelity'
 
 const projectId = 'u4uyfix8'
@@ -29,7 +29,7 @@ export const translateDocument = async (
   documentId: string,
   options: {force?: boolean} = {},
 ): Promise<TranslateDocumentResult> => {
-  if (!env.SANITY_WRITE_TOKEN || !env.DEEPL_API_KEY) {
+  if (!env.SANITY_WRITE_TOKEN || !(await deeplConfigured())) {
     return {ok: false, reason: 'not-configured'}
   }
 

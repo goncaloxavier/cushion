@@ -354,8 +354,7 @@ test.describe('public website routes', () => {
       expect(menuFits, `${viewport.name} menu should fit`).toBe(true)
 
       await page.locator('.mobile-menu-close').click()
-      await page.waitForTimeout(80)
-      await expect(page.locator('.mobile-menu')).toHaveCount(1)
+      await expect(page.locator('.mobile-menu')).not.toHaveClass(/\bopen\b/)
       await expect(page.locator('.mobile-menu')).toHaveCount(0)
     }
   })
@@ -474,10 +473,10 @@ test.describe('public website routes', () => {
       await expect(page.getByRole('heading', {name: 'Mesa Vale do Arco'})).toBeVisible()
       await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('322,00')
 
-      await page.getByRole('button', {name: '2450 mm'}).click()
+      await page.getByRole('radio', {name: '2450 mm'}).click()
       await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('445,00')
 
-      await page.getByRole('button', {name: 'Castanho / Preto'}).click()
+      await page.getByRole('radio', {name: 'Castanho / Preto'}).click()
       await expect(page.locator('.store-spec-price:not(.store-spec-total)')).toContainText('565,00')
       await expect(page.locator('.store-spec-grid')).toContainText('Comprimento 2450 mm')
 

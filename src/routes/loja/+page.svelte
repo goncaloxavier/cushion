@@ -6,7 +6,7 @@
   import {seoDescription} from '$lib/seo'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -24,6 +24,12 @@
   import {onMount, tick} from 'svelte'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   type CategoryFilter = 'all' | StoreCategory
   type SortKey = StoreSortKey
@@ -43,7 +49,7 @@
   const content = $derived(data.site)
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const storeHeroDataAttribute = (field: 'kicker' | 'title' | 'lead') =>
@@ -128,7 +134,7 @@
 
   const storeProductFieldDataAttribute = (product: StoreProduct, path: string) =>
     data.preview && data.studioUrl && product.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: product.studioDocumentId,
           type: 'storeProduct',
@@ -230,6 +236,7 @@
     content.storePage.hero.lead,
     content.storeProducts.map((product) => product.summary).join(' '),
   )}
+  pagination={{page, totalPages}}
 />
 
 <main class="store-page">

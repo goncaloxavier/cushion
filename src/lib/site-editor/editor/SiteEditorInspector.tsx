@@ -8,6 +8,7 @@ import {panelsForEditorNode} from '../model'
 import {getEditorValue} from '../path'
 import type {
   Asset,
+  SiteEditorAssetKind,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
@@ -47,7 +48,7 @@ type Props = {
   onSelectSection: (key?: string) => void
   onUpload: (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onDelete: () => void

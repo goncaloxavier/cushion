@@ -13,7 +13,19 @@ if (!databaseUrl) {
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: databaseUrl.includes('railway.app') ? {rejectUnauthorized: false} : undefined,
+  ssl:
+    process.env.DATABASE_SSL_MODE === 'disable'
+      ? undefined
+      : databaseUrl.includes('railway.app') ||
+          databaseUrl.includes('proxy.rlwy.net') ||
+          process.env.DATABASE_SSL_MODE === 'require'
+        ? {rejectUnauthorized: false}
+        : process.env.DATABASE_SSL_MODE === 'verify-full'
+          ? {rejectUnauthorized: true}
+          : undefined,
+  connectionTimeoutMillis: 10_000,
+  query_timeout: 60_000,
+  statement_timeout: 60_000,
 })
 
 const migrationsDir = join(process.cwd(), 'migrations')
@@ -23,6 +35,7 @@ try {
   const client = await pool.connect()
 
   try {
+    await client.query(`select pg_advisory_lock(hashtext('df4y-schema-migrations'))`)
     await client.query(`
       create table if not exists schema_migrations (
         version text primary key,
@@ -50,6 +63,9 @@ try {
       }
     }
   } finally {
+    await client
+      .query(`select pg_advisory_unlock(hashtext('df4y-schema-migrations'))`)
+      .catch(() => undefined)
     client.release()
   }
 } finally {

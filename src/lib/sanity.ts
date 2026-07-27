@@ -63,6 +63,28 @@ export const getSiteEditorSettings = async (preview = false) => {
   return client.fetch(siteEditorSettingsQuery)
 }
 
+export const getPublicSitePages = async () => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return []
+  try {
+    return await publishedClient().fetch<Array<{route: string; updatedAt?: string}>>(`*[
+      _type == "sitePage" &&
+      coalesce(active, true) &&
+      !coalesce(seo.noIndex, false) &&
+      defined(route)
+    ] | order(route asc) {
+      route,
+      "updatedAt": _updatedAt
+    }`)
+  } catch (error) {
+    console.warn(
+      `[sanity] public site-page fetch failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+    return []
+  }
+}
+
 // Plain authed client for validating the preview-url secret. Must NOT use stega,
 // otherwise the stored secret string gets encoded with invisible characters and
 // no longer matches the secret from the URL.
@@ -136,7 +158,8 @@ const collectionsQuery = `{
       heroVideo{
         kind,
         youtubeUrl,
-        "fileUrl": file.asset->url
+        "fileUrl": file.asset->url,
+        "captionsUrl": captions.asset->url
       },
       heroVideoLabel,
       heroVideoCloseLabel,
@@ -307,7 +330,7 @@ const collectionsQuery = `{
       formLabels
     }
   },
-  "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  "products": select($includeProducts => (*[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
     title,
@@ -347,6 +370,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -398,7 +428,8 @@ const collectionsQuery = `{
         youtubeUrl,
         "fileUrl": file.asset->url,
         "fileName": file.asset->originalFilename,
-        "mimeType": file.asset->mimeType
+        "mimeType": file.asset->mimeType,
+        "captionsUrl": captions.asset->url
       },
       poster {
         asset -> {
@@ -427,14 +458,14 @@ const collectionsQuery = `{
       "specifications": specifications[],
       "advantages": advantages[]
     }
-  },
-  "storeCategories": *[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  }), []),
+  "storeCategories": select($includeStore => (*[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     title,
     slug,
     orderRank
-  },
-  "storeProducts": *[
+  }), []),
+  "storeProducts": select($includeStore => (*[
     _type == "storeProduct" &&
     defined(slug.current) &&
     ($includeInactive || coalesce(active, true))
@@ -482,6 +513,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -517,8 +555,8 @@ const collectionsQuery = `{
       priceDark,
       note
     }
-  },
-  "caseStudies": *[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  }), []),
+  "caseStudies": select($includeCases => (*[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
     title,
@@ -557,6 +595,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -589,8 +634,8 @@ const collectionsQuery = `{
     challenge,
     solution,
     result
-  },
-  "blogPosts": *[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
+  }), []),
+  "blogPosts": select($includeBlog => (*[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
     _id,
     _updatedAt,
     title,
@@ -629,6 +674,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -658,7 +710,7 @@ const collectionsQuery = `{
     excerpt,
     publishedAt,
     category
-  }
+  }), [])
 }`
 
 // Article bodies are large (~2.6 MB across all posts) and only needed on a
@@ -731,33 +783,103 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
 }`
 
 const collectionCacheTtlMs = Math.max(0, Number(env.SANITY_COLLECTION_CACHE_MS ?? 15_000))
-let collectionCache: {
-  expiresAt: number
-  value: unknown
-} | null = null
+export type SanityCollectionScope = {
+  products?: boolean
+  store?: boolean
+  cases?: boolean
+  blog?: boolean
+}
+
+const allCollections: Required<SanityCollectionScope> = {
+  products: true,
+  store: true,
+  cases: true,
+  blog: true,
+}
+
+const normalizedCollectionScope = (
+  scope: SanityCollectionScope = allCollections,
+): Required<SanityCollectionScope> => ({
+  products: scope.products ?? false,
+  store: scope.store ?? false,
+  cases: scope.cases ?? false,
+  blog: scope.blog ?? false,
+})
+
+const collectionScopeKey = (scope: Required<SanityCollectionScope>) =>
+  `${Number(scope.products)}${Number(scope.store)}${Number(scope.cases)}${Number(scope.blog)}`
+
+const collectionParams = (
+  scope: Required<SanityCollectionScope>,
+  includeInactive: boolean,
+) => ({
+  includeInactive,
+  includeProducts: scope.products,
+  includeStore: scope.store,
+  includeCases: scope.cases,
+  includeBlog: scope.blog,
+})
+
+const collectionCache = new Map<string, {expiresAt: number; value: unknown}>()
 
 export const invalidateSanityCollectionsCache = () => {
-  collectionCache = null
+  collectionCache.clear()
   preferFreshPublishedUntil = Date.now() + 30_000
 }
 
-export const getSanityCollections = async (preview = false) => {
+export const getSanityCollections = async (
+  preview = false,
+  requestedScope: SanityCollectionScope = allCollections,
+) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
-  if (!preview && collectionCache && collectionCache.expiresAt > Date.now()) {
-    return collectionCache.value
+  const scope = normalizedCollectionScope(requestedScope)
+  const cacheKey = collectionScopeKey(scope)
+  const cached = collectionCache.get(cacheKey)
+  if (!preview && cached && cached.expiresAt > Date.now()) {
+    return cached.value
   }
 
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
-    const value = await client.fetch(collectionsQuery, {includeInactive: preview})
+    const value = await client.fetch(collectionsQuery, collectionParams(scope, preview))
     if (!preview && collectionCacheTtlMs > 0) {
-      collectionCache = {value, expiresAt: Date.now() + collectionCacheTtlMs}
+      collectionCache.set(cacheKey, {value, expiresAt: Date.now() + collectionCacheTtlMs})
     }
     return value
-  } catch {
+  } catch (error) {
+    console.warn(
+      `[sanity] collection fetch failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
     return null
   }
+}
+
+export const getSanityCollectionsStrict = async (
+  preview = false,
+  requestedScope: SanityCollectionScope = allCollections,
+) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') {
+    throw new Error('Sanity remote access is disabled')
+  }
+
+  const scope = normalizedCollectionScope(requestedScope)
+  const cacheKey = collectionScopeKey(scope)
+  const cached = collectionCache.get(cacheKey)
+  if (!preview && cached && cached.expiresAt > Date.now()) {
+    return cached.value
+  }
+
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
+  const value = await client.fetch(collectionsQuery, collectionParams(scope, preview))
+
+  if (!preview && collectionCacheTtlMs > 0) {
+    collectionCache.set(cacheKey, {value, expiresAt: Date.now() + collectionCacheTtlMs})
+  }
+
+  return value
 }
 
 export const getBlogPostDetail = async (slug: string, preview = false) => {

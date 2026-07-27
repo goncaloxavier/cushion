@@ -27,6 +27,7 @@
   const imageUrl = $derived(builderAssetUrl(media?.image?.asset?._ref, dataset))
   const videoUrl = $derived(builderAssetUrl(media?.videoFile?.asset?._ref, dataset))
   const posterUrl = $derived(builderAssetUrl(media?.poster?.asset?._ref, dataset))
+  const captionsUrl = $derived(builderAssetUrl(media?.captions?.asset?._ref, dataset))
   const youtubeUrl = $derived(builderYoutubeEmbedUrl(media?.youtubeUrl))
 </script>
 
@@ -43,7 +44,11 @@
       playsinline
       style:object-fit={fit}
       style:object-position={position}
-    ></video>
+    >
+      {#if captionsUrl}
+        <track kind="captions" src={captionsUrl} srclang="pt" label="Português" default />
+      {/if}
+    </video>
   {:else if media?.kind === 'youtube' && youtubeUrl}
     <iframe
       src={youtubeUrl}

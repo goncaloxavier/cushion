@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {createHash} from 'node:crypto'
 import {createClient, type SanityClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
 import type {
@@ -967,7 +967,8 @@ export const createSiteEditorDocument = async (
   }
   // Sanity treats every ID containing a dot as a private sub-path. Keep
   // published website content at the root so anonymous visitors can read it.
-  const id = `${type}-${randomUUID()}`
+  const identity = type === 'sitePage' ? (normalizedRoute ?? `/${slug}`) : `${type}:${slug}`
+  const id = `${type}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
   const base: Record<string, unknown> = {
     _id: editorDraftId(id),
     _type: type,
@@ -1002,7 +1003,11 @@ export const createSiteEditorDocument = async (
   }
 
   validateStructuredValue(base)
-  return requireWriteClient().create(base as SiteEditorDocument)
+  const created = await requireWriteClient().createIfNotExists(base as SiteEditorDocument)
+  if (created._type !== type) {
+    throw new SiteEditorDuplicateError('Já existe conteúdo com este endereço.')
+  }
+  return created
 }
 
 export const deleteSiteEditorDocument = async (id: string, scope = 'default') => {

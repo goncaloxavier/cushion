@@ -90,6 +90,7 @@
     content.caseStudies.map((item) => item.summary || item.description).join(' '),
   )}
   image={content.casesPage.heroImage}
+  pagination={{page, totalPages}}
 />
 
 <main class="cases-page">

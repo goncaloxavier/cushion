@@ -164,7 +164,11 @@
           aria-label={item.title}
           style:background={lqipBackground(item.poster)}
           use:autoplayInline
-        ></video>
+        >
+          {#if item.captionsUrl}
+            <track kind="captions" src={item.captionsUrl} srclang="pt" label="Português" default />
+          {/if}
+        </video>
         <span class="media-gallery-badge" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 5 6 9H3v6h3l5 4V5Z" />
@@ -259,6 +263,9 @@
           poster={item.poster?.url ? sizedImage(item.poster.url, 1600, 76) : undefined}
         >
           <source src={item.url} type={item.mimeType || 'video/mp4'} />
+          {#if item.captionsUrl}
+            <track kind="captions" src={item.captionsUrl} srclang="pt" label="Português" default />
+          {/if}
         </video>
       {/if}
       {#if hasMultiple}

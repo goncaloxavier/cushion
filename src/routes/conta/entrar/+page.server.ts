@@ -56,7 +56,11 @@ export const actions: Actions = {
     }
 
     const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
-    if (customerRateLimit(`login:${ipHash}`, 10, 10 * 60 * 1000)) {
+    const emailHash = tokenHashOf(`email:${email}`)
+    if (
+      (await customerRateLimit(`login:${ipHash}`, 10, 10 * 60 * 1000)) ||
+      (await customerRateLimit(`login-email:${emailHash}`, 6, 15 * 60 * 1000))
+    ) {
       return fail(429, {message: 'Demasiadas tentativas. Tente novamente dentro de alguns minutos.', email})
     }
 

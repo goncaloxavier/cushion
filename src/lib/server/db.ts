@@ -10,10 +10,16 @@ const databaseUrl = () => process.env.DATABASE_URL
 
 let pool: pg.Pool | null | undefined
 
-const sslFor = (databaseUrl: string) =>
-  databaseUrl.includes('railway.app') || databaseUrl.includes('proxy.rlwy.net')
+const sslFor = (connectionString: string): pg.ConnectionConfig['ssl'] => {
+  const mode = process.env.DATABASE_SSL_MODE?.toLowerCase()
+  if (mode === 'disable') return undefined
+  if (mode === 'verify-full') return {rejectUnauthorized: true}
+  if (mode === 'require') return {rejectUnauthorized: false}
+
+  return connectionString.includes('railway.app') || connectionString.includes('proxy.rlwy.net')
     ? {rejectUnauthorized: false}
     : undefined
+}
 
 export const databaseConfigured = () => Boolean(databaseUrl())
 
@@ -27,6 +33,10 @@ export const getPool = () => {
     ssl: sslFor(connectionString),
     max: 8,
     idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+    query_timeout: 20_000,
+    statement_timeout: 15_000,
+    keepAlive: true,
   })
 
   return pool

@@ -1,6 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -14,6 +14,12 @@
   } from '$lib/site-content'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
   const content = $derived(data.site)
   const backHref = $derived(
     collectionListHref('/casos-de-estudo', data.language, data.returnPage),
@@ -22,7 +28,7 @@
   const media = $derived(caseStudyMediaFor(data.caseStudy, caseStudyImageFallback))
   const caseDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl && data.caseStudy.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: data.caseStudy.studioDocumentId,
           type: 'caseStudy',

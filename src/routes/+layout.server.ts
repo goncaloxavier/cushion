@@ -1,28 +1,79 @@
-import {contentFromSanity, getLanguage, languages} from '$lib/site-content'
+import {
+  contentFromSanity,
+  getLanguage,
+  languages,
+  type SiteContent,
+} from '$lib/site-content'
 import {getSanityCollections, sanityStudioUrl} from '$lib/sanity'
 import {isPreview} from '$lib/server/preview'
 import {isBuilderPreviewRequest} from '$lib/server/builder-preview'
-import {
-  builderDataset,
-  getBuilderPreviewPage,
-  getBuilderPreviewSettings,
-} from '$lib/server/builder'
 import type {LayoutServerLoad} from './$types'
+
+const collectionScopeForRoute = (pathname: string) => ({
+  products: pathname === '/' || pathname.startsWith('/produtos'),
+  store:
+    pathname.startsWith('/loja') ||
+    pathname.startsWith('/carrinho') ||
+    pathname.startsWith('/finalizar-compra') ||
+    pathname.startsWith('/contacto'),
+  cases: pathname === '/' || pathname.startsWith('/casos-de-estudo'),
+  blog: pathname.startsWith('/blog'),
+})
+
+const contentForRoute = (
+  content: SiteContent,
+  pathname: string,
+  preserveCollections: boolean,
+): SiteContent => {
+  if (preserveCollections) return content
+
+  const knownRoute =
+    pathname === '/' ||
+    pathname.startsWith('/sobre-nos') ||
+    pathname.startsWith('/produtos') ||
+    pathname.startsWith('/loja') ||
+    pathname.startsWith('/carrinho') ||
+    pathname.startsWith('/finalizar-compra') ||
+    pathname.startsWith('/casos-de-estudo') ||
+    pathname.startsWith('/blog') ||
+    pathname.startsWith('/catalogo') ||
+    pathname.startsWith('/contacto') ||
+    pathname.startsWith('/conta') ||
+    pathname.startsWith('/painel') ||
+    pathname.startsWith('/politica-de-devolucoes')
+
+  // Flexible Sanity pages can contain collection sections, so retain every
+  // collection for routes that are not part of the fixed application shell.
+  if (!knownRoute) return content
+
+  const needsProducts = pathname === '/' || pathname.startsWith('/produtos')
+  const needsStore =
+    pathname.startsWith('/loja') ||
+    pathname.startsWith('/carrinho') ||
+    pathname.startsWith('/finalizar-compra') ||
+    pathname.startsWith('/contacto')
+  const needsCases = pathname === '/' || pathname.startsWith('/casos-de-estudo')
+  const needsBlog = pathname.startsWith('/blog')
+
+  return {
+    ...content,
+    products: needsProducts ? content.products : [],
+    storeProducts: needsStore ? content.storeProducts : [],
+    caseStudies: needsCases ? content.caseStudies : [],
+    blogPosts: needsBlog ? content.blogPosts : [],
+  }
+}
 
 export const load: LayoutServerLoad = async ({url, cookies, locals, request}) => {
   const preview = isPreview(cookies, request.headers)
   const builderPreview = isBuilderPreviewRequest(cookies, url, request.headers)
-  const builderRenderMode =
-    builderPreview && url.searchParams.get('__view') === 'builder' ? 'builder' : 'legacy'
-  const collections = await getSanityCollections(preview || builderPreview)
+  const collections = await getSanityCollections(
+    preview || builderPreview,
+    preview || builderPreview ? undefined : collectionScopeForRoute(url.pathname),
+  )
   const language = getLanguage(url.searchParams.get('lang'))
-  const [builderPage, builderSettings] =
-    builderRenderMode === 'builder'
-      ? await Promise.all([
-          getBuilderPreviewPage(url.pathname).catch(() => null),
-          getBuilderPreviewSettings().catch(() => null),
-        ])
-      : [null, null]
+
+  const currentContent = contentFromSanity(collections)[language]
 
   return {
     // contentFromSanity builds all 3 languages (cheap in-memory work off a
@@ -32,16 +83,16 @@ export const load: LayoutServerLoad = async ({url, cookies, locals, request}) =>
     // full Record<LanguageCode, SiteContent> to the client cuts the layout
     // payload roughly 3x; a login page no longer ships the entire product
     // catalogue in two languages it will never render.
-    site: contentFromSanity(collections)[language],
+    site: contentForRoute(
+      currentContent,
+      url.pathname,
+      preview || builderPreview,
+    ),
     language,
     languages,
     currentPath: url.pathname,
     preview,
     builderPreview,
-    builderRenderMode,
-    builderPage,
-    builderSettings,
-    builderDataset: builderPreview ? builderDataset() : '',
     studioUrl: preview || builderPreview ? sanityStudioUrl : '',
     // Minimal, non-sensitive account summary for header state. The customer's
     // own data; full details load per-page under /conta.

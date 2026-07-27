@@ -209,13 +209,24 @@
       </button>
       <div class="video-lightbox-frame">
         {#if heroBackgroundVideoFile}
+          <!-- svelte-ignore a11y_media_has_caption (the optional CMS caption track is rendered below when supplied) -->
           <video
             title={content.home.heroVideoLabel}
             src={heroBackgroundVideoFile}
             autoplay
             controls
             playsinline
-          ></video>
+          >
+            {#if content.home.heroVideo.captionsUrl}
+              <track
+                kind="captions"
+                src={content.home.heroVideo.captionsUrl}
+                srclang="pt"
+                label="Português"
+                default
+              />
+            {/if}
+          </video>
         {:else if heroWatchVideoEmbed}
           <iframe
             title={content.home.heroVideoLabel}

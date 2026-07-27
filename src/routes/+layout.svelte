@@ -3,7 +3,6 @@
   import {stegaClean} from '@sanity/client/stega'
   import {trapFocus} from '$lib/actions/trap-focus'
   import BrandIcon from '$lib/components/BrandIcon.svelte'
-  import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
   import CookieNotice from '$lib/components/CookieNotice.svelte'
   import Intro from '$lib/components/Intro.svelte'
   import RouteProgress from '$lib/components/RouteProgress.svelte'
@@ -685,18 +684,7 @@
 
 {#key sceneKey}
   <RouteScene kind={routeKind}>
-    {#if data.builderPreview && data.builderRenderMode === 'builder'}
-      <BuilderPageRenderer
-        page={data.builderPage}
-        settings={data.builderSettings}
-        {content}
-        language={data.language}
-        dataset={data.builderDataset}
-        preview
-      />
-    {:else}
-      {@render children()}
-    {/if}
+    {@render children()}
   </RouteScene>
 {/key}
 
@@ -760,6 +748,6 @@
   <VisualEditingComponent />
 {/if}
 
-{#if data.builderPreview && data.builderRenderMode !== 'builder' && SiteEditorOverlayComponent}
+{#if data.builderPreview && SiteEditorOverlayComponent}
   <SiteEditorOverlayComponent />
 {/if}

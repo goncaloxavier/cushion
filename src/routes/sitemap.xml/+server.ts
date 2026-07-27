@@ -1,4 +1,4 @@
-import {getSanityCollections} from '$lib/sanity'
+import {getPublicSitePages, getSanityCollections} from '$lib/sanity'
 import {contentFromSanity, defaultLanguage, languages} from '$lib/site-content'
 import type {RequestHandler} from './$types'
 
@@ -24,7 +24,11 @@ const escapeXml = (value: string) =>
     .replace(/"/g, '&quot;')
 
 export const GET: RequestHandler = async ({url, setHeaders}) => {
-  const site = contentFromSanity(await getSanityCollections())
+  const [collections, customPages] = await Promise.all([
+    getSanityCollections(),
+    getPublicSitePages(),
+  ])
+  const site = contentFromSanity(collections)
   const content = site[defaultLanguage]
 
   // lastmod is only emitted when we have a real Sanity _updatedAt for that item —
@@ -42,6 +46,9 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
       lastmod: item.updatedAt,
     })),
     ...content.blogPosts.map((item) => ({path: `/blog/${item.slug}`, lastmod: item.updatedAt})),
+    ...customPages
+      .filter((item) => item.route && !staticPaths.includes(item.route))
+      .map((item) => ({path: item.route, lastmod: item.updatedAt})),
   ]
 
   const hrefFor = (path: string, code: string) =>

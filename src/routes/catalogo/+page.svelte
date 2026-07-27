@@ -58,7 +58,7 @@
   }
 
   const formIsComplete = $derived(
-    fieldKeys.every((key) => Boolean(values[key]?.trim())) && consentAccepted && privacyConsentAccepted,
+    fieldKeys.every((key) => Boolean(values[key]?.trim())) && privacyConsentAccepted,
   )
 </script>
 
@@ -137,8 +137,6 @@
           <input
             name="marketingConsent"
             type="checkbox"
-            required
-            aria-required="true"
             bind:checked={consentAccepted}
           />
           <span>{content.common.marketingConsent}</span>

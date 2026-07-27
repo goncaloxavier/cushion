@@ -82,6 +82,7 @@
   title={content.nav.blog}
   description={content.blogPage.hero.lead || content.blogPage.hero.title}
   image={content.blogPage.heroImage}
+  pagination={{page, totalPages}}
 />
 
 <main class="blog-page">

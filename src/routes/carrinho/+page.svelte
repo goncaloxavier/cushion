@@ -1,6 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/environment'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -28,6 +28,12 @@
   import {onMount} from 'svelte'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   let items = $state<StoreCartItem[]>([])
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
@@ -37,7 +43,7 @@
   const labels = $derived(content.cartPage)
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const cartPageDataAttribute = (path: string) =>
@@ -221,7 +227,17 @@
                   max="99"
                   inputmode="numeric"
                   oninput={(event) => {
-                    setCartItemQuantity(row.item, Number(event.currentTarget.value))
+                    const value = event.currentTarget.value
+                    if (!value) return
+                    const quantity = Number(value)
+                    if (Number.isInteger(quantity) && quantity >= 1 && quantity <= 99) {
+                      setCartItemQuantity(row.item, quantity)
+                    }
+                  }}
+                  onblur={(event) => {
+                    const quantity = Math.min(99, Math.max(1, Math.floor(Number(event.currentTarget.value) || 1)))
+                    event.currentTarget.value = String(quantity)
+                    setCartItemQuantity(row.item, quantity)
                   }}
                 />
               </label>

@@ -17,7 +17,7 @@ import type {
   BuilderTypography,
   LocalizedValue,
 } from '$lib/builder/types'
-import type {Asset} from '../types'
+import type {Asset, SiteEditorAssetKind} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {MediaUploadProgress, type MediaUploadStatus} from './MediaUploadProgress'
@@ -25,7 +25,7 @@ import {Toggle} from './Toggle'
 
 type UploadAsset = (
   file: File,
-  kind: 'image' | 'video',
+  kind: SiteEditorAssetKind,
   onProgress?: (progress: SiteEditorUploadProgress) => void,
 ) => Promise<Asset>
 
@@ -439,6 +439,11 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
       apply({...media, poster: {_type: 'image', asset: {_type: 'reference', _ref: asset.id}}}),
     )
 
+  const uploadCaptions = (file: File, media: BuilderMedia, apply: (next: BuilderMedia) => void) =>
+    uploadFile(`captions-${media._key || 'primary'}`, file, 'file', (asset) =>
+      apply({...media, captions: {_type: 'file', asset: {_type: 'reference', _ref: asset.id}}}),
+    )
+
   const uploadGallery = async (files: FileList) => {
     const selectedFiles = Array.from(files).slice(0, 20)
     let nextItems = [...galleryItems]
@@ -478,6 +483,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
     const kind = media.kind ?? 'image'
     const assetRef = kind === 'image' ? media.image?.asset?._ref : media.videoFile?.asset?._ref
     const posterRef = media.poster?.asset?._ref
+    const captionsRef = media.captions?.asset?._ref
     const previewUrl = builderAssetUrl(kind === 'video' ? posterRef || assetRef : assetRef, dataset)
     return (
       <div className="site-page-media-editor">
@@ -535,15 +541,26 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           />
         )}
         {kind === 'video' ? (
-          <MediaUpload
-            label="Adicionar imagem de capa"
-            help="Aparece antes do vídeo e na miniatura da galeria"
-            accept="image/*"
-            hasAsset={Boolean(posterRef)}
-            disabled={uploadBusy}
-            status={uploadStatus?.key === `poster-${media._key || 'primary'}` ? uploadStatus : undefined}
-            onFile={(file) => void uploadPoster(file, media, apply)}
-          />
+          <>
+            <MediaUpload
+              label="Adicionar imagem de capa"
+              help="Aparece antes do vídeo e na miniatura da galeria"
+              accept="image/*"
+              hasAsset={Boolean(posterRef)}
+              disabled={uploadBusy}
+              status={uploadStatus?.key === `poster-${media._key || 'primary'}` ? uploadStatus : undefined}
+              onFile={(file) => void uploadPoster(file, media, apply)}
+            />
+            <MediaUpload
+              label="Adicionar legendas"
+              help="Opcional. Ficheiro WebVTT (.vtt) para acessibilidade"
+              accept=".vtt,text/vtt"
+              hasAsset={Boolean(captionsRef)}
+              disabled={uploadBusy}
+              status={uploadStatus?.key === `captions-${media._key || 'primary'}` ? uploadStatus : undefined}
+              onFile={(file) => void uploadCaptions(file, media, apply)}
+            />
+          </>
         ) : null}
         <Field
           label="Descrição acessível"

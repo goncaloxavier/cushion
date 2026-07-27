@@ -2,9 +2,8 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {defineLocations, presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
-import {RetranslateAction} from './sanity.actions'
 import {websiteSchemaTypes} from './schemaTypes'
-import {managedTypes, websiteStructure} from './sanity.structure'
+import {websiteStructure} from './sanity.structure'
 
 const projectId = 'u4uyfix8'
 const localPreviewOrigin = 'http://localhost:5173'
@@ -85,10 +84,5 @@ export default defineConfig({
 
   schema: {
     types: websiteSchemaTypes,
-  },
-
-  document: {
-    actions: (prev, context) =>
-      managedTypes.includes(context.schemaType) ? [...prev, RetranslateAction] : prev,
   },
 })

@@ -1,5 +1,5 @@
 import type {Cookies} from '@sveltejs/kit'
-import {databaseConfigured, query} from './db'
+import {databaseConfigured, query, withTransaction} from './db'
 import {dummyHash, hashPassword, randomToken, tokenHashOf, verifyPassword} from './password-auth'
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000 // sliding window, matches the previous Sanity-backed session length
@@ -206,14 +206,6 @@ export const createStaff = async (input: {
   return mapStaff(result.rows[0])
 }
 
-const countOtherActiveAdmins = async (excludingId: string): Promise<number> => {
-  const result = await query<{count: string}>(
-    `select count(*)::text as count from staff_users where role = 'admin' and active = true and id != $1`,
-    [excludingId],
-  )
-  return Number(result.rows[0]?.count ?? '0')
-}
-
 export type StaffMutationError = 'self' | 'last-admin'
 export type StaffMutationResult = {ok: true} | {ok: false; error: StaffMutationError}
 
@@ -224,13 +216,33 @@ export const updateStaffRole = async (
 ): Promise<StaffMutationResult> => {
   if (actorId === targetId) return {ok: false, error: 'self'}
 
-  const target = await getStaff(targetId)
-  if (target?.role === 'admin' && role !== 'admin' && target.active && (await countOtherActiveAdmins(targetId)) < 1) {
-    return {ok: false, error: 'last-admin'}
-  }
+  return withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext('staff-active-admin-guard'))`)
+    const targetResult = await client.query<{role: string; active: boolean}>(
+      'select role, active from staff_users where id = $1 for update',
+      [targetId],
+    )
+    const target = targetResult.rows[0]
+    if (!target) return {ok: true as const}
 
-  await query('update staff_users set role = $2, updated_at = now() where id = $1', [targetId, role])
-  return {ok: true}
+    if (target.role === 'admin' && role !== 'admin' && target.active) {
+      const admins = await client.query<{count: string}>(
+        `select count(*)::text as count
+         from staff_users
+         where role = 'admin' and active = true and id != $1`,
+        [targetId],
+      )
+      if (Number(admins.rows[0]?.count ?? '0') < 1) {
+        return {ok: false as const, error: 'last-admin' as const}
+      }
+    }
+
+    await client.query('update staff_users set role = $2, updated_at = now() where id = $1', [
+      targetId,
+      role,
+    ])
+    return {ok: true as const}
+  })
 }
 
 export const setStaffActive = async (
@@ -240,13 +252,33 @@ export const setStaffActive = async (
 ): Promise<StaffMutationResult> => {
   if (actorId === targetId) return {ok: false, error: 'self'}
 
-  const target = await getStaff(targetId)
-  if (target?.role === 'admin' && !active && target.active && (await countOtherActiveAdmins(targetId)) < 1) {
-    return {ok: false, error: 'last-admin'}
-  }
+  return withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext('staff-active-admin-guard'))`)
+    const targetResult = await client.query<{role: string; active: boolean}>(
+      'select role, active from staff_users where id = $1 for update',
+      [targetId],
+    )
+    const target = targetResult.rows[0]
+    if (!target) return {ok: true as const}
 
-  await query('update staff_users set active = $2, updated_at = now() where id = $1', [targetId, active])
-  return {ok: true}
+    if (target.role === 'admin' && !active && target.active) {
+      const admins = await client.query<{count: string}>(
+        `select count(*)::text as count
+         from staff_users
+         where role = 'admin' and active = true and id != $1`,
+        [targetId],
+      )
+      if (Number(admins.rows[0]?.count ?? '0') < 1) {
+        return {ok: false as const, error: 'last-admin' as const}
+      }
+    }
+
+    await client.query('update staff_users set active = $2, updated_at = now() where id = $1', [
+      targetId,
+      active,
+    ])
+    return {ok: true as const}
+  })
 }
 
 export const resetStaffPassword = async (targetId: string, password: string): Promise<void> => {

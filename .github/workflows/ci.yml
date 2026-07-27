@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SANITY_DISABLE_REMOTE: 'true'
+      # Test-only switch. Production must always price checkout from the
+      # published Sanity catalogue and fail closed when it is unavailable.
+      CHECKOUT_ALLOW_FALLBACK_PRICING: 'true'
       # Points at the postgres service below. Without this, checkout's real
       # order-creation path (buildOrderDraft -> createOrder) stays disabled
       # in every e2e run and self-skips its own test — it only ever ran on a

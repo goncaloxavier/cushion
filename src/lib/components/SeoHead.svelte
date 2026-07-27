@@ -19,9 +19,18 @@
     type?: SeoType
     noindex?: boolean
     jsonLd?: JsonLd | JsonLd[]
+    pagination?: {page: number; totalPages: number}
   }
 
-  let {title, description, image, type = 'website', noindex = false, jsonLd}: Props = $props()
+  let {
+    title,
+    description,
+    image,
+    type = 'website',
+    noindex = false,
+    jsonLd,
+    pagination,
+  }: Props = $props()
 
   const jsonLdHtml = $derived(
     (jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])
@@ -32,8 +41,13 @@
       .join(''),
   )
 
-  const languageQuery = (language: LanguageCode) =>
-    language === defaultLanguage ? '' : `?lang=${language}`
+  const queryFor = (language: LanguageCode, pageNumber = pagination?.page ?? 1) => {
+    const params = new URLSearchParams()
+    if (language !== defaultLanguage) params.set('lang', language)
+    if (pageNumber > 1) params.set('page', String(pageNumber))
+    const query = params.toString()
+    return query ? `?${query}` : ''
+  }
   const languageFromUrl = (value: string | null): LanguageCode =>
     languages.some((option) => option.code === value) ? (value as LanguageCode) : defaultLanguage
   const absoluteUrl = (url: string | undefined) => {
@@ -43,10 +57,26 @@
   }
 
   const language = $derived(languageFromUrl(page.url.searchParams.get('lang')))
-  const fullTitle = $derived(titleWithSiteName(title))
+  const currentPage = $derived(
+    pagination
+      ? Math.min(Math.max(1, pagination.page), Math.max(1, pagination.totalPages))
+      : 1,
+  )
+  const pagedTitle = $derived(
+    currentPage > 1
+      ? `${title} · ${language === 'en' ? 'Page' : 'Página'} ${currentPage}`
+      : title,
+  )
+  const fullTitle = $derived(titleWithSiteName(pagedTitle))
   const metaDescription = $derived(seoDescription(language, description))
-  const canonicalUrl = $derived(`${page.url.origin}${page.url.pathname}${languageQuery(language)}`)
-  const defaultUrl = $derived(`${page.url.origin}${page.url.pathname}`)
+  const canonicalUrl = $derived(
+    `${page.url.origin}${page.url.pathname}${queryFor(language, currentPage)}`,
+  )
+  const defaultUrl = $derived(
+    `${page.url.origin}${page.url.pathname}${queryFor(defaultLanguage, currentPage)}`,
+  )
+  const pageUrl = (pageNumber: number) =>
+    `${page.url.origin}${page.url.pathname}${queryFor(language, pageNumber)}`
   const imageUrl = $derived(absoluteUrl(image?.url) ?? absoluteUrl(defaultShareImagePath))
   const imageAlt = $derived(cleanSeoText(image?.alt || siteName, 120))
 </script>
@@ -56,9 +86,15 @@
   <meta name="description" content={metaDescription} />
   <link rel="canonical" href={canonicalUrl} />
   {#each languages as option}
-    <link rel="alternate" hreflang={option.code} href={`${page.url.origin}${page.url.pathname}${languageQuery(option.code)}`} />
+    <link rel="alternate" hreflang={option.code} href={`${page.url.origin}${page.url.pathname}${queryFor(option.code, currentPage)}`} />
   {/each}
   <link rel="alternate" hreflang="x-default" href={defaultUrl} />
+  {#if pagination && currentPage > 1}
+    <link rel="prev" href={pageUrl(currentPage - 1)} />
+  {/if}
+  {#if pagination && currentPage < pagination.totalPages}
+    <link rel="next" href={pageUrl(currentPage + 1)} />
+  {/if}
 
   <meta property="og:site_name" content={siteName} />
   <meta property="og:type" content={type} />

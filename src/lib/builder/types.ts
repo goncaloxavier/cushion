@@ -51,6 +51,7 @@ export type BuilderMedia = {
   image?: SanityAssetValue
   videoFile?: SanityAssetValue
   poster?: SanityAssetValue
+  captions?: SanityAssetValue
   youtubeUrl?: string
   alt?: LocalizedValue
   caption?: LocalizedValue

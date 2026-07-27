@@ -506,7 +506,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const inspectorOnUpload = useCallback(
     async (
       file: File,
-      kind: 'image' | 'video',
+      kind: import('../types').SiteEditorAssetKind,
       onProgress?: (progress: SiteEditorUploadProgress) => void,
     ) => {
       if (!canWrite) throw new Error('Esta sessão abriu em modo de consulta.')
@@ -1283,11 +1283,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     [area, canWrite, pushNotice],
   )
 
-  const openCreatedDraft = (
+  const optimisticNodeForCreatedDraft = (
     created: SiteEditorDocument,
     fallbackTitle: string,
     fallbackRoute: string,
-  ) => {
+  ): SiteEditorNode => {
     const id = normalizeEditorDocumentId(created._id)
     const titleValue = created.title as {pt?: string} | string | undefined
     const title = typeof titleValue === 'string' ? titleValue : titleValue?.pt || fallbackTitle
@@ -1306,7 +1306,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                     ? 'casos-de-estudo'
                     : 'blog'
             }${slug ? `/${slug}` : ''}`
-    const optimisticNode: SiteEditorNode = {
+    const parentCollection = manifest?.nodes.find(
+      (node) => node.kind === 'collection' && node.collectionType === created._type,
+    )
+    return {
       id: `${created._type === 'sitePage' ? 'page' : 'document'}-${id}`,
       kind: created._type === 'sitePage' ? 'flexiblePage' : 'document',
       area: created._type === 'sitePage' ? 'pages' : 'content',
@@ -1314,12 +1317,33 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       route,
       documentId: id,
       documentType: created._type,
+      parentId: parentCollection?.id,
       draft: true,
       active: created.active as boolean | undefined,
+      slug,
+      subtitle:
+        created._type === 'storeCategory'
+          ? '0 produtos'
+          : created._type === 'sitePage'
+            ? undefined
+            : route,
+      count: created._type === 'storeCategory' ? 0 : undefined,
+      category: typeof created.category === 'string' ? created.category : undefined,
     }
+  }
+
+  const openCreatedDraft = (
+    created: SiteEditorDocument,
+    fallbackTitle: string,
+    fallbackRoute: string,
+  ) => {
+    const optimisticNode = optimisticNodeForCreatedDraft(created, fallbackTitle, fallbackRoute)
     const copy = snapshot(created)
-    if (editorRouteKey(route) !== editorRouteKey(previewRouteRef.current)) {
-      expectedPreviewRoute.current = route
+    if (
+      optimisticNode.route &&
+      editorRouteKey(optimisticNode.route) !== editorRouteKey(previewRouteRef.current)
+    ) {
+      expectedPreviewRoute.current = optimisticNode.route
     }
     selectedNodeRef.current = optimisticNode
     setSelectedNode(optimisticNode)
@@ -1335,6 +1359,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     savedVersion.current = dirtyVersion.current
     previewNeedsRefresh.current = false
     setSaveState('idle')
+    return optimisticNode
   }
 
   const createDocument = async () => {
@@ -1355,6 +1380,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       )
       setCreateState(initialCreateState)
       let openedFromManifest = false
+      let createdNode: SiteEditorNode | undefined
       // A manifest that resolves without the new document is just as stale as
       // one that failed to load — the sidebar ends up missing an item that the
       // editor is already showing. Both cases have to say so, otherwise the
@@ -1363,6 +1389,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       try {
         const target = await loadManifest(created._id)
         openedFromManifest = Boolean(target)
+        createdNode = target
         if (!target) staleList = 'Atualize a página para o ver na lista.'
       } catch (refreshError) {
         staleList =
@@ -1371,7 +1398,44 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             : 'Atualize a página para o ver na lista.'
       }
       if (!openedFromManifest) {
-        openCreatedDraft(created, createState.title, createState.route)
+        createdNode = openCreatedDraft(created, createState.title, createState.route)
+      }
+      if (createdNode) {
+        const createdId = normalizeEditorDocumentId(created._id)
+        const categorySlug = (created.slug as {current?: string} | undefined)?.current
+        const categoryTitle = (created.title as {pt?: string} | undefined)?.pt
+        setManifest((current) => {
+          if (!current) return current
+          const alreadyListed = current.nodes.some(
+            (node) =>
+              node.documentId &&
+              normalizeEditorDocumentId(node.documentId) === createdId,
+          )
+          const nodes = alreadyListed
+            ? current.nodes
+            : [
+                ...current.nodes.map((node) =>
+                  node.id === createdNode?.parentId && typeof node.count === 'number'
+                    ? {...node, count: node.count + 1}
+                    : node,
+                ),
+                createdNode!,
+              ]
+          const storeCategories =
+            created._type === 'storeCategory' && categorySlug && categoryTitle
+              ? [
+                  ...current.optionSources.storeCategories.filter(
+                    (option) => option.value !== categorySlug,
+                  ),
+                  {label: categoryTitle, value: categorySlug},
+                ].sort((left, right) => left.label.localeCompare(right.label, 'pt'))
+              : current.optionSources.storeCategories
+          return {
+            ...current,
+            nodes,
+            optionSources: {...current.optionSources, storeCategories},
+          }
+        })
       }
       setRefreshToken((token) => token + 1)
       pushNotice(

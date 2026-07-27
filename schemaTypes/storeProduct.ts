@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {videoCaptionsField} from './components/videoCaptionsField'
 
 export const storeProduct = defineType({
   name: 'storeProduct',
@@ -105,6 +106,7 @@ export const storeProduct = defineType({
               description: 'Identifica o vídeo no player.',
               type: 'localizedString',
             }),
+            videoCaptionsField(),
             defineField({
               name: 'poster',
               title: 'Imagem de capa',

@@ -1,6 +1,6 @@
 <script lang="ts">
   import {page} from '$app/state'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import BlogArticleRail from '$lib/components/BlogArticleRail.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -59,13 +59,19 @@
   }
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
   const content = $derived(data.site)
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
   const media = $derived(blogMediaFor(data.post, blogImageFallback))
   const postDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl && data.post.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: data.post.studioDocumentId,
           type: 'blogPost',
@@ -105,6 +111,7 @@
       description: data.post.excerpt || data.post.body,
       imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
       datePublished: data.post.publishedAt,
+      dateModified: data.post.updatedAt,
       url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language)),
       logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
     }),
