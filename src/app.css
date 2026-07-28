@@ -1410,7 +1410,7 @@ dt {
   min-height: clamp(26rem, 58svh, 38rem);
   background:
     radial-gradient(circle at 12% 18%, rgba(45, 123, 87, 0.14), transparent 24rem),
-    linear-gradient(90deg, #f8fbf9 0%, #f8fbf9 54%, #dbecee 54%, #e5f2ec 100%);
+    linear-gradient(90deg, #f8fbf9 0%, #eef5f4 62%, #e5f2ec 100%);
 }
 
 .product-index-copy h1,
@@ -1429,52 +1429,31 @@ dt {
   font-size: 1.12rem;
 }
 
+/* The wrapper takes its height from the image rather than imposing one. A
+   min-height here left a band of empty background under anything shorter than
+   the box, which is what made these holders look oddly cropped. */
 .product-index-media,
 .blog-index-media,
 .case-index-media {
   position: relative;
-  min-height: clamp(18rem, 42vw, 31rem);
   overflow: hidden;
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
   isolation: isolate;
 }
 
-.product-index-media::before,
-.blog-index-media::before,
-.case-index-media::before {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  content: '';
-}
-
-.product-index-media::before {
-  background:
-    linear-gradient(90deg, rgba(10, 48, 55, 0.24), transparent 44%),
-    linear-gradient(180deg, transparent 62%, rgba(10, 48, 55, 0.18));
-}
-
-.product-index-media::after,
-.case-index-media::after {
-  position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 2;
-  width: 7.5rem;
-  height: 2px;
-  content: '';
-  background: linear-gradient(90deg, var(--material-yellow), #ffffff);
-}
+/* No scrim and no accent bar over these. Nothing is overlaid on this media —
+   the copy sits in the adjacent column — so both were darkening and marking
+   up an image for no reason. */
 
 .product-index-media img,
 .blog-index-media img,
 .case-index-media img {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.01);
+  height: auto;
+  max-height: clamp(18rem, 46vw, 34rem);
+  object-fit: contain;
 }
 
 .blog-index-hero {
@@ -1485,34 +1464,17 @@ dt {
   min-height: clamp(23rem, 52svh, 34rem);
   background:
     radial-gradient(circle at 8% 16%, rgba(21, 95, 119, 0.11), transparent 24rem),
-    linear-gradient(90deg, #f9fbfa 0%, #f9fbfa 60%, #e0edf0 60%, #edf6f1 100%);
+    linear-gradient(90deg, #f9fbfa 0%, #eff5f5 66%, #edf6f1 100%);
 }
 
 .blog-index-copy h1 {
   max-width: 10ch;
 }
 
+/* Was 8px 8px 8px 2.5rem — the odd corner read as a crop against a contained
+   image. Matches the other two index heroes now. */
 .blog-index-media {
-  min-height: clamp(17rem, 35vw, 25rem);
-  align-self: stretch;
-  border-radius: 8px 8px 8px 2.5rem;
-}
-
-.blog-index-media::before {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
-    linear-gradient(180deg, transparent 56%, rgba(10, 48, 55, 0.22));
-}
-
-.blog-index-media::after {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 2;
-  width: 2px;
-  height: 7rem;
-  content: '';
-  background: linear-gradient(180deg, var(--brand-sea), var(--brand-leaf), var(--material-yellow));
+  align-self: center;
 }
 
 .case-index-hero {
@@ -1537,14 +1499,8 @@ dt {
 }
 
 .case-index-media {
-  align-self: stretch;
+  align-self: center;
   box-shadow: 0 2rem 4.2rem rgba(0, 0, 0, 0.22);
-}
-
-.case-index-media::before {
-  background:
-    linear-gradient(90deg, rgba(8, 44, 52, 0.2), transparent 48%),
-    linear-gradient(180deg, transparent 58%, rgba(8, 44, 52, 0.24));
 }
 
 .about-index-hero {
@@ -6569,17 +6525,6 @@ html.reduce-motion {
   .about-index-copy h1 {
     max-width: 100%;
     font-size: 2.45rem;
-  }
-
-  .product-index-media,
-  .blog-index-media,
-  .case-index-media {
-    min-height: 15.5rem;
-    align-self: stretch;
-  }
-
-  .blog-index-media {
-    border-radius: 8px;
   }
 
   .button {
