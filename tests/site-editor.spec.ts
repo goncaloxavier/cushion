@@ -1590,24 +1590,71 @@ test.describe('visual website editor', () => {
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Boot timeout runs once')
-    // The boot gives up after 25s, deliberately generous for a slow connection.
-    test.setTimeout(90_000)
+    test.setTimeout(30_000)
 
     const scope = `boot-stall-${testInfo.workerIndex}-${Date.now()}`
     await page.setExtraHTTPHeaders({
       'x-df4y-site-editor-e2e': e2eKey,
       'x-df4y-site-editor-scope': scope,
     })
+    await page.addInitScript(() => {
+      const nativeSetTimeout = window.setTimeout.bind(window)
+      window.setTimeout = ((
+        handler: TimerHandler,
+        timeout?: number,
+        ...arguments_: unknown[]
+      ) => nativeSetTimeout(handler, timeout === 25_000 ? 50 : timeout, ...arguments_)) as typeof window.setTimeout
+    })
+    let releaseBundle: (() => void) | undefined
+    const heldBundle = new Promise<void>((resolve) => {
+      releaseBundle = () => resolve()
+    })
     // A chunk request that hangs rather than fails never rejects the dynamic
     // import, so nothing else on this screen can clear the boot message.
-    await page.route(/SiteEditorApp|site-editor/, () => {
-      // Deliberately never resolved: the request hangs instead of failing.
+    await page.route(/SiteEditorApp|site-editor/, async (route) => {
+      await heldBundle
+      await route.continue()
     })
-    await page.goto('/painel/site')
 
-    const boot = page.locator('.standalone-builder-boot')
-    await expect(boot).toContainText('A preparar o editor do site')
-    await expect(boot).toContainText('demorar mais do que o normal', {timeout: 40_000})
-    await expect(boot.getByRole('button', {name: 'Tentar novamente'})).toBeVisible()
+    try {
+      await page.goto('/painel/site', {waitUntil: 'domcontentloaded'})
+      const boot = page.locator('.standalone-builder-boot')
+      await expect(boot).toContainText('A preparar o editor do site')
+      await expect(boot).toContainText('demorar mais do que o normal')
+      await expect(boot.getByRole('button', {name: 'Tentar novamente'})).toBeVisible()
+    } finally {
+      releaseBundle?.()
+    }
+  })
+
+  test('keeps a stalled preview covered and offers a retry', async ({page}, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Preview timeout runs once')
+    const frame = await openEditor(page, testInfo)
+    await expect(frame.getByTestId('fixture-hero-title')).toBeVisible()
+    await page.clock.install()
+
+    let releasePreview: (() => void) | undefined
+    const heldPreview = new Promise<void>((resolve) => {
+      releasePreview = () => resolve()
+    })
+    await page.route('**/painel/site/e2e-preview?**', async (route) => {
+      await heldPreview
+      await route.continue()
+    })
+
+    try {
+      await page.getByRole('button', {name: 'Atualizar página'}).click()
+      const overlay = page.locator('.site-editor-frame-loading')
+      await expect(overlay).toContainText('A atualizar a página')
+      await page.clock.fastForward(20_100)
+      await expect(overlay).toContainText('A pré-visualização não respondeu')
+      const retry = overlay.getByRole('button', {name: 'Tentar novamente'})
+      await expect(retry).toBeVisible()
+      await expect(frame.getByTestId('fixture-hero-title')).toBeVisible()
+      await retry.click()
+      await expect(overlay).toContainText('A atualizar a página')
+    } finally {
+      releasePreview?.()
+    }
   })
 })

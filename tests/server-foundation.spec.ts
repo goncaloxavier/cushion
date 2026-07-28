@@ -35,7 +35,9 @@ import {
 
 const uniqueSuffix = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 test.describe('server foundations', () => {
-  test('customer lifecycle and staff order updates persist against Postgres', async ({browserName}, testInfo) => {
+  test('customer lifecycle, staff order updates, and privacy-safe exports persist against Postgres', async ({
+    browserName,
+  }, testInfo) => {
     test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
     test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
 
@@ -71,18 +73,18 @@ test.describe('server foundations', () => {
 
       const inserted = await query<{id: string}>(
         `insert into orders (
-          order_number, language, customer_name, email, phone, nif, purchase_type,
+          customer_id, order_number, language, customer_name, email, phone, nif, purchase_type,
           billing_address, billing_postal_code, billing_locality,
           delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
           product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
           privacy_consent_at
         ) values (
-          $1, 'pt', 'Audit customer', $2, '', '', 'individual',
+          $1, $2, 'pt', 'Audit customer', $3, '', '', 'individual',
           'Rua de teste', '1000-001', 'Lisboa',
           'Rua de teste', '1000-001', 'Lisboa', 'Lisboa',
           10, 2, 2.76, 14.76, 1, 2.5, now()
         ) returning id`,
-        [`AUDIT-${suffix}`, email],
+        [customer.id, `AUDIT-${suffix}`, email],
       )
       orderId = inserted.rows[0]!.id
 
@@ -93,6 +95,21 @@ test.describe('server foundations', () => {
       expect(order?.internalNotes).toContain('Pagamento preparado para validação.')
       expect(order?.events.some((event) => event.status === 'payment_link_sent')).toBe(true)
       expect(order?.events.some((event) => event.status === 'internal_note')).toBe(true)
+
+      const exported = await exportCustomerData(customer.id)
+      expect(exported.orders).toHaveLength(1)
+      expect(exported.orderEvents.some((event) => event.status === 'payment_link_sent')).toBe(true)
+      expect(exported.orderEvents.some((event) => event.status === 'internal_note')).toBe(false)
+      expect(
+        exported.orderEvents.every(
+          (event) =>
+            !Object.prototype.hasOwnProperty.call(event, 'actor_label') &&
+            !Object.prototype.hasOwnProperty.call(event, 'actorLabel'),
+        ),
+      ).toBe(true)
+      expect(JSON.stringify(exported.orderEvents)).not.toContain(
+        'Pagamento preparado para validação.',
+      )
     } finally {
       if (orderId) await query('delete from orders where id = $1', [orderId])
       if (customerId) await query('delete from customers where id = $1', [customerId])

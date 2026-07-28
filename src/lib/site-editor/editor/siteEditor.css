@@ -577,6 +577,51 @@
   animation: site-editor-spin 700ms linear infinite;
 }
 
+.site-editor-frame-loading.is-timeout {
+  gap: 8px;
+  padding: 24px;
+  color: #183d36;
+  text-align: center;
+  background: rgb(249 252 250 / 0.97);
+}
+
+.site-editor-frame-loading.is-timeout strong,
+.site-editor-frame-loading.is-timeout p {
+  margin: 0;
+}
+
+.site-editor-frame-loading.is-timeout strong {
+  font-size: 15px;
+}
+
+.site-editor-frame-loading.is-timeout p {
+  max-width: 34ch;
+  color: #5b6d67;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.site-editor-frame-loading.is-timeout button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 7px 12px;
+  color: #fff;
+  font: inherit;
+  background: #0a4b4e;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.site-editor-frame-loading.is-timeout button:focus-visible {
+  outline: 2px solid #0a4b4e;
+  outline-offset: 3px;
+}
+
 .site-editor-preview-warning {
   position: absolute;
   top: 28px;

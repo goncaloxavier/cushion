@@ -1,3 +1,4 @@
+import {RefreshIcon} from '@sanity/icons/Refresh'
 import React, {useEffect, useMemo, useRef, useState} from 'react'
 import type {BuilderViewport} from '$lib/builder/types'
 
@@ -28,7 +29,9 @@ export function SiteEditorCanvas({
 }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const previousRefreshToken = useRef(refreshToken)
+  const retryAttempt = useRef(0)
   const [loading, setLoading] = useState(true)
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
   const requestedSource = useMemo(() => {
     const url = new URL(route || '/', window.location.origin)
     url.searchParams.set('lang', 'pt')
@@ -56,19 +59,29 @@ export function SiteEditorCanvas({
       }
     }
 
+    setLoadTimedOut(false)
     setLoading(true)
     setSource(requestedSource)
   }, [refreshToken, requestedSource])
 
-  // `loading` is cleared by the iframe's onLoad, which never fires if the
-  // preview request hangs or the frame is never actually renavigated. Without a
-  // stop the overlay covers the canvas indefinitely and the editor reads as
-  // frozen. Uncovering a frame that is still painting is the better failure.
+  // Keep a stalled navigation covered: the iframe can still contain the
+  // previously selected page while the editor has already opened another
+  // document. Exposing that stale page would make the two sides look connected
+  // when they are not.
   useEffect(() => {
     if (!loading) return
-    const timer = window.setTimeout(() => setLoading(false), 20_000)
+    const timer = window.setTimeout(() => setLoadTimedOut(true), 20_000)
     return () => window.clearTimeout(timer)
   }, [loading, source])
+
+  const retryPreview = () => {
+    const url = new URL(source, window.location.origin)
+    retryAttempt.current += 1
+    url.searchParams.set('__editorRefresh', `${refreshToken}-${retryAttempt.current}`)
+    setLoadTimedOut(false)
+    setLoading(true)
+    setSource(`${url.pathname}${url.search}`)
+  }
 
   return (
     <main className="site-editor-canvas">
@@ -84,6 +97,7 @@ export function SiteEditorCanvas({
             title={`Pré-visualização de ${route || '/'}`}
             src={source}
             onLoad={() => {
+              setLoadTimedOut(false)
               setLoading(false)
               try {
                 const current = frameRef.current?.contentWindow?.location
@@ -94,8 +108,23 @@ export function SiteEditorCanvas({
             }}
           />
           {loading ? (
-            <div className="site-editor-frame-loading" role="status">
-              <span />A atualizar a página…
+            <div
+              className={`site-editor-frame-loading${loadTimedOut ? ' is-timeout' : ''}`}
+              role={loadTimedOut ? 'alert' : 'status'}
+            >
+              {loadTimedOut ? (
+                <>
+                  <strong>A pré-visualização não respondeu</strong>
+                  <p>A página anterior continua protegida. Tente carregá-la novamente.</p>
+                  <button type="button" onClick={retryPreview}>
+                    <RefreshIcon /> Tentar novamente
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span aria-hidden="true" />A atualizar a página…
+                </>
+              )}
             </div>
           ) : null}
         </div>
