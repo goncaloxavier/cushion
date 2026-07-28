@@ -2,6 +2,7 @@
   import {page} from '$app/state'
   import {lineReveal} from '$lib/actions/line-reveal'
   import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
+  import CollectionCard from '$lib/components/CollectionCard.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
@@ -267,36 +268,15 @@
     <div class="home-solutions-grid">
       {#each featuredSolutions as product, index}
         {@const image = imageFor(product, productImageFallback)}
-        <Reveal class="home-solution-card-wrap" delay={index * 70} variant="card">
-          <a class="home-solution-card" href={`/produtos/${product.slug}${langQuery}`}>
-            <div class="home-solution-media">
-              <img
-                src={sizedImage(image.url, 720)}
-                srcset={imageSrcset(image.url, [400, 640, 800, 1100])}
-                sizes="(max-width: 760px) 92vw, 30vw"
-                alt={image.alt}
-                loading="lazy"
-                decoding="async"
-                style:background={image.lqip
-                  ? `center / cover no-repeat url(${image.lqip})`
-                  : undefined}
-                style:view-transition-name={`vt-${product.slug}`}
-              />
-            </div>
-            <div class="home-solution-copy">
-              <h3
-                class="cms-styled-text"
-                style={textAppearanceStyle(product.textAppearance?.title)}
-              >{product.title}</h3>
-              {#if product.description}
-                <p
-                  class="cms-styled-text"
-                  style={textAppearanceStyle(product.textAppearance?.description)}
-                >{product.description}</p>
-              {/if}
-            </div>
-          </a>
-        </Reveal>
+        <CollectionCard
+          href={`/produtos/${product.slug}${langQuery}`}
+          title={product.title}
+          description={product.description}
+          {image}
+          {index}
+          transitionName={`vt-${product.slug}`}
+          textAppearance={product.textAppearance}
+        />
       {/each}
     </div>
 

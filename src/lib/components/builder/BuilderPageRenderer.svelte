@@ -1,6 +1,7 @@
 <script lang="ts">
   import {onMount} from 'svelte'
   import Reveal from '$lib/components/Reveal.svelte'
+  import CollectionCard from '$lib/components/CollectionCard.svelte'
   import BuilderMedia from './BuilderMedia.svelte'
   import BuilderRichText from './BuilderRichText.svelte'
   import BuilderSectionHeading from './BuilderSectionHeading.svelte'
@@ -112,6 +113,9 @@
       return content.storeProducts.slice(0, limit).map((item) => ({
         title: item.title,
         meta: storeCategoryLabel(content.storePage, item.category),
+        description: '',
+        slug: item.slug,
+        textAppearance: item.textAppearance,
         image: item.image,
         href: `/loja/${item.slug}?lang=${language}`,
       }))
@@ -120,6 +124,9 @@
       return content.caseStudies.slice(0, limit).map((item) => ({
         title: item.title,
         meta: item.location,
+        description: item.summary ?? '',
+        slug: item.slug,
+        textAppearance: item.textAppearance,
         image: item.image,
         href: `/casos-de-estudo/${item.slug}?lang=${language}`,
       }))
@@ -128,6 +135,9 @@
       return content.blogPosts.slice(0, limit).map((item) => ({
         title: item.title,
         meta: item.category,
+        description: item.excerpt ?? '',
+        slug: item.slug,
+        textAppearance: item.textAppearance,
         image: item.image,
         href: `/blog/${item.slug}?lang=${language}`,
       }))
@@ -135,6 +145,9 @@
     return content.products.slice(0, limit).map((item) => ({
       title: item.title,
       meta: '',
+      description: item.description ?? '',
+      slug: item.slug,
+      textAppearance: item.textAppearance,
       image: item.image,
       href: `/produtos/${item.slug}?lang=${language}`,
     }))
@@ -287,16 +300,18 @@
                   <div class="builder-search-preview">Pesquisar</div>
                 {/if}
                 <div class="builder-grid builder-collection" style={columnsStyle(section, 3)}>
-                  {#each collectionItems(section) as item}
-                    <a href={item.href} onclick={(event) => preview && event.preventDefault()}>
-                      {#if item.image?.url}
-                        <img src={sizedImage(item.image.url, 720)} alt={item.image.alt} loading="lazy" />
-                      {:else}
-                        <span class="builder-collection-media-empty"></span>
-                      {/if}
-                      {#if item.meta}<small>{item.meta}</small>{/if}
-                      <h3>{item.title}</h3>
-                    </a>
+                  {#each collectionItems(section) as item, index}
+                    <CollectionCard
+                      href={item.href}
+                      title={item.title}
+                      description={item.description}
+                      meta={item.meta}
+                      image={item.image}
+                      textAppearance={item.textAppearance}
+                      transitionName={item.slug ? `vt-${item.slug}` : ''}
+                      {index}
+                      {preview}
+                    />
                   {/each}
                 </div>
               {:else if section._type === 'builderPartnersSection'}

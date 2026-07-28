@@ -1611,6 +1611,7 @@ dt {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
 }
 
+.collection-card,
 .home-solution-card,
 .home-work-card {
   display: flex;
@@ -1620,11 +1621,13 @@ dt {
   transition: transform 420ms var(--ease-snap);
 }
 
+.collection-card:hover,
 .home-solution-card:hover,
 .home-work-card:hover {
   transform: translateY(-5px);
 }
 
+.collection-card-media,
 .home-solution-media,
 .home-work-media {
   position: relative;
@@ -1633,6 +1636,7 @@ dt {
   border-radius: 16px;
 }
 
+.collection-card-media,
 .home-solution-media {
   aspect-ratio: 4 / 5;
 }
@@ -1641,6 +1645,7 @@ dt {
   aspect-ratio: 3 / 2;
 }
 
+.collection-card-media img,
 .home-solution-media img,
 .home-work-media img {
   width: 100%;
@@ -1668,6 +1673,7 @@ dt {
   box-shadow: 0 0.5rem 1.3rem rgba(17, 57, 60, 0.16);
 }
 
+.collection-card-copy h3,
 .home-solution-copy h3,
 .home-work-card h3 {
   margin: 0.9rem 0 0;
@@ -1678,6 +1684,7 @@ dt {
   line-height: 1.15;
 }
 
+.collection-card-copy p,
 .home-solution-copy p {
   display: -webkit-box;
   margin: 0.4rem 0 0;
@@ -7362,4 +7369,21 @@ html.reduce-motion .intro-overlay {
       var(--cms-text-size-tablet, var(--cms-text-size-desktop))
     ) !important;
   }
+}
+
+/* The shared collection card carries the site's own list treatment wherever it
+   appears — the hand-built home grids and the builder's automatic list alike.
+   Converting a designed block into a section must not change how it looks. */
+.collection-card-meta {
+  display: block;
+  margin: 0.9rem 0 0;
+  color: var(--green);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collection-card-meta + h3 {
+  margin-top: 0.3rem;
 }
