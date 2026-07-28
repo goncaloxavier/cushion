@@ -101,6 +101,19 @@ The builder does not permit raw HTML, JavaScript, arbitrary CSS, arbitrary ifram
 unvalidated color/URL values. These boundaries prevent XSS, inaccessible pages, broken mobile
 layouts, and content that cannot be migrated later.
 
+## Where Sections Live
+
+Builder sections are not exclusive to free pages. Two documents carry them, and they sit at
+different paths:
+
+- `sitePage.sections` — free pages, rendered by `/[...path]`.
+- `siteLanding.home.sections` — the landing page, rendered by `/` below its designed blocks.
+
+Both go through `BuilderPageRenderer`, so a block that works on one works on the other. The
+Inspector reuses one `SitePageSectionsEditor` for both and rewrites the landing page's result back
+into `home` (see `scopedSectionsPath`). Anything that assumes sections are always at the document
+root will be wrong for the landing page.
+
 ## Draft And Publish Rules
 
 - Builder edits always write to `drafts.*` first.

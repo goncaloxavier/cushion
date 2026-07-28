@@ -319,15 +319,44 @@ function SiteEditorInspectorComponent({
       returnFocus,
     })
 
+  // The landing page keeps its sections at home.sections, not at the document
+  // root like a free page does, so the shared editor gets a view of just that
+  // array and its result is written back into the scope it came from.
+  const scopedSectionsPath =
+    document?._type === 'siteLanding' && node?.rootPath === 'home' ? 'home' : undefined
+
   const renderField = (field: SiteEditorField) =>
-    field.type === 'sections' && document?._type === 'sitePage' ? (
+    field.type === 'sections' && (document?._type === 'sitePage' || scopedSectionsPath) ? (
       <SitePageSectionsEditor
         key={field.name}
-        page={document as SitePageDocument}
+        page={
+          scopedSectionsPath
+            ? ({
+                ...(document as SiteEditorDocument),
+                sections:
+                  ((document as Record<string, unknown>)[scopedSectionsPath] as
+                    | {sections?: unknown[]}
+                    | undefined)?.sections ?? [],
+              } as unknown as SitePageDocument)
+            : (document as SitePageDocument)
+        }
         selectedSectionKey={selectedSectionKey}
         dataset={dataset}
         onSelectSection={onSelectSection}
-        onChange={(next) => onReplace(next)}
+        onChange={(next) => {
+          if (!scopedSectionsPath) {
+            onReplace(next)
+            return
+          }
+          const scope = (document as Record<string, unknown>)[scopedSectionsPath]
+          onReplace({
+            ...(document as SiteEditorDocument),
+            [scopedSectionsPath]: {
+              ...(typeof scope === 'object' && scope !== null ? scope : {}),
+              sections: next.sections ?? [],
+            },
+          } as SiteEditorDocument)
+        }}
         onUpload={onUpload}
         onOpenArticle={openSectionArticle}
       />

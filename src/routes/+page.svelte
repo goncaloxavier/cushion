@@ -1,6 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {lineReveal} from '$lib/actions/line-reveal'
+  import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
@@ -403,4 +404,18 @@
       </div>
     </Reveal>
   </section>
+
+  <!-- Free sections the client adds in the editor. Same blocks the free pages
+       use, rendered through the same component, so anything that works on
+       /alguma-pagina works here. -->
+  {#if content.home.sections.length}
+    <BuilderPageRenderer
+      page={{sections: content.home.sections}}
+      settings={data.settings}
+      {content}
+      language={data.language}
+      dataset={data.sanityDataset}
+      preview={data.preview}
+    />
+  {/if}
 </main>

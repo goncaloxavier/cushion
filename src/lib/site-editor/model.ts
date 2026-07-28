@@ -359,6 +359,9 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
             },
           ],
         },
+        // Same editor the free pages use. The Inspector reads and writes it at
+        // home.sections rather than the document root — see renderField.
+        {name: 'sections', label: 'Secções', type: 'sections'},
       ],
     },
   ],

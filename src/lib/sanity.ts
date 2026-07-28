@@ -152,6 +152,10 @@ const collectionsQuery = `{
       privacyConsentPrefix
     },
     home {
+      // Sections come through unprojected, exactly as sitePageQuery returns
+      // them: BuilderPageRenderer resolves image references against the
+      // dataset itself, so a projection here would only strip what it needs.
+      sections,
       hero {
         title
       },

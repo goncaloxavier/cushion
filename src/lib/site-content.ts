@@ -1,5 +1,6 @@
 import {stegaClean} from '@sanity/client/stega'
 import type {RichArticleBlock} from './article-structure'
+import type {BuilderSection} from './builder/types'
 import {defaultStoreCategories, humanizeStoreCategory} from './store-categories'
 import {storeProductsForLanguage} from './store-fallback'
 import {storeTransportMultiplier} from './store-shipping'
@@ -327,6 +328,9 @@ export type SiteContent = {
     partners: CopyBlock & {
       items: PartnerItem[]
     }
+    // Free builder sections, same blocks the free pages use. Passed through
+    // untouched — BuilderPageRenderer owns their shape, not this module.
+    sections: BuilderSection[]
   }
   about: {
     hero: CopyBlock
@@ -592,6 +596,7 @@ type SanitySiteContent = {
       lead?: LocalizedValue
       items?: SanityPartnerItem[]
     }
+    sections?: BuilderSection[]
   }
   about?: {
     hero?: SanityCopyBlock
@@ -1222,6 +1227,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'Eu concordo com a',
     },
     home: {
+      // No builder sections in the built-in fallback content — the landing
+      // page only gains them once an editor adds them in Sanity.
+      sections: [],
       hero: {
         kicker: 'Matéria-prima do ecoponto amarelo',
         title: 'Transformamos resíduos do amarelo em produtos que não requerem manutenção',
@@ -1565,6 +1573,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'I agree with the',
     },
     home: {
+      // No builder sections in the built-in fallback content — the landing
+      // page only gains them once an editor adds them in Sanity.
+      sections: [],
       hero: {
         kicker: 'Raw material from the yellow-bin stream',
         title: 'We turn yellow waste into maintenance-free products',
@@ -1908,6 +1919,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'Estoy de acuerdo con la',
     },
     home: {
+      // No builder sections in the built-in fallback content — the landing
+      // page only gains them once an editor adds them in Sanity.
+      sections: [],
       hero: {
         kicker: 'Materia prima del contenedor amarillo',
         title: 'Transformamos residuos del amarillo en productos sin mantenimiento',
@@ -3019,6 +3033,7 @@ const applySiteContentFromSanity = (
         fallback.home.partners.items,
       ),
     },
+    sections: Array.isArray(source.home?.sections) ? source.home.sections : [],
   }
 
   target.about = {

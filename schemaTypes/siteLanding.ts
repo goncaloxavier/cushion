@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {builderSectionMembers} from './builder/builderSections'
 import {videoCaptionsField} from './components/videoCaptionsField'
 
 const localizedStringField = (
@@ -320,8 +321,16 @@ export const siteLanding = defineType({
             partnerItemsField('items', 'Parceiros'),
           ],
         }),
+        defineField({
+          name: 'sections',
+          title: 'Secções',
+          description:
+            'Secções livres da página inicial, com os mesmos blocos das páginas livres. Arraste para alterar a ordem.',
+          type: 'array',
+          of: builderSectionMembers,
+        }),
       ],
-      'Textos, vídeo e parceiros da página inicial.',
+      'Textos, vídeo, parceiros e secções da página inicial.',
     ),
     pageSectionField(
       'about',
