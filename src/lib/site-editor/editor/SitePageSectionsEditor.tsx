@@ -67,6 +67,11 @@ const sectionTypes: Array<{
     description: 'Produtos, loja, casos de estudo ou artigos do blog',
   },
   {
+    value: 'builderPartnersSection',
+    label: 'Parceiros',
+    description: 'Logótipos de entidades e projetos, com ligação a cada um',
+  },
+  {
     value: 'builderCtaSection',
     label: 'Chamada para ação',
     description: 'Mensagem curta com um ou mais botões',

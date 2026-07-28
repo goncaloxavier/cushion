@@ -240,6 +240,21 @@
     </div>
   {/if}
 
+  <!-- Everything below the hero is section-driven. The hero itself stays
+       pinned: its video facade and line-reveal are not reproducible by the
+       generic renderer, and a hero does not need to move below the products. -->
+  {#if content.home.sections.length}
+    <BuilderPageRenderer
+      page={{sections: content.home.sections}}
+      settings={data.settings}
+      {content}
+      language={data.language}
+      dataset={data.sanityDataset}
+      preview={data.preview}
+    />
+  {:else}
+    <!-- Until the sections are seeded in Sanity the original blocks still
+         render, so the live page never goes blank mid-migration. -->
   <section class="section home-solutions">
     <Reveal class="home-section-head" variant="panel">
       <p class="kicker">{content.nav.products}</p>
@@ -404,18 +419,5 @@
       </div>
     </Reveal>
   </section>
-
-  <!-- Free sections the client adds in the editor. Same blocks the free pages
-       use, rendered through the same component, so anything that works on
-       /alguma-pagina works here. -->
-  {#if content.home.sections.length}
-    <BuilderPageRenderer
-      page={{sections: content.home.sections}}
-      settings={data.settings}
-      {content}
-      language={data.language}
-      dataset={data.sanityDataset}
-      preview={data.preview}
-    />
   {/if}
 </main>

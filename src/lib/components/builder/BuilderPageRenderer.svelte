@@ -19,6 +19,7 @@
   } from '$lib/builder/types'
   import type {SitePageDocument} from '$lib/site-editor/types'
   import {storeCategoryLabel, type LanguageCode, type SiteContent} from '$lib/site-content'
+  import {builderAssetUrl} from '$lib/builder/media'
   import {sizedImage} from '$lib/image'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import '$lib/styles/builder-renderer.css'
@@ -302,9 +303,31 @@
                 <BuilderSectionHeading {section} {language} {preview} />
                 <div class="builder-grid builder-partners" style={columnsStyle(section, 4)}>
                   {#each section.items ?? [] as partner, index}
-                    <article>
-                      <strong>{String((partner as Record<string, unknown>).name || `Parceiro ${index + 1}`)}</strong>
-                    </article>
+                    {@const item = partner as Record<string, any>}
+                    {@const logoUrl = builderAssetUrl(item.logo?.asset?._ref, dataset)}
+                    {@const name = String(item.name || `Parceiro ${index + 1}`)}
+                    <svelte:element
+                      this={item.url ? 'a' : 'article'}
+                      class="builder-partner"
+                      href={item.url || undefined}
+                      target={item.url ? '_blank' : undefined}
+                      rel={item.url ? 'noreferrer' : undefined}
+                    >
+                      {#if logoUrl}
+                        <span class="builder-partner-logo" data-logo-tone={item.logoTone || 'light'}>
+                          <img
+                            src={sizedImage(logoUrl, 320)}
+                            alt={builderLocalized(item.logo?.alt, language) || name}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </span>
+                      {/if}
+                      <strong>{name}</strong>
+                      {#if builderLocalized(item.text, language)}
+                        <span class="builder-partner-text">{builderLocalized(item.text, language)}</span>
+                      {/if}
+                    </svelte:element>
                   {:else}
                     <div class="builder-empty-state">Adicione parceiros</div>
                   {/each}
