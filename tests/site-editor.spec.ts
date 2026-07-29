@@ -755,14 +755,24 @@ test.describe('visual website editor', () => {
     const settings = page.locator('.site-editor-drawer.is-settings')
     // The panel is named for what it holds, not for the page you already
     // selected — see the label convention in siteScopePanels.
-    await settings.getByRole('button', {name: 'Topo, impacto e parceiros'}).click()
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Topo da página'})
+      .click()
     await expect(
       settings
         .locator('.site-editor-field-index > button')
         .filter({hasText: 'Texto para fechar o vídeo'})
         .locator('small'),
     ).toHaveText('Opcional')
-    await settings.getByRole('button', {name: 'Impacto e prova'}).click()
+    // Impacto e prova is a section now, not a field on this panel, so the
+    // scrollable target is the section list. Drilling into a panel replaces the
+    // index, so step back out before picking the next one.
+    await settings.getByRole('button', {name: 'Todas as áreas'}).click()
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
     const inspectorScroll = settings.locator('.site-editor-inspector-scroll')
     await expect(inspectorScroll).toBeVisible()
     const inspectorDimensions = await inspectorScroll.evaluate((element) => ({

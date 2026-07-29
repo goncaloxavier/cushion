@@ -165,11 +165,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   home: [
     {
       id: 'home-main',
-      label: 'Topo, impacto e parceiros',
+      label: 'Topo da página',
       fields: [
         {
           name: 'hero',
-          label: 'Topo da página',
+          // Not "Topo da página" — that is the panel this sits in.
+          label: 'Título',
           type: 'object',
           fields: [
             localizedString(
@@ -198,56 +199,6 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           undefined,
           'Ex.: Fechar vídeo',
         ),
-        {
-          name: 'impact',
-          label: 'Impacto e prova',
-          type: 'object',
-          fields: [
-            localizedString('title', 'Título', undefined, 'Ex.: Menos desperdício, mais futuro'),
-            {name: 'stats', label: 'Números', type: 'array', item: contentCardItem},
-          ],
-        },
-        {
-          name: 'partners',
-          label: 'Parceiros e projetos',
-          type: 'object',
-          fields: [
-            localizedString('kicker', 'Etiqueta', undefined, 'Ex.: Parceiros'),
-            localizedString('title', 'Título', undefined, 'Ex.: Quem confia em nós'),
-            localizedText(
-              'lead',
-              'Texto',
-              undefined,
-              'Ex.: Empresas e projetos que já transformaram resíduos em soluções duradouras.',
-            ),
-            {
-              name: 'items',
-              label: 'Parceiros',
-              type: 'array',
-              item: {
-                name: 'item',
-                label: 'Parceiro',
-                type: 'object',
-                fields: [
-                  {
-                    name: 'name',
-                    label: 'Nome',
-                    type: 'string',
-                    placeholder: 'Ex.: Câmara Municipal de Condeixa',
-                  },
-                  {name: 'url', label: 'Ligação', type: 'url', placeholder: 'https://…'},
-                  image('logo', 'Logótipo'),
-                  localizedText(
-                    'text',
-                    'Texto',
-                    undefined,
-                    'Ex.: Parceria na requalificação de espaços públicos.',
-                  ),
-                ],
-              },
-            },
-          ],
-        },
       ],
     },
   ],
