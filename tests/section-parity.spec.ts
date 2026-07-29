@@ -1,5 +1,6 @@
 import {expect, test, type Page} from '@playwright/test'
 import {readFileSync} from 'node:fs'
+import {legacyProductContentSectionsToBuilder} from '../src/lib/builder/product-sections'
 
 // The rule this file exists to hold: converting a designed block into a section
 // must not change what the visitor gets. If these drift, the section system has
@@ -100,6 +101,38 @@ test('every section the picker offers has a renderer that draws it', () => {
   for (const type of offered) {
     expect(rendered.has(type), `${type} is offered in the editor but never rendered`).toBe(true)
   }
+})
+
+test('every legacy product block survives the trip into the section editor', () => {
+  // Exactly what a client-created, not-yet-filled-in block looks like in the
+  // live dataset: no image, no video, every text field blank. It used to be
+  // discarded on the way into the editor, so the editor listed fewer sections
+  // than the document held and the next save would have deleted it.
+  const emptyBlock = {
+    _key: 'empty-block',
+    _type: 'productContentSection',
+    buttonLabel: {_type: 'localizedString', pt: ''},
+    buttonUrl: '',
+    image: null,
+    label: {_type: 'localizedString', pt: ''},
+    labelStyle: 'caption',
+    mediaKind: 'image',
+    mediaSide: 'left',
+    poster: null,
+    surface: 'white',
+    text: {_type: 'localizedText', pt: ''},
+    title: {_type: 'localizedString', pt: ''},
+    video: {kind: 'youtube', youtubeUrl: ''},
+    videoTitle: {_type: 'localizedString', pt: ''},
+  }
+
+  const converted = legacyProductContentSectionsToBuilder([emptyBlock])
+  expect(converted, 'a block the client created was dropped').toHaveLength(1)
+  expect(converted[0]._key).toBe('empty-block')
+  // It also needs a name in the list, or it is an unlabelled row nobody can act on.
+  expect(converted[0].internalLabel?.trim()).toBeTruthy()
+  // The full-bleed product layout is built around media it does not have.
+  expect((converted[0] as {variant?: string}).variant).toBeUndefined()
 })
 
 test('a page core is edited in one place, not two', async ({page}, testInfo) => {

@@ -95,8 +95,12 @@ export const legacyProductContentSectionsToBuilder = (value: unknown): BuilderSe
 
   return value.flatMap((candidate, index) => {
     if (!isRecord(candidate)) return []
+    // A block without media is still a block the client created and can see in
+    // the CMS. Dropping it here made the editor list fewer sections than the
+    // document holds — the block appeared to vanish on open, and the first save
+    // of the section list would have erased it for good. Carry it through with
+    // no media instead, so the editor and the document always agree.
     const media = legacyMedia(candidate)
-    if (!media) return []
 
     const title = localizedValue(candidate.title, 'localizedString')
     const body = localizedValue(candidate.text, 'localizedText')
@@ -123,7 +127,10 @@ export const legacyProductContentSectionsToBuilder = (value: unknown): BuilderSe
         _key: key,
         internalLabel: title?.pt?.trim() || `Secção do produto ${index + 1}`,
         enabled: true,
-        variant: 'product-feature',
+        // The full-bleed product layout is built around its media. Without one
+        // it collapses, so a media-less block uses the ordinary text-and-media
+        // layout, which renders fine with nothing on the media side.
+        ...(media ? {variant: 'product-feature' as const} : {}),
         labelStyle,
         eyebrow,
         title,
