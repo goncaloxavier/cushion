@@ -1,9 +1,11 @@
 import {expect, test} from '@playwright/test'
+import {readFileSync} from 'node:fs'
 import {
   collectArticleLeaves,
   detectLocalizedKind,
   findLocalizedFields,
   hashLeaves,
+  localizedAppearanceKeys,
   reinsertArticleLeaves,
   type PortableTextBlock,
 } from '../src/lib/server/translate-content'
@@ -80,6 +82,59 @@ test.describe('translate-content tree-walker', () => {
     // An unrelated object that happens to have a `pt` key plus other,
     // non-localized keys must NOT be misdetected.
     expect(detectLocalizedKind({pt: 'x', slug: 'produto', price: 10})).toBeNull()
+  })
+
+  test('a field the client has styled is still translated', () => {
+    // Styling lives on the same object as the text. When the shape check did not
+    // allow for it, styling a field silently removed it from translation for
+    // good — English and Spanish kept whatever they had. The blog list heading
+    // sat wrong on the live site because of exactly this.
+    for (const key of localizedAppearanceKeys) {
+      expect(
+        detectLocalizedKind({pt: 'Olá', en: 'Hello', es: 'Hola', [key]: 'anything'}),
+        `styling a field with ${key} takes it out of translation`,
+      ).toBe('string')
+    }
+
+    const styled = {
+      hero: {
+        title: {
+          _type: 'localizedString',
+          pt: 'No nosso Blog encontra informação',
+          en: 'Content that sells by teaching',
+          es: 'Contenido que vende enseñando',
+          fontSize: 60,
+          fontWeight: 'bold',
+          translationHash: 'stale',
+        },
+      },
+    }
+    const tasks = findLocalizedFields(styled)
+    expect(tasks.map((task) => task.patchPath)).toEqual(['hero.title'])
+    // Stale hash: the Portuguese moved on, so this has to come back as dirty.
+    expect(tasks[0].hash).not.toBe(tasks[0].currentHash)
+  })
+
+  test('the styling allow-list still matches the schema', () => {
+    // The guard that keeps the bug above from coming back. A styling control
+    // added to the schema and not to the allow-list would silently take every
+    // field using it out of translation, with nothing failing.
+    const schemaKeys = new Set<string>()
+    for (const file of ['localizedString', 'localizedText']) {
+      const source = readFileSync(`schemaTypes/objects/${file}.ts`, 'utf8')
+      const appearanceBlock = source.slice(
+        source.indexOf('const appearanceFields'),
+        source.indexOf(']', source.indexOf('const appearanceFields')),
+      )
+      expect(appearanceBlock, `no appearanceFields block in ${file}.ts`).toBeTruthy()
+      for (const match of appearanceBlock.matchAll(/name: '([^']+)'/g)) schemaKeys.add(match[1])
+    }
+
+    expect(schemaKeys.size, 'no appearance fields parsed from the schema').toBeGreaterThan(0)
+    expect(
+      [...schemaKeys].sort(),
+      'the schema and the translator disagree about which keys are styling',
+    ).toEqual([...localizedAppearanceKeys].sort())
   })
 
   test('collectArticleLeaves extracts every translatable leaf in document order', () => {

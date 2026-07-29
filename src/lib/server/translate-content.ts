@@ -7,7 +7,40 @@ export type PortableTextBlock = Record<string, unknown>
 
 export type LocalizedFieldKind = 'string' | 'article'
 
-const localizedShapeKeys = new Set(['pt', 'en', 'es', 'translationHash', '_key', '_type'])
+/**
+ * Per-field styling the client can set from the editor. It is stored on the same
+ * object as the text itself (see schemaTypes/objects/localizedString.ts), so the
+ * shape check below has to tolerate it.
+ *
+ * It did not, and the consequence was silent and permanent: styling a field gave
+ * it an extra key, the field stopped matching the localized shape, the translator
+ * stopped seeing it, and English and Spanish kept whatever text they had from
+ * before — for good. The blog list heading was one of these.
+ *
+ * `translate-content.spec.ts` asserts this list still matches the schema, so
+ * adding a styling control cannot quietly take fields out of translation again.
+ */
+export const localizedAppearanceKeys = [
+  'fontFamily',
+  'fontSize',
+  'fontSizeTablet',
+  'fontSizeMobile',
+  'fontWeight',
+  'fontStyle',
+  'textAlign',
+  'lineHeight',
+  'color',
+] as const
+
+const localizedShapeKeys = new Set<string>([
+  'pt',
+  'en',
+  'es',
+  'translationHash',
+  '_key',
+  '_type',
+  ...localizedAppearanceKeys,
+])
 
 // Shape-based detection: every localized text/article type has exactly this
 // key set, and nothing else does. The allow-list is defense in depth against
