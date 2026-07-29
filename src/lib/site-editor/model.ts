@@ -165,7 +165,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   home: [
     {
       id: 'home-main',
-      label: 'Página inicial',
+      label: 'Topo, impacto e parceiros',
       fields: [
         {
           name: 'hero',
@@ -254,7 +254,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   about: [
     {
       id: 'about-main',
-      label: 'Página Sobre',
+      label: 'Apresentação e momentos',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Sobre nós',
@@ -271,7 +271,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   productsPage: [
     {
       id: 'products-page',
-      label: 'Página Produtos',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Produtos',
@@ -414,7 +414,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   catalogue: [
     {
       id: 'catalogue-page',
-      label: 'Página Catálogo',
+      label: 'Topo e formulário',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Catálogo',
@@ -465,7 +465,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   casesPage: [
     {
       id: 'cases-page',
-      label: 'Página Casos',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Casos de estudo',
@@ -478,7 +478,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   blogPage: [
     {
       id: 'blog-page',
-      label: 'Página Blog',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Blog',
@@ -491,7 +491,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   contactPage: [
     {
       id: 'contact-page',
-      label: 'Página Contacto',
+      label: 'Topo e formulário',
       fields: [
         copyBlock('hero', 'Topo da página', true, {
           kicker: 'Ex.: Contacto',
@@ -510,7 +510,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   returnsPolicy: [
     {
       id: 'returns-policy',
-      label: 'Política de devoluções',
+      label: 'Texto e condições',
       fields: [
         localizedString('kicker', 'Etiqueta', undefined, 'Ex.: Política'),
         localizedString('title', 'Título', undefined, 'Ex.: Política de devoluções'),

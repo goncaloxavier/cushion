@@ -753,7 +753,9 @@ test.describe('visual website editor', () => {
 
     await page.getByRole('button', {name: 'Abrir definições'}).click()
     const settings = page.locator('.site-editor-drawer.is-settings')
-    await settings.getByRole('button', {name: 'Página inicial'}).click()
+    // The panel is named for what it holds, not for the page you already
+    // selected — see the label convention in siteScopePanels.
+    await settings.getByRole('button', {name: 'Topo, impacto e parceiros'}).click()
     await expect(
       settings
         .locator('.site-editor-field-index > button')
