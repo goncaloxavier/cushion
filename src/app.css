@@ -7394,34 +7394,34 @@ html.reduce-motion .intro-overlay {
   margin-top: 0.3rem;
 }
 
-/* Downloadable documents. Deliberately not a section: it is a compact strip
-   that sits inside whatever surrounds it, so attaching a PDF never restructures
-   the page. One treatment everywhere it appears — product detail, store product
-   and both listings — so a PDF looks like the same thing wherever it is
-   attached. */
+/* Downloadable documents. Deliberately not a section and not a band: it sits
+   inside whatever contains it — the hero copy on a listing, the specs on a
+   product — so attaching a PDF never adds a strip between blocks or
+   restructures the page. One treatment everywhere, so a PDF looks like the same
+   thing wherever the client attaches it. */
 .download-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.8rem;
+  gap: 0.45rem;
   align-items: center;
-  width: min(100%, var(--max));
-  margin: 0 auto;
-  padding: 1.1rem max(1.25rem, calc((100% - var(--max)) / 2));
+  justify-content: flex-start;
+  margin-top: 1.5rem;
 }
 
 .download-list-title {
-  margin: 0;
+  flex: 0 0 100%;
+  margin: 0 0 0.15rem;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .download-list ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.45rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -7429,60 +7429,55 @@ html.reduce-motion .intro-overlay {
 
 .download-list a {
   display: inline-flex;
-  gap: 0.55rem;
+  gap: 0.5rem;
   align-items: center;
-  padding: 0.5rem 0.85rem 0.5rem 0.6rem;
+  padding: 0.42rem 0.8rem 0.42rem 0.55rem;
   color: inherit;
   text-decoration: none;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(17, 57, 60, 0.16);
   border-radius: 999px;
   transition:
     border-color 200ms ease,
-    transform 200ms var(--ease-snap);
+    background 200ms ease;
 }
 
 .download-list a:hover {
+  background: #ffffff;
   border-color: var(--green);
-  transform: translateY(-1px);
 }
 
 /* A document mark rather than a generic arrow: the affordance should say
    "file", not "link". */
 .download-list-icon {
   flex: 0 0 auto;
-  width: 1.05rem;
-  height: 1.35rem;
+  width: 0.95rem;
+  height: 1.2rem;
   background: linear-gradient(180deg, #f2f7f4, #e2ece7);
-  border: 1px solid rgba(17, 57, 60, 0.2);
+  border: 1px solid rgba(17, 57, 60, 0.22);
   border-radius: 2px;
-  clip-path: polygon(0 0, 70% 0, 100% 24%, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 68% 0, 100% 26%, 100% 100%, 0 100%);
 }
 
 .download-list-copy {
   display: inline-flex;
-  gap: 0.45rem;
+  gap: 0.4rem;
   align-items: baseline;
   min-width: 0;
 }
 
 .download-list-copy strong {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
 .download-list-copy small {
   color: var(--muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
 @media (max-width: 700px) {
-  .download-list {
-    padding: 1rem var(--mobile-gutter);
-  }
-
   .download-list a {
     width: 100%;
   }

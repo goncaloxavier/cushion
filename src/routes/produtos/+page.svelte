@@ -135,6 +135,12 @@
         use:lineReveal
         data-sanity={siteContentDataAttribute?.('productsPage.hero.title.pt')}
       >{content.productsPage.hero.title}</h1>
+
+      <DownloadList
+        documents={content.productsPage.documents}
+        title={content.productsPage.documentsTitle}
+        fallbackTitle={content.common.downloadsTitle}
+      />
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>
@@ -153,12 +159,6 @@
       />
     </Reveal>
     </section>
-
-    <DownloadList
-      documents={content.productsPage.documents}
-      title={content.productsPage.documentsTitle}
-      fallbackTitle={content.common.downloadsTitle}
-    />
 
     <section class="section product-collection-section" bind:this={collectionSection}>
     <Reveal delay={80} variant="panel">

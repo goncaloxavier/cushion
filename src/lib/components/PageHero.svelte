@@ -2,6 +2,7 @@
   import {lineReveal} from '$lib/actions/line-reveal'
   import {textAppearanceStyle, type TextAppearance} from '$lib/text-appearance'
   import Reveal from './Reveal.svelte'
+  import type {Snippet} from 'svelte'
 
   let {
     kicker,
@@ -10,6 +11,7 @@
     align = 'split',
     dataAttribute,
     textAppearance,
+    children,
   }: {
     kicker: string
     title: string
@@ -17,6 +19,9 @@
     align?: 'split' | 'center'
     dataAttribute?: (field: 'kicker' | 'title' | 'lead') => string | undefined
     textAppearance?: Partial<Record<'kicker' | 'title' | 'lead', TextAppearance>>
+    // Rendered inside the hero copy, so anything a page adds here belongs to
+    // the hero rather than forming a band of its own beneath it.
+    children?: Snippet
   } = $props()
 </script>
 
@@ -40,5 +45,6 @@
         data-sanity={dataAttribute?.('lead')}
       >{lead}</p>
     {/if}
+    {@render children?.()}
   </Reveal>
 </section>

@@ -253,13 +253,13 @@
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
   >
-    <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
-
-    <DownloadList
-      documents={content.storePage.documents}
-      title={content.storePage.documentsTitle}
-      fallbackTitle={content.common.downloadsTitle}
-    />
+    <PageHero {...hero} dataAttribute={storeHeroDataAttribute}>
+      <DownloadList
+        documents={content.storePage.documents}
+        title={content.storePage.documentsTitle}
+        fallbackTitle={content.common.downloadsTitle}
+      />
+    </PageHero>
 
     <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}
