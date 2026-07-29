@@ -7,8 +7,13 @@ const {Pool} = pg
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) {
-  console.error('DATABASE_URL is required to run migrations.')
-  process.exit(1)
+  // Not an error. The app runs without a database — 48 call sites guard on
+  // databaseConfigured(), and the public site serves fine while /painel and
+  // /conta degrade. Since production starts with `db:migrate && start`, exiting
+  // non-zero here would turn a missing DATABASE_URL into a total outage rather
+  // than the partial one the app is designed for.
+  console.warn('[db:migrate] DATABASE_URL is not set — skipping migrations.')
+  process.exit(0)
 }
 
 const pool = new Pool({
