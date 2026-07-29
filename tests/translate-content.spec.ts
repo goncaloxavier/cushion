@@ -6,6 +6,7 @@ import {
   findLocalizedFields,
   hashLeaves,
   localizedAppearanceKeys,
+  type LocalizedShapeMismatch,
   reinsertArticleLeaves,
   type PortableTextBlock,
 } from '../src/lib/server/translate-content'
@@ -320,4 +321,30 @@ test.describe('translate-content tree-walker', () => {
     expect(context).toContain('Banco para sentar em espaços exteriores.')
     expect(context.length).toBeLessThanOrEqual(12_000)
   })
+})
+
+test('a translatable field the shape check rejects is reported, not silently skipped', () => {
+  // The failure mode that made the blog heading wrong was not the rejection — it
+  // was that the rejection left no trace. The run reported success, translated
+  // nothing, and the page kept its old English. Any future key on a localized
+  // object has to surface instead of disappearing.
+  const doc = {
+    hero: {
+      title: {
+        _type: 'localizedString',
+        pt: 'Um título',
+        en: 'A title',
+        translationHash: 'abc',
+        letterSpacing: '0.02em',
+      },
+    },
+    // A field with no styling and no surprises must not be reported.
+    intro: {_type: 'localizedString', pt: 'Intro', en: 'Intro'},
+  }
+
+  const mismatches: LocalizedShapeMismatch[] = []
+  const tasks = findLocalizedFields(doc, '', mismatches)
+
+  expect(tasks.map((task) => task.patchPath)).toEqual(['intro'])
+  expect(mismatches).toEqual([{path: 'hero.title', unexpectedKeys: ['letterSpacing']}])
 })
