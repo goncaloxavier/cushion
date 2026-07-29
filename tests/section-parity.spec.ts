@@ -83,3 +83,32 @@ test('legacy landing content is normalized into the same designed section render
     expect(renderer, `section renderer no longer uses ${component}`).toContain(component)
   }
 })
+
+test('a page core is edited in one place, not two', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Editor contract runs once')
+  await page.setExtraHTTPHeaders({
+    'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+    'x-df4y-site-editor-scope': `core-once-${Date.now()}`,
+  })
+  await page.goto('/painel/site')
+  await expect(page.locator('.site-editor-shell')).toBeVisible({timeout: 15_000})
+
+  await page.getByRole('button', {name: 'Abrir definições'}).click()
+  const settings = page.locator('.site-editor-drawer.is-settings')
+  const panelIndex = settings.locator('.site-editor-panel-index > button')
+  const panelLabels = (await panelIndex.locator('strong').allInnerTexts()).map((t) => t.trim())
+
+  // No panel may share a name with another in the same index.
+  expect(new Set(panelLabels).size, `duplicate panel names: ${panelLabels}`).toBe(panelLabels.length)
+
+  // The page's designed block is edited in its own panel and is not listed
+  // among the sections. Listing it too put one block under two names in two
+  // places, which is what this asserts can no longer happen.
+  await panelIndex.filter({hasText: 'Conteúdo da página'}).click()
+  const listed = (
+    await settings.locator('.site-editor-section-list > article strong').allInnerTexts()
+  ).map((t) => t.trim())
+  for (const label of panelLabels) {
+    expect(listed, `"${label}" is both a panel and a section entry`).not.toContain(label)
+  }
+})

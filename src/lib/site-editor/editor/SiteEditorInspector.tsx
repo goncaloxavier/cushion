@@ -265,7 +265,6 @@ function SiteEditorInspectorComponent({
   )
   const [activePanelId, setActivePanelId] = useState<string>()
   const [activeFieldName, setActiveFieldName] = useState<string>()
-  const [activeManagedPanelId, setActiveManagedPanelId] = useState<string>()
   const [articleWorkspace, setArticleWorkspace] = useState<{
     field: SiteEditorField
     path: string
@@ -282,7 +281,18 @@ function SiteEditorInspectorComponent({
     document?._type === 'siteLanding'
       ? managedPageSectionScopeForRoot(node?.rootPath)
       : undefined
-  const managedCoreDefinition = managedCoreSectionFor(node?.rootPath, document?._type)
+  const managedCoreBase = managedCoreSectionFor(node?.rootPath, document?._type)
+  // The core block appears twice by design — once in the section list, where it
+  // can be positioned, and once in the panel index, where it is edited. It must
+  // not appear under two different names. Each core carried its own label, so
+  // Sobre listed "História da empresa" beside a panel called "Apresentação e
+  // momentos": one block, two names, on every managed page. The panel is the
+  // single source of that name now, so the two cannot drift apart.
+  const managedCoreDefinition = useMemo(() => {
+    if (!managedCoreBase) return undefined
+    const owningPanel = panels.find((panel) => panel.id === managedCoreBase.panelIds[0])
+    return owningPanel ? {...managedCoreBase, label: owningPanel.label} : managedCoreBase
+  }, [managedCoreBase, panels])
   // A document's own fields stay in the panel index, including the ones the
   // managed core also exposes. Filtering them out here moved a shop product's
   // name, price, variants and images behind "Conteúdo da página" → core
@@ -327,13 +337,8 @@ function SiteEditorInspectorComponent({
   useEffect(() => {
     setActivePanelId(undefined)
     setActiveFieldName(undefined)
-    setActiveManagedPanelId(undefined)
     setArticleWorkspace(undefined)
   }, [node?.id])
-
-  useEffect(() => {
-    setActiveManagedPanelId(undefined)
-  }, [selectedSectionKey])
 
   const showAllDefinitions = (panelId?: string, fieldName?: string) => {
     setActivePanelId(panelId)
@@ -400,7 +405,6 @@ function SiteEditorInspectorComponent({
         onChange={replaceSections}
         onUpload={onUpload}
         onOpenArticle={openSectionArticle}
-        renderManagedSection={renderManagedSection}
       />
     ) : field.type === 'storeCategoryProducts' ? (
       <Suspense
@@ -436,65 +440,11 @@ function SiteEditorInspectorComponent({
       />
     )
 
-  function renderManagedSection() {
-    if (!managedCoreDefinition) return null
-    const managedPanels = managedCoreDefinition.panelIds
-      .map((panelId) => panels.find((panel) => panel.id === panelId))
-      .filter((panel): panel is SiteEditorPanel => Boolean(panel))
-    const selectedManagedPanel = managedPanels.find(
-      (panel) => panel.id === activeManagedPanelId,
-    )
-    const renderManagedPanel = (panel: SiteEditorPanel) => {
-      const fields = managedCoreDefinition.fieldNames
-        ? panel.fields.filter((field) => managedCoreDefinition.fieldNames?.includes(field.name))
-        : panel.fields
-      if (!fields.length) return null
-
-      return (
-        <section key={panel.id}>
-          {managedPanels.length > 1 && !selectedManagedPanel ? <h3>{panel.label}</h3> : null}
-          <div className="site-editor-panel-fields">{fields.map(renderField)}</div>
-        </section>
-      )
-    }
-
-    return (
-      <div className="site-editor-managed-section">
-        <header>
-          {selectedManagedPanel ? (
-            <button type="button" onClick={() => setActiveManagedPanelId(undefined)}>
-              <ArrowLeftIcon /> Voltar a {managedCoreDefinition.label}
-            </button>
-          ) : null}
-          <small>Conteúdo atual</small>
-          <strong>{selectedManagedPanel?.label ?? managedCoreDefinition.label}</strong>
-          <p>{selectedManagedPanel?.description ?? managedCoreDefinition.description}</p>
-        </header>
-        {selectedManagedPanel ? (
-          renderManagedPanel(selectedManagedPanel)
-        ) : managedPanels.length > 1 ? (
-          <div className="site-editor-managed-panel-index">
-            {managedPanels.map((panel) => (
-              <button
-                key={panel.id}
-                type="button"
-                onClick={() => setActiveManagedPanelId(panel.id)}
-              >
-                <span>
-                  <strong>{panel.label}</strong>
-                  <small>{panel.description || 'Abrir e editar esta parte da página'}</small>
-                </span>
-                <ChevronRightIcon />
-              </button>
-            ))}
-          </div>
-        ) : (
-          managedPanels.map(renderManagedPanel)
-        )}
-      </div>
-    )
-  }
-
+  // The page's designed block appears in the section list so it can be
+  // positioned and hidden alongside the free sections — but it is not a second
+  // place to edit it. It used to re-render the very same panels that sit in the
+  // index above, so every managed page offered two routes to one set of fields,
+  // under two different names. One route, named once: this points at the panel.
   const focusedRootField = focusedField?.panel.fields.find((field) =>
     selectedPath ? pathContains(selectedPath, fieldPath(node?.rootPath, field.name)) : false,
   )
@@ -571,8 +521,7 @@ function SiteEditorInspectorComponent({
               onChange={replaceSections}
               onUpload={onUpload}
               onOpenArticle={openSectionArticle}
-              renderManagedSection={renderManagedSection}
-            />
+                  />
           ) : focusedField ? (
             <div className="site-editor-focused-field">
               <SiteEditorFieldInput

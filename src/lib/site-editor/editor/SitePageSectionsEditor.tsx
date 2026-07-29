@@ -119,7 +119,20 @@ export function SitePageSectionsEditor({
   const [addOpen, setAddOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<BuilderSection>()
   const menuRef = useRef<HTMLDivElement>(null)
-  const sections = useMemo(() => page.sections ?? [], [page.sections])
+  // The page's designed block lives in the data so the renderer knows where to
+  // place it, but it is not listed here. It is edited in its own panel, and
+  // listing it too meant one block under two names in two places — plus a line
+  // of text explaining why. A list of blocks the client can actually add,
+  // reorder and remove is the clearer thing.
+  const sections = useMemo(
+    () => (page.sections ?? []).filter((section) => section._type !== 'builderManagedSection'),
+    [page.sections],
+  )
+  // Writes still carry it, so ordering and placement survive an edit here.
+  const managedSections = useMemo(
+    () => (page.sections ?? []).filter((section) => section._type === 'builderManagedSection'),
+    [page.sections],
+  )
   const selected = useMemo(
     () => sections.find((section) => section._key === selectedSectionKey),
     [sections, selectedSectionKey],
@@ -134,7 +147,8 @@ export function SitePageSectionsEditor({
     return () => document.removeEventListener('pointerdown', close)
   }, [actionsFor])
 
-  const commitSections = (next: BuilderSection[]) => onChange({...page, sections: next})
+  const commitSections = (next: BuilderSection[]) =>
+    onChange({...page, sections: [...managedSections, ...next]})
   const updateSection = (next: BuilderSection) =>
     commitSections(sections.map((section) => (section._key === next._key ? next : section)))
 

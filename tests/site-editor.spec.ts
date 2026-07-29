@@ -563,16 +563,15 @@ test.describe('visual website editor', () => {
       .locator('.site-editor-panel-index > button')
       .filter({hasText: 'Conteúdo da página'})
       .click()
-    const managedHomeArea = settings
-      .locator('.site-editor-section-list > article')
-      .filter({hasText: 'Topo da página'})
-    await expect(managedHomeArea).toHaveCount(1)
-    await expect(settings.locator('.site-editor-section-list > article')).toHaveCount(5)
+    // The page's designed block is edited in its own panel, not listed here, so
+    // this list holds only what the client can add, reorder and remove. It still
+    // renders on the page — hence four sections in the preview against four
+    // entries in the list.
+    await expect(
+      settings.locator('.site-editor-section-list > article').filter({hasText: 'Topo da página'}),
+    ).toHaveCount(0)
+    await expect(settings.locator('.site-editor-section-list > article')).toHaveCount(4)
     await expect(frame.locator('.builder-render-section')).toHaveCount(4)
-    await managedHomeArea.getByRole('button', {name: 'Ações de Topo da página'}).click()
-    await expect(settings.getByRole('button', {name: 'Duplicar'})).toHaveCount(0)
-    await expect(settings.getByRole('button', {name: 'Eliminar'})).toHaveCount(0)
-    await managedHomeArea.getByRole('button', {name: 'Ações de Topo da página'}).click()
 
     await settings.getByRole('button', {name: 'Adicionar secção'}).click()
     await settings.getByRole('button', {name: /Chamada para ação/}).click()
