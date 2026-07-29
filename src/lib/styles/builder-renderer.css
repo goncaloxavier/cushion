@@ -495,3 +495,16 @@
 @media (prefers-reduced-motion: reduce) {
   .builder-render-section { scroll-behavior: auto; }
 }
+
+/* Call to action. The heading comes from BuilderSectionHeading like every other
+   section; this only lays out the buttons and any background media beneath it. */
+.builder-cta-media {
+  margin-bottom: 1.4rem;
+}
+
+.builder-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}

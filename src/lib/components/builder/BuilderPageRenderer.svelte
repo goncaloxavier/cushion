@@ -164,6 +164,16 @@
     }
   }
 
+  const sectionActions = (section: BuilderSection) =>
+    (section.actions ?? [])
+      .map((action) => ({
+        key: String((action as Record<string, unknown>)._key ?? ''),
+        label: builderLocalized(action.label, language),
+        href: internalHref(action.href),
+        style: textAppearanceStyle(action.label),
+      }))
+      .filter((action) => action.label)
+
   const collectionItems = (section: BuilderSection) => {
     const limit = boundedBuilderNumber(section.limit, 1, 24, 6)
     if (section.source === 'storeProduct') {
@@ -514,6 +524,29 @@
                     <div class="builder-empty-state">Adicione parceiros</div>
                   {/each}
                 </div>
+              {:else if section._type === 'builderCtaSection'}
+                <!-- Offered in the picker but never rendered until now: it fell
+                     through to the heading-only fallback, so a call to action
+                     the client had added showed up blank on the page while the
+                     editor listed it as a section. -->
+                {#if section.media}
+                  <div class="builder-cta-media">
+                    <BuilderMedia media={section.media} {dataset} {language} />
+                  </div>
+                {/if}
+                <BuilderSectionHeading {section} {language} {preview} />
+                {#if sectionActions(section).length}
+                  <div class="builder-cta-actions">
+                    {#each sectionActions(section) as action (action.key || action.href)}
+                      <a
+                        class="builder-action is-primary"
+                        href={action.href}
+                        style={action.style}
+                        onclick={blockPreviewNavigation}
+                      >{action.label}</a>
+                    {/each}
+                  </div>
+                {/if}
               {:else if section._type === 'builderContactSection'}
                 <div class="builder-contact-preview">
                   <BuilderSectionHeading {section} {language} {preview} />

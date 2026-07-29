@@ -84,6 +84,24 @@ test('legacy landing content is normalized into the same designed section render
   }
 })
 
+test('every section the picker offers has a renderer that draws it', () => {
+  const picker = readFileSync('src/lib/site-editor/editor/SitePageSectionsEditor.tsx', 'utf8')
+  const renderer = readFileSync('src/lib/components/builder/BuilderPageRenderer.svelte', 'utf8')
+
+  const offered = [...picker.matchAll(/value: '(builder[A-Za-z]+)'/g)].map((match) => match[1])
+  const rendered = new Set(
+    [...renderer.matchAll(/section\._type === '(builder[A-Za-z]+)'/g)].map((match) => match[1]),
+  )
+
+  expect(offered.length, 'no section types found in the picker').toBeGreaterThan(0)
+  // A type offered without a branch falls through to the heading-only fallback
+  // and lands on the page as a blank band — the client added one and it simply
+  // did not appear. The editor and the page must offer the same set.
+  for (const type of offered) {
+    expect(rendered.has(type), `${type} is offered in the editor but never rendered`).toBe(true)
+  }
+})
+
 test('a page core is edited in one place, not two', async ({page}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chrome', 'Editor contract runs once')
   await page.setExtraHTTPHeaders({
