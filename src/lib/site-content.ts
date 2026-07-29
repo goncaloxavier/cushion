@@ -96,23 +96,6 @@ export type StoreProductMedia =
       editPath?: string
     })
 
-export type ProductContentSection = {
-  key: string
-  editPath: string
-  mediaKind: 'image' | 'video'
-  mediaSide: 'left' | 'right' | 'top'
-  surface: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
-  image?: ContentImage
-  video?: ContentVideo
-  label: string
-  labelStyle: 'caption' | 'pill' | 'eyebrow'
-  title: string
-  text: string
-  buttonLabel: string
-  buttonUrl: string
-  textAppearance?: TextAppearanceMap
-}
-
 export type PartnerItem = {
   name: string
   url: string
@@ -130,7 +113,7 @@ export type ProductItem = {
   image?: ContentImage
   images?: ContentImage[]
   media?: StoreProductMedia[]
-  contentSections?: ProductContentSection[]
+  sections?: BuilderSection[]
   specs?: {
     dimensions: string[]
     materials: string[]
@@ -154,6 +137,7 @@ export type CaseStudy = {
   challenge: string
   solution: string
   result: string
+  sections?: BuilderSection[]
   textAppearance?: TextAppearanceMap
 }
 
@@ -170,6 +154,7 @@ export type BlogPost = {
   media?: StoreProductMedia[]
   body: string
   article?: RichArticleBlock[]
+  sections?: BuilderSection[]
   textAppearance?: TextAppearanceMap
 }
 
@@ -248,6 +233,7 @@ export type StoreProduct = {
   // this fixed fee per cart line regardless of zone/weight instead of going
   // through the normal weight/zone carrier calculation — see calculateStoreEstimate.
   flatTransportPrice?: number
+  sections?: BuilderSection[]
   textAppearance?: TextAppearanceMap
 }
 
@@ -336,11 +322,13 @@ export type SiteContent = {
     hero: CopyBlock
     statement: CopyBlock
     timeline: ContentCard[]
+    sections: BuilderSection[]
   }
   productsPage: {
     hero: CopyBlock
     heroImage: ContentImage
     lead: string
+    sections: BuilderSection[]
   }
   storePage: {
     hero: CopyBlock
@@ -367,6 +355,7 @@ export type SiteContent = {
     }
     postalGate: StorePostalGateLabels
     detail: StoreDetailLabels
+    sections: BuilderSection[]
   }
   cartPage: {
     hero: CopyBlock
@@ -393,6 +382,7 @@ export type SiteContent = {
     transportOverweight: string
     summary: string
     product: string
+    sections: BuilderSection[]
   }
   catalogue: {
     hero: CopyBlock
@@ -405,25 +395,30 @@ export type SiteContent = {
       checklistTitle: string
       checklist: string[]
     }
+    sections: BuilderSection[]
   }
   returnsPolicy: {
     kicker: string
     title: string
     lead: string
     conditions: string[]
+    sections: BuilderSection[]
   }
   casesPage: {
     hero: CopyBlock
     heroImage: ContentImage
+    sections: BuilderSection[]
   }
   blogPage: {
     hero: CopyBlock
     heroImage: ContentImage
+    sections: BuilderSection[]
   }
   contactPage: {
     hero: CopyBlock
     fields: string[]
     formLabels: ContactFormLabels
+    sections: BuilderSection[]
   }
   products: ProductItem[]
   storeProducts: StoreProduct[]
@@ -439,38 +434,12 @@ type SanityProduct = {
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
   description?: LocalizedValue
-  contentSections?: SanityProductContentSection[]
   specs?: {
     dimensions?: LocalizedValue[]
     materials?: LocalizedValue[]
     specifications?: LocalizedValue[]
     advantages?: LocalizedValue[]
   }
-}
-
-type SanityProductContentSection = {
-  _key?: string
-  _type?: string
-  mediaKind?: 'image' | 'video'
-  mediaSide?: 'left' | 'right' | 'top'
-  surface?: 'white' | 'fog' | 'mint' | 'deep' | 'blue'
-  image?: SanityImage
-  video?: {
-    kind?: 'upload' | 'youtube'
-    youtubeUrl?: string
-    fileUrl?: string
-    fileName?: string
-    mimeType?: string
-    captionsUrl?: string
-  }
-  poster?: SanityImage
-  videoTitle?: LocalizedValue
-  label?: LocalizedValue
-  labelStyle?: 'caption' | 'pill' | 'eyebrow'
-  title?: LocalizedValue
-  text?: LocalizedValue
-  buttonLabel?: LocalizedValue
-  buttonUrl?: string
 }
 
 type SanityCaseStudy = {
@@ -602,11 +571,13 @@ type SanitySiteContent = {
     hero?: SanityCopyBlock
     statement?: SanityCopyBlock
     timeline?: SanityContentCard[]
+    sections?: BuilderSection[]
   }
   productsPage?: {
     hero?: SanityCopyBlock
     heroImage?: SanityImage
     lead?: LocalizedValue
+    sections?: BuilderSection[]
   }
   storePage?: {
     hero?: SanityCopyBlock
@@ -632,6 +603,7 @@ type SanitySiteContent = {
     }
     postalGate?: Partial<Record<keyof StorePostalGateLabels, LocalizedValue>>
     detail?: Partial<Record<keyof StoreDetailLabels, LocalizedValue>>
+    sections?: BuilderSection[]
   }
   cartPage?: {
     hero?: SanityCopyBlock
@@ -658,12 +630,14 @@ type SanitySiteContent = {
     transportOverweight?: LocalizedValue
     summary?: LocalizedValue
     product?: LocalizedValue
+    sections?: BuilderSection[]
   }
   returnsPolicy?: {
     kicker?: LocalizedValue
     title?: LocalizedValue
     lead?: LocalizedValue
     conditions?: LocalizedValue[]
+    sections?: BuilderSection[]
   }
   catalogue?: {
     hero?: SanityCopyBlock
@@ -676,18 +650,22 @@ type SanitySiteContent = {
       checklistTitle?: LocalizedValue
       checklist?: LocalizedValue[]
     }
+    sections?: BuilderSection[]
   }
   casesPage?: {
     hero?: SanityCopyBlock
     heroImage?: SanityImage
+    sections?: BuilderSection[]
   }
   blogPage?: {
     hero?: SanityCopyBlock
     heroImage?: SanityImage
+    sections?: BuilderSection[]
   }
   contactPage?: {
     hero?: SanityCopyBlock
     formLabels?: Partial<Record<ContactFieldKey, LocalizedValue>>
+    sections?: BuilderSection[]
   }
 }
 
@@ -1131,6 +1109,7 @@ const returnsPolicyDefaults: Record<LanguageCode, SiteContent['returnsPolicy']> 
     kicker: 'Política',
     title: 'Política de devoluções',
     lead: 'Aceitamos devoluções, nas condições:',
+    sections: [],
     conditions: [
       'Produto tem que ser entregue à empresa de logística ao nível da rua',
       'Recolha entre as 9.00 e 18:00 horas',
@@ -1143,6 +1122,7 @@ const returnsPolicyDefaults: Record<LanguageCode, SiteContent['returnsPolicy']> 
     kicker: 'Policy',
     title: 'Returns policy',
     lead: 'We accept returns under the following conditions:',
+    sections: [],
     conditions: [
       'The product must be handed over to the logistics company at street level',
       'Collection between 9:00 AM and 6:00 PM',
@@ -1155,6 +1135,7 @@ const returnsPolicyDefaults: Record<LanguageCode, SiteContent['returnsPolicy']> 
     kicker: 'Política',
     title: 'Política de devoluciones',
     lead: 'Aceptamos devoluciones en las siguientes condiciones:',
+    sections: [],
     conditions: [
       'El producto debe entregarse a la empresa de logística a nivel de calle',
       'Recogida entre las 9:00 y las 18:00 horas',
@@ -1227,8 +1208,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'Eu concordo com a',
     },
     home: {
-      // No builder sections in the built-in fallback content — the landing
-      // page only gains them once an editor adds them in Sanity.
+      // The route normalizes these legacy values into deterministic sections
+      // until an editor explicitly persists an authored section stream.
       sections: [],
       hero: {
         kicker: 'Matéria-prima do ecoponto amarelo',
@@ -1321,6 +1302,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'A empresa produz soluções para espaços privados, municípios e agricultura.',
         },
       ],
+      sections: [],
     },
     productsPage: {
       hero: {
@@ -1330,6 +1312,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       heroImage: fallbackImages.product,
       lead: '',
+      sections: [],
     },
     storePage: {
       hero: {
@@ -1409,6 +1392,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         imagePending: 'Imagem a adicionar pelo cliente',
         quantity: 'Quantidade',
       },
+      sections: [],
     },
     cartPage: {
       hero: {
@@ -1440,6 +1424,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         'O peso excede o limite de transporte automático. Contacte-nos para organizar a entrega.',
       summary: 'Resumo',
       product: 'Produto',
+      sections: [],
     },
     catalogue: {
       hero: {
@@ -1470,8 +1455,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Mensagem mencionando suas áreas de interesse',
         ],
       },
+      sections: [],
     },
-    returnsPolicy: returnsPolicyDefaults.pt,
+    returnsPolicy: {...returnsPolicyDefaults.pt, sections: []},
     casesPage: {
       hero: {
         kicker: 'Casos de estudo',
@@ -1479,6 +1465,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.caseStudy,
+      sections: [],
     },
     blogPage: {
       hero: {
@@ -1487,6 +1474,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Artigos sobre ambiente, projetos em plástico reciclado e manutenção de espaços exteriores, escritos pela equipa da DaFábrica4You.',
       },
       heroImage: fallbackImages.blog,
+      sections: [],
     },
     contactPage: {
       hero: {
@@ -1505,6 +1493,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Localidade',
         message: 'Mensagem',
       },
+      sections: [],
     },
     products: productCategories.pt,
     storeProducts: storeProductsForLanguage('pt'),
@@ -1573,8 +1562,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'I agree with the',
     },
     home: {
-      // No builder sections in the built-in fallback content — the landing
-      // page only gains them once an editor adds them in Sanity.
+      // The route normalizes these legacy values into deterministic sections
+      // until an editor explicitly persists an authored section stream.
       sections: [],
       hero: {
         kicker: 'Raw material from the yellow-bin stream',
@@ -1667,6 +1656,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'The company produces solutions for private spaces, municipalities and agriculture.',
         },
       ],
+      sections: [],
     },
     productsPage: {
       hero: {
@@ -1676,6 +1666,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       heroImage: fallbackImages.product,
       lead: '',
+      sections: [],
     },
     storePage: {
       hero: {
@@ -1755,6 +1746,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         imagePending: 'Image to be added by the client',
         quantity: 'Quantity',
       },
+      sections: [],
     },
     cartPage: {
       hero: {
@@ -1786,6 +1778,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         'The weight exceeds the automatic delivery limit. Contact us to arrange delivery.',
       summary: 'Summary',
       product: 'Product',
+      sections: [],
     },
     catalogue: {
       hero: {
@@ -1816,8 +1809,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Message mentioning your areas of interest',
         ],
       },
+      sections: [],
     },
-    returnsPolicy: returnsPolicyDefaults.en,
+    returnsPolicy: {...returnsPolicyDefaults.en, sections: []},
     casesPage: {
       hero: {
         kicker: 'Case studies',
@@ -1825,6 +1819,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.caseStudy,
+      sections: [],
     },
     blogPage: {
       hero: {
@@ -1833,6 +1828,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Articles about the environment, recycled-plastic projects and low-maintenance outdoor spaces, written by the DaFábrica4You team.',
       },
       heroImage: fallbackImages.blog,
+      sections: [],
     },
     contactPage: {
       hero: {
@@ -1851,6 +1847,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Location',
         message: 'Message',
       },
+      sections: [],
     },
     products: productCategories.en,
     storeProducts: storeProductsForLanguage('en'),
@@ -1919,8 +1916,8 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       privacyConsentPrefix: 'Estoy de acuerdo con la',
     },
     home: {
-      // No builder sections in the built-in fallback content — the landing
-      // page only gains them once an editor adds them in Sanity.
+      // The route normalizes these legacy values into deterministic sections
+      // until an editor explicitly persists an authored section stream.
       sections: [],
       hero: {
         kicker: 'Materia prima del contenedor amarillo',
@@ -2013,6 +2010,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           text: 'La empresa produce soluciones para espacios privados, municipios y agricultura.',
         },
       ],
+      sections: [],
     },
     productsPage: {
       hero: {
@@ -2022,6 +2020,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       },
       heroImage: fallbackImages.product,
       lead: '',
+      sections: [],
     },
     storePage: {
       hero: {
@@ -2101,6 +2100,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         imagePending: 'Imagen pendiente del cliente',
         quantity: 'Cantidad',
       },
+      sections: [],
     },
     cartPage: {
       hero: {
@@ -2132,6 +2132,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         'El peso supera el límite de transporte automático. Contáctenos para organizar la entrega.',
       summary: 'Resumen',
       product: 'Producto',
+      sections: [],
     },
     catalogue: {
       hero: {
@@ -2162,8 +2163,9 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
           'Mensaje mencionando tus áreas de interés',
         ],
       },
+      sections: [],
     },
-    returnsPolicy: returnsPolicyDefaults.es,
+    returnsPolicy: {...returnsPolicyDefaults.es, sections: []},
     casesPage: {
       hero: {
         kicker: 'Casos de estudio',
@@ -2171,6 +2173,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: '',
       },
       heroImage: fallbackImages.caseStudy,
+      sections: [],
     },
     blogPage: {
       hero: {
@@ -2179,6 +2182,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         lead: 'Artículos sobre medio ambiente, proyectos en plástico reciclado y mantenimiento de espacios exteriores, escritos por el equipo de DaFábrica4You.',
       },
       heroImage: fallbackImages.blog,
+      sections: [],
     },
     contactPage: {
       hero: {
@@ -2197,6 +2201,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
         locality: 'Localidad',
         message: 'Mensaje',
       },
+      sections: [],
     },
     products: productCategories.es,
     storeProducts: storeProductsForLanguage('es'),
@@ -2322,6 +2327,9 @@ const localizedListFromSanity = (
     .map((item, index) => localized(item, language, fallback[index] ?? ''))
     .filter(Boolean)
 }
+
+const builderSectionsFromSanity = (sections: BuilderSection[] | undefined) =>
+  Array.isArray(sections) ? sections : []
 
 const commonFromSanity = (
   source: SanityCommonContent | undefined,
@@ -2637,78 +2645,6 @@ const productFallbackForSlug = (
   fallback: ProductItem[],
 ): Partial<ProductItem> | undefined => fallback.find((item) => item.slug === slug)
 
-const productContentSectionsFromSanity = (
-  sections: SanityProductContentSection[] | undefined,
-  language: LanguageCode,
-): ProductContentSection[] =>
-  (sections ?? []).flatMap((section, index) => {
-    const key = section._key || `section-${index + 1}`
-    const editPath = section._key
-      ? `contentSections[_key=="${section._key.replace(/"/g, '\\"')}"]`
-      : `contentSections[${index}]`
-    const image = optionalImageFromSanity(section.image, language)
-    const fileUrl = stegaClean(section.video?.fileUrl ?? '').trim()
-    const youtubeUrl = stegaClean(section.video?.youtubeUrl ?? '').trim()
-    const videoUrl = fileUrl || youtubeUrl
-    const cleanMediaKind = stegaClean(section.mediaKind ?? '').trim()
-    const inferredKind = videoUrl ? 'video' : image ? 'image' : cleanMediaKind
-    const mediaKind = cleanMediaKind === 'video' || inferredKind === 'video' ? 'video' : 'image'
-    const cleanMediaSide = stegaClean(section.mediaSide ?? '').trim()
-    const mediaSide = cleanMediaSide === 'right' || cleanMediaSide === 'top' ? cleanMediaSide : 'left'
-    const cleanSurface = stegaClean(section.surface ?? '').trim()
-    const surface =
-      cleanSurface === 'fog' || cleanSurface === 'mint' || cleanSurface === 'deep' || cleanSurface === 'blue'
-        ? cleanSurface
-        : 'white'
-    const cleanLabelStyle = stegaClean(section.labelStyle ?? '').trim()
-    const labelStyle =
-      cleanLabelStyle === 'pill' || cleanLabelStyle === 'eyebrow' ? cleanLabelStyle : 'caption'
-
-    if (mediaKind === 'image' && !image) return []
-    if (mediaKind === 'video' && !videoUrl) return []
-
-    const title = localized(section.title, language, '')
-    const text = localized(section.text, language, '')
-    const videoTitle = localized(section.videoTitle, language, title || 'Vídeo do produto')
-    const label = localized(section.label, language, '')
-
-    return [
-      {
-        key,
-        editPath,
-        mediaKind,
-        mediaSide,
-        surface,
-        ...(image && mediaKind === 'image'
-          ? {image: {...image, editPath: `${editPath}.image`}}
-          : {}),
-        ...(videoUrl && mediaKind === 'video'
-          ? {
-              video: {
-                url: videoUrl,
-                title: videoTitle,
-                mimeType: section.video?.mimeType,
-                sourceName: section.video?.fileName,
-                poster: optionalImageFromSanity(section.poster, language),
-                captionsUrl: section.video?.captionsUrl,
-              },
-            }
-          : {}),
-        label,
-        labelStyle,
-        title,
-        text,
-        buttonLabel: localized(section.buttonLabel, language, ''),
-        buttonUrl: stegaClean(section.buttonUrl ?? '').trim(),
-        textAppearance: appearanceMap({
-          title: section.title,
-          text: section.text,
-          buttonLabel: section.buttonLabel,
-        }),
-      },
-    ]
-  })
-
 const productsFromSanity = (
   products: SanityProduct[] | undefined,
   language: LanguageCode,
@@ -2732,7 +2668,6 @@ const productsFromSanity = (
         ),
       )
       const productMedia = storeProductMediaFromSanity(product.image, product.gallery, language)
-      const contentSections = productContentSectionsFromSanity(product.contentSections, language)
 
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
@@ -2745,8 +2680,6 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
-        contentSections:
-          product.contentSections === undefined ? fallbackProduct?.contentSections ?? [] : contentSections,
         specs: {
           dimensions: localizedListFromSanity(product.specs?.dimensions, language, []),
           materials: localizedListFromSanity(product.specs?.materials, language, []),
@@ -3033,13 +2966,14 @@ const applySiteContentFromSanity = (
         fallback.home.partners.items,
       ),
     },
-    sections: Array.isArray(source.home?.sections) ? source.home.sections : [],
+    sections: builderSectionsFromSanity(source.home?.sections),
   }
 
   target.about = {
     hero: copyBlockFromSanity(source.about?.hero, language, fallback.about.hero),
     statement: copyBlockFromSanity(source.about?.statement, language, fallback.about.statement),
     timeline: contentCardsFromSanity(source.about?.timeline, language, fallback.about.timeline),
+    sections: builderSectionsFromSanity(source.about?.sections),
   }
 
   target.productsPage = {
@@ -3053,6 +2987,7 @@ const applySiteContentFromSanity = (
       fallback.productsPage.heroImage,
     ),
     lead: '',
+    sections: builderSectionsFromSanity(source.productsPage?.sections),
   }
 
   target.storePage = {
@@ -3124,13 +3059,23 @@ const applySiteContentFromSanity = (
       (source.storePage?.transportMultiplier ?? 0) > 0
         ? Number(source.storePage?.transportMultiplier)
         : fallback.storePage.transportMultiplier,
+    sections: builderSectionsFromSanity(source.storePage?.sections),
   }
 
-  const {hero: fallbackCartHero, ...fallbackCartLabels} = fallback.cartPage
-  const {hero: sourceCartHero, ...sourceCartLabels} = source.cartPage ?? {}
+  const {
+    hero: fallbackCartHero,
+    sections: _fallbackCartSections,
+    ...fallbackCartLabels
+  } = fallback.cartPage
+  const {
+    hero: sourceCartHero,
+    sections: sourceCartSections,
+    ...sourceCartLabels
+  } = source.cartPage ?? {}
   target.cartPage = {
     hero: copyBlockFromSanity(sourceCartHero, language, fallbackCartHero),
     ...localizedRecord(sourceCartLabels, language, fallbackCartLabels),
+    sections: builderSectionsFromSanity(sourceCartSections),
   }
 
   target.catalogue = {
@@ -3164,6 +3109,7 @@ const applySiteContentFromSanity = (
         fallback.catalogue.estimate.checklist,
       ),
     },
+    sections: builderSectionsFromSanity(source.catalogue?.sections),
   }
 
   target.returnsPolicy = {
@@ -3175,6 +3121,7 @@ const applySiteContentFromSanity = (
       language,
       fallback.returnsPolicy.conditions,
     ),
+    sections: builderSectionsFromSanity(source.returnsPolicy?.sections),
   }
 
   target.casesPage = {
@@ -3183,11 +3130,13 @@ const applySiteContentFromSanity = (
       lead: '',
     },
     heroImage: imageFromSanity(source.casesPage?.heroImage, language, fallback.casesPage.heroImage),
+    sections: builderSectionsFromSanity(source.casesPage?.sections),
   }
 
   target.blogPage = {
     hero: copyBlockFromSanity(source.blogPage?.hero, language, fallback.blogPage.hero),
     heroImage: imageFromSanity(source.blogPage?.heroImage, language, fallback.blogPage.heroImage),
+    sections: builderSectionsFromSanity(source.blogPage?.sections),
   }
 
   target.contactPage = {
@@ -3203,6 +3152,7 @@ const applySiteContentFromSanity = (
         ),
       ]),
     ) as ContactFormLabels,
+    sections: builderSectionsFromSanity(source.contactPage?.sections),
   }
 }
 

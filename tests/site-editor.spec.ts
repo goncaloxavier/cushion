@@ -22,11 +22,7 @@ const waitForVisualEditor = async (frame: FrameLocator) => {
   })
 }
 
-const hoverEditableTarget = async (
-  frame: FrameLocator,
-  target: Locator,
-  label?: string,
-) => {
+const hoverEditableTarget = async (frame: FrameLocator, target: Locator, label?: string) => {
   await waitForVisualEditor(frame)
   await frame.locator('body').hover({position: {x: 1, y: 1}})
   await target.hover()
@@ -44,6 +40,45 @@ const expandCollection = async (navigation: Locator, name: string | RegExp) => {
   })
   await expect(collection).toHaveAttribute('aria-expanded', 'true')
   return collection
+}
+
+const returnToPanelOverview = async (settings: Locator) => {
+  const overview = settings.locator('.site-editor-panel-index')
+  const back = settings.locator('.site-editor-panel-workspace-head > button')
+  for (let depth = 0; depth < 3; depth += 1) {
+    await expect
+      .poll(async () => (await overview.isVisible()) || (await back.isVisible()))
+      .toBe(true)
+    if (await overview.isVisible()) return
+    await back.click()
+  }
+  await expect(overview).toBeVisible()
+}
+
+const openCategoryNameField = async (settings: Locator) => {
+  await returnToPanelOverview(settings)
+  await settings
+    .locator('.site-editor-panel-index > button')
+    .filter({hasText: /^Categoria/})
+    .click()
+  await settings
+    .locator('.site-editor-field-index > button')
+    .filter({hasText: /^Nome da categoria/})
+    .click()
+  const field = settings.getByRole('textbox', {name: 'Nome da categoria'})
+  await expect(field).toBeVisible()
+  return field
+}
+
+const openCategoryProducts = async (settings: Locator) => {
+  await returnToPanelOverview(settings)
+  await settings
+    .locator('.site-editor-panel-index > button')
+    .filter({hasText: /^Produtos associados/})
+    .click()
+  const manager = settings.locator('.site-editor-category-manager')
+  await expect(manager).toBeVisible()
+  return manager
 }
 
 const openEditor = async (page: Page, testInfo: TestInfo) => {
@@ -321,8 +356,9 @@ test.describe('visual website editor', () => {
     await expect(page.locator('.site-editor-context')).toContainText('Página inicial')
     releasePublish?.()
     const settings = page.locator('.site-editor-drawer.is-settings')
-    await expect(settings.locator('.site-editor-category-manager')).toBeVisible()
+    await expect(settings.locator('.site-editor-panel-index')).toBeVisible()
     await expect(page.locator('.site-editor-context')).toContainText('Bancos')
+    await openCategoryProducts(settings)
     await page.waitForTimeout(250)
     await expect(page.locator('.site-editor-context')).toContainText('Bancos')
   })
@@ -341,8 +377,7 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: /Bancos.*1 produto/}).click()
 
     await expect(settings).toHaveClass(/is-open/)
-    const manager = settings.locator('.site-editor-category-manager')
-    const nameField = manager.getByRole('textbox', {name: 'Nome da categoria'})
+    const nameField = await openCategoryNameField(settings)
     await nameField.fill('Bancos urgentes')
 
     // Switch to a different document immediately — well inside the 650ms autosave
@@ -357,7 +392,7 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
     await expandCollection(navigation, /Categorias da Loja/)
     await navigation.getByRole('button', {name: /Bancos urgentes/}).click()
-    await expect(nameField).toHaveValue('Bancos urgentes')
+    await expect(await openCategoryNameField(settings)).toHaveValue('Bancos urgentes')
   })
 
   test('keeps the current document open when its pending edit cannot be saved', async ({
@@ -373,8 +408,7 @@ test.describe('visual website editor', () => {
     await expandCollection(navigation, /Categorias da Loja/)
     await navigation.getByRole('button', {name: /Bancos.*1 produto/}).click()
 
-    const manager = settings.locator('.site-editor-category-manager')
-    const nameField = manager.getByRole('textbox', {name: 'Nome da categoria'})
+    const nameField = await openCategoryNameField(settings)
     let rejectedSave = false
     await page.route('**/painel/site/api', async (route) => {
       if (route.request().method() === 'PUT' && !rejectedSave) {
@@ -394,7 +428,6 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: 'Página inicial'}).click()
 
     await expect.poll(() => rejectedSave).toBe(true)
-    await expect(settings.locator('.site-editor-category-manager')).toBeVisible()
     await expect(nameField).toHaveValue('Bancos ainda por guardar')
     await expect(page.locator('.site-editor-context')).toContainText('Bancos')
     await expect(page.locator('.site-editor-notice')).toContainText('Não foi possível guardar')
@@ -413,9 +446,7 @@ test.describe('visual website editor', () => {
     await expandCollection(navigation, /Categorias da Loja/)
     await navigation.getByRole('button', {name: /Bancos.*1 produto/}).click()
 
-    const nameField = settings
-      .locator('.site-editor-category-manager')
-      .getByRole('textbox', {name: 'Nome da categoria'})
+    const nameField = await openCategoryNameField(settings)
     await page.route('**/painel/site/api', async (route) => {
       if (route.request().method() === 'PUT') {
         await route.fulfill({
@@ -442,9 +473,7 @@ test.describe('visual website editor', () => {
     await expect(dialog).toHaveCount(0)
     await expect(nameField).toHaveValue('Bancos')
     await expect(page.locator('.site-editor-top-save')).toContainText('Tudo guardado')
-    await expect(page.locator('.site-editor-notice')).toContainText(
-      'Versão mais recente carregada',
-    )
+    await expect(page.locator('.site-editor-notice')).toContainText('Versão mais recente carregada')
   })
 
   test('keeps the latest selection when two documents load out of order', async ({
@@ -517,6 +546,65 @@ test.describe('visual website editor', () => {
       })
       .toBeLessThan(500)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+  })
+
+  test('creates reusable sections on fixed and detail pages without losing live preview', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Section creation workflow runs once')
+    test.setTimeout(35_000)
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    const managedHomeArea = settings
+      .locator('.site-editor-section-list > article')
+      .filter({hasText: 'Topo da página'})
+    await expect(managedHomeArea).toHaveCount(1)
+    await expect(settings.locator('.site-editor-section-list > article')).toHaveCount(5)
+    await expect(frame.locator('.builder-render-section')).toHaveCount(4)
+    await managedHomeArea.getByRole('button', {name: 'Ações de Topo da página'}).click()
+    await expect(settings.getByRole('button', {name: 'Duplicar'})).toHaveCount(0)
+    await expect(settings.getByRole('button', {name: 'Eliminar'})).toHaveCount(0)
+    await managedHomeArea.getByRole('button', {name: 'Ações de Topo da página'}).click()
+
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Chamada para ação/}).click()
+    await expect(frame.locator('.builder-render-section')).toHaveCount(5)
+    await settings
+      .locator('.site-page-editor-group.is-open textarea')
+      .first()
+      .fill('Uma chamada criada sem sair da página')
+    await expect(
+      frame.getByText('Uma chamada criada sem sair da página', {exact: true}),
+    ).toBeVisible()
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Produtos da Loja/)
+    await navigation.getByRole('button', {name: /Banco editorial/}).click()
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Chamada para ação/}).click()
+    await settings
+      .locator('.site-page-editor-group.is-open textarea')
+      .first()
+      .fill('Conteúdo da página do produto')
+    await expect(frame.getByText('Conteúdo da página do produto', {exact: true})).toBeVisible()
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+    expect(pageErrors, pageErrors.join('\n')).toEqual([])
   })
 
   test('keeps undo history intact when editing again immediately after undo', async ({
@@ -788,10 +876,7 @@ test.describe('visual website editor', () => {
     })
     await expect(gallery.getByRole('listitem')).toHaveCount(4)
     await gallery.getByRole('button', {name: 'Remover'}).click()
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', {name: 'Remover da galeria'})
-      .click()
+    await page.getByRole('alertdialog').getByRole('button', {name: 'Remover da galeria'}).click()
     await expect(gallery.getByRole('listitem')).toHaveCount(3)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 
@@ -812,10 +897,7 @@ test.describe('visual website editor', () => {
     })
     await expect(gallery.getByRole('listitem', {name: 'Vídeo 4'}).locator('img')).toBeVisible()
     await gallery.getByRole('button', {name: 'Remover'}).click()
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', {name: 'Remover da galeria'})
-      .click()
+    await page.getByRole('alertdialog').getByRole('button', {name: 'Remover da galeria'}).click()
     await expect(gallery.getByRole('listitem')).toHaveCount(3)
   })
 
@@ -886,7 +968,9 @@ test.describe('visual website editor', () => {
     await frame.getByRole('button', {name: 'Editar Destaque principal'}).click()
     const settings = page.locator('.site-editor-drawer.is-settings')
     await expect(settings).toHaveClass(/is-open/)
-    await expect(settings.locator('.site-page-editor-group').getByText('Conteúdo', {exact: true})).toBeVisible()
+    await expect(
+      settings.locator('.site-page-editor-group').getByText('Conteúdo', {exact: true}),
+    ).toBeVisible()
     await expect(settings.getByText('Computador', {exact: true})).toHaveCount(0)
     await expect(settings.getByText('Tablet', {exact: true})).toHaveCount(0)
     await expect(settings.getByText('Telemóvel', {exact: true})).toHaveCount(0)
@@ -1329,9 +1413,9 @@ test.describe('visual website editor', () => {
     await expect(
       canvas.locator('.site-editor-rich-indented-block[data-indent-level="1"]'),
     ).toContainText('Parágrafo com avanço')
-    await expect(
-      article.locator('.article-indented-block[data-indent-level="1"]'),
-    ).toContainText('Parágrafo com avanço')
+    await expect(article.locator('.article-indented-block[data-indent-level="1"]')).toContainText(
+      'Parágrafo com avanço',
+    )
 
     await page.keyboard.press('Tab')
     await expect.poll(async () => (await readArticleBlocks()).at(-1)?.level).toBe(2)
@@ -1385,7 +1469,7 @@ test.describe('visual website editor', () => {
     const settings = page.locator('.site-editor-drawer.is-settings')
     await settings
       .locator('.site-editor-panel-index > button')
-      .filter({hasText: 'Conteúdo'})
+      .filter({has: page.locator('strong', {hasText: /^Conteúdo$/})})
       .click()
     await settings
       .locator('.site-editor-field-index > button')
@@ -1410,16 +1494,19 @@ test.describe('visual website editor', () => {
     const settings = page.locator('.site-editor-drawer.is-settings')
     await expect(navigation).toHaveClass(/is-open/)
     await expect(settings).toHaveClass(/is-open/)
-    const manager = settings.locator('.site-editor-category-manager')
+    await expect(settings.locator('.site-editor-panel-index')).toBeVisible()
+    await expect(settings.getByText('Esta categoria está em uso')).toBeVisible()
+    await expect(settings.getByRole('button', {name: 'Eliminar conteúdo'})).toHaveCount(0)
+
+    const nameField = await openCategoryNameField(settings)
+    await nameField.fill('Bancos exteriores')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    const manager = await openCategoryProducts(settings)
     await expect(manager.getByText('1 produto', {exact: true})).toBeVisible()
     await expect(
       manager.getByRole('button', {name: 'Alterar categoria de Banco editorial'}),
     ).toBeVisible()
-    await expect(settings.getByText('Esta categoria está em uso')).toBeVisible()
-    await expect(settings.getByRole('button', {name: 'Eliminar conteúdo'})).toHaveCount(0)
-
-    await manager.getByRole('textbox', {name: 'Nome da categoria'}).fill('Bancos exteriores')
-    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
 
     await manager.getByRole('button', {name: 'Alterar categoria de Banco editorial'}).click()
     const categorySelect = settings.getByRole('combobox', {name: 'Categoria'})
@@ -1433,12 +1520,14 @@ test.describe('visual website editor', () => {
       navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}),
     ).toBeVisible()
     await navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}).click()
-    await expect(settings.getByText('Nenhum produto está atualmente nesta categoria')).toBeVisible()
-    await expect(settings.getByText('Mudança por publicar')).toBeVisible()
     await expect(settings.getByText('Existem mudanças por publicar')).toBeVisible()
     await expect(settings.getByRole('button', {name: 'Eliminar conteúdo'})).toHaveCount(0)
 
-    await settings.getByRole('button', {name: /Abrir e publicar: Banco editorial/}).click()
+    const pendingManager = await openCategoryProducts(settings)
+    await expect(settings.getByText('Nenhum produto está atualmente nesta categoria')).toBeVisible()
+    await expect(settings.getByText('Mudança por publicar')).toBeVisible()
+
+    await pendingManager.getByRole('button', {name: /Abrir e publicar: Banco editorial/}).click()
     await expect(settings.getByRole('combobox', {name: 'Categoria'})).toHaveValue('mesas')
     await page.locator('.site-editor-publish-button').click()
     await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
@@ -1472,7 +1561,10 @@ test.describe('visual website editor', () => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Parallel drawers are verified once')
     await openEditor(page, testInfo)
 
-    await expect(page.getByRole('link', {name: 'Voltar ao backoffice'})).toHaveAttribute('href', '/painel')
+    await expect(page.getByRole('link', {name: 'Voltar ao backoffice'})).toHaveAttribute(
+      'href',
+      '/painel',
+    )
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     const navigation = page.locator('.site-editor-drawer.is-navigation')
     await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
@@ -1490,7 +1582,15 @@ test.describe('visual website editor', () => {
     const settings = page.locator('.site-editor-drawer.is-settings')
     await expect(navigation).toHaveClass(/is-open/)
     await expect(settings).toHaveClass(/is-open/)
-    await expect(settings.locator('.site-editor-category-manager')).toBeVisible()
+    await expect(settings.locator('.site-editor-panel-index')).toBeVisible()
+    await expect(
+      settings.locator('.site-editor-panel-index > button').filter({hasText: /^Categoria/}),
+    ).toBeVisible()
+    await expect(
+      settings
+        .locator('.site-editor-panel-index > button')
+        .filter({hasText: /^Produtos associados/}),
+    ).toBeVisible()
 
     await navigation.getByRole('button', {name: 'Fechar páginas e conteúdo'}).click()
     await expect(navigation).not.toHaveClass(/is-open/)
@@ -1599,11 +1699,12 @@ test.describe('visual website editor', () => {
     })
     await page.addInitScript(() => {
       const nativeSetTimeout = window.setTimeout.bind(window)
-      window.setTimeout = ((
-        handler: TimerHandler,
-        timeout?: number,
-        ...arguments_: unknown[]
-      ) => nativeSetTimeout(handler, timeout === 25_000 ? 50 : timeout, ...arguments_)) as typeof window.setTimeout
+      window.setTimeout = ((handler: TimerHandler, timeout?: number, ...arguments_: unknown[]) =>
+        nativeSetTimeout(
+          handler,
+          timeout === 25_000 ? 50 : timeout,
+          ...arguments_,
+        )) as typeof window.setTimeout
     })
     let releaseBundle: (() => void) | undefined
     const heldBundle = new Promise<void>((resolve) => {

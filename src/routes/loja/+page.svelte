@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -22,6 +23,7 @@
     storeDeliveryEventName,
   } from '$lib/store-shipping'
   import {onMount, tick} from 'svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
@@ -47,6 +49,7 @@
   const pageSize = 9
 
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('storePage')!
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
       ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
@@ -240,9 +243,18 @@
 />
 
 <main class="store-page">
-  <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
+  <ManagedPageComposition
+    sections={content.storePage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
 
-  <section class="section store-section" bind:this={collectionSection}>
+    <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}
       <Reveal class="store-delivery-strip" variant="panel">
         <div class="store-delivery-info">
@@ -397,5 +409,6 @@
         />
       </div>
     {/if}
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

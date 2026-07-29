@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState, type ReactNode} from 'react'
 import {AddIcon} from '@sanity/icons/Add'
 import {CopyIcon} from '@sanity/icons/Copy'
 import {EditIcon} from '@sanity/icons/Edit'
@@ -14,6 +14,9 @@ import {SitePageSectionEditor} from './SitePageSectionEditor'
 
 type Props = {
   page: SitePageDocument
+  contextLabel?: string
+  emptyTitle?: string
+  emptyDescription?: string
   selectedSectionKey?: string
   dataset: string
   onSelectSection: (key?: string) => void
@@ -24,6 +27,10 @@ type Props = {
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onOpenArticle?: (path: string, returnFocus: HTMLButtonElement) => void
+  renderManagedSection?: (
+    section: BuilderSection,
+    updateSection: (next: BuilderSection) => void,
+  ) => ReactNode
 }
 
 const sectionTypes: Array<{
@@ -78,25 +85,35 @@ const sectionTypes: Array<{
   },
   {
     value: 'builderContactSection',
-    label: 'Formulário',
-    description: 'Contacto, orçamento ou pedido de catálogo',
+    label: 'Contacto',
+    description: 'Ligação para contacto, orçamento ou pedido de catálogo',
   },
 ]
 
 const definitionFor = (section: BuilderSection) =>
-  sectionTypes.find((type) => type.value === section._type)
+  section._type === 'builderManagedSection'
+    ? {
+        value: section._type,
+        label: 'Conteúdo atual da página',
+        description: 'Texto, imagens e estrutura que já aparecem no site',
+      }
+    : sectionTypes.find((type) => type.value === section._type)
 
 const labelFor = (section: BuilderSection) =>
   section.internalLabel?.trim() || definitionFor(section)?.label || 'Secção'
 
 export function SitePageSectionsEditor({
   page,
+  contextLabel = 'Página livre',
+  emptyTitle = 'Esta página ainda está vazia.',
+  emptyDescription = 'Adicione a primeira secção para começar.',
   selectedSectionKey,
   dataset,
   onSelectSection,
   onChange,
   onUpload,
   onOpenArticle,
+  renderManagedSection,
 }: Props) {
   const [actionsFor, setActionsFor] = useState<string>()
   const [addOpen, setAddOpen] = useState(false)
@@ -139,15 +156,24 @@ export function SitePageSectionsEditor({
           type="button"
           onClick={() => onSelectSection(undefined)}
         >
-          ← Voltar às secções
+          ← Voltar ao conteúdo
         </button>
-        <SitePageSectionEditor
-          section={selected}
-          dataset={dataset}
-          onUpdate={updateSection}
-          onUpload={onUpload}
-          onOpenArticle={onOpenArticle}
-        />
+        {selected._type === 'builderManagedSection' ? (
+          renderManagedSection?.(selected, updateSection) ?? (
+            <div className="site-editor-managed-section-empty">
+              <strong>Conteúdo atual da página</strong>
+              <p>Os campos desta área não estão disponíveis neste contexto.</p>
+            </div>
+          )
+        ) : (
+          <SitePageSectionEditor
+            section={selected}
+            dataset={dataset}
+            onUpdate={updateSection}
+            onUpload={onUpload}
+            onOpenArticle={onOpenArticle}
+          />
+        )}
       </div>
     )
   }
@@ -156,9 +182,9 @@ export function SitePageSectionsEditor({
     <div className="site-editor-sections">
       <div className="site-editor-sections-head">
         <span>
-          <small>Página livre</small>
-          <strong>Secções da página</strong>
-          <p>Abra uma secção para alterar apenas o que aparece nessa parte do site.</p>
+          <small>{contextLabel}</small>
+          <strong>Conteúdo da página</strong>
+          <p>Abra uma secção para editar apenas essa parte da página.</p>
         </span>
         <b>{sections.length}</b>
       </div>
@@ -220,29 +246,33 @@ export function SitePageSectionsEditor({
                       {section.enabled === false ? <EyeOpenIcon /> : <EyeClosedIcon />}
                       {section.enabled === false ? 'Mostrar no site' : 'Ocultar do site'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const clone = duplicateBuilderSection(section)
-                        const next = [...sections]
-                        next.splice(index + 1, 0, clone)
-                        commitSections(next)
-                        setActionsFor(undefined)
-                        onSelectSection(clone._key)
-                      }}
-                    >
-                      <CopyIcon /> Duplicar
-                    </button>
-                    <button
-                      className="is-danger"
-                      type="button"
-                      onClick={() => {
-                        setPendingDelete(section)
-                        setActionsFor(undefined)
-                      }}
-                    >
-                      <TrashIcon /> Eliminar
-                    </button>
+                    {section._type !== 'builderManagedSection' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const clone = duplicateBuilderSection(section)
+                            const next = [...sections]
+                            next.splice(index + 1, 0, clone)
+                            commitSections(next)
+                            setActionsFor(undefined)
+                            onSelectSection(clone._key)
+                          }}
+                        >
+                          <CopyIcon /> Duplicar
+                        </button>
+                        <button
+                          className="is-danger"
+                          type="button"
+                          onClick={() => {
+                            setPendingDelete(section)
+                            setActionsFor(undefined)
+                          }}
+                        >
+                          <TrashIcon /> Eliminar
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -251,8 +281,8 @@ export function SitePageSectionsEditor({
         })}
         {!sections.length ? (
           <div className="site-editor-sections-empty">
-            <strong>Esta página ainda está vazia.</strong>
-            <span>Adicione a primeira secção para começar.</span>
+            <strong>{emptyTitle}</strong>
+            <span>{emptyDescription}</span>
           </div>
         ) : null}
       </div>

@@ -13,12 +13,7 @@ export type SiteEditorDocumentType =
   | 'blogPost'
   | 'sitePage'
 
-export type SiteEditorNodeKind =
-  | 'page'
-  | 'global'
-  | 'collection'
-  | 'document'
-  | 'flexiblePage'
+export type SiteEditorNodeKind = 'page' | 'global' | 'collection' | 'document' | 'flexiblePage'
 
 export type SiteEditorArea = 'pages' | 'content' | 'global'
 
@@ -84,6 +79,7 @@ export type SiteEditorFieldType =
   | 'navigation'
   | 'article'
   | 'sections'
+  | 'storeCategoryProducts'
   | 'object'
   | 'array'
 
@@ -104,6 +100,7 @@ export type SiteEditorField = {
   readOnly?: boolean
   rows?: number
   collapsed?: boolean
+  virtual?: boolean
   visibleWhen?: {
     sibling: string
     equals: string
@@ -133,10 +130,4 @@ export type SiteEditorSelection = {
   path: string
 }
 
-export type SiteEditorSaveState =
-  | 'idle'
-  | 'dirty'
-  | 'saving'
-  | 'saved'
-  | 'error'
-  | 'conflict'
+export type SiteEditorSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'conflict'

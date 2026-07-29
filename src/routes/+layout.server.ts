@@ -4,7 +4,21 @@ import {
   languages,
   type SiteContent,
 } from '$lib/site-content'
-import {getSanityCollections, sanityStudioUrl} from '$lib/sanity'
+import {
+  getBuilderDocumentSections,
+  getSanityCollections,
+  getSiteEditorSettings,
+  sanityDataset,
+  sanityStudioUrl,
+} from '$lib/sanity'
+import {
+  builderCollectionScopeForSections,
+  builderCollectionScopesEqual,
+  managedDetailSectionScopeForRoute,
+  managedPageSectionScopeForRoute,
+  managedPageSectionsFrom,
+  mergeBuilderCollectionScopes,
+} from '$lib/builder/managed-page-sections'
 import {isPreview} from '$lib/server/preview'
 import {isBuilderPreviewRequest} from '$lib/server/builder-preview'
 import type {LayoutServerLoad} from './$types'
@@ -46,14 +60,21 @@ const contentForRoute = (
   // collection for routes that are not part of the fixed application shell.
   if (!knownRoute) return content
 
-  const needsProducts = pathname === '/' || pathname.startsWith('/produtos')
+  const managedScope = managedPageSectionScopeForRoute(pathname)
+  const sectionCollections = builderCollectionScopeForSections(
+    managedScope ? managedPageSectionsFrom(content, managedScope.rootPath) : [],
+  )
+  const needsProducts =
+    pathname === '/' || pathname.startsWith('/produtos') || sectionCollections.products
   const needsStore =
     pathname.startsWith('/loja') ||
     pathname.startsWith('/carrinho') ||
     pathname.startsWith('/finalizar-compra') ||
-    pathname.startsWith('/contacto')
-  const needsCases = pathname === '/' || pathname.startsWith('/casos-de-estudo')
-  const needsBlog = pathname.startsWith('/blog')
+    pathname.startsWith('/contacto') ||
+    sectionCollections.store
+  const needsCases =
+    pathname === '/' || pathname.startsWith('/casos-de-estudo') || sectionCollections.cases
+  const needsBlog = pathname.startsWith('/blog') || sectionCollections.blog
 
   return {
     ...content,
@@ -67,10 +88,35 @@ const contentForRoute = (
 export const load: LayoutServerLoad = async ({url, cookies, locals, request}) => {
   const preview = isPreview(cookies, request.headers)
   const builderPreview = isBuilderPreviewRequest(cookies, url, request.headers)
-  const collections = await getSanityCollections(
-    preview || builderPreview,
-    preview || builderPreview ? undefined : collectionScopeForRoute(url.pathname),
-  )
+  const draftPreview = preview || builderPreview
+  const managedScope = managedPageSectionScopeForRoute(url.pathname)
+  const managedDetailScope = managedDetailSectionScopeForRoute(url.pathname)
+  const baseCollectionScope = collectionScopeForRoute(url.pathname)
+  const [initialCollections, settings, detailSections] = await Promise.all([
+    getSanityCollections(
+      draftPreview,
+      draftPreview ? undefined : baseCollectionScope,
+    ),
+    managedScope || managedDetailScope
+      ? getSiteEditorSettings(draftPreview)
+      : Promise.resolve(null),
+    managedDetailScope
+      ? getBuilderDocumentSections(managedDetailScope, draftPreview)
+      : Promise.resolve(null),
+  ])
+  let collections = initialCollections
+
+  if (!draftPreview && (managedScope || managedDetailScope) && initialCollections) {
+    const sectionScope = builderCollectionScopeForSections(
+      managedScope
+        ? managedPageSectionsFrom(initialCollections.siteContent, managedScope.rootPath)
+        : detailSections ?? [],
+    )
+    const completeScope = mergeBuilderCollectionScopes(baseCollectionScope, sectionScope)
+    if (!builderCollectionScopesEqual(baseCollectionScope, completeScope)) {
+      collections = await getSanityCollections(false, completeScope)
+    }
+  }
   const language = getLanguage(url.searchParams.get('lang'))
 
   const currentContent = contentFromSanity(collections)[language]
@@ -93,6 +139,9 @@ export const load: LayoutServerLoad = async ({url, cookies, locals, request}) =>
     currentPath: url.pathname,
     preview,
     builderPreview,
+    settings,
+    detailSections: detailSections ?? [],
+    sanityDataset,
     studioUrl: preview || builderPreview ? sanityStudioUrl : '',
     // Minimal, non-sensitive account summary for header state. The customer's
     // own data; full details load per-page under /conta.

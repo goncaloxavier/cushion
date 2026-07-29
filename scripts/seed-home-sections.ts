@@ -12,6 +12,7 @@
  */
 import {createClient} from '@sanity/client'
 import {randomUUID} from 'node:crypto'
+import {buildHomeSections} from '../src/lib/builder/home-sections'
 
 const projectId = 'u4uyfix8'
 const apiVersion = '2026-07-13'
@@ -34,17 +35,6 @@ const client = createClient({
 
 const key = () => randomUUID().replace(/-/g, '').slice(0, 12)
 
-const layout = (tone: string, columns?: number, mobileColumns?: number) => ({
-  _type: 'builderLayout',
-  tone,
-  width: 'default',
-  spacing: 'default',
-  ...(columns ? {columns} : {}),
-  ...(mobileColumns ? {mobileColumns} : {}),
-})
-
-type Localized = Record<string, unknown> | undefined
-
 const main = async () => {
   const doc = await client.getDocument('siteContent')
   if (!doc) {
@@ -58,73 +48,7 @@ const main = async () => {
     return
   }
 
-  const sections: Record<string, unknown>[] = []
-
-  // Solutions grid -> the automatic product list it already was.
-  sections.push({
-    _type: 'builderCollectionSection',
-    _key: key(),
-    internalLabel: 'Soluções em destaque',
-    enabled: true,
-    source: 'productCategory',
-    limit: 4,
-    showSearch: false,
-    showPagination: false,
-    layout: layout('fog', 4, 1),
-  })
-
-  // Impact numbers -> stats, carrying the existing title and cards across.
-  const stats = Array.isArray(home.impact?.stats) ? home.impact.stats : []
-  if (home.impact?.title || stats.length) {
-    sections.push({
-      _type: 'builderStatsSection',
-      _key: key(),
-      internalLabel: 'Impacto e prova',
-      enabled: true,
-      title: home.impact?.title as Localized,
-      items: stats.map((stat: Record<string, unknown>) => ({
-        _type: 'builderStat',
-        _key: key(),
-        value: stat.title,
-        label: stat.text,
-      })),
-      layout: layout('deep', 4, 2),
-    })
-  }
-
-  // Case studies grid -> the automatic case list it already was.
-  sections.push({
-    _type: 'builderCollectionSection',
-    _key: key(),
-    internalLabel: 'Casos em uso real',
-    enabled: true,
-    source: 'caseStudy',
-    limit: 3,
-    showSearch: false,
-    showPagination: false,
-    layout: layout('white', 3, 1),
-  })
-
-  // Partners -> builderPartnersSection, which takes the very same partnerItem
-  // objects, so this is a copy rather than a conversion.
-  const partners = Array.isArray(home.partners?.items) ? home.partners.items : []
-  if (partners.length) {
-    sections.push({
-      _type: 'builderPartnersSection',
-      _key: key(),
-      internalLabel: 'Parceiros e projetos',
-      enabled: true,
-      eyebrow: home.partners?.kicker as Localized,
-      title: home.partners?.title as Localized,
-      body: home.partners?.lead as Localized,
-      items: partners.map((partner: Record<string, unknown>) => ({
-        ...partner,
-        _type: 'partnerItem',
-        _key: typeof partner._key === 'string' ? partner._key : key(),
-      })),
-      layout: layout('white', 4, 2),
-    })
-  }
+  const sections = buildHomeSections(doc as Record<string, any>, key)
 
   console.log(`Would write ${sections.length} section(s) to siteContent.home.sections:`)
   for (const section of sections) {

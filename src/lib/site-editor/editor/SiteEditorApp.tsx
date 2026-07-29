@@ -19,6 +19,17 @@ import {TabletDeviceIcon} from '@sanity/icons/TabletDevice'
 import {TagIcon} from '@sanity/icons/Tag'
 import {UndoIcon} from '@sanity/icons/Undo'
 import type {BuilderViewport} from '$lib/builder/types'
+import {buildHomeSections} from '$lib/builder/home-sections'
+import {
+  managedCoreSectionFor,
+  managedDetailSectionDocumentTypes,
+  managedPageSectionScopeForRoot,
+  withManagedCoreSection,
+} from '$lib/builder/managed-page-sections'
+import {
+  preserveLegacyProductSectionsOnLoad,
+  productBuilderSections,
+} from '$lib/builder/product-sections'
 import {getEditorValue, normalizeEditorDocumentId, setEditorValue} from '../path'
 import {textAppearanceFields} from '$lib/text-appearance'
 import type {
@@ -67,6 +78,10 @@ type CreateState = {
 }
 
 const snapshot = <T,>(value: T): T => structuredClone(value)
+
+const prepareEditorDocument = (value: SiteEditorDocument): SiteEditorDocument => {
+  return preserveLegacyProductSectionsOnLoad(snapshot(value))
+}
 
 // Edits made within this window of each other collapse into one undo step
 // instead of one per keystroke — see replaceDocument.
@@ -175,6 +190,51 @@ const appearanceObjectPath = (path: string) => {
   return field && textAppearanceFields.includes(field as (typeof textAppearanceFields)[number])
     ? path.slice(0, -(field.length + 1))
     : undefined
+}
+
+const builderPreviewPageFor = (
+  document: SiteEditorDocument | undefined,
+  node: SiteEditorNode | undefined,
+): SiteEditorDocument | undefined => {
+  if (!document) return undefined
+  if (document._type === 'sitePage') return document
+  const scope =
+    document._type === 'siteLanding'
+      ? managedPageSectionScopeForRoot(node?.rootPath)
+      : undefined
+  const isManagedDetail = managedDetailSectionDocumentTypes.includes(
+    document._type as (typeof managedDetailSectionDocumentTypes)[number],
+  )
+  if (!scope && (!isManagedDetail || !node?.route)) return undefined
+  const storedSections = getEditorValue(
+    document,
+    scope ? `${scope.rootPath}.sections` : 'sections',
+  )
+  const baseSections =
+    document._type === 'productCategory'
+      ? productBuilderSections(storedSections, document.contentSections)
+      : scope?.rootPath === 'home' &&
+          (!Array.isArray(storedSections) || storedSections.length === 0)
+        ? buildHomeSections(document, (() => {
+            let index = 0
+            return () => `legacy-home-${++index}`
+          })())
+        : Array.isArray(storedSections)
+          ? storedSections
+          : []
+  const sections = withManagedCoreSection(
+    baseSections,
+    managedCoreSectionFor(node?.rootPath, document._type),
+  )
+  return {
+    ...document,
+    _type: 'sitePage',
+    editorVersion: 1,
+    title: scope?.title ?? node?.title ?? 'Página',
+    route: scope?.route ?? node!.route!,
+    active: true,
+    sections,
+  }
 }
 
 const saveLabels: Record<SiteEditorSaveState, string> = {
@@ -345,8 +405,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   )
 
   useEffect(() => {
-    if (!frame?.contentWindow || document?._type !== 'sitePage') return
-    latestBuilderState.current = {page: document, selectedSectionKey}
+    const previewPage = builderPreviewPageFor(document, selectedNode)
+    if (!frame?.contentWindow || !previewPage) return
+    latestBuilderState.current = {page: previewPage, selectedSectionKey}
     // Trailing-edge throttle: the free-page canvas needs the live unsaved
     // document to preview edits as they happen, but posting (and structured-
     // cloning) the whole page on every single keystroke is wasted work once
@@ -370,7 +431,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         send()
       }, throttleMs - elapsed)
     }
-  }, [document, frame, selectedSectionKey])
+  }, [document, frame, selectedNode, selectedSectionKey])
 
   useEffect(() => () => window.clearTimeout(builderStateTimer.current), [])
 
@@ -429,7 +490,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       try {
         const next = await api.document(node.documentId)
         if (requestId !== documentLoadRequest.current) return false
-        const copy = snapshot(next)
+        const copy = prepareEditorDocument(next)
         applySelection()
         setDocument(copy)
         documentRef.current = copy
@@ -496,16 +557,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   // Stable references for the memoized SiteEditorInspector's callback props —
   // inline arrow functions here would be recreated on every SiteEditorApp
   // render (e.g. a toast, a save-state tick), defeating its React.memo.
-  const inspectorOnReplace = useCallback(
-    (next: SiteEditorDocument) => {
-      if (!canWrite) {
-        pushNotice(readOnlyNotice)
-        return
-      }
-      replaceDocument(next, true, next._type === 'sitePage')
-    },
-    [canWrite, pushNotice, replaceDocument],
-  )
   const inspectorOnUpload = useCallback(
     async (
       file: File,
@@ -638,6 +689,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           _editorSignature: saved._editorSignature,
           _createdAt: saved._createdAt,
           _updatedAt: saved._updatedAt,
+        }
+        if (saved._type === 'productCategory' && Array.isArray(saved.sections)) {
+          merged.sections = saved.sections
+          delete merged.contentSections
         }
         documentRef.current = merged
         setDocument(merged)
@@ -772,7 +827,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               _createdAt: published._createdAt,
               _updatedAt: published._updatedAt,
             }
-          : snapshot(published)
+          : prepareEditorDocument(published)
       documentRef.current = copy
       setDocument(copy)
       savedVersion.current = version
@@ -1062,9 +1117,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
       if (event.data.type === 'df4y:builder-ready') {
         const current = documentRef.current
-        if (current?._type === 'sitePage') {
+        const previewPage = builderPreviewPageFor(current, selectedNodeRef.current)
+        if (previewPage) {
           frame.contentWindow?.postMessage(
-            {type: 'df4y:builder-state', page: current, selectedSectionKey},
+            {type: 'df4y:builder-state', page: previewPage, selectedSectionKey},
             window.location.origin,
           )
         }
@@ -1072,7 +1128,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       }
 
       if (event.data.type === 'df4y:builder-select') {
-        if (documentRef.current?._type !== 'sitePage') return
+        if (!builderPreviewPageFor(documentRef.current, selectedNodeRef.current)) return
         inlineEditing.current = false
         fieldStateRef.current = undefined
         setSelectedPath(undefined)
@@ -1430,9 +1486,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         setManifest((current) => {
           if (!current) return current
           const alreadyListed = current.nodes.some(
-            (node) =>
-              node.documentId &&
-              normalizeEditorDocumentId(node.documentId) === createdId,
+            (node) => node.documentId && normalizeEditorDocumentId(node.documentId) === createdId,
           )
           const nodes = alreadyListed
             ? current.nodes
@@ -1537,7 +1591,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     }
     setConflictState({open: true, busy: true})
     try {
-      const latest = snapshot(await api.document(current._id))
+      const latest = prepareEditorDocument(await api.document(current._id))
       documentRef.current = latest
       setDocument(latest)
       setHistory([snapshot(latest)])
@@ -1800,7 +1854,6 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           nodes={manifest.nodes}
           optionSources={manifest.optionSources}
           onChange={inspectorOnChange}
-          onReplace={inspectorOnReplace}
           onSelectSection={setSelectedSectionKey}
           onUpload={inspectorOnUpload}
           onDelete={inspectorOnDelete}

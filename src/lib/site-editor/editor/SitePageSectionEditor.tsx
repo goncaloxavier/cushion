@@ -15,6 +15,7 @@ import type {
   BuilderSection,
   BuilderStat,
   BuilderTypography,
+  LocalizedArticleValue,
   LocalizedValue,
 } from '$lib/builder/types'
 import type {Asset, SiteEditorAssetKind} from '../types'
@@ -37,11 +38,19 @@ type Props = {
   onOpenArticle?: (path: string, returnFocus: HTMLButtonElement) => void
 }
 
-const textValue = (value?: LocalizedValue | unknown[]) =>
-  Array.isArray(value) ? '' : (value?.pt ?? '')
+const isLocalizedArticle = (
+  value: BuilderSection['body'],
+): value is LocalizedArticleValue =>
+  Boolean(value) &&
+  !Array.isArray(value) &&
+  typeof value === 'object' &&
+  (value._type === 'localizedArticle' || Array.isArray(value.pt))
+
+const textValue = (value?: BuilderSection['body']) =>
+  Array.isArray(value) || isLocalizedArticle(value) ? '' : (value?.pt ?? '')
 
 const localizedValue = (
-  current: LocalizedValue | unknown[] | undefined,
+  current: BuilderSection['body'],
   value: string,
   type: 'localizedString' | 'localizedText',
 ): LocalizedValue => ({
@@ -594,6 +603,10 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
   const layout = section.layout ?? {_type: 'builderLayout'}
   const spacing = layout.spacing ?? {_type: 'builderSpacing'}
   const spacingValue = (spacing.top ?? 64) <= 44 ? 'compact' : (spacing.top ?? 64) >= 84 ? 'wide' : 'normal'
+  const richTextBody =
+    section._type === 'builderRichTextSection' ||
+    Array.isArray(section.body) ||
+    isLocalizedArticle(section.body)
   const textFields = 'title' in section || 'body' in section || 'eyebrow' in section
 
   return (
@@ -609,8 +622,8 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           <div className="site-page-editor-group-body">
             {'eyebrow' in section ? <Field label="Etiqueta" localized><input placeholder="Ex.: Sobre nós" value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
             {'title' in section ? <Field label="Título" localized><textarea rows={3} placeholder="Ex.: Feito para durar no exterior" value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field> : null}
-            {'body' in section && !Array.isArray(section.body) ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
-            {Array.isArray(section.body) ? (
+            {'body' in section && !richTextBody ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
+            {richTextBody ? (
               <button
                 className="site-page-article-button"
                 type="button"
@@ -629,15 +642,13 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           <div className="site-page-editor-group-body">
             <Field label="Conteúdo"><select value={section.source ?? 'productCategory'} onChange={(event) => onUpdate({...section, source: event.currentTarget.value as NonNullable<typeof section.source>})}><option value="productCategory">Produtos</option><option value="storeProduct">Produtos da loja</option><option value="caseStudy">Casos de estudo</option><option value="blogPost">Artigos do blog</option></select></Field>
             <Field label="Quantidade"><input type="number" min="1" max="24" value={section.limit ?? 6} onChange={(event) => onUpdate({...section, limit: clampNumber(event.currentTarget.value, 6, 1, 24)})} /></Field>
-            <Switch label="Mostrar pesquisa" checked={section.showSearch === true} onChange={(showSearch) => onUpdate({...section, showSearch})} />
-            <Switch label="Mostrar paginação" checked={section.showPagination === true} onChange={(showPagination) => onUpdate({...section, showPagination})} />
           </div>
         </details>
       ) : null}
 
       {section._type === 'builderContactSection' ? (
         <details className="site-page-editor-group" open>
-          <summary><span><strong>Formulário</strong><small>Escolha o objetivo do pedido</small></span></summary>
+          <summary><span><strong>Destino</strong><small>Escolha o próximo passo para o visitante</small></span></summary>
           <div className="site-page-editor-group-body">
             <Field label="Tipo"><select value={section.formKind ?? 'contact'} onChange={(event) => onUpdate({...section, formKind: event.currentTarget.value as NonNullable<typeof section.formKind>})}><option value="contact">Contacto geral</option><option value="quote">Pedido de orçamento</option><option value="catalogue">Pedido de catálogo</option></select></Field>
             <Switch label="Mostrar contactos" checked={section.showContactDetails !== false} onChange={(showContactDetails) => onUpdate({...section, showContactDetails})} />
@@ -705,7 +716,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
           {section._type === 'builderGallerySection' ? <Choice label="Apresentação" value={(section.presentation ?? 'gallery') as 'grid' | 'gallery' | 'rail'} options={[{value: 'gallery', label: 'Principal'}, {value: 'grid', label: 'Grelha'}, {value: 'rail', label: 'Faixa'}]} onChange={(presentation) => onUpdate({...section, presentation})} /> : null}
           {['builderGallerySection', 'builderCardsSection', 'builderStatsSection', 'builderCollectionSection'].includes(section._type) ? <Choice label="Colunas" value={String(layout.columns ?? 3) as '1' | '2' | '3' | '4'} options={[{value: '1', label: '1'}, {value: '2', label: '2'}, {value: '3', label: '3'}, {value: '4', label: '4'}]} onChange={(columns) => onUpdate({...section, layout: {...layout, columns: Number(columns), mobileColumns: section._type === 'builderStatsSection' ? 2 : 1}})} /> : null}
           {'title' in section ? <TypographyEditor label="Título" value={section.titleStyle} kind="title" onChange={(titleStyle) => onUpdate({...section, titleStyle})} /> : null}
-          {'body' in section && !Array.isArray(section.body) ? <TypographyEditor label="Texto" value={section.bodyStyle} kind="body" onChange={(bodyStyle) => onUpdate({...section, bodyStyle})} /> : null}
+          {'body' in section && !richTextBody ? <TypographyEditor label="Texto" value={section.bodyStyle} kind="body" onChange={(bodyStyle) => onUpdate({...section, bodyStyle})} /> : null}
         </div>
       </details>
 

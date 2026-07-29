@@ -379,11 +379,8 @@ test.describe('public website routes', () => {
     test('product CTA stays with the gallery when there are no content sections', async ({
       page,
     }) => {
-      // The fallback dataset (used when SANITY_DISABLE_REMOTE=true, as in this
-      // suite) never defines contentSections — that content is editor-authored
-      // in Sanity only, covered by the productContentSectionsFromSanity unit
-      // coverage in sanity-contract.spec.ts. This checks the fallback path
-      // keeps the quote action with the gallery when there is none.
+      // The deterministic fallback dataset has no managed sections. This checks
+      // that the quote action stays with the gallery when the shared stream is empty.
       await page.goto('/produtos/vedacoes-divisorias-resguardos?lang=pt', {
         waitUntil: 'domcontentloaded',
       })

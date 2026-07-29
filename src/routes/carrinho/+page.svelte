@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/environment'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -26,6 +27,7 @@
   } from '$lib/store-shipping'
   import {showToast} from '$lib/toast'
   import {onMount} from 'svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
@@ -40,6 +42,7 @@
   let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('cartPage')!
   const labels = $derived(content.cartPage)
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
@@ -142,9 +145,18 @@
 <SeoHead title={content.nav.cart} description={labels.hero.title} noindex />
 
 <main class="cart-page">
-  <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
+  <ManagedPageComposition
+    sections={content.cartPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
 
-  <section class="section cart-section">
+    <section class="section cart-section">
     {#if rows.length}
       {#if deliveryPostalCode}
         <div
@@ -354,5 +366,6 @@
         >{labels.continueShopping}</a>
       </div>
     {/if}
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

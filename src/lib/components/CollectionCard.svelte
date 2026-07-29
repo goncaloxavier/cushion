@@ -19,6 +19,8 @@
     index = 0,
     transitionName = '',
     textAppearance,
+    layout = 'portrait',
+    metaPlacement = 'copy',
     preview = false,
   } = $props<{
     href: string
@@ -29,13 +31,15 @@
     index?: number
     transitionName?: string
     textAppearance?: TextAppearanceMap
+    layout?: 'portrait' | 'landscape'
+    metaPlacement?: 'copy' | 'overlay'
     preview?: boolean
   }>()
 </script>
 
 <Reveal class="collection-card-wrap" delay={index * 70} variant="card">
   <a
-    class="collection-card"
+    class={`collection-card is-${layout}`}
     {href}
     onclick={(event: MouseEvent) => preview && event.preventDefault()}
   >
@@ -50,9 +54,12 @@
         style:background={image.lqip ? `center / cover no-repeat url(${image.lqip})` : undefined}
         style:view-transition-name={transitionName || undefined}
       />
+      {#if meta && metaPlacement === 'overlay'}
+        <span class="card-meta">{meta}</span>
+      {/if}
     </div>
     <div class="collection-card-copy">
-      {#if meta}
+      {#if meta && metaPlacement === 'copy'}
         <small class="collection-card-meta">{meta}</small>
       {/if}
       <h3 class="cms-styled-text" style={textAppearanceStyle(textAppearance?.title)}>{title}</h3>

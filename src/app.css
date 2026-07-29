@@ -1528,14 +1528,17 @@ dt {
 }
 
 .home-impact-ledger {
-  display: grid;
-  grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
-  gap: clamp(1.6rem, 4vw, 3rem);
-  align-items: start;
   color: #ffffff;
   background:
     radial-gradient(circle at 85% 14%, rgba(34, 111, 136, 0.34), transparent 24rem),
     linear-gradient(135deg, #082c34, #123f43 58%, #0f3033);
+}
+
+.home-impact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+  gap: clamp(1.6rem, 4vw, 3rem);
+  align-items: start;
 }
 
 .home-impact-ledger .impact-copy {
@@ -1641,6 +1644,7 @@ dt {
   aspect-ratio: 4 / 5;
 }
 
+.collection-card.is-landscape .collection-card-media,
 .home-work-media {
   aspect-ratio: 3 / 2;
 }
@@ -1653,6 +1657,7 @@ dt {
   object-fit: cover;
 }
 
+.collection-card.is-landscape .card-meta,
 .home-work-media .card-meta {
   position: absolute;
   bottom: 0.8rem;
@@ -6105,6 +6110,7 @@ html.reduce-motion {
 
   .page-hero,
   .home-impact-ledger,
+  .home-impact-layout,
   .home-partners-section,
   .partner-panel,
   .about-narrative,

@@ -1,6 +1,9 @@
 import {createClient} from '@sanity/client'
 import {dev} from '$app/environment'
 import {env} from '$env/dynamic/private'
+import type {BuilderSection} from '$lib/builder/types'
+import type {ManagedDetailSectionScope} from '$lib/builder/managed-page-sections'
+import {productBuilderSections} from '$lib/builder/product-sections'
 
 const projectId = 'u4uyfix8'
 // Dataset is env-driven (defaults to `production`) so it can be repointed without
@@ -61,6 +64,38 @@ export const getSitePage = async (route: string, preview = false) => {
 export const getSiteEditorSettings = async (preview = false) => {
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(siteEditorSettingsQuery)
+}
+
+export const getBuilderDocumentSections = async (
+  scope: ManagedDetailSectionScope,
+  preview = false,
+): Promise<BuilderSection[] | null> => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
+
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
+  try {
+    const source = await client.fetch<{
+      sections?: BuilderSection[]
+      contentSections?: unknown[]
+    } | null>(
+      `*[_type == $documentType && slug.current == $slug][0] {
+        sections,
+        contentSections
+      }`,
+      scope,
+    )
+    if (scope.documentType === 'productCategory') {
+      return productBuilderSections(source?.sections, source?.contentSections)
+    }
+    return Array.isArray(source?.sections) ? source.sections : []
+  } catch (error) {
+    console.warn(
+      `[sanity] section fetch failed for ${scope.documentType}/${scope.slug}: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+    return null
+  }
 }
 
 export const getPublicSitePages = async () => {
@@ -198,6 +233,7 @@ const collectionsQuery = `{
       }
     },
     about {
+      sections,
       hero {
         kicker,
         title
@@ -212,6 +248,7 @@ const collectionsQuery = `{
       }
     },
     productsPage {
+      sections,
       hero {
         kicker,
         title
@@ -229,6 +266,7 @@ const collectionsQuery = `{
       }
     },
     storePage {
+      sections,
       hero {
         kicker,
         title
@@ -251,6 +289,7 @@ const collectionsQuery = `{
       transportMultiplier
     },
     cartPage {
+      sections,
       hero {
         kicker,
         title
@@ -281,6 +320,7 @@ const collectionsQuery = `{
     },
     returnsPolicy,
     catalogue {
+      sections,
       hero {
         kicker,
         title
@@ -296,6 +336,7 @@ const collectionsQuery = `{
       }
     },
     casesPage {
+      sections,
       hero {
         kicker,
         title
@@ -313,6 +354,7 @@ const collectionsQuery = `{
       }
     },
     blogPage {
+      sections,
       hero {
         kicker,
         title
@@ -330,6 +372,7 @@ const collectionsQuery = `{
       }
     },
     contactPage {
+      sections,
       hero,
       formLabels
     }
@@ -408,54 +451,6 @@ const collectionsQuery = `{
       },
     },
     description,
-    contentSections[] {
-      _key,
-      _type,
-      mediaKind,
-      mediaSide,
-      surface,
-      image {
-        asset -> {
-          url,
-          originalFilename,
-          metadata {
-            lqip,
-            dimensions {
-              aspectRatio
-            }
-          }
-        },
-        alt
-      },
-      video {
-        kind,
-        youtubeUrl,
-        "fileUrl": file.asset->url,
-        "fileName": file.asset->originalFilename,
-        "mimeType": file.asset->mimeType,
-        "captionsUrl": captions.asset->url
-      },
-      poster {
-        asset -> {
-          url,
-          originalFilename,
-          metadata {
-            lqip,
-            dimensions {
-              aspectRatio
-            }
-          }
-        },
-        alt
-      },
-      videoTitle,
-      label,
-      labelStyle,
-      title,
-      text,
-      buttonLabel,
-      buttonUrl
-    },
     "specs": {
       "dimensions": dimensions[],
       "materials": materials[],

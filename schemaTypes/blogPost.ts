@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {videoCaptionsField} from './components/videoCaptionsField'
+import {builderSectionMembers} from './builder/builderSections'
 
 export const blogPost = defineType({
   name: 'blogPost',
@@ -8,6 +9,7 @@ export const blogPost = defineType({
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'imagem', title: 'Imagem'},
+    {name: 'seccoes', title: 'Conteúdo da página'},
     {name: 'publicacao', title: 'Publicação'},
   ],
   fields: [
@@ -132,6 +134,16 @@ export const blogPost = defineType({
       description: 'Use apenas quando o conteúdo estruturado estiver vazio.',
       type: 'localizedText',
       group: 'conteudo',
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Conteúdo da página',
+      description:
+        'Organize a apresentação atual e acrescente galerias, destaques ou chamadas para ação.',
+      type: 'array',
+      group: 'seccoes',
+      of: builderSectionMembers,
+      validation: (Rule) => Rule.max(30),
     }),
   ],
   preview: {

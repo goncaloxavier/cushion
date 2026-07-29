@@ -1,11 +1,14 @@
 <script lang="ts">
   import PageHero from '$lib/components/PageHero.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data, form} = $props()
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('catalogue')!
 
   const fieldKeys = contactFieldKeys
 
@@ -68,9 +71,18 @@
 />
 
 <main>
-  <PageHero {...content.catalogue.hero} lead="" />
+  <ManagedPageComposition
+    sections={content.catalogue.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...content.catalogue.hero} lead="" />
 
-  <section class="section catalogue-request-section">
+    <section class="section catalogue-request-section">
     <Reveal class="catalogue-request-panel" variant="panel">
       <p class="kicker">{content.catalogue.estimate.kicker}</p>
       <h2>{content.catalogue.estimate.title}</h2>
@@ -163,5 +175,6 @@
         </button>
       </form>
     </Reveal>
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

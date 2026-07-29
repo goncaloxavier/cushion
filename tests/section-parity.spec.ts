@@ -1,4 +1,5 @@
 import {expect, test, type Page} from '@playwright/test'
+import {readFileSync} from 'node:fs'
 
 // The rule this file exists to hold: converting a designed block into a section
 // must not change what the visitor gets. If these drift, the section system has
@@ -41,7 +42,9 @@ test('the home grid card carries the full designed treatment', async ({page}, te
   expect(shape!.aspectRatio).toBe('4 / 5')
 })
 
-test('the builder list section and the home grid render the same card', async ({page}, testInfo) => {
+test('the builder list section and the home grid render the same card', async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chrome', 'Parity check runs once')
   await page.goto('/?lang=pt')
   await page.waitForTimeout(1200)
@@ -63,4 +66,20 @@ test('the builder list section and the home grid render the same card', async ({
   expect(usesSharedCard.homeUsesShared).toBe(true)
   expect(usesSharedCard.legacyHomeCard).toBe(0)
   expect(usesSharedCard.legacyBuilderAnchor).toBe(0)
+})
+
+test('legacy landing content is normalized into the same designed section renderer', () => {
+  const home = readFileSync('src/routes/+page.svelte', 'utf8')
+  const renderer = readFileSync('src/lib/components/builder/BuilderPageRenderer.svelte', 'utf8')
+  expect(home).toContain('buildLocalizedHomeSections')
+  expect(home).toContain('content.home.sections.length')
+  expect(home).toContain('ManagedPageComposition')
+
+  for (const component of [
+    'LandingCollectionSection',
+    'LandingImpactSection',
+    'LandingPartnersSection',
+  ]) {
+    expect(renderer, `section renderer no longer uses ${component}`).toContain(component)
+  }
 })

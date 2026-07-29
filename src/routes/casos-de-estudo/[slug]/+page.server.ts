@@ -3,7 +3,7 @@ import {pageFromSearchParams} from '$lib/collection-page'
 import type {PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async ({params, parent, url}) => {
-  const {site, language} = await parent()
+  const {site, language, detailSections} = await parent()
   const content = site
   const caseStudy = content.caseStudies.find((item) => item.slug === params.slug)
 
@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({params, parent, url}) => {
   }
 
   return {
-    caseStudy,
+    caseStudy: {...caseStudy, sections: detailSections},
     language,
     returnPage: pageFromSearchParams(url.searchParams, 'fromPage'),
   }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {seoDescription} from '$lib/seo'
@@ -11,9 +12,11 @@
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
   import {textAppearanceStyle} from '$lib/text-appearance'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('casesPage')!
   let query = $state('')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
@@ -94,7 +97,16 @@
 />
 
 <main class="cases-page">
-  <section class="case-index-hero">
+  <ManagedPageComposition
+    sections={content.casesPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
       <p
         class="kicker cms-styled-text"
@@ -121,9 +133,9 @@
           : undefined}
       />
     </Reveal>
-  </section>
+    </section>
 
-  <section class="section collection-section case-collection-section" bind:this={collectionSection}>
+    <section class="section collection-section case-collection-section" bind:this={collectionSection}>
     <Reveal variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -183,5 +195,6 @@
       nextLabel={content.common.next}
       disabled={swapping}
     />
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

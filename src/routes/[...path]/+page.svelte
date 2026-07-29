@@ -12,11 +12,13 @@
 
 <SeoHead {title} {description} noindex={Boolean(seo.noIndex)} />
 
-<BuilderPageRenderer
-  page={data.page}
-  settings={data.settings}
-  content={data.site}
-  language={data.language}
-  dataset={data.sanityDataset}
-  preview={data.preview}
-/>
+<main>
+  <BuilderPageRenderer
+    page={data.page}
+    settings={data.settings}
+    content={data.site}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview}
+  />
+</main>

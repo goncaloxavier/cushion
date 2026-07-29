@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {videoCaptionsField} from './components/videoCaptionsField'
+import {builderSectionMembers} from './builder/builderSections'
 
 export const caseStudy = defineType({
   name: 'caseStudy',
@@ -8,6 +9,7 @@ export const caseStudy = defineType({
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'imagens', title: 'Imagens e vídeos'},
+    {name: 'seccoes', title: 'Conteúdo da página'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -141,6 +143,16 @@ export const caseStudy = defineType({
       type: 'localizedText',
       group: 'conteudo',
       hidden: true,
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Conteúdo da página',
+      description:
+        'Organize a apresentação atual e acrescente texto, galerias ou outros blocos.',
+      type: 'array',
+      group: 'seccoes',
+      of: builderSectionMembers,
+      validation: (Rule) => Rule.max(30),
     }),
     defineField({
       name: 'orderRank',

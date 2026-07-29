@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {seoDescription} from '$lib/seo'
@@ -12,6 +13,7 @@
   import {tick} from 'svelte'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {textAppearanceStyle} from '$lib/text-appearance'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
@@ -21,6 +23,7 @@
     }
   })
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('productsPage')!
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
       ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
@@ -109,7 +112,16 @@
 />
 
 <main class="products-page">
-  <section class="product-index-hero">
+  <ManagedPageComposition
+    sections={content.productsPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
       <p
         class="kicker cms-styled-text"
@@ -139,9 +151,9 @@
           : undefined}
       />
     </Reveal>
-  </section>
+    </section>
 
-  <section class="section product-collection-section" bind:this={collectionSection}>
+    <section class="section product-collection-section" bind:this={collectionSection}>
     <Reveal delay={80} variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -202,5 +214,6 @@
       nextLabel={content.common.next}
       disabled={swapping}
     />
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

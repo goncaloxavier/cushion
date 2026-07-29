@@ -19,12 +19,18 @@ import {
   createBuilderSection,
   createBuilderSiteSettings,
 } from '../src/lib/builder/defaults'
-import {validateBuilderPage, validateBuilderSettings} from '../src/lib/builder/validation'
-import {documentPanels, siteScopePanels} from '../src/lib/site-editor/model'
 import {
-  contentFromSanity,
-  type SanityCollections,
-} from '../src/lib/site-content'
+  validateBuilderPage,
+  validateBuilderSections,
+  validateBuilderSettings,
+} from '../src/lib/builder/validation'
+import {
+  legacyProductContentSectionsToBuilder,
+  preserveLegacyProductSectionsOnLoad,
+  productBuilderSections,
+} from '../src/lib/builder/product-sections'
+import {documentPanels, siteScopePanels} from '../src/lib/site-editor/model'
+import {contentFromSanity, type SanityCollections} from '../src/lib/site-content'
 import {textAppearanceStyle} from '../src/lib/text-appearance'
 import {breadcrumbListSchema} from '../src/lib/seo'
 import {errorCopy} from '../src/lib/error-copy'
@@ -81,12 +87,16 @@ test.describe('Sanity Studio content contract', () => {
       return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1])
     }
     const topLevelFieldNames = (panels: (typeof documentPanels)[string]) =>
-      panels.flatMap((panel) => panel.fields.map((field) => field.name))
+      panels.flatMap((panel) =>
+        panel.fields.filter((field) => !field.virtual).map((field) => field.name),
+      )
 
     for (const [type, panels] of Object.entries(documentPanels)) {
       const allowlist = allowlistFor(type)
       for (const name of topLevelFieldNames(panels)) {
-        expect(allowlist, `${type}.${name} is editable but missing from editableFields`).toContain(name)
+        expect(allowlist, `${type}.${name} is editable but missing from editableFields`).toContain(
+          name,
+        )
       }
     }
 
@@ -98,15 +108,6 @@ test.describe('Sanity Studio content contract', () => {
         siteLandingAllowlist,
         `siteLanding.${rootField} is editable but missing from editableFields`,
       ).toContain(rootField)
-    }
-
-    // storeCategory has no documentPanels entry (StoreCategoryManager.tsx renders it directly
-    // with its own hardcoded fields instead of the generic panel system) — check those by hand.
-    const storeCategoryAllowlist = allowlistFor('storeCategory')
-    for (const name of ['title', 'slug', 'orderRank']) {
-      expect(storeCategoryAllowlist, `storeCategory.${name} is editable but missing from editableFields`).toContain(
-        name,
-      )
     }
   })
 
@@ -179,9 +180,9 @@ test.describe('Sanity Studio content contract', () => {
         siteContent: {home: {heroVideo}},
       } as unknown as SanityCollections).pt.home.heroVideo
 
-    expect(heroVideoWith({kind: 'upload', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'})).toEqual(
-      {kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'},
-    )
+    expect(
+      heroVideoWith({kind: 'upload', fileUrl: 'https://cdn.sanity.io/files/x/upload.mp4'}),
+    ).toEqual({kind: 'upload', url: 'https://cdn.sanity.io/files/x/upload.mp4'})
     expect(
       heroVideoWith({kind: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=abc123'}),
     ).toEqual({kind: 'youtube', url: 'https://www.youtube.com/watch?v=abc123'})
@@ -254,103 +255,93 @@ test.describe('Sanity Studio content contract', () => {
     })
   })
 
-  test('product content sections support image, uploaded video, copy, and optional actions', () => {
-    const collections = {
-      products: [
+  test('legacy product content is presented as one shared, lossless section stream', () => {
+    const legacy = [
+      {
+        _key: 'deck-video',
+        _type: 'productContentSection',
+        mediaKind: 'video',
+        mediaSide: 'top',
+        surface: 'deep',
+        video: {
+          kind: 'upload',
+          file: {_type: 'file', asset: {_type: 'reference', _ref: 'file-deck-mp4'}},
+          captions: {_type: 'file', asset: {_type: 'reference', _ref: 'file-deck-vtt'}},
+        },
+        poster: {_type: 'image', asset: {_type: 'reference', _ref: 'image-deck-poster'}},
+        videoTitle: {_type: 'localizedString', pt: 'Deck aplicado num terraço'},
+        label: {_type: 'localizedString', pt: 'Veja o resultado'},
+        labelStyle: 'eyebrow',
+        title: {_type: 'localizedString', pt: 'Construa o seu deck'},
+        text: {_type: 'localizedText', pt: 'Planeie a aplicação antes de encomendar.'},
+        buttonLabel: {_type: 'localizedString', pt: 'Abrir configurador'},
+        buttonUrl: 'https://example.test/configurador',
+      },
+    ]
+
+    const migrated = legacyProductContentSectionsToBuilder(legacy)
+    expect(migrated).toHaveLength(1)
+    expect(migrated[0]).toMatchObject({
+      _type: 'builderMediaSection',
+      _key: 'deck-video',
+      variant: 'product-feature',
+      labelStyle: 'eyebrow',
+      mediaSide: 'top',
+      eyebrow: {pt: 'Veja o resultado'},
+      title: {pt: 'Construa o seu deck'},
+      body: {pt: 'Planeie a aplicação antes de encomendar.'},
+      media: {
+        kind: 'video',
+        videoFile: {asset: {_ref: 'file-deck-mp4'}},
+        captions: {asset: {_ref: 'file-deck-vtt'}},
+        poster: {asset: {_ref: 'image-deck-poster'}},
+      },
+      actions: [
         {
-          _id: 'product.with-content-sections',
-          slug: {current: 'produto-com-conteudo'},
-          title: {_type: 'localizedString', pt: 'Produto com conteúdo'},
-          contentSections: [
-            {
-              _key: 'image-section',
-              _type: 'productContentSection',
-              mediaKind: 'image',
-              mediaSide: 'right',
-              surface: 'mint',
-              image: {
-                _type: 'image',
-                asset: {
-                  url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
-                  metadata: {dimensions: {aspectRatio: 1.5}},
-                },
-                alt: {_type: 'localizedString', pt: 'Produto instalado num jardim'},
-              },
-              label: {_type: 'localizedString', pt: 'Decking aplicado em exterior'},
-              labelStyle: 'pill',
-              title: {_type: 'localizedString', pt: 'Uma aplicação real', en: 'A real application'},
-              text: {_type: 'localizedText', pt: 'Texto por baixo da imagem.'},
-              buttonLabel: {_type: 'localizedString', pt: 'Saber mais'},
-              buttonUrl: '/contacto',
-            },
-            {
-              _key: 'video-section',
-              _type: 'productContentSection',
-              mediaKind: 'video',
-              mediaSide: 'top',
-              surface: 'deep',
-              video: {
-                kind: 'upload',
-                fileUrl: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
-                fileName: 'example.mp4',
-                mimeType: 'video/mp4',
-                captionsUrl: 'https://cdn.sanity.io/files/project/dataset/example.vtt',
-              },
-              poster: {
-                _type: 'image',
-                asset: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
-                alt: {_type: 'localizedString', pt: 'Capa do vídeo'},
-              },
-              videoTitle: {_type: 'localizedString', pt: 'Demonstração do produto'},
-              text: {_type: 'localizedText', pt: 'Texto opcional por baixo do vídeo.'},
-            },
-          ],
+          label: {pt: 'Abrir configurador'},
+          href: 'https://example.test/configurador',
         },
       ],
-    } as unknown as SanityCollections
+      layout: {surface: 'deep', width: 'full'},
+    })
+    expect(legacy[0]).not.toHaveProperty('variant')
+    expect(productBuilderSections([], legacy)).toEqual(migrated)
 
-    const product = contentFromSanity(collections).en.products[0]
-    expect(product.contentSections).toHaveLength(2)
-    expect(product.contentSections?.[0]).toMatchObject({
-      key: 'image-section',
-      editPath: 'contentSections[_key=="image-section"]',
-      mediaKind: 'image',
-      mediaSide: 'right',
-      surface: 'mint',
-      label: 'Decking aplicado em exterior',
-      labelStyle: 'pill',
-      title: 'A real application',
-      text: 'Texto por baixo da imagem.',
-      buttonLabel: 'Saber mais',
-      buttonUrl: '/contacto',
-      image: {
-        url: 'https://cdn.sanity.io/images/project/dataset/example.jpg',
-        alt: 'Produto instalado num jardim',
-        aspectRatio: 1.5,
-      },
+    const authored = [createBuilderSection('builderCtaSection')]
+    expect(productBuilderSections(authored, legacy)).toBe(authored)
+
+    const rolloutDocument = {
+      _type: 'productCategory',
+      title: {pt: 'Decking'},
+      sections: [],
+      contentSections: legacy,
+    }
+    const prepared = preserveLegacyProductSectionsOnLoad(rolloutDocument)
+    expect(prepared).not.toHaveProperty('sections')
+    expect(prepared.contentSections).toBe(legacy)
+    expect(rolloutDocument).toHaveProperty('sections', [])
+
+    const explicitSections = preserveLegacyProductSectionsOnLoad({
+      ...rolloutDocument,
+      sections: authored,
     })
-    expect(product.contentSections?.[1]).toMatchObject({
-      key: 'video-section',
-      mediaKind: 'video',
-      mediaSide: 'top',
-      surface: 'deep',
-      labelStyle: 'caption',
-      text: 'Texto opcional por baixo do vídeo.',
-      video: {
-        url: 'https://cdn.sanity.io/files/project/dataset/example.mp4',
-        title: 'Demonstração do produto',
-        mimeType: 'video/mp4',
-        captionsUrl: 'https://cdn.sanity.io/files/project/dataset/example.vtt',
-        poster: {url: 'https://cdn.sanity.io/images/project/dataset/poster.jpg'},
-      },
-    })
+    expect(explicitSections.sections).toBe(authored)
+
+    const sanityClient = read('src/lib/sanity.ts')
+    const productRoute = read('src/routes/produtos/[slug]/+page.svelte')
+    expect(sanityClient).toContain('productBuilderSections(source?.sections, source?.contentSections)')
+    expect(productRoute).toContain('<ManagedPageComposition')
+    expect(productRoute).not.toContain('ProductContentSections')
   })
 
   test('breadcrumbListSchema builds a positioned, schema.org-shaped ItemList', () => {
     const schema = breadcrumbListSchema([
       {name: 'Início', url: 'https://dafabrica4you.pt/'},
       {name: 'Produtos', url: 'https://dafabrica4you.pt/produtos'},
-      {name: 'Decking e Pavimentos', url: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos'},
+      {
+        name: 'Decking e Pavimentos',
+        url: 'https://dafabrica4you.pt/produtos/decking-pavimentos-passadicos',
+      },
     ])
 
     expect(schema['@context']).toBe('https://schema.org')
@@ -374,9 +365,8 @@ test.describe('Sanity Studio content contract', () => {
       origin: 'sanity.io',
       href: 'http://localhost:3333/intent/edit/id=siteContent;path=nav.store',
     })
-    const [dirty] = breadcrumbListSchema([{name: stegaEncoded, url: '/loja'}]).itemListElement as Array<
-      Record<string, unknown>
-    >
+    const [dirty] = breadcrumbListSchema([{name: stegaEncoded, url: '/loja'}])
+      .itemListElement as Array<Record<string, unknown>>
     expect(dirty.name).toBe('Loja Online')
   })
 
@@ -439,9 +429,7 @@ test.describe('Sanity Studio content contract', () => {
     for (const route of publicRoutes) {
       const source = read(route)
       expect(source).toContain('loadSanityDataAttributeFactory')
-      expect(source).not.toContain(
-        "from '@sanity/visual-editing/create-data-attribute'",
-      )
+      expect(source).not.toContain("from '@sanity/visual-editing/create-data-attribute'")
     }
   })
 
@@ -477,6 +465,70 @@ test.describe('Sanity Studio content contract', () => {
     expect(validateBuilderSettings(settings)).toContainEqual(
       expect.objectContaining({field: 'theme', level: 'error'}),
     )
+  })
+
+  test('section validation rejects malformed layouts, duplicate keys, and empty required content', () => {
+    const first = createBuilderSection('builderCollectionSection')
+    const duplicate = {
+      ...createBuilderSection('builderGallerySection'),
+      _key: first._key,
+      layout: {...first.layout, width: 'default'},
+      items: [],
+    }
+    const issues = validateBuilderSections([first, duplicate])
+
+    expect(issues).toContainEqual(expect.objectContaining({level: 'error', field: '_key'}))
+    expect(issues).toContainEqual(expect.objectContaining({level: 'error', field: 'layout.width'}))
+    expect(issues).toContainEqual(expect.objectContaining({level: 'error', field: 'items'}))
+  })
+
+  test('site editor publish validates free, fixed, and detail-page sections before the E2E shortcut', () => {
+    const server = read('src/lib/server/site-editor.ts')
+    const publishStart = server.indexOf('export const publishSiteEditorDocument')
+    const e2eShortcut = server.indexOf('siteEditorE2eEnabled()', publishStart)
+    const validation = server.indexOf('validateDocument(input)', publishStart)
+
+    expect(server).toContain('validateBuilderSections(document.sections)')
+    expect(server).toContain('for (const scope of managedPageSectionScopes)')
+    expect(server).toContain('validateBuilderSections(sections)')
+    expect(server).toContain('managedDetailSectionDocumentTypes.includes(')
+    expect(validation).toBeGreaterThan(publishStart)
+    expect(validation).toBeLessThan(e2eShortcut)
+  })
+
+  test('every CMS-managed designed route renders through the canonical page composition', () => {
+    const routes = [
+      'src/routes/+page.svelte',
+      'src/routes/sobre-nos/+page.svelte',
+      'src/routes/produtos/+page.svelte',
+      'src/routes/produtos/[slug]/+page.svelte',
+      'src/routes/loja/+page.svelte',
+      'src/routes/loja/[slug]/+page.svelte',
+      'src/routes/carrinho/+page.svelte',
+      'src/routes/catalogo/+page.svelte',
+      'src/routes/casos-de-estudo/+page.svelte',
+      'src/routes/casos-de-estudo/[slug]/+page.svelte',
+      'src/routes/blog/+page.svelte',
+      'src/routes/blog/[slug]/+page.svelte',
+      'src/routes/contacto/+page.svelte',
+      'src/routes/politica-de-devolucoes/+page.svelte',
+    ]
+
+    for (const route of routes) {
+      const source = read(route)
+      expect(source, `${route} bypasses the canonical page stream`).toContain(
+        '<ManagedPageComposition',
+      )
+      expect(source, `${route} still appends a parallel section stream`).not.toContain(
+        '<ManagedPageSections',
+      )
+    }
+
+    const composition = read('src/lib/components/builder/ManagedPageComposition.svelte')
+    expect(composition).toContain('splitManagedCoreSections')
+    expect(composition).toContain('composition.before')
+    expect(composition).toContain('composition.after')
+    expect(composition).toContain('{@render children()}')
   })
 
   test('public page copy is managed through the website Studio workspace', () => {
@@ -718,7 +770,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('hasFinishChoice')
     expect(sanityClient).toContain('flatTransportPrice')
     expect(sanityClient).toContain('gallery[]')
-    expect(sanityClient).toContain('contentSections[]')
+    expect(sanityClient).not.toContain('contentSections[]')
     expect(sanityClient).toContain('"fileUrl": file.asset->url')
     expect(storeProductsImport).toContain('createIfNotExists(document)')
     expect(storeProductsImport).toContain("'cadeira-atalaia': ['cadeirao-atalia']")
@@ -887,8 +939,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(blogDetailRoute).toContain('dataAttribute={imageDataAttribute}')
     expect(storeDetailRoute).toContain('data-sanity={selectedPriceDataAttribute}')
     expect(storeDetailRoute).toContain('data-sanity={selectedWeightDataAttribute}')
-    expect(storeDetailRoute).toContain("data-df4y-editor-kind={selectedPriceDataAttribute ? 'number'")
-    expect(storeDetailRoute).toContain("data-df4y-editor-kind={selectedWeightDataAttribute ? 'number'")
+    expect(storeDetailRoute).toContain(
+      "data-df4y-editor-kind={selectedPriceDataAttribute ? 'number'",
+    )
+    expect(storeDetailRoute).toContain(
+      "data-df4y-editor-kind={selectedWeightDataAttribute ? 'number'",
+    )
     expect(storeDetailRoute).toContain('? labels.productNet : undefined')
     expect(storeDetailRoute).toContain('? labels.weight : undefined')
     expect(siteEditorOverlay).toContain("return 'Editar texto'")
@@ -911,9 +967,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(previewEnable).toContain('validatePreviewUrl(previewSecretClient')
     expect(previewEnable).toContain('setPreviewCookie(cookies, url)')
     expect(previewDisable).toContain('clearPreviewCookie(cookies, url)')
-    expect(blogDetailServer).toContain(
-      'getBlogPostDetail(params.slug, preview || builderPreview)',
-    )
+    expect(blogDetailServer).toContain('getBlogPostDetail(params.slug, preview || builderPreview)')
     expect(envExample).toContain('SANITY_VIEWER_TOKEN')
     expect(envExample).toContain('SANITY_STUDIO_PREVIEW_ORIGIN')
     expect(envExample).toContain('SANITY_STUDIO_URL')
@@ -931,7 +985,9 @@ test.describe('Sanity Studio content contract', () => {
 
   test('editable collection documents support uploaded images', () => {
     const productSchema = read('schemaTypes/productCategory.ts')
-    const productSections = read('src/lib/components/ProductContentSections.svelte')
+    const productSections = read(
+      'src/lib/components/builder/BuilderProductFeatureSection.svelte',
+    )
     const editorModel = read('src/lib/site-editor/model.ts')
     const storeSchema = read('schemaTypes/storeProduct.ts')
     const caseSchema = read('schemaTypes/caseStudy.ts')
@@ -970,13 +1026,13 @@ test.describe('Sanity Studio content contract', () => {
     expect(productSchema).toContain("name: 'surface'")
     expect(productSchema).toContain("name: 'buttonLabel'")
     expect(productSchema).toContain("name: 'buttonUrl'")
-    expect(editorModel).toContain("label: 'Visual à esquerda'")
-    expect(editorModel).toContain("label: 'Visual à direita'")
-    expect(editorModel).toContain("label: 'Visual acima'")
-    expect(editorModel).toContain("label: 'Verde profundo'")
-    expect(editorModel).toContain("label: 'Azul mineral'")
-    expect(productSections).toContain('is-${section.mediaSide}')
-    expect(productSections).toContain('is-${section.surface}')
+    expect(productSchema).toContain('hidden: true')
+    expect(editorModel).not.toContain("name: 'contentSections'")
+    expect(editorModel).toContain("label: 'Conteúdo da página'")
+    expect(productSections).toContain('is-${mediaSide}')
+    expect(productSections).toContain('is-${surface}')
+    const editorServer = read('src/lib/server/site-editor.ts')
+    expect(editorServer).toContain("patch.unset(['contentSections'])")
     expect(caseSchema).toContain("name: 'galleryVideo'")
     expect(caseSchema).toContain("type: 'file'")
     expect(blogSchema).toContain("name: 'galleryVideo'")
@@ -1348,16 +1404,18 @@ test.describe('Sanity Studio content contract', () => {
     const appSettings = read('src/lib/server/app-settings.ts')
     const migration = read('migrations/0009_app_settings.sql')
 
-    expect(definicoesServer).toContain("if (!canManageStaff(locals.staff)) error(403")
+    expect(definicoesServer).toContain('if (!canManageStaff(locals.staff)) error(403')
     expect(definicoesServer).toContain('canManageStaff(locals.staff)')
-    expect(definicoesServer.match(/canManageStaff\(locals\.staff\)/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(
+      definicoesServer.match(/canManageStaff\(locals\.staff\)/g)?.length,
+    ).toBeGreaterThanOrEqual(3)
     expect(definicoesServer).toContain('sameOriginOk(')
     expect(definicoesServer).toContain('csrfOk(')
     expect(definicoesServer).toContain('await checkDeeplKey(key)')
     expect(definicoesServer.indexOf('await checkDeeplKey(key)')).toBeLessThan(
       definicoesServer.indexOf('await setDeeplApiKeyOverride('),
     )
-    expect(deeplSettings).toContain("override || env.DEEPL_API_KEY || null")
+    expect(deeplSettings).toContain('override || env.DEEPL_API_KEY || null')
     expect(deeplSettings).toContain('export const maskDeeplKey')
     expect(appSettings).toContain('on conflict (key) do update')
     expect(migration).toContain('create table if not exists app_settings')

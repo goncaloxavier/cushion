@@ -3,6 +3,7 @@
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {lineReveal} from '$lib/actions/line-reveal'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
@@ -27,8 +28,10 @@
     storeDeliveryEventName,
   } from '$lib/store-shipping'
   import {onMount} from 'svelte'
+  import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  const pageCore = managedCoreSectionForDocumentType('storeProduct')!
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
   $effect(() => {
     if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
@@ -199,12 +202,21 @@
 
 <main class="store-detail-page">
   {#if deliveryPostalCode}
-    <article
-      class="detail-page store-detail"
-      class:store-blurred-preview={deliveryModalOpen}
-      aria-hidden={deliveryModalOpen}
-      inert={deliveryModalOpen}
+    <ManagedPageComposition
+      sections={data.storeProduct.sections ?? []}
+      core={pageCore}
+      settings={data.settings}
+      {content}
+      language={data.language}
+      dataset={data.sanityDataset}
+      preview={data.preview || data.builderPreview}
     >
+      <article
+        class="detail-page store-detail"
+        class:store-blurred-preview={deliveryModalOpen}
+        aria-hidden={deliveryModalOpen}
+        inert={deliveryModalOpen}
+      >
     <Reveal class="store-detail-head-reveal" variant="panel">
       <div class="store-detail-head">
         <a class="detail-back-link" href={backHref}>
@@ -413,7 +425,8 @@
       </div>
     </section>
     </Reveal>
-    </article>
+      </article>
+    </ManagedPageComposition>
 
     {#if deliveryModalOpen}
       <div class="store-gate-layer" role="presentation">

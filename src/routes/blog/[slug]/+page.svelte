@@ -1,6 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import BlogArticleRail from '$lib/components/BlogArticleRail.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -16,6 +17,7 @@
     withLanguage,
     type LanguageCode,
   } from '$lib/site-content'
+  import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   const railLabels: Record<
     LanguageCode,
@@ -66,6 +68,7 @@
     }
   })
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForDocumentType('blogPost')!
   const backHref = $derived(collectionListHref('/blog', data.language, data.returnPage))
   const images = $derived(blogImagesFor(data.post, blogImageFallback))
   const media = $derived(blogMediaFor(data.post, blogImageFallback))
@@ -132,7 +135,16 @@
 />
 
 <main>
-  <article class="detail-page blog-detail">
+  <ManagedPageComposition
+    sections={data.post.sections ?? []}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <article class="detail-page blog-detail">
     <header class="blog-detail-header">
       <div>
         <a class="detail-back-link" href={backHref}>
@@ -175,5 +187,6 @@
       </div>
       <BlogArticleRail items={articleRailItems} {labels} {shareUrl} shareText={data.post.title} />
     </section>
-  </article>
+    </article>
+  </ManagedPageComposition>
 </main>

@@ -8,6 +8,11 @@ import type {
   SiteEditorNode,
 } from '$lib/site-editor/types'
 import {createBuilderSection} from '$lib/builder/defaults'
+import {
+  managedDetailSectionDocumentTypes,
+  managedPageSectionScopes,
+} from '$lib/builder/managed-page-sections'
+import {validateBuilderSections} from '$lib/builder/validation'
 import {invalidateSanityCollectionsCache} from '$lib/sanity'
 import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {editorDraftId, normalizeEditorDocumentId} from '$lib/site-editor/path'
@@ -62,7 +67,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'image',
     'gallery',
     'description',
-    'contentSections',
+    'sections',
     'dimensions',
     'materials',
     'specifications',
@@ -80,6 +85,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'gallery',
     'variants',
     'flatTransportPrice',
+    'sections',
     'active',
     'orderRank',
   ],
@@ -91,6 +97,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'location',
     'summary',
     'description',
+    'sections',
     'orderRank',
   ],
   blogPost: [
@@ -103,6 +110,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'excerpt',
     'article',
     'body',
+    'sections',
   ],
   sitePage: ['editorVersion', 'title', 'route', 'active', 'sections', 'seo'],
 }
@@ -112,23 +120,7 @@ const staticPages: Array<{
   title: string
   route: string
   rootPath: string
-}> = [
-  {id: 'page-home', title: 'Página inicial', route: '/', rootPath: 'home'},
-  {id: 'page-about', title: 'Sobre', route: '/sobre-nos', rootPath: 'about'},
-  {id: 'page-products', title: 'Produtos', route: '/produtos', rootPath: 'productsPage'},
-  {id: 'page-store', title: 'Loja', route: '/loja', rootPath: 'storePage'},
-  {id: 'page-cart', title: 'Carrinho', route: '/carrinho', rootPath: 'cartPage'},
-  {id: 'page-catalogue', title: 'Catálogo', route: '/catalogo', rootPath: 'catalogue'},
-  {id: 'page-cases', title: 'Casos de estudo', route: '/casos-de-estudo', rootPath: 'casesPage'},
-  {id: 'page-blog', title: 'Blog', route: '/blog', rootPath: 'blogPage'},
-  {id: 'page-contact', title: 'Contacto', route: '/contacto', rootPath: 'contactPage'},
-  {
-    id: 'page-returns',
-    title: 'Política de devoluções',
-    route: '/politica-de-devolucoes',
-    rootPath: 'returnsPolicy',
-  },
-]
+}> = [...managedPageSectionScopes]
 
 const collectionDefinitions: Array<{
   id: string
@@ -710,10 +702,37 @@ const validateDocument = (document: SiteEditorDocument) => {
     if (!/^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       throw new SiteEditorValidationError('Use um endereço válido, por exemplo /sustentabilidade.')
     }
-  } else if (document._type !== 'siteLanding') {
+    const sectionError = validateBuilderSections(document.sections).find(
+      (issue) => issue.level === 'error',
+    )
+    if (sectionError) throw new SiteEditorValidationError(sectionError.message)
+  } else if (document._type === 'siteLanding') {
+    for (const scope of managedPageSectionScopes) {
+      const page = document[scope.rootPath]
+      if (!page || typeof page !== 'object' || Array.isArray(page)) continue
+      const sections = (page as Record<string, unknown>).sections
+      if (sections === undefined) continue
+      const sectionError = validateBuilderSections(sections).find((issue) => issue.level === 'error')
+      if (sectionError) {
+        throw new SiteEditorValidationError(`${scope.title}: ${sectionError.message}`)
+      }
+    }
+  } else {
     const slug = (document.slug as {current?: unknown} | undefined)?.current
     if (typeof slug !== 'string' || !slug.trim())
       throw new SiteEditorValidationError('Preencha o endereço da página.')
+
+    if (
+      managedDetailSectionDocumentTypes.includes(
+        document._type as (typeof managedDetailSectionDocumentTypes)[number],
+      ) &&
+      document.sections !== undefined
+    ) {
+      const sectionError = validateBuilderSections(document.sections).find(
+        (issue) => issue.level === 'error',
+      )
+      if (sectionError) throw new SiteEditorValidationError(sectionError.message)
+    }
   }
 
   if (document._type === 'storeProduct') {
@@ -755,63 +774,6 @@ const validateDocument = (document: SiteEditorDocument) => {
     })
   }
 
-  if (document._type === 'productCategory' && document.contentSections !== undefined) {
-    if (!Array.isArray(document.contentSections) || document.contentSections.length > 12) {
-      throw new SiteEditorValidationError('Adicione no máximo 12 secções de conteúdo adicional.')
-    }
-    document.contentSections.forEach((item, index) => {
-      const position = `a secção ${index + 1} de conteúdo adicional`
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        throw new SiteEditorValidationError(
-          `Falta preencher ${position} — abra-a e verifique os campos.`,
-        )
-      }
-      const section = item as Record<string, unknown>
-      const sectionTitle = section.title as {pt?: unknown} | undefined
-      const name = typeof sectionTitle?.pt === 'string' ? sectionTitle.pt.trim() : ''
-      const named = name ? `a secção "${name}"` : position
-      const mediaKind = section.mediaKind
-      if (!['left', 'right', 'top'].includes(String(section.mediaSide || 'left'))) {
-        throw new SiteEditorValidationError(`Escolha uma composição válida em ${named}.`)
-      }
-      if (!['white', 'fog', 'mint', 'deep', 'blue'].includes(String(section.surface || 'white'))) {
-        throw new SiteEditorValidationError(`Escolha um fundo válido em ${named}.`)
-      }
-      if (!['caption', 'pill', 'eyebrow'].includes(String(section.labelStyle || 'caption'))) {
-        throw new SiteEditorValidationError(`Escolha um estilo de rótulo válido em ${named}.`)
-      }
-      const image = section.image as {asset?: {_ref?: unknown}} | undefined
-      const video = section.video as
-        | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}
-        | undefined
-      if (mediaKind === 'image' && typeof image?.asset?._ref !== 'string') {
-        throw new SiteEditorValidationError(
-          `Adicione uma imagem a ${named} — está marcada como imagem mas ainda não tem nenhuma.`,
-        )
-      }
-      if (
-        mediaKind === 'video' &&
-        typeof video?.file?.asset?._ref !== 'string' &&
-        (typeof video?.youtubeUrl !== 'string' || !video.youtubeUrl.trim())
-      ) {
-        throw new SiteEditorValidationError(
-          `Carregue um vídeo ou indique um link do YouTube em ${named}.`,
-        )
-      }
-      if (mediaKind !== 'image' && mediaKind !== 'video') {
-        throw new SiteEditorValidationError(`Escolha imagem ou vídeo em ${named}.`)
-      }
-      const buttonLabel = section.buttonLabel as {pt?: unknown} | undefined
-      const hasButtonLabel = typeof buttonLabel?.pt === 'string' && Boolean(buttonLabel.pt.trim())
-      const hasButtonUrl =
-        typeof section.buttonUrl === 'string' && Boolean(section.buttonUrl.trim())
-      if (hasButtonLabel !== hasButtonUrl) {
-        throw new SiteEditorValidationError(
-          `Em ${named}, preencha o texto e o destino do botão, ou deixe os dois campos vazios.`,
-        )
-      }
-    })
-  }
 }
 
 const unsetMissingFields = (document: SiteEditorDocument) =>
@@ -855,6 +817,8 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   }
 
   const document = editableDocument(input)
+  const migratesLegacyProductSections =
+    document._type === 'productCategory' && Array.isArray(document.sections)
 
   if (document._type === 'storeCategory') {
     const existingSlug = documentSlug(draft ?? published)
@@ -892,6 +856,7 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
       .ifRevisionId(draft._rev)
     const missing = unsetMissingFields(document)
     if (missing.length) patch = patch.unset(missing)
+    if (migratesLegacyProductSections) patch = patch.unset(['contentSections'])
     return withSignature((await patch.commit({returnDocuments: true})) as SiteEditorDocument)
   }
 
@@ -913,10 +878,12 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   delete draftDocument._updatedAt
   delete draftDocument[signatureField]
   for (const field of unsetMissingFields(document)) delete draftDocument[field]
+  if (migratesLegacyProductSections) delete draftDocument.contentSections
   return withSignature(await client.create(draftDocument as SiteEditorDocument))
 }
 
 export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
+  validateDocument(input)
   if (siteEditorE2eEnabled()) return publishSiteEditorE2eDocument(input, scope)
   const client = requireWriteClient()
   // publishedId is derivable from input._id alone, so the save (which fetches/writes the
@@ -1005,7 +972,7 @@ export const createSiteEditorDocument = async (
   if (type === 'sitePage') {
     const hero = createBuilderSection('builderHeroSection')
     hero.title = {...hero.title, pt: title}
-    hero.body = {...hero.body, pt: ''}
+    hero.body = {_type: 'localizedText', pt: ''}
     base.editorVersion = 1
     base.title = title
     base.route = normalizedRoute

@@ -1,7 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
-  import ProductContentSections from '$lib/components/ProductContentSections.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -15,6 +15,7 @@
     withLanguage,
     type LanguageCode,
   } from '$lib/site-content'
+  import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   const specsLabels: Record<
     LanguageCode,
@@ -87,9 +88,14 @@
     ].filter((group) => group.items.length > 0),
   )
   const hasSpecs = $derived(specGroups.length > 0)
-  const contentSections = $derived(data.product.contentSections ?? [])
-  const hasContentSections = $derived(contentSections.length > 0)
-  const hasFollowingContent = $derived(hasContentSections)
+  const builderSections = $derived(data.product.sections ?? [])
+  const freeBuilderSections = $derived(
+    builderSections.filter((section) => section._type !== 'builderManagedSection'),
+  )
+  const pageCore = managedCoreSectionForDocumentType('productCategory')!
+  const hasFollowingContent = $derived(
+    freeBuilderSections.some((section) => section.enabled !== false),
+  )
   const productJsonLd = $derived([
     productSchema({
       name: data.product.title,
@@ -113,15 +119,24 @@
 
 <main class="product-detail-page">
   <article class="detail-page product-detail product-editorial">
-    <div class="product-editorial-head">
+    <ManagedPageComposition
+      sections={builderSections}
+      core={pageCore}
+      settings={data.settings}
+      {content}
+      language={data.language}
+      dataset={data.sanityDataset}
+      preview={data.preview || data.builderPreview}
+    >
+      <div class="product-editorial-head">
       <a class="detail-back-link" href={backHref}>
         <span aria-hidden="true">←</span>
         {content.common.backToProducts}
       </a>
       <p class="kicker">{content.nav.products}</p>
-    </div>
+      </div>
 
-    <section class="product-editorial-intro">
+      <section class="product-editorial-intro">
       <div class="product-editorial-title">
         <h1
           class="cms-styled-text"
@@ -140,13 +155,13 @@
           >{leadCopy}</p>
         {/if}
       </div>
-    </section>
+      </section>
 
     {#snippet quoteButton()}
       <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
     {/snippet}
 
-    <section class="product-editorial-stage">
+      <section class="product-editorial-stage">
       <StoreMediaGallery
         {media}
         label={content.common.zoomImage}
@@ -161,14 +176,14 @@
           {@render quoteButton()}
         </div>
       {/if}
-    </section>
+      </section>
 
-    {#if hasSpecs}
-      <section
-        class="product-editorial-specs"
-        class:has-following-support={hasFollowingContent}
-        aria-labelledby="product-specs-heading"
-      >
+      {#if hasSpecs}
+        <section
+          class="product-editorial-specs"
+          class:has-following-support={hasFollowingContent}
+          aria-labelledby="product-specs-heading"
+        >
         <header class="product-specs-header">
           <h2 id="product-specs-heading">{specsCopy.heading}</h2>
         </header>
@@ -190,12 +205,9 @@
             </section>
           {/each}
         </div>
-      </section>
-    {/if}
-
-    {#if hasContentSections}
-      <ProductContentSections sections={contentSections} dataAttribute={imageDataAttribute} />
-    {/if}
+        </section>
+      {/if}
+    </ManagedPageComposition>
 
     {#if hasFollowingContent}
       <section class="product-editorial-cta">

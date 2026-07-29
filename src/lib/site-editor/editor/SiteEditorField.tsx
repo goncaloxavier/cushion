@@ -227,7 +227,6 @@ const arrayItemPath = (path: string, item: unknown, index: number) => {
 const defaultObjectType = (path: string) => {
   if (path.endsWith('navigation')) return 'navigationItem'
   if (path.endsWith('variants')) return 'storeProductVariant'
-  if (path.endsWith('contentSections')) return 'productContentSection'
   if (path.endsWith('stats') || path.endsWith('timeline')) return 'contentCard'
   if (path.endsWith('partners.items')) return 'partnerItem'
   return 'object'

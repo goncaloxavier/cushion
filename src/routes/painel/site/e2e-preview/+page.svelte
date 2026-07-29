@@ -2,6 +2,7 @@
   import {encodeSanityNodeData} from '@sanity/visual-editing-csm'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
+  import type {SitePageDocument} from '$lib/site-editor/types'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import {onMount} from 'svelte'
 
@@ -20,6 +21,19 @@
   onMount(() => {
     document.documentElement.dataset.siteEditorFixtureBoot = crypto.randomUUID()
   })
+
+  const emptySectionPreview = {
+    _id: 'site-editor-section-preview',
+    _type: 'sitePage',
+    _createdAt: '',
+    _updatedAt: '',
+    _rev: '',
+    editorVersion: 1,
+    title: 'Conteúdo da página',
+    route: '/',
+    active: true,
+    sections: [],
+  } satisfies SitePageDocument
 </script>
 
 <svelte:head>
@@ -119,6 +133,15 @@
       <span>Imagem principal</span>
       <strong>Adicionar imagem ou vídeo</strong>
     </section>
+    <BuilderPageRenderer
+      page={emptySectionPreview}
+      settings={null}
+      content={data.site}
+      language={data.language}
+      dataset="site-editor-e2e"
+      preview
+      embedded
+    />
   </main>
 {:else if data.fixture === 'product'}
   <main class="fixture-page fixture-product" data-testid="fixture-product-page">
@@ -191,6 +214,15 @@
         <span>Vídeo na galeria</span>
       </button>
     </section>
+    <BuilderPageRenderer
+      page={emptySectionPreview}
+      settings={null}
+      content={data.site}
+      language={data.language}
+      dataset="site-editor-e2e"
+      preview
+      embedded
+    />
   </main>
 {:else}
   <main class="fixture-page fixture-home" data-testid="fixture-home-page">
@@ -243,6 +275,15 @@
         data-sanity={sanity('siteContent', 'siteLanding', 'home.experimentalCopy.pt')}
       >Campo ainda não incluído no editor simplificado.</p>
     </section>
+    <BuilderPageRenderer
+      page={emptySectionPreview}
+      settings={null}
+      content={data.site}
+      language={data.language}
+      dataset="site-editor-e2e"
+      preview
+      embedded
+    />
   </main>
 {/if}
 

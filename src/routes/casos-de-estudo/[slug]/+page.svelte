@@ -1,6 +1,7 @@
 <script lang="ts">
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {collectionListHref} from '$lib/collection-page'
@@ -12,6 +13,7 @@
     caseStudyMediaFor,
     withLanguage,
   } from '$lib/site-content'
+  import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
@@ -21,6 +23,7 @@
     }
   })
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForDocumentType('caseStudy')!
   const backHref = $derived(
     collectionListHref('/casos-de-estudo', data.language, data.returnPage),
   )
@@ -54,8 +57,17 @@
 <SeoHead title={data.caseStudy.title} description={lead} image={images[0]} jsonLd={caseJsonLd} />
 
 <main>
-  <article class="detail-page case-detail">
-    <section class="case-detail-hero">
+  <ManagedPageComposition
+    sections={data.caseStudy.sections ?? []}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <article class="detail-page case-detail">
+      <section class="case-detail-hero">
       <div class="case-detail-overlay">
         <a class="detail-back-link" href={backHref}>
           <span aria-hidden="true">←</span>
@@ -87,7 +99,7 @@
         dataAttribute={imageDataAttribute}
         fallbackEditPath="image"
       />
-    </section>
-  </article>
-
+      </section>
+    </article>
+  </ManagedPageComposition>
 </main>

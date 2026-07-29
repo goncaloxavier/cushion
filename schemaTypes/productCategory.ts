@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {videoCaptionsField} from './components/videoCaptionsField'
+import {builderSectionMembers} from './builder/builderSections'
 
 export const productCategory = defineType({
   name: 'productCategory',
@@ -8,7 +9,7 @@ export const productCategory = defineType({
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'imagens', title: 'Imagens'},
-    {name: 'seccoes', title: 'Conteúdo adicional'},
+    {name: 'seccoes', title: 'Conteúdo da página'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -116,10 +117,11 @@ export const productCategory = defineType({
     }),
     defineField({
       name: 'contentSections',
-      title: 'Conteúdo adicional',
-      description: 'Blocos opcionais apresentados depois da galeria e da informação técnica.',
+      title: 'Blocos antigos',
+      description: 'Campo técnico oculto, mantido apenas para migrar conteúdo antigo.',
       type: 'array',
       group: 'seccoes',
+      hidden: true,
       validation: (Rule) => Rule.max(12),
       of: [
         defineField({
@@ -346,6 +348,16 @@ export const productCategory = defineType({
           },
         }),
       ],
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Conteúdo da página',
+      description:
+        'Organize a apresentação atual e acrescente imagem, vídeo, texto, galerias ou chamadas para ação.',
+      type: 'array',
+      group: 'seccoes',
+      of: builderSectionMembers,
+      validation: (Rule) => Rule.max(30),
     }),
     defineField({
       name: 'dimensions',

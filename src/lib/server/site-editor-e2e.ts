@@ -570,6 +570,9 @@ export const saveSiteEditorE2eDocument = (input: SiteEditorDocument, scope = 'de
     _createdAt: current?._createdAt || timestamp,
     _updatedAt: new Date().toISOString(),
   } as SiteEditorDocument
+  if (next._type === 'productCategory' && Array.isArray(next.sections)) {
+    delete next.contentSections
+  }
   state.documents.set(id, next)
   return clone(next)
 }
@@ -610,7 +613,7 @@ export const createSiteEditorE2eDocument = (
   }
   const hero = createBuilderSection('builderHeroSection')
   hero.title = {...hero.title, pt: title}
-  hero.body = {...hero.body, pt: ''}
+  hero.body = {_type: 'localizedText', pt: ''}
   const document = {
     _id: editorDraftId(id),
     _type: type,

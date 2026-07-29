@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {videoCaptionsField} from './components/videoCaptionsField'
+import {builderSectionMembers} from './builder/builderSections'
 
 export const storeProduct = defineType({
   name: 'storeProduct',
@@ -9,6 +10,7 @@ export const storeProduct = defineType({
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'precos', title: 'Preços'},
     {name: 'imagens', title: 'Imagens'},
+    {name: 'seccoes', title: 'Conteúdo da página'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -205,6 +207,16 @@ export const storeProduct = defineType({
       type: 'number',
       group: 'precos',
       validation: (Rule) => Rule.min(0).precision(2),
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Conteúdo da página',
+      description:
+        'Organize a apresentação atual e acrescente novas secções a esta página de produto.',
+      type: 'array',
+      group: 'seccoes',
+      of: builderSectionMembers,
+      validation: (Rule) => Rule.max(30),
     }),
     defineField({
       name: 'active',
