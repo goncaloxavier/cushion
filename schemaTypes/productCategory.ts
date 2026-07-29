@@ -350,6 +350,22 @@ export const productCategory = defineType({
       ],
     }),
     defineField({
+      name: 'documentsTitle',
+      title: 'Título dos ficheiros',
+      description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+      type: 'localizedString',
+      group: 'conteudo',
+    }),
+    defineField({
+      name: 'documents',
+      title: 'Ficheiros para download',
+      description: 'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+      type: 'array',
+      of: [{type: 'downloadItem'}],
+      validation: (Rule) => Rule.max(12),
+      group: 'conteudo',
+    }),
+    defineField({
       name: 'sections',
       title: 'Conteúdo da página',
       description:

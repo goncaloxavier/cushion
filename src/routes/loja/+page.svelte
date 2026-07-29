@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import Pagination from '$lib/components/Pagination.svelte'
   import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
@@ -253,6 +254,12 @@
     preview={data.preview || data.builderPreview}
   >
     <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
+
+    <DownloadList
+      documents={content.storePage.documents}
+      title={content.storePage.documentsTitle}
+      fallbackTitle={content.common.downloadsTitle}
+    />
 
     <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}

@@ -352,6 +352,21 @@ export const siteLanding = defineType({
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
+        defineField({
+          name: 'documentsTitle',
+          title: 'Título dos ficheiros',
+          description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+          type: 'localizedString',
+        }),
+        defineField({
+          name: 'documents',
+          title: 'Ficheiros para download',
+          description:
+            'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+          type: 'array',
+          of: [{type: 'downloadItem'}],
+          validation: (Rule) => Rule.max(12),
+        }),
         builderSectionsField(),
       ],
       'Topo da listagem. Edite cada solução na área Produtos.',
@@ -361,6 +376,21 @@ export const siteLanding = defineType({
       'Página Loja',
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
+        defineField({
+          name: 'documentsTitle',
+          title: 'Título dos ficheiros',
+          description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+          type: 'localizedString',
+        }),
+        defineField({
+          name: 'documents',
+          title: 'Ficheiros para download',
+          description:
+            'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+          type: 'array',
+          of: [{type: 'downloadItem'}],
+          validation: (Rule) => Rule.max(12),
+        }),
         {...localizedStringField('searchLabel', 'Nome da pesquisa'), hidden: true},
         {...localizedStringField('categoryLabel', 'Nome das categorias'), hidden: true},
         {...localizedStringField('finishLabel', 'Nome dos acabamentos'), hidden: true},
@@ -551,6 +581,7 @@ export const siteLanding = defineType({
         localizedStringField('previous', 'Página anterior'),
         localizedStringField('next', 'Página seguinte'),
         localizedStringField('zoomImage', 'Ampliar imagem'),
+        localizedStringField('downloadsTitle', 'Título dos ficheiros para download'),
         localizedStringField('close', 'Fechar'),
         defineField({
           name: 'contactEmail',

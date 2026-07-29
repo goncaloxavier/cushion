@@ -229,6 +229,18 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           title: 'Ex.: Soluções para exterior que não precisam de manutenção',
         }),
         image('heroImage', 'Imagem principal'),
+              {
+          name: 'documentsTitle',
+          label: 'Título dos ficheiros',
+          description: 'Deixe vazio para usar o texto global',
+          type: 'localizedString',
+        },
+        {
+          name: 'documents',
+          label: 'Ficheiros para download',
+          description: 'PDFs que o cliente pode transferir nesta página',
+          type: 'documents',
+        },
       ],
     },
   ],
@@ -238,10 +250,23 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       label: 'Topo da Loja',
       description: 'Título e etiqueta apresentados no início da Loja',
       fields: [
+
         copyBlock('hero', 'Texto do topo', false, {
           kicker: 'Ex.: Loja',
           title: 'Ex.: Produtos com preço para pedido direto',
         }),
+              {
+          name: 'documentsTitle',
+          label: 'Título dos ficheiros',
+          description: 'Deixe vazio para usar o texto global',
+          type: 'localizedString',
+        },
+        {
+          name: 'documents',
+          label: 'Ficheiros para download',
+          description: 'PDFs que o cliente pode transferir nesta página',
+          type: 'documents',
+        },
       ],
     },
     {
@@ -750,7 +775,22 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         ),
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+      {
+        name: 'documentsTitle',
+        label: 'Título dos ficheiros',
+        description: 'Deixe vazio para usar o texto global',
+        type: 'localizedString',
+      },
+      {
+        name: 'documents',
+        label: 'Ficheiros para download',
+        description: 'PDFs que o cliente pode transferir nesta página',
+        type: 'documents',
+      },
+
+
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'specs',
       label: 'Especificações técnicas',
@@ -878,7 +918,21 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         },
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+      {
+        name: 'documentsTitle',
+        label: 'Título dos ficheiros',
+        description: 'Deixe vazio para usar o texto global',
+        type: 'localizedString',
+      },
+      {
+        name: 'documents',
+        label: 'Ficheiros para download',
+        description: 'PDFs que o cliente pode transferir nesta página',
+        type: 'documents',
+      },
+
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
       label: 'Visibilidade',
@@ -914,7 +968,8 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         ),
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
       label: 'Organização',

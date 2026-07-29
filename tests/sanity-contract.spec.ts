@@ -116,7 +116,7 @@ test.describe('Sanity Studio content contract', () => {
     const fieldNames = panels.flatMap((panel) => panel.fields.map((field) => field.name))
 
     expect(panels.map((panel) => panel.label)).toEqual(['Topo da Loja', 'Cálculo do transporte'])
-    expect(fieldNames).toEqual(['hero', 'transportMultiplier'])
+    expect(fieldNames).toEqual(['hero', 'documentsTitle', 'documents', 'transportMultiplier'])
   })
 
   test('typography survives the Sanity adapter used by public pages', () => {

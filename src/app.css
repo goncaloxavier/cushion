@@ -7393,3 +7393,97 @@ html.reduce-motion .intro-overlay {
 .collection-card-meta + h3 {
   margin-top: 0.3rem;
 }
+
+/* Downloadable documents. Deliberately not a section: it is a compact strip
+   that sits inside whatever surrounds it, so attaching a PDF never restructures
+   the page. One treatment everywhere it appears — product detail, store product
+   and both listings — so a PDF looks like the same thing wherever it is
+   attached. */
+.download-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  align-items: center;
+  width: min(100%, var(--max));
+  margin: 0 auto;
+  padding: 1.1rem max(1.25rem, calc((100% - var(--max)) / 2));
+}
+
+.download-list-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.download-list ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.download-list a {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.5rem 0.85rem 0.5rem 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  background: #ffffff;
+  border: 1px solid rgba(17, 57, 60, 0.16);
+  border-radius: 999px;
+  transition:
+    border-color 200ms ease,
+    transform 200ms var(--ease-snap);
+}
+
+.download-list a:hover {
+  border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+/* A document mark rather than a generic arrow: the affordance should say
+   "file", not "link". */
+.download-list-icon {
+  flex: 0 0 auto;
+  width: 1.05rem;
+  height: 1.35rem;
+  background: linear-gradient(180deg, #f2f7f4, #e2ece7);
+  border: 1px solid rgba(17, 57, 60, 0.2);
+  border-radius: 2px;
+  clip-path: polygon(0 0, 70% 0, 100% 24%, 100% 100%, 0 100%);
+}
+
+.download-list-copy {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.download-list-copy strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.download-list-copy small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .download-list {
+    padding: 1rem var(--mobile-gutter);
+  }
+
+  .download-list a {
+    width: 100%;
+  }
+}

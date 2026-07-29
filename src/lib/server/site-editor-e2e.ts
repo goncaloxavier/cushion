@@ -674,7 +674,10 @@ export const deleteSiteEditorE2eDocument = (id: string, scope = 'default') => {
   state.publishedDocuments.delete(normalizedId)
 }
 
-export const uploadSiteEditorE2eAsset = (file: File, kind: 'image' | 'video' | 'file') => {
+export const uploadSiteEditorE2eAsset = (
+  file: File,
+  kind: 'image' | 'video' | 'file' | 'document',
+) => {
   const extension =
     file.name
       .split('.')

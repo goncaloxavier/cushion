@@ -240,6 +240,7 @@ const defaultValue = (field: SiteEditorField, path: string): unknown => {
   if (
     field.type === 'array' ||
     field.type === 'gallery' ||
+    field.type === 'documents' ||
     field.type === 'navigation' ||
     field.type === 'sections'
   )
@@ -755,6 +756,115 @@ function VideoEditor({
         onConfirm={() => {
           commit({...video, file: undefined})
           setPendingRemoval(false)
+        }}
+      />
+    </div>
+  )
+}
+
+
+// PDFs offered for download. Deliberately plain: a name and a file, because
+// that is all the client asked for and every extra control here is one more
+// thing that can be got wrong.
+function DocumentsEditor({
+  value,
+  onChange,
+  onUpload,
+}: {
+  value: unknown
+  onChange: (value: unknown) => void
+  onUpload: Props['onUpload']
+}) {
+  const items = useMemo(
+    () => (Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []),
+    [value],
+  )
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string>()
+  const [pendingRemoval, setPendingRemoval] = useState<number>()
+
+  const commit = (next: Array<Record<string, unknown>>) => onChange(next)
+
+  const addFile = async (file: File) => {
+    setBusy(true)
+    setError(undefined)
+    try {
+      const asset = await onUpload(file, 'document')
+      commit([
+        ...items,
+        {
+          _type: 'downloadItem',
+          _key: editorKey(),
+          // Pre-fill from the filename so a freshly added document is never
+          // nameless on the site while the editor thinks about a label.
+          title: {_type: 'localizedString', pt: file.name.replace(/\.pdf$/i, '')},
+          file: {_type: 'file', asset: {_type: 'reference', _ref: asset.id}},
+        },
+      ])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o ficheiro.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="site-editor-documents">
+      {items.map((item, index) => (
+        <div className="site-editor-document-row" key={String(item._key || index)}>
+          <input
+            type="text"
+            aria-label={`Nome do documento ${index + 1}`}
+            value={String((item.title as {pt?: string} | undefined)?.pt || '')}
+            onChange={(event) =>
+              commit(
+                items.map((current, position) =>
+                  position === index
+                    ? {
+                        ...current,
+                        title: {_type: 'localizedString', pt: event.target.value},
+                      }
+                    : current,
+                ),
+              )
+            }
+          />
+          <button
+            type="button"
+            className="is-danger"
+            aria-label={`Remover documento ${index + 1}`}
+            onClick={() => setPendingRemoval(index)}
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      ))}
+
+      <label className="site-editor-document-add">
+        <input
+          type="file"
+          accept="application/pdf"
+          disabled={busy}
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            if (file) void addFile(file)
+          }}
+        />
+        <span>{busy ? 'A carregar…' : 'Adicionar PDF'}</span>
+      </label>
+
+      {error ? <p className="site-editor-document-error">{error}</p> : null}
+
+      <ConfirmDialog
+        open={pendingRemoval !== undefined}
+        title="Remover este documento?"
+        description="Deixa de estar disponível para download nesta página. Pode desfazer antes de publicar."
+        onCancel={() => setPendingRemoval(undefined)}
+        onConfirm={() => {
+          if (pendingRemoval === undefined) return
+          commit(items.filter((_, position) => position !== pendingRemoval))
+          setPendingRemoval(undefined)
         }}
       />
     </div>
@@ -1572,6 +1682,18 @@ export function SiteEditorFieldInput({
           onChange={(next) => onChange(path, next)}
           onUpload={onUpload}
         />
+      </div>
+    )
+  }
+
+  if (field.type === 'documents') {
+    return (
+      <div ref={container} className={`site-editor-field${selected ? ' is-selected' : ''}`}>
+        <div className="site-editor-field-head">
+          <strong>{field.label}</strong>
+          {field.description ? <small>{field.description}</small> : null}
+        </div>
+        <DocumentsEditor value={value} onChange={(next) => onChange(path, next)} onUpload={onUpload} />
       </div>
     )
   }

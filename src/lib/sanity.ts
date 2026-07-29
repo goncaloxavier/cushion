@@ -164,6 +164,7 @@ const collectionsQuery = `{
       previous,
       next,
       zoomImage,
+      downloadsTitle,
       close,
       contactEmail,
       contactPhone,
@@ -249,6 +250,13 @@ const collectionsQuery = `{
     },
     productsPage {
       sections,
+      documentsTitle,
+      documentsTitle,
+    "documents": documents[]{
+        title,
+        "fileUrl": file.asset->url,
+        "fileSize": file.asset->size
+      },
       hero {
         kicker,
         title
@@ -267,6 +275,13 @@ const collectionsQuery = `{
     },
     storePage {
       sections,
+      documentsTitle,
+      documentsTitle,
+    "documents": documents[]{
+        title,
+        "fileUrl": file.asset->url,
+        "fileSize": file.asset->size
+      },
       hero {
         kicker,
         title
@@ -451,6 +466,12 @@ const collectionsQuery = `{
       },
     },
     description,
+    documentsTitle,
+    "documents": documents[]{
+      title,
+      "fileUrl": file.asset->url,
+      "fileSize": file.asset->size
+    },
     "specs": {
       "dimensions": dimensions[],
       "materials": materials[],
@@ -477,6 +498,12 @@ const collectionsQuery = `{
     summary,
     hasFinishChoice,
     flatTransportPrice,
+    documentsTitle,
+    "documents": documents[]{
+      title,
+      "fileUrl": file.asset->url,
+      "fileSize": file.asset->size
+    },
     image {
       asset -> {
         url,

@@ -181,6 +181,9 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'gallery') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ficheiro', 'ficheiros')
   }
+  if (field.type === 'documents') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'documento', 'documentos')
+  }
   if (field.type === 'video') {
     const video =
       value && typeof value === 'object' && !Array.isArray(value)

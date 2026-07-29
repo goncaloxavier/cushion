@@ -96,6 +96,14 @@ export type StoreProductMedia =
       editPath?: string
     })
 
+// A downloadable file offered on a page. Same shape on product details, store
+// products and both listings, so one component renders all four.
+export type DownloadDocument = {
+  title: string
+  url: string
+  size?: number
+}
+
 export type PartnerItem = {
   name: string
   url: string
@@ -114,6 +122,8 @@ export type ProductItem = {
   images?: ContentImage[]
   media?: StoreProductMedia[]
   sections?: BuilderSection[]
+  documents?: DownloadDocument[]
+  documentsTitle?: string
   specs?: {
     dimensions: string[]
     materials: string[]
@@ -234,6 +244,8 @@ export type StoreProduct = {
   // through the normal weight/zone carrier calculation — see calculateStoreEstimate.
   flatTransportPrice?: number
   sections?: BuilderSection[]
+  documents?: DownloadDocument[]
+  documentsTitle?: string
   textAppearance?: TextAppearanceMap
 }
 
@@ -276,6 +288,7 @@ export type SiteContent = {
     previous: string
     next: string
     zoomImage: string
+    downloadsTitle: string
     close: string
     contactEmail: string
     contactPhone: string
@@ -329,10 +342,14 @@ export type SiteContent = {
     heroImage: ContentImage
     lead: string
     sections: BuilderSection[]
+    documents: DownloadDocument[]
+    documentsTitle: string
   }
   storePage: {
     hero: CopyBlock
     lead: string
+    documents: DownloadDocument[]
+    documentsTitle: string
     transportMultiplier: number
     searchLabel: string
     categoryLabel: string
@@ -427,6 +444,8 @@ export type SiteContent = {
 }
 
 type SanityProduct = {
+  documents?: SanityDownloadItem[]
+  documentsTitle?: LocalizedValue
   _id?: string
   _updatedAt?: string
   title?: LocalizedValue
@@ -482,6 +501,8 @@ type SanityStoreProductVariant = {
 }
 
 type SanityStoreProduct = {
+  documents?: SanityDownloadItem[]
+  documentsTitle?: LocalizedValue
   _id?: string
   _updatedAt?: string
   title?: LocalizedValue
@@ -578,8 +599,12 @@ type SanitySiteContent = {
     heroImage?: SanityImage
     lead?: LocalizedValue
     sections?: BuilderSection[]
+    documents?: SanityDownloadItem[]
+    documentsTitle?: LocalizedValue
   }
   storePage?: {
+    documents?: SanityDownloadItem[]
+    documentsTitle?: LocalizedValue
     hero?: SanityCopyBlock
     lead?: LocalizedValue
     transportMultiplier?: number
@@ -1183,6 +1208,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       previous: 'Anterior',
       next: 'Seguinte',
       zoomImage: 'Ampliar imagem',
+      downloadsTitle: 'Documentos para download',
       close: 'Fechar',
       contactEmail: contact.email,
       contactPhone: contact.phone,
@@ -1305,6 +1331,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     productsPage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Produtos',
         title: 'Soluções para exterior que não querem manutenção constante',
@@ -1315,6 +1345,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     storePage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Loja',
         title: 'Produtos com preço para pedido direto',
@@ -1536,6 +1570,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       previous: 'Previous',
       next: 'Next',
       zoomImage: 'Zoom image',
+      downloadsTitle: 'Downloads',
       close: 'Close',
       contactEmail: contact.email,
       contactPhone: contact.phone,
@@ -1659,6 +1694,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     productsPage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Products',
         title: 'Outdoor solutions that avoid constant maintenance',
@@ -1669,6 +1708,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     storePage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Store',
         title: 'Priced products ready for direct request',
@@ -1890,6 +1933,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       previous: 'Anterior',
       next: 'Siguiente',
       zoomImage: 'Ampliar imagen',
+      downloadsTitle: 'Documentos para descargar',
       close: 'Cerrar',
       contactEmail: contact.email,
       contactPhone: contact.phone,
@@ -2013,6 +2057,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     productsPage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Productos',
         title: 'Soluciones exteriores sin mantenimiento constante',
@@ -2023,6 +2071,10 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     storePage: {
+      // No documents in the built-in fallback; they only exist once an
+      // editor attaches a PDF in Sanity.
+      documents: [],
+      documentsTitle: '',
       hero: {
         kicker: 'Tienda',
         title: 'Productos con precio para solicitud directa',
@@ -2578,6 +2630,27 @@ const contentMediaFromSanity = (
   }
 }
 
+type SanityDownloadItem = {
+  title?: LocalizedValue
+  fileUrl?: string
+  fileSize?: number
+}
+
+// Entries without an uploaded file are dropped rather than rendered as a dead
+// link — an editor can save a title before choosing the PDF, and a download
+// that downloads nothing is worse than one that is not offered yet.
+const documentsFromSanity = (
+  source: SanityDownloadItem[] | undefined,
+  language: LanguageCode,
+): DownloadDocument[] =>
+  (source ?? [])
+    .filter((item) => typeof item?.fileUrl === 'string' && item.fileUrl.trim())
+    .map((item) => ({
+      title: localized(item.title, language, '') || 'Documento',
+      url: item.fileUrl as string,
+      size: typeof item.fileSize === 'number' ? item.fileSize : undefined,
+    }))
+
 const partnersFromSanity = (
   items: SanityPartnerItem[] | undefined,
   language: LanguageCode,
@@ -2680,6 +2753,8 @@ const productsFromSanity = (
         description: cleanProductMaterialCopy(
           localized(product.description, language, fallbackProduct?.description ?? ''),
         ),
+        documents: documentsFromSanity(product.documents, language),
+        documentsTitle: localized(product.documentsTitle, language, ''),
         specs: {
           dimensions: localizedListFromSanity(product.specs?.dimensions, language, []),
           materials: localizedListFromSanity(product.specs?.materials, language, []),
@@ -2803,6 +2878,8 @@ const storeProductsFromSanity = (
         flatTransportPrice:
           product.flatTransportPrice ??
           (strictPricing ? undefined : fallbackProduct?.flatTransportPrice),
+        documents: documentsFromSanity(product.documents, language),
+        documentsTitle: localized(product.documentsTitle, language, ''),
         image: images[0],
         images,
         media,
@@ -2988,10 +3065,14 @@ const applySiteContentFromSanity = (
     ),
     lead: '',
     sections: builderSectionsFromSanity(source.productsPage?.sections),
+    documents: documentsFromSanity(source.productsPage?.documents, language),
+    documentsTitle: localized(source.productsPage?.documentsTitle, language, ''),
   }
 
   target.storePage = {
     ...fallback.storePage,
+    documents: documentsFromSanity(source.storePage?.documents, language),
+    documentsTitle: localized(source.storePage?.documentsTitle, language, ''),
     hero: {
       ...copyBlockFromSanity(source.storePage?.hero, language, fallback.storePage.hero),
       lead: '',

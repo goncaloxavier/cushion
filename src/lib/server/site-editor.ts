@@ -64,6 +64,8 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
   productCategory: [
     'title',
     'slug',
+    'documents',
+    'documentsTitle',
     'image',
     'gallery',
     'description',
@@ -78,6 +80,8 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
   storeProduct: [
     'title',
     'slug',
+    'documents',
+    'documentsTitle',
     'category',
     'summary',
     'hasFinishChoice',

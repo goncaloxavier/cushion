@@ -2,7 +2,7 @@ import type {SanityDocument} from '@sanity/client'
 import type {BuilderSection} from '$lib/builder/types'
 
 export type Asset = {id: string; url: string}
-export type SiteEditorAssetKind = 'image' | 'video' | 'file'
+export type SiteEditorAssetKind = 'image' | 'video' | 'file' | 'document'
 
 export type SiteEditorDocumentType =
   | 'siteLanding'
@@ -75,6 +75,7 @@ export type SiteEditorFieldType =
   | 'select'
   | 'image'
   | 'gallery'
+  | 'documents'
   | 'video'
   | 'navigation'
   | 'article'

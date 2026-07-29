@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import {browser} from '$app/environment'
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
@@ -423,6 +424,12 @@
         </button>
         <a class="text-link" href={`/carrinho${langQuery}`}>{labels.viewCart}</a>
       </div>
+
+      <DownloadList
+        documents={data.storeProduct.documents}
+        title={data.storeProduct.documentsTitle}
+        fallbackTitle={content.common.downloadsTitle}
+      />
     </section>
     </Reveal>
       </article>

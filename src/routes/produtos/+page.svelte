@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import Pagination from '$lib/components/Pagination.svelte'
   import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
@@ -152,6 +153,12 @@
       />
     </Reveal>
     </section>
+
+    <DownloadList
+      documents={content.productsPage.documents}
+      title={content.productsPage.documentsTitle}
+      fallbackTitle={content.common.downloadsTitle}
+    />
 
     <section class="section product-collection-section" bind:this={collectionSection}>
     <Reveal delay={80} variant="panel">

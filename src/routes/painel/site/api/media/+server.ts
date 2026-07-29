@@ -18,7 +18,10 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
   const form = await request.formData()
   const file = form.get('file')
   const kind = form.get('kind')
-  if (!(file instanceof File) || (kind !== 'image' && kind !== 'video' && kind !== 'file')) {
+  if (
+    !(file instanceof File) ||
+    (kind !== 'image' && kind !== 'video' && kind !== 'file' && kind !== 'document')
+  ) {
     error(400, 'Escolha uma imagem, vídeo ou ficheiro de legendas válido.')
   }
 

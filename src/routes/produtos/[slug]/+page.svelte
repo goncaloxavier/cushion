@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import {page} from '$app/state'
   import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
@@ -208,6 +209,12 @@
         </section>
       {/if}
     </ManagedPageComposition>
+
+    <DownloadList
+      documents={data.product.documents}
+      title={data.product.documentsTitle}
+      fallbackTitle={content.common.downloadsTitle}
+    />
 
     {#if hasFollowingContent}
       <section class="product-editorial-cta">
