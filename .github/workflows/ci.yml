@@ -6,6 +6,11 @@ on:
     branches:
       - dev
       - main
+  schedule:
+    # Every morning, so a page the client broke overnight is found before they
+    # or a visitor find it.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -71,3 +76,34 @@ jobs:
 
       - name: Route and contract tests
         run: npm run e2e
+
+  # Renders every page the live dataset actually contains. Deliberately not part
+  # of `validate`: it reaches out to Sanity, so a third-party outage would block
+  # unrelated pull requests. It runs on a schedule instead, where its job is to
+  # notice the client's own content breaking a page — which no fixture can.
+  live-content:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      CHECKOUT_ALLOW_FALLBACK_PRICING: 'true'
+      # Read-only. Without it the sweep still covers published pages and skips
+      # the draft pass rather than failing.
+      SANITY_VIEWER_TOKEN: ${{ secrets.SANITY_VIEWER_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Render every live page
+        run: npm run e2e:live
