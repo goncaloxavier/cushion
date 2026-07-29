@@ -116,3 +116,31 @@ test('downloads live in each page’s opening copy block, on all four surfaces',
     expect(download, `${file}: DownloadList is not inside the ${label}`).toBeGreaterThan(opener)
   }
 })
+
+test('snippets are declared where every call site can see them', () => {
+  // A {#snippet} declared inside a component's children is not in scope after
+  // that component closes. quoteButton was declared inside the composition
+  // while one of its two render sites sat after it, so /produtos/[slug] threw
+  // ReferenceError — but only for products with sections, which is the branch
+  // that renders it. Nothing in the suite caught that, because the e2e dataset
+  // has no product with sections.
+  const raw = readFileSync('src/routes/produtos/[slug]/+page.svelte', 'utf8')
+  // Comments mention the tag by name, so measure against the markup only.
+  const source = raw.replace(/<!--[\s\S]*?-->/g, (block) => ' '.repeat(block.length))
+
+  const declared = source.indexOf('{#snippet quoteButton()}')
+  const compositionOpens = source.indexOf('<ManagedPageComposition')
+  expect(declared).toBeGreaterThan(-1)
+  expect(compositionOpens).toBeGreaterThan(-1)
+
+  expect(
+    declared,
+    'quoteButton must be declared before <ManagedPageComposition> opens, or the render site after it cannot see it',
+  ).toBeLessThan(compositionOpens)
+
+  for (const match of source.matchAll(/\{@render quoteButton\(\)\}/g)) {
+    expect(match.index!, 'a quoteButton call site precedes its declaration').toBeGreaterThan(
+      declared,
+    )
+  }
+})

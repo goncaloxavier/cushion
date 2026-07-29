@@ -120,6 +120,13 @@
 
 <main class="product-detail-page">
   <article class="detail-page product-detail product-editorial">
+    <!-- Declared here, not inside the composition below: one of its two call
+         sites sits after </ManagedPageComposition>, and a snippet declared
+         inside the children is not in scope there. -->
+    {#snippet quoteButton()}
+      <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
+    {/snippet}
+
     <ManagedPageComposition
       sections={builderSections}
       core={pageCore}
@@ -163,10 +170,6 @@
         />
       </div>
       </section>
-
-    {#snippet quoteButton()}
-      <a class="button primary" href={`/contacto${langQuery}`}>{content.common.requestQuote}</a>
-    {/snippet}
 
       <section class="product-editorial-stage">
       <StoreMediaGallery
