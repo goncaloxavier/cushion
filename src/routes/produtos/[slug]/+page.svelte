@@ -155,6 +155,12 @@
             data-sanity={productDataAttribute?.('description.pt')}
           >{leadCopy}</p>
         {/if}
+
+        <DownloadList
+          documents={data.product.documents}
+          title={data.product.documentsTitle}
+          fallbackTitle={content.common.downloadsTitle}
+        />
       </div>
       </section>
 
@@ -209,12 +215,6 @@
         </section>
       {/if}
     </ManagedPageComposition>
-
-    <DownloadList
-      documents={data.product.documents}
-      title={data.product.documentsTitle}
-      fallbackTitle={content.common.downloadsTitle}
-    />
 
     {#if hasFollowingContent}
       <section class="product-editorial-cta">

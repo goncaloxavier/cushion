@@ -273,6 +273,12 @@
         >
           {data.storeProduct.summary}
         </p>
+
+        <DownloadList
+          documents={data.storeProduct.documents}
+          title={data.storeProduct.documentsTitle}
+          fallbackTitle={content.common.downloadsTitle}
+        />
       </Reveal>
 
       <Reveal class="store-detail-visual-reveal" delay={120} variant="media">
@@ -424,12 +430,6 @@
         </button>
         <a class="text-link" href={`/carrinho${langQuery}`}>{labels.viewCart}</a>
       </div>
-
-      <DownloadList
-        documents={data.storeProduct.documents}
-        title={data.storeProduct.documentsTitle}
-        fallbackTitle={content.common.downloadsTitle}
-      />
     </section>
     </Reveal>
       </article>

@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
 import {contentFromSanity} from '../src/lib/site-content'
 import {assertUploadAllowed} from '../src/lib/server/upload-guard'
@@ -90,4 +91,28 @@ test('the heading is the client’s own, with the shared label as fallback', () 
   } as never)
   expect(withoutOwn.pt.productsPage.documentsTitle).toBe('')
   expect(withoutOwn.pt.common.downloadsTitle).toBe('Documentos para download')
+})
+
+test('downloads live in each page’s opening copy block, on all four surfaces', () => {
+  // One rule everywhere: the block that opens the page, never a functional
+  // panel. Specs can be empty and the buy panel is prices, so hanging the
+  // downloads off either made placement depend on unrelated content.
+  const sources: Array<[string, string, string]> = [
+    ['src/routes/produtos/+page.svelte', 'product-index-copy', 'listing hero copy'],
+    ['src/routes/loja/+page.svelte', 'PageHero', 'listing hero copy'],
+    ['src/routes/produtos/[slug]/+page.svelte', 'product-editorial-copy', 'intro copy'],
+    ['src/routes/loja/[slug]/+page.svelte', 'store-detail-copy', 'detail copy'],
+  ]
+
+  for (const [file, container, label] of sources) {
+    const source = readFileSync(file, 'utf8')
+    const download = source.indexOf('<DownloadList')
+    expect(download, `${file}: no DownloadList`).toBeGreaterThan(-1)
+
+    const opener = source.indexOf(container)
+    expect(opener, `${file}: no ${container}`).toBeGreaterThan(-1)
+    // It must come after the container opens — i.e. be nested inside it, not
+    // dangling after the page's blocks where it would have no gutters at all.
+    expect(download, `${file}: DownloadList is not inside the ${label}`).toBeGreaterThan(opener)
+  }
 })
