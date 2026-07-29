@@ -144,3 +144,19 @@ test('snippets are declared where every call site can see them', () => {
     )
   }
 })
+
+test('a product detail page renders with sections after its core block', async ({page}) => {
+  // The blind spot that let a 500 reach the live site: every fixture product had
+  // no sections, so `hasFollowingContent` was false in all of them and the whole
+  // following-content branch — including its quote button — was never rendered by
+  // any test. One fixture product now carries a section so this path is real.
+  await page.goto('/produtos/decking-pavimentos-passadicos?lang=pt')
+
+  const following = page.locator('.product-editorial-cta')
+  await expect(following, 'the following-content branch did not render').toBeVisible()
+  await expect(following.getByRole('link')).toBeVisible()
+
+  // The alternative placement must not render at the same time; the two are
+  // exclusive and a page showing both would mean the condition broke.
+  await expect(page.locator('.product-stage-cta')).toHaveCount(0)
+})

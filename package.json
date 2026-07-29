@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "test": "npm run e2e",
     "e2e": "playwright test tests/routes.spec.ts tests/sanity-contract.spec.ts tests/commerce.spec.ts tests/server-foundation.spec.ts tests/translate-content.spec.ts tests/site-editor.spec.ts tests/site-editor-conflict.spec.ts tests/builder-media.spec.ts tests/home-sections.spec.ts tests/section-parity.spec.ts tests/style-contract.spec.ts tests/downloads.spec.ts",
+    "e2e:live": "playwright test --project=live-content",
     "e2e:visual": "playwright test tests/visual.spec.ts --workers=1",
     "e2e:visual:update": "playwright test tests/visual.spec.ts --workers=1 --update-snapshots",
     "test:e2e": "playwright test tests/routes.spec.ts tests/sanity-contract.spec.ts tests/commerce.spec.ts tests/server-foundation.spec.ts tests/translate-content.spec.ts tests/site-editor.spec.ts tests/site-editor-conflict.spec.ts tests/builder-media.spec.ts tests/home-sections.spec.ts tests/section-parity.spec.ts tests/style-contract.spec.ts tests/downloads.spec.ts",

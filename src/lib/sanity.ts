@@ -66,11 +66,33 @@ export const getSiteEditorSettings = async (preview = false) => {
   return client.fetch(siteEditorSettingsQuery)
 }
 
+/**
+ * Without this, no offline-fixture page ever has sections after its core block,
+ * so the branches that only exist when a detail page carries following content
+ * were unreachable in every test. A 500 on exactly that branch reached the live
+ * site through a fully green suite. One fixture product carries sections so the
+ * branch is exercised; every other page keeps the plain no-sections shape.
+ */
+const FIXTURE_SECTION_SLUG = 'decking-pavimentos-passadicos'
+
+const fixtureDetailSections = (scope: ManagedDetailSectionScope): BuilderSection[] =>
+  scope.slug === FIXTURE_SECTION_SLUG
+    ? ([
+        {
+          _type: 'builderRichTextSection',
+          _key: 'fixture-following-section',
+          internalLabel: 'Secção de teste',
+          enabled: true,
+          title: {_type: 'localizedString', pt: 'Secção adicional'},
+        },
+      ] as unknown as BuilderSection[])
+    : []
+
 export const getBuilderDocumentSections = async (
   scope: ManagedDetailSectionScope,
   preview = false,
 ): Promise<BuilderSection[] | null> => {
-  if (env.SANITY_DISABLE_REMOTE === 'true') return null
+  if (env.SANITY_DISABLE_REMOTE === 'true') return fixtureDetailSections(scope)
 
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
