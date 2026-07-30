@@ -278,6 +278,26 @@ test.describe('public website routes', () => {
     expect(response.headers()['x-content-type-options']).toBe('nosniff')
     expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin')
 
+    // A page's data is as changeable as the page. It used to fall into the
+    // static-asset rule and be cached publicly for five minutes, so switching
+    // language served content from up to five minutes ago while a hard refresh
+    // showed the truth — which is how a translation that had in fact been applied
+    // looked like it had not.
+    const pageData = await request.get('/casos-de-estudo/__data.json?lang=en')
+    expect(pageData.status()).toBe(200)
+    const pageDataCache = pageData.headers()['cache-control'] ?? ''
+    // Not public: this is one visitor's response, and a shared cache must never
+    // hand it to another. Not five minutes either: that is how long an edit
+    // stayed invisible to in-app navigation while a hard refresh showed it live.
+    expect(pageDataCache, 'page data is being cached like a static asset').not.toContain('public')
+    const maxAge = Number(pageDataCache.match(/max-age=(\d+)/)?.[1] ?? 0)
+    expect(maxAge, `page data may be cached for ${maxAge}s`).toBeLessThanOrEqual(30)
+
+    // Genuinely static responses keep their cache; this must not become a blanket
+    // no-cache.
+    const sitemap = await request.get('/sitemap.xml')
+    expect(sitemap.headers()['cache-control']).toContain('max-age')
+
     await page.goto('/?lang=pt')
     const skipLink = page.getByRole('link', {name: 'Saltar para o conteúdo'})
     await expect(skipLink).toHaveAttribute('href', '#main-content')
