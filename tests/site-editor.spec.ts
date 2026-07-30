@@ -22,12 +22,28 @@ const waitForVisualEditor = async (frame: FrameLocator) => {
   })
 }
 
+/**
+ * The outline appears in response to a mouseover, and Playwright moves the mouse
+ * exactly once. Selecting a different document reloads the preview, and the
+ * overlay element survives that reload with data-ready still reading true from
+ * the previous page — so the readiness check can pass against the old overlay,
+ * the single hover lands while the new one is arming, and no further event is
+ * ever sent. The outline then never appears, no matter how long we wait.
+ *
+ * Hovering again inside a poll is what actually resolves it: a re-armed listener
+ * gets a fresh event. This machine wins that race and CI does not, which is why
+ * it read as flakiness rather than as a missing event.
+ */
 const hoverEditableTarget = async (frame: FrameLocator, target: Locator, label?: string) => {
   await waitForVisualEditor(frame)
-  await frame.locator('body').hover({position: {x: 1, y: 1}})
-  await target.hover()
   const outline = frame.locator('.site-editor-outline.is-hovered')
-  await expect(outline).toBeVisible()
+
+  await expect(async () => {
+    await frame.locator('body').hover({position: {x: 1, y: 1}})
+    await target.hover()
+    await expect(outline).toBeVisible({timeout: 1_500})
+  }).toPass({timeout: 20_000})
+
   if (label) await expect(outline.locator('span')).toHaveText(label)
 }
 
@@ -123,9 +139,27 @@ const expectOverlayAligned = async (frame: FrameLocator, targetTestId: string) =
     .toBeLessThanOrEqual(3)
 }
 
+/**
+ * Clicks an editable region in the preview until the settings drawer actually
+ * responds. The click is the event that selects the field, and a click that lands
+ * mid-reload is simply gone — retrying is the only thing that recovers it.
+ */
+const selectEditableTarget = async (page: Page, target: Locator, settings: Locator) => {
+  await expect(async () => {
+    await target.click({position: {x: 8, y: 8}})
+    await expect(settings.getByRole('button', {name: 'Editar artigo'})).toBeVisible({
+      timeout: 2_000,
+    })
+  }).toPass({timeout: 25_000})
+}
+
 const openArticleWorkspace = async (page: Page, settings: Locator) => {
   const launcher = settings.getByRole('button', {name: 'Editar artigo'})
-  await expect(launcher).toBeVisible()
+  // Same one-shot problem as the hover above: the click that selects the field in
+  // the preview can land while the overlay is re-arming after a document switch,
+  // and a lost click means this launcher never appears. Waiting longer cannot
+  // help — only sending the click again can, which the caller does by polling.
+  await expect(launcher).toBeVisible({timeout: 15_000})
   await launcher.click()
   const workspace = page.locator('.site-editor-article-workspace')
   await expect(workspace).toBeVisible()
@@ -1296,9 +1330,9 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
     const article = frame.getByTestId('fixture-created-article')
     await hoverEditableTarget(frame, article)
-    await article.click({position: {x: 8, y: 8}})
 
     const settings = page.locator('.site-editor-drawer.is-settings')
+    await selectEditableTarget(page, article, settings)
     const firstOpen = await openArticleWorkspace(page, settings)
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden')
     await page.keyboard.press('Escape')
@@ -1343,9 +1377,8 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
 
     const article = frame.getByTestId('fixture-created-article')
-    await article.hover()
-    await article.click({position: {x: 8, y: 8}})
     const settings = page.locator('.site-editor-drawer.is-settings')
+    await selectEditableTarget(page, article, settings)
     const {workspace} = await openArticleWorkspace(page, settings)
     const canvas = workspace.locator('.site-editor-rich-canvas')
     const table = canvas.locator('.site-editor-rich-object[data-object-type="articleTable"]')

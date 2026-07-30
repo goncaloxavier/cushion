@@ -77,6 +77,20 @@ jobs:
       - name: Route and contract tests
         run: npm run e2e
 
+      # Playwright already writes a trace, a screenshot and an error context for
+      # every failure, and CI was throwing all of it away — so a failure that only
+      # happens on a loaded shared runner could not be examined, only guessed at.
+      - name: Keep the evidence from a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
   # Renders every page the live dataset actually contains. Deliberately not part
   # of `validate`: it reaches out to Sanity, so a third-party outage would block
   # unrelated pull requests. It runs on a schedule instead, where its job is to
