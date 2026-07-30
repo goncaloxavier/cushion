@@ -3139,10 +3139,6 @@
   padding: 7px;
 }
 
-.site-editor-section-list > article.is-hidden {
-  opacity: 0.56;
-}
-
 .site-editor-section-main {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
@@ -3417,9 +3413,20 @@
   border-color: #adcac0;
 }
 
+/* "Hidden" is a state to read, not a state to squint at. Blanket opacity dimmed
+   every descendant at once — the three-dots control landed at 2.7:1 — so the row
+   says hidden through its own fill and muted ink instead, each of which still
+   clears 4.5:1. */
 .site-editor-section-list > article.is-hidden {
-  opacity: 0.68;
   background: #f3f6f5;
+}
+
+.site-editor-section-list > article.is-hidden :is(strong, small, span, i) {
+  color: #43564f;
+}
+
+.site-editor-section-list > article.is-hidden .site-editor-section-menu-button {
+  color: #4d635c;
 }
 
 .site-editor-section-main {
@@ -3522,9 +3529,13 @@
   background: #edf6f2;
 }
 
+/* At 0.35 opacity this was 1.9:1 — the client could see a row was there but not
+   what it said, so "move up" on the first section read as a rendering fault
+   rather than as unavailable. Muted ink at full opacity reads as disabled and
+   stays legible. */
 .site-editor-section-menu button:disabled {
+  color: #566a63;
   cursor: default;
-  opacity: 0.35;
 }
 
 .site-editor-section-menu button.is-danger {
@@ -3563,10 +3574,16 @@
   font-weight: 800;
 }
 
+/* The resting state of these buttons is set by `.site-editor-section-add button`
+   further up, which wins on specificity and paints dark green text on a light
+   mint fill. This rule used to change only the background, so hovering left
+   #15594f text on #0a4b4e — a contrast ratio of 1.2:1, i.e. the label vanished
+   under the cursor. The colour has to move with the background. */
 .site-editor-section-add-trigger:hover,
 .site-editor-section-add-trigger:focus-visible,
 .site-page-add-row:hover,
 .site-page-add-row:focus-visible {
+  color: #fff;
   background: #0a4b4e;
   border-color: #0a4b4e;
 }

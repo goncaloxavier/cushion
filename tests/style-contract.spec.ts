@@ -1,5 +1,5 @@
 import {readFileSync} from 'node:fs'
-import {expect, test} from '@playwright/test'
+import {expect, test, type Locator} from '@playwright/test'
 
 // These rules have each been fixed by hand at least once, found by a person
 // reading the stylesheets during an audit. An audit is a snapshot; the drift
@@ -82,4 +82,131 @@ test('editor font sizes stay at or above the documented floor', () => {
     .filter((size) => size < floorPx)
 
   expect(offenders, `font sizes below the ${floorPx}px floor: ${offenders.join(', ')}`).toEqual([])
+})
+
+/**
+ * The rules above read the stylesheets. This one reads the screen, because the
+ * three defects it exists to catch were all invisible in the source: each rule
+ * was individually fine and the combination was not.
+ *
+ * "+ Adicionar secção" took its resting colour from one rule and its hover
+ * background from another, so hovering painted #15594f on #0a4b4e — 1.2:1, the
+ * label gone under the cursor. A hidden row dimmed itself with blanket opacity,
+ * taking its three-dots control down to 2.7:1. A disabled menu entry sat at 0.35
+ * opacity, 1.9:1, so "Mover para cima" read as a rendering fault rather than as
+ * unavailable.
+ *
+ * None of that is visible in a stylesheet. It is visible in a browser, in the
+ * state the client puts the control into.
+ */
+const CONTRAST_FLOOR = 4.5
+
+test('editor controls stay readable in the states the client puts them in', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Rendered contrast runs once')
+
+  await page.setExtraHTTPHeaders({
+    'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+    'x-df4y-site-editor-scope': `contrast-${Date.now()}`,
+  })
+  await page.goto('/painel/site')
+  await expect(page.locator('.site-editor-shell')).toBeVisible({timeout: 15_000})
+
+  await page.getByRole('button', {name: 'Abrir definições'}).click()
+  const settings = page.locator('.site-editor-drawer.is-settings')
+  await settings
+    .locator('.site-editor-panel-index > button')
+    .filter({hasText: 'Conteúdo da página'})
+    .click()
+
+  // Resolves what the eye actually receives: the element's own colour and
+  // opacity, composited over the first ancestor that paints a background, with
+  // every ancestor opacity applied along the way. Measured through the located
+  // element rather than a selector, so it is always the node under test — an
+  // earlier version used document.querySelector and silently measured a
+  // different button.
+  const measureNode = (node: Element) => {
+    const parse = (value: string) => {
+      const parts = value.match(/[\d.]+/g)
+      if (!parts) return null
+      return {r: Number(parts[0]), g: Number(parts[1]), b: Number(parts[2]), a: parts[3] === undefined ? 1 : Number(parts[3])}
+    }
+
+    let effectiveOpacity = 1
+    let backdrop = {r: 255, g: 255, b: 255}
+    let found = false
+    for (let el: Element | null = node; el; el = el.parentElement) {
+      const style = getComputedStyle(el)
+      effectiveOpacity *= Number(style.opacity)
+      const bg = parse(style.backgroundColor)
+      if (!found && bg && bg.a > 0.95 && el !== node) {
+        backdrop = {r: bg.r, g: bg.g, b: bg.b}
+        found = true
+      }
+    }
+
+    const own = parse(getComputedStyle(node).backgroundColor)
+    if (own && own.a > 0.95) backdrop = {r: own.r, g: own.g, b: own.b}
+
+    const fg = parse(getComputedStyle(node).color)!
+    const alpha = fg.a * effectiveOpacity
+    const blended = {
+      r: fg.r * alpha + backdrop.r * (1 - alpha),
+      g: fg.g * alpha + backdrop.g * (1 - alpha),
+      b: fg.b * alpha + backdrop.b * (1 - alpha),
+    }
+
+    const channel = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+    const lum = (c: {r: number; g: number; b: number}) => 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
+    const pair = [lum(blended), lum(backdrop)].sort((x, y) => y - x)
+    return {ratio: (pair[0] + 0.05) / (pair[1] + 0.05), text: ((node as HTMLElement).innerText || '').trim().slice(0, 40)}
+  }
+
+  const failures: string[] = []
+  const check = async (locator: Locator, label: string) => {
+    // A control that stops existing must fail rather than quietly pass. The
+    // first version of this test skipped misses, and skipped the hover case with
+    // them — reporting green on a 1.2:1 button.
+    if ((await locator.count()) === 0) {
+      failures.push(`${label} was not found`)
+      return
+    }
+    const result = await locator.first().evaluate(measureNode)
+    if (result.ratio < CONTRAST_FLOOR) {
+      failures.push(`${label} ("${result.text}") is ${result.ratio.toFixed(2)}:1`)
+    }
+  }
+
+  const rows = page.locator('.site-editor-section-list > article')
+  const addButton = page.locator('.site-editor-section-add-trigger')
+
+  await check(addButton, 'the add-section button')
+  await check(rows.locator('strong'), 'a section name')
+  await check(rows.locator('small'), 'a section subtitle')
+  await check(page.locator('.site-editor-section-menu-button'), 'the three-dots control')
+
+  // Hovering is a state the client is in every time they reach for the control.
+  await addButton.first().hover()
+  await check(addButton, 'the add-section button on hover')
+
+  // Every entry behind the three dots, including the ones that are unavailable.
+  await page.locator('.site-editor-section-menu-button').first().click()
+  await expect(page.locator('.site-editor-section-menu').first()).toBeVisible()
+  const entries = page.locator('.site-editor-section-menu button')
+  for (let index = 0; index < (await entries.count()); index += 1) {
+    const entry = entries.nth(index)
+    await check(entry, `menu entry "${(await entry.innerText()).trim()}"`)
+  }
+
+  // Hiding a section is the other state the client reported as unreadable, and
+  // it only exists once a section has actually been hidden.
+  await entries.filter({hasText: 'Ocultar do site'}).first().click()
+  const hidden = page.locator('.site-editor-section-list > article.is-hidden')
+  await expect(hidden.first()).toBeVisible()
+  await check(hidden.locator('strong'), 'a hidden section name')
+  await check(hidden.locator('small'), 'a hidden section subtitle')
+  await check(hidden.locator('.site-editor-section-menu-button'), 'the three-dots control on a hidden section')
+
+  expect(failures, `editor controls below ${CONTRAST_FLOOR}:1:\n${failures.join('\n')}`).toEqual([])
 })
