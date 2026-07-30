@@ -151,8 +151,30 @@ test.describe('visual regression', () => {
 
   for (const route of visualRoutes) {
     test(`${route.name} full page`, async ({page}, testInfo) => {
+      if (route.path.startsWith('/loja/')) {
+        // A shop product page shows the postal gate until a delivery postcode is
+        // known, and shows nothing else — no heading, no product. Screenshotting
+        // it without one photographs the gate. This is the returning visitor who
+        // has already answered it; the gate itself has its own test.
+        await page.addInitScript(() => {
+          try {
+            localStorage.setItem('df4y-store-delivery-postal-code-v1', '7000-000')
+          } catch {
+            // private mode — the gate shows and the snapshot will say so
+          }
+        })
+      }
+
       await page.goto(route.path)
       await expect(page.locator('h1')).toBeVisible()
+
+      if (route.path.startsWith('/loja/')) {
+        // The delivery zone is resolved on the client and adds a line to the bar
+        // when it lands. Screenshotting before then caught the page five pixels
+        // short and shifted everything below it — the run-to-run difference that
+        // made this one snapshot flap.
+        await expect(page.locator('.store-delivery-text small')).toBeVisible()
+      }
       await page.evaluate(() => document.fonts.ready)
       await primeRevealAnimations(page)
 
