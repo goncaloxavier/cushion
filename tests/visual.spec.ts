@@ -133,6 +133,22 @@ const visualRoutes = [
 ]
 
 test.describe('visual regression', () => {
+  test.beforeEach(async ({page}) => {
+    // The cookie notice shows on a first visit, and every screenshot here is a
+    // first visit. The baselines were captured without it, so once it shipped it
+    // covered part of every page and shifted the rest — all 24 snapshots failed
+    // at once, which read as the suite being broken rather than as one banner.
+    // Marking it seen keeps these comparing the page instead of the banner; the
+    // notice itself is covered by its own behavioural test.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('df4y-cookie-notice-seen', '1')
+      } catch {
+        // private mode — the notice will show and the diff will say so
+      }
+    })
+  })
+
   for (const route of visualRoutes) {
     test(`${route.name} full page`, async ({page}, testInfo) => {
       await page.goto(route.path)
