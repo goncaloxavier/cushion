@@ -119,6 +119,26 @@ test.describe('Sanity Studio content contract', () => {
     expect(fieldNames).toEqual(['hero', 'documentsTitle', 'documents', 'transportMultiplier'])
   })
 
+  test('"Auto" size means no size, not the smallest one', () => {
+    // Auto is stored as null, and Number(null) is 0 — finite, so it clamped to the
+    // minimum. Setting a heading back to Auto rendered it at 10px: the About
+    // timeline's "Hoje" sat tiny beside "2011" and "2014", which carry no styling
+    // at all and therefore inherit the design's own size.
+    expect(textAppearanceStyle({fontSize: null} as never)).not.toContain('--cms-text-size')
+    expect(textAppearanceStyle({fontSize: undefined})).not.toContain('--cms-text-size')
+    expect(textAppearanceStyle({fontSize: '' as never})).not.toContain('--cms-text-size')
+
+    // A cleared size must not drag the tablet and mobile sizes down with it, and
+    // the styling chosen alongside it still applies.
+    const style = textAppearanceStyle({fontSize: null, fontWeight: 'bold'} as never)
+    expect(style).not.toContain('--cms-text-size')
+    expect(style).toContain('font-weight:700')
+
+    // A real size still works and is still clamped at the bottom.
+    expect(textAppearanceStyle({fontSize: 48})).toContain('--cms-text-size-desktop:48px')
+    expect(textAppearanceStyle({fontSize: 2})).toContain('--cms-text-size-desktop:10px')
+  })
+
   test('a list the client manages is theirs — no hardcoded entry leaks back in', () => {
     // The About timeline showed "Hoje / A empresa produz soluções..." on the site
     // while the editor showed that entry blank, and the client had no way to
