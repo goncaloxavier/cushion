@@ -422,6 +422,13 @@
           {/if}
           {#if preview && section.enabled === false}
             <span class="builder-hidden-badge">Oculta no site</span>
+          {:else if preview && !rendersSomethingPublic(section)}
+            <!-- An empty section is skipped for visitors rather than published as
+                 a band of blank colour. Saying so here is the difference between
+                 that and the section quietly not existing: the editor shows it,
+                 the site does not, and without this badge the two disagree with
+                 no explanation. -->
+            <span class="builder-hidden-badge is-empty">Vazia — não aparece no site</span>
           {/if}
           <div
             class={`builder-render-inner is-${width(section)}`}

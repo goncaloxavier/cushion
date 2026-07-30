@@ -157,6 +157,14 @@
   border-radius: 4px;
 }
 
+/* Distinct from "hidden": the client chose to hide that one, whereas this one is
+   simply not filled in yet and is telling them why it is absent from the site. */
+.builder-hidden-badge.is-empty {
+  color: #6a4b10;
+  background: #fdf4e0;
+  border-color: #e6d3a8;
+}
+
 .builder-section-hit-area {
   position: absolute;
   z-index: 9;

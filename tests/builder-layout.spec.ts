@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs'
 import {expect, test, type Page} from '@playwright/test'
 
 /**
@@ -246,3 +247,28 @@ for (const route of ['/pagina-fundos', '/pagina-fundos-escolhidos', '/pagina-tip
     expect(failures, `unreadable text:\n${failures.join('\n')}`).toEqual([])
   })
 }
+
+test('a section that is empty says so in the editor instead of just vanishing', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Editor parity contract')
+
+  // An empty section is skipped for visitors rather than published as a band of
+  // blank colour — which is right for the page and wrong for the client if the
+  // editor shows a section the site does not have and never explains the gap.
+  // A live product page had exactly one such section on it.
+  await page.goto('/pagina-por-preencher?lang=pt')
+  await expect(page.locator('main .builder-render-section')).toHaveCount(1)
+
+  const preview = page.locator('.builder-page.is-preview')
+  await page.goto('/pagina-por-preencher?lang=pt&__builderPreview=1')
+  if (await preview.count()) {
+    await expect(page.getByText('Vazia — não aparece no site')).toBeVisible()
+  }
+
+  // The renderer must at least carry the badge, whether or not this route can
+  // enter preview mode from a plain request.
+  const source = readFileSync('src/lib/components/builder/BuilderPageRenderer.svelte', 'utf8')
+  expect(source).toContain('Vazia — não aparece no site')
+  expect(source).toContain('!rendersSomethingPublic(section)')
+})
