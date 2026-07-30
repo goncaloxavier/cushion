@@ -210,3 +210,48 @@ test('editor controls stay readable in the states the client puts them in', asyn
 
   expect(failures, `editor controls below ${CONTRAST_FLOOR}:1:\n${failures.join('\n')}`).toEqual([])
 })
+
+test('no editor control clips its own labels', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Editor layout contract runs once')
+
+  await page.setExtraHTTPHeaders({
+    'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+    'x-df4y-site-editor-scope': `clip-${Date.now()}`,
+  })
+  await page.goto('/painel/site')
+  await expect(page.locator('.site-editor-shell')).toBeVisible({timeout: 15_000})
+
+  await page.getByRole('button', {name: 'Abrir definições'}).click()
+  const settings = page.locator('.site-editor-drawer.is-settings')
+  await settings
+    .locator('.site-editor-panel-index > button')
+    .filter({hasText: 'Conteúdo da página'})
+    .click()
+
+  // Open a section so its own controls are on screen — the composition picker
+  // that started this lives there, not in the section list.
+  await settings.locator('.site-editor-section-main').first().click()
+  await expect(settings.locator('.site-page-field, .site-page-choice').first()).toBeVisible()
+
+  // "Imagem primeiro" was rendered as "Imagem pri…" because the control scrolled
+  // sideways with its scrollbar hidden: the overflow was real, the affordance was
+  // not, so it read as a broken label rather than as something to scroll.
+  const clipped = await page.evaluate(() => {
+    const bad: string[] = []
+    document.querySelectorAll('.site-editor-drawer.is-settings *').forEach((node) => {
+      const el = node as HTMLElement
+      const text = (el.innerText || '').trim()
+      if (!text || el.children.length) return
+      if (el.scrollWidth - el.clientWidth > 1) {
+        bad.push(`${el.tagName.toLowerCase()} "${text.slice(0, 30)}" overflows by ${el.scrollWidth - el.clientWidth}px`)
+      }
+      const parent = el.parentElement
+      if (parent && getComputedStyle(parent).overflowX !== 'visible' && parent.scrollWidth - parent.clientWidth > 1) {
+        bad.push(`"${text.slice(0, 30)}" sits in a container that scrolls sideways by ${parent.scrollWidth - parent.clientWidth}px`)
+      }
+    })
+    return [...new Set(bad)]
+  })
+
+  expect(clipped, `editor labels that do not fit:\n${clipped.join('\n')}`).toEqual([])
+})

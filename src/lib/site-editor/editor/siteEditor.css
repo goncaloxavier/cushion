@@ -3919,26 +3919,26 @@
   margin-bottom: 6px;
 }
 
+/* This scrolled sideways with its scrollbar hidden, so a set of options wider
+   than the panel did not read as scrollable — it read as broken, with the last
+   label sliced down the middle ("Imagem pri…"). In a panel this narrow the
+   options belong on a second row: every choice stays visible and nothing has to
+   be discovered by dragging. */
 .site-page-choice > div {
   display: flex;
   min-width: 0;
+  flex-wrap: wrap;
   gap: 3px;
   padding: 3px;
-  overflow-x: auto;
   background: #eef3f1;
   border: 1px solid #dce5e2;
   border-radius: 5px;
-  scrollbar-width: none;
-}
-
-.site-page-choice > div::-webkit-scrollbar {
-  display: none;
 }
 
 .site-page-choice button {
   min-width: max-content;
   min-height: 32px;
-  flex: 1;
+  flex: 1 1 auto;
   padding: 0 9px;
   color: #61716c;
   background: transparent;
