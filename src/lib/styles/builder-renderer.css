@@ -10,6 +10,30 @@
   font-family: var(--builder-body-font);
 }
 
+/**
+ * A page whose sections do not reach the fold used to show the page's own white
+ * background between the last section and the footer — a band of the wrong
+ * colour that appeared the moment the client removed a section and looked like
+ * something had broken. The last section now takes the leftover height, so its
+ * surface runs to the footer and a short page reads as finished rather than cut
+ * off. Embedded compositions are excluded: there the surrounding page owns the
+ * height.
+ */
+.builder-page-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-page:not(.is-embedded) {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.builder-page:not(.is-embedded) > .builder-render-section:last-of-type {
+  flex: 1 0 auto;
+}
+
 .builder-page.is-embedded {
   min-height: 0;
 }

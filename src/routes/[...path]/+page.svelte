@@ -12,7 +12,7 @@
 
 <SeoHead {title} {description} noindex={Boolean(seo.noIndex)} />
 
-<main>
+<main class="builder-page-main">
   <BuilderPageRenderer
     page={data.page}
     settings={data.settings}

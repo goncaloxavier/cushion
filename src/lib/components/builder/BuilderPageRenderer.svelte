@@ -164,6 +164,60 @@
     }
   }
 
+  /**
+   * Sections whose entire output is the content typed into them. Anything else
+   * — a collection list, a contact block — draws itself from elsewhere and is
+   * never empty just because its own fields are.
+   */
+  const contentOnlySections = new Set([
+    'builderHeroSection',
+    'builderMediaSection',
+    'builderRichTextSection',
+    'builderGallerySection',
+    'builderCardsSection',
+    'builderStatsSection',
+    'builderPartnersSection',
+    'builderCtaSection',
+  ])
+
+  const hasRenderableMedia = (media: unknown) => {
+    const value = media as Record<string, any> | undefined
+    return Boolean(
+      value?.image?.asset?._ref ||
+        value?.videoFile?.asset?._ref ||
+        String(value?.youtubeUrl ?? '').trim(),
+    )
+  }
+
+  /**
+   * Whether a visitor would see anything at all. A section the client added from
+   * the picker and has not filled in yet renders as a band of empty colour on
+   * the live page — it is skipped here instead. The editor still renders it, with
+   * its placeholders, so nothing disappears from the person working on it.
+   */
+  const rendersSomethingPublic = (section: BuilderSection) => {
+    if (!contentOnlySections.has(section._type)) return true
+    // Landing blocks draw their content from the CMS collections, not from the
+    // section's own fields — empty fields there mean nothing.
+    if (landingVariant(section) || section.variant === 'product-feature') return true
+
+    const text = [section.eyebrow, section.title, section.body]
+      .map((value) => builderLocalized(value, language))
+      .some((value) => Boolean(value && String(value).trim()))
+    if (text) return true
+
+    // Rich text bodies are article arrays rather than plain strings.
+    const body = (section as Record<string, any>).body
+    if (Array.isArray(body?.[language]) && body[language].length) return true
+    if (Array.isArray(body?.pt) && body.pt.length) return true
+
+    if (hasRenderableMedia(section.media)) return true
+    if ((section.items as unknown[] | undefined)?.length) return true
+    if ((section.actions as unknown[] | undefined)?.length) return true
+
+    return false
+  }
+
   const sectionActions = (section: BuilderSection) =>
     (section.actions ?? [])
       .map((action) => ({
@@ -340,7 +394,7 @@
 >
   {#if currentPage}
     {#each currentPage.sections as section (section._key)}
-      {#if section._type !== 'builderManagedSection' && (section.enabled !== false || preview)}
+      {#if section._type !== 'builderManagedSection' && (preview || (section.enabled !== false && rendersSomethingPublic(section)))}
         <section
           id={section.anchor || undefined}
           class={`builder-render-section is-${surface(section)} is-${section._type} ${landingSectionClass(section)}`}
@@ -415,16 +469,16 @@
               {#if section._type === 'builderHeroSection'}
                 <div class={`builder-hero is-${section.variant ?? 'split'}`}>
                   <BuilderSectionHeading {section} {language} {preview} />
-                  <BuilderMedia media={section.media} {dataset} {language} />
+                  <BuilderMedia media={section.media} {dataset} {language} {preview} />
                 </div>
               {:else if section._type === 'builderMediaSection'}
                 <div class={`builder-media-copy is-${section.mediaSide ?? 'right'}`}>
                   {#if section.mediaSide === 'left' || section.mediaSide === 'top'}
-                    <BuilderMedia media={section.media} {dataset} {language} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   {/if}
                   <BuilderSectionHeading {section} {language} {preview} />
                   {#if section.mediaSide !== 'left' && section.mediaSide !== 'top'}
-                    <BuilderMedia media={section.media} {dataset} {language} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   {/if}
                 </div>
               {:else if section._type === 'builderRichTextSection'}
@@ -439,7 +493,7 @@
                   style={columnsStyle(section, 3)}
                 >
                   {#each sectionMedia(section) ?? [] as media (media._key)}
-                    <BuilderMedia {media} {dataset} {language} />
+                    <BuilderMedia {media} {dataset} {language} {preview} />
                   {:else}
                     <div class="builder-empty-state">Adicione imagens ou vídeos</div>
                   {/each}
@@ -450,7 +504,7 @@
                   {#each sectionCards(section) ?? [] as card (card._key)}
                     <article class="builder-card">
                       {#if card.media}
-                        <BuilderMedia media={card.media} {dataset} {language} />
+                        <BuilderMedia media={card.media} {dataset} {language} {preview} />
                       {/if}
                       {#if builderLocalized(card.eyebrow, language)}
                         <small class="cms-styled-text" style={textAppearanceStyle(card.eyebrow)}>{builderLocalized(card.eyebrow, language)}</small>
@@ -531,7 +585,7 @@
                      editor listed it as a section. -->
                 {#if section.media}
                   <div class="builder-cta-media">
-                    <BuilderMedia media={section.media} {dataset} {language} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   </div>
                 {/if}
                 <BuilderSectionHeading {section} {language} {preview} />

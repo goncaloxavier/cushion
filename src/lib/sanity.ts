@@ -65,24 +65,120 @@ const siteEditorSettingsQuery = `coalesce(
  */
 const FIXTURE_SITE_PAGE_ROUTE = '/pagina-de-teste'
 
+const localized = (pt: string) => ({_type: 'localizedString', pt})
+const localizedBody = (pt: string) => ({_type: 'localizedText', pt})
+
+const fixtureImage = {
+  _type: 'builderMedia',
+  kind: 'image',
+  image: {_type: 'image', asset: {_type: 'reference', _ref: 'image-7c3c2f899e18b83bcc6cf954a0d6a59666afec4f-1600x1201-jpg'}},
+  alt: localized('Imagem de exemplo'),
+  fit: 'cover',
+  position: 'center',
+}
+
+const richTextSection = {
+  _type: 'builderRichTextSection',
+  _key: 'fixture-page-section',
+  internalLabel: 'Introdução',
+  enabled: true,
+  title: localized('Uma página criada no editor'),
+  body: localizedBody('Conteúdo real desta página.'),
+}
+
+/**
+ * The states a page passes through while the client works on it. Each is a
+ * separate route so a layout check can open it directly, because the states that
+ * break layout are not the finished page — they are the half-finished ones: a
+ * page reduced to a single block, a section added and not yet filled, a section
+ * hidden rather than deleted.
+ */
+const fixtureSitePages: Record<string, unknown[]> = {
+  [FIXTURE_SITE_PAGE_ROUTE]: [richTextSection],
+
+  // A full page, the shape a finished one takes.
+  '/pagina-composta': [
+    {
+      _type: 'builderHeroSection',
+      _key: 'composed-hero',
+      internalLabel: 'Destaque',
+      enabled: true,
+      variant: 'split',
+      minHeight: 640,
+      title: localized('Sustentabilidade'),
+      body: localizedBody('Um resumo curto da página.'),
+      media: fixtureImage,
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'deep', verticalAlign: 'center'},
+    },
+    {
+      _type: 'builderMediaSection',
+      _key: 'composed-media',
+      internalLabel: 'Texto com imagem',
+      enabled: true,
+      mediaSide: 'left',
+      title: localized('Como trabalhamos'),
+      body: localizedBody('Texto ao lado de uma imagem.'),
+      media: fixtureImage,
+    },
+    {
+      _type: 'builderCtaSection',
+      _key: 'composed-cta',
+      internalLabel: 'Chamada para ação',
+      enabled: true,
+      title: localized('Fale connosco'),
+      body: localizedBody('Diga-nos o que precisa.'),
+      actions: [
+        {_type: 'builderLink', _key: 'cta-1', label: localized('Contactar'), href: '/contacto', style: 'primary'},
+      ],
+      layout: {_type: 'builderLayout', surface: 'mint'},
+    },
+  ],
+
+  // What is left after the client removes the rest. A hero alone still claims its
+  // full height, which is the empty band they reported seeing above the footer.
+  '/pagina-reduzida': [
+    {
+      _type: 'builderHeroSection',
+      _key: 'reduced-hero',
+      internalLabel: 'Destaque',
+      enabled: true,
+      variant: 'split',
+      minHeight: 640,
+      title: localized('Sustentabilidade'),
+      media: fixtureImage,
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'deep', verticalAlign: 'center'},
+    },
+  ],
+
+  // Added from the picker and not filled in yet — the state that rendered as a
+  // blank band on the live site.
+  '/pagina-por-preencher': [
+    richTextSection,
+    {_type: 'builderMediaSection', _key: 'blank-section', internalLabel: 'Secção nova', enabled: true},
+  ],
+
+  // Hidden rather than deleted: it must take up no room on the public page.
+  '/pagina-com-oculta': [
+    richTextSection,
+    {
+      _type: 'builderCtaSection',
+      _key: 'hidden-section',
+      internalLabel: 'Escondida',
+      enabled: false,
+      title: localized('Não deve aparecer'),
+    },
+  ],
+}
+
 const fixtureSitePage = (route: string) =>
-  route === FIXTURE_SITE_PAGE_ROUTE
+  fixtureSitePages[route]
     ? {
-        _id: 'sitePage.fixture',
+        _id: `sitePage.fixture${route.replace(/\//g, '-')}`,
         _type: 'sitePage',
         title: 'Página de teste',
-        route: FIXTURE_SITE_PAGE_ROUTE,
+        route,
         active: true,
-        sections: [
-          {
-            _type: 'builderRichTextSection',
-            _key: 'fixture-page-section',
-            internalLabel: 'Introdução',
-            enabled: true,
-            title: {_type: 'localizedString', pt: 'Uma página criada no editor'},
-            body: {_type: 'localizedText', pt: 'Conteúdo real desta página.'},
-          },
-        ],
+        sections: fixtureSitePages[route],
       }
     : null
 
@@ -160,7 +256,9 @@ export const getBuilderDocumentSections = async (
 export const getPublicSitePages = async () => {
   // Same fixture page as getSitePage, so the sitemap and the route agree offline
   // — a custom page reachable but missing from the sitemap is invisible to search.
-  if (env.SANITY_DISABLE_REMOTE === 'true') return [{route: FIXTURE_SITE_PAGE_ROUTE}]
+  if (env.SANITY_DISABLE_REMOTE === 'true') {
+    return Object.keys(fixtureSitePages).map((route) => ({route, updatedAt: undefined}))
+  }
   try {
     return await publishedClient().fetch<Array<{route: string; updatedAt?: string}>>(`*[
       _type == "sitePage" &&
