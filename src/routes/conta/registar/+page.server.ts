@@ -60,7 +60,11 @@ export const actions: Actions = {
     }
 
     const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
-    if (customerRateLimit(`register:${ipHash}`, 4, 30 * 60 * 1000)) {
+    const emailHash = tokenHashOf(`email:${email}`)
+    if (
+      (await customerRateLimit(`register:${ipHash}`, 4, 30 * 60 * 1000)) ||
+      (await customerRateLimit(`register-email:${emailHash}`, 3, 30 * 60 * 1000))
+    ) {
       return fail(429, {message: 'Demasiados registos. Tente novamente mais tarde.', values})
     }
 
@@ -79,8 +83,23 @@ export const actions: Actions = {
       return fail(400, {message: 'Tem de aceitar a política de privacidade.', values})
     }
 
-    if (await findCustomerByEmail(email)) {
-      return fail(400, {message: 'Já existe uma conta com este email.', values})
+    const existingCustomer = await findCustomerByEmail(email)
+    if (existingCustomer) {
+      if (!existingCustomer.email_verified_at) {
+        const token = await createEmailVerificationToken(existingCustomer.id)
+        const origin = appOrigin() || url.origin
+        const verifyUrl = `${origin}/conta/verificar-email?token=${encodeURIComponent(token)}&lang=${language}`
+        const result = await deliverVerificationEmail(existingCustomer.email, verifyUrl).catch(
+          (error) => ({
+            ok: false as const,
+            status: 500,
+            error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+          }),
+        )
+        logEmailFailure('existing customer verification email', result)
+      }
+
+      redirect(303, `/conta/entrar?lang=${language}&registered=sent`)
     }
 
     let customer
@@ -90,7 +109,7 @@ export const actions: Actions = {
       // The pre-flight lookup above keeps the normal message friendly, while
       // this closes the small concurrent-registration race at the database.
       if ((error as {code?: string}).code === '23505') {
-        return fail(400, {message: 'Já existe uma conta com este email.', values})
+        redirect(303, `/conta/entrar?lang=${language}&registered=sent`)
       }
       console.error(
         `[customer registration] failed: ${error instanceof Error ? error.message : String(error)}`,

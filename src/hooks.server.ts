@@ -46,6 +46,22 @@ export const handle: Handle = async ({event, resolve}) => {
     headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains')
   }
 
+  const isPrivate =
+    pathname === '/painel' ||
+    pathname.startsWith('/painel/') ||
+    pathname === '/conta' ||
+    pathname.startsWith('/conta/') ||
+    pathname === '/finalizar-compra' ||
+    pathname.startsWith('/api/')
+  headers.set(
+    'cache-control',
+    isPrivate
+      ? 'no-store, max-age=0'
+      : contentType.includes('text/html')
+        ? 'private, no-cache'
+        : 'public, max-age=300',
+  )
+
   if (!contentType.includes('text/html')) {
     return new Response(response.body, {
       headers,
@@ -53,17 +69,6 @@ export const handle: Handle = async ({event, resolve}) => {
       statusText: response.statusText,
     })
   }
-
-  // Private backoffice: never store. Public pages: allow the browser's
-  // back/forward cache (no-store would disable it) while still revalidating,
-  // so navigation feels instant without serving stale content.
-  const isPrivate =
-    pathname === '/painel' ||
-    pathname.startsWith('/painel/') ||
-    pathname === '/conta' ||
-    pathname.startsWith('/conta/') ||
-    pathname === '/finalizar-compra'
-  headers.set('cache-control', isPrivate ? 'no-store, max-age=0' : 'private, no-cache')
 
   return new Response(response.body, {
     headers,

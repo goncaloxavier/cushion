@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/environment'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
@@ -26,18 +27,26 @@
   } from '$lib/store-shipping'
   import {showToast} from '$lib/toast'
   import {onMount} from 'svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   let items = $state<StoreCartItem[]>([])
   let deliveryPostalCode = $state(browser ? readInitialStorePostalCode() : '')
   let deliveryModalOpen = $state(false)
 
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('cartPage')!
   const labels = $derived(content.cartPage)
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const cartPageDataAttribute = (path: string) =>
@@ -136,9 +145,18 @@
 <SeoHead title={content.nav.cart} description={labels.hero.title} noindex />
 
 <main class="cart-page">
-  <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
+  <ManagedPageComposition
+    sections={content.cartPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
 
-  <section class="section cart-section">
+    <section class="section cart-section">
     {#if rows.length}
       {#if deliveryPostalCode}
         <div
@@ -221,7 +239,17 @@
                   max="99"
                   inputmode="numeric"
                   oninput={(event) => {
-                    setCartItemQuantity(row.item, Number(event.currentTarget.value))
+                    const value = event.currentTarget.value
+                    if (!value) return
+                    const quantity = Number(value)
+                    if (Number.isInteger(quantity) && quantity >= 1 && quantity <= 99) {
+                      setCartItemQuantity(row.item, quantity)
+                    }
+                  }}
+                  onblur={(event) => {
+                    const quantity = Math.min(99, Math.max(1, Math.floor(Number(event.currentTarget.value) || 1)))
+                    event.currentTarget.value = String(quantity)
+                    setCartItemQuantity(row.item, quantity)
                   }}
                 />
               </label>
@@ -338,5 +366,6 @@
         >{labels.continueShopping}</a>
       </div>
     {/if}
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

@@ -7,7 +7,40 @@ export type PortableTextBlock = Record<string, unknown>
 
 export type LocalizedFieldKind = 'string' | 'article'
 
-const localizedShapeKeys = new Set(['pt', 'en', 'es', 'translationHash', '_key', '_type'])
+/**
+ * Per-field styling the client can set from the editor. It is stored on the same
+ * object as the text itself (see schemaTypes/objects/localizedString.ts), so the
+ * shape check below has to tolerate it.
+ *
+ * It did not, and the consequence was silent and permanent: styling a field gave
+ * it an extra key, the field stopped matching the localized shape, the translator
+ * stopped seeing it, and English and Spanish kept whatever text they had from
+ * before — for good. The blog list heading was one of these.
+ *
+ * `translate-content.spec.ts` asserts this list still matches the schema, so
+ * adding a styling control cannot quietly take fields out of translation again.
+ */
+export const localizedAppearanceKeys = [
+  'fontFamily',
+  'fontSize',
+  'fontSizeTablet',
+  'fontSizeMobile',
+  'fontWeight',
+  'fontStyle',
+  'textAlign',
+  'lineHeight',
+  'color',
+] as const
+
+const localizedShapeKeys = new Set<string>([
+  'pt',
+  'en',
+  'es',
+  'translationHash',
+  '_key',
+  '_type',
+  ...localizedAppearanceKeys,
+])
 
 // Shape-based detection: every localized text/article type has exactly this
 // key set, and nothing else does. The allow-list is defense in depth against
@@ -187,7 +220,29 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 // by value shape (see detectLocalizedKind above), so it automatically covers
 // any localized field added to the content model in the future without code
 // changes here.
-export const findLocalizedFields = (doc: unknown, basePath = ''): LocalizedFieldTask[] => {
+/**
+ * Recognises a field that is plainly meant to be translated — Portuguese text
+ * alongside a translation or a translation hash — regardless of whether it
+ * matches the strict shape.
+ *
+ * The gap between this and `detectLocalizedKind` is where the blog heading went
+ * wrong: a field can be obviously translatable and still be rejected by the
+ * allow-list, and the rejection is invisible. It produces no error, no empty
+ * value and no failed run — just a page frozen in the old translation. Reporting
+ * the gap turns the next occurrence into a warning instead of a silent one.
+ */
+const looksTranslatable = (value: unknown): boolean =>
+  isPlainObject(value) &&
+  (typeof value.pt === 'string' || Array.isArray(value.pt)) &&
+  ('en' in value || 'es' in value || 'translationHash' in value)
+
+export type LocalizedShapeMismatch = {path: string; unexpectedKeys: string[]}
+
+export const findLocalizedFields = (
+  doc: unknown,
+  basePath = '',
+  mismatches?: LocalizedShapeMismatch[],
+): LocalizedFieldTask[] => {
   if (!isPlainObject(doc)) return []
 
   const tasks: LocalizedFieldTask[] = []
@@ -197,6 +252,14 @@ export const findLocalizedFields = (doc: unknown, basePath = ''): LocalizedField
     const path = basePath ? `${basePath}.${key}` : key
 
     const kind = detectLocalizedKind(value)
+    if (!kind && mismatches && looksTranslatable(value)) {
+      mismatches.push({
+        path,
+        unexpectedKeys: Object.keys(value as Record<string, unknown>).filter(
+          (name) => !localizedShapeKeys.has(name),
+        ),
+      })
+    }
     if (kind) {
       const obj = value as Record<string, unknown>
       const ptValue = obj.pt as string | PortableTextBlock[]
@@ -215,7 +278,7 @@ export const findLocalizedFields = (doc: unknown, basePath = ''): LocalizedField
     }
 
     if (isPlainObject(value)) {
-      tasks.push(...findLocalizedFields(value, path))
+      tasks.push(...findLocalizedFields(value, path, mismatches))
       continue
     }
 
@@ -227,7 +290,7 @@ export const findLocalizedFields = (doc: unknown, basePath = ''): LocalizedField
         // Sanity's stable array-item identity — never a numeric index, which
         // could patch the wrong element if an editor reorders the array
         // between webhook fire and patch commit.
-        tasks.push(...findLocalizedFields(item, `${path}[_key=="${itemKey}"]`))
+        tasks.push(...findLocalizedFields(item, `${path}[_key=="${itemKey}"]`, mismatches))
       }
     }
   }

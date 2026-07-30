@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {createHash, randomUUID} from 'node:crypto'
 import type {StaffUser} from './staff-auth'
 import type {
   SiteEditorDocument,
@@ -22,7 +22,7 @@ export const siteEditorE2eRequestStaff = (headers: Headers): StaffUser | null =>
   const expected = process.env.SITE_EDITOR_E2E_KEY || ''
   if (!siteEditorE2eEnabled() || !expected || headers.get(requestHeader) !== expected) return null
   return {
-    id: 'site-editor-e2e-admin',
+    id: '00000000-0000-4000-8000-000000000001',
     name: 'Editor Playwright',
     username: 'site-editor-e2e',
     role: 'admin',
@@ -570,6 +570,9 @@ export const saveSiteEditorE2eDocument = (input: SiteEditorDocument, scope = 'de
     _createdAt: current?._createdAt || timestamp,
     _updatedAt: new Date().toISOString(),
   } as SiteEditorDocument
+  if (next._type === 'productCategory' && Array.isArray(next.sections)) {
+    delete next.contentSections
+  }
   state.documents.set(id, next)
   return clone(next)
 }
@@ -591,8 +594,9 @@ export const createSiteEditorE2eDocument = (
   scope = 'default',
 ) => {
   if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
-  const id = `${type}-${randomUUID()}`
   const slug = fixtureSlug(title)
+  const identity = type === 'sitePage' ? (route ?? `/${slug}`) : `${type}:${slug}`
+  const id = `${type}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
   const duplicate = [...stateFor(scope).documents.values()].some((document) =>
     type === 'sitePage'
       ? document._type === 'sitePage' && document.route === route
@@ -609,7 +613,7 @@ export const createSiteEditorE2eDocument = (
   }
   const hero = createBuilderSection('builderHeroSection')
   hero.title = {...hero.title, pt: title}
-  hero.body = {...hero.body, pt: ''}
+  hero.body = {_type: 'localizedText', pt: ''}
   const document = {
     _id: editorDraftId(id),
     _type: type,
@@ -670,7 +674,10 @@ export const deleteSiteEditorE2eDocument = (id: string, scope = 'default') => {
   state.publishedDocuments.delete(normalizedId)
 }
 
-export const uploadSiteEditorE2eAsset = (file: File, kind: 'image' | 'video') => {
+export const uploadSiteEditorE2eAsset = (
+  file: File,
+  kind: 'image' | 'video' | 'file' | 'document',
+) => {
   const extension =
     file.name
       .split('.')

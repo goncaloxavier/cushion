@@ -1,5 +1,7 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {seoDescription} from '$lib/seo'
@@ -10,19 +12,27 @@
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {textAppearanceStyle} from '$lib/text-appearance'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('productsPage')!
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const productDataAttribute = (documentId: string | undefined, path: string) =>
     (data.preview || data.builderPreview) && data.studioUrl && documentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: documentId,
           type: 'productCategory',
@@ -99,10 +109,20 @@
     content.products.map((product) => product.description).join(' '),
   )}
   image={content.productsPage.heroImage}
+  pagination={{page, totalPages}}
 />
 
 <main class="products-page">
-  <section class="product-index-hero">
+  <ManagedPageComposition
+    sections={content.productsPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
       <p
         class="kicker cms-styled-text"
@@ -115,6 +135,12 @@
         use:lineReveal
         data-sanity={siteContentDataAttribute?.('productsPage.hero.title.pt')}
       >{content.productsPage.hero.title}</h1>
+
+      <DownloadList
+        documents={content.productsPage.documents}
+        title={content.productsPage.documentsTitle}
+        fallbackTitle={content.common.downloadsTitle}
+      />
     </Reveal>
 
     <Reveal class="product-index-media" delay={120} variant="media" priority>
@@ -132,9 +158,9 @@
           : undefined}
       />
     </Reveal>
-  </section>
+    </section>
 
-  <section class="section product-collection-section" bind:this={collectionSection}>
+    <section class="section product-collection-section" bind:this={collectionSection}>
     <Reveal delay={80} variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -195,5 +221,6 @@
       nextLabel={content.common.next}
       disabled={swapping}
     />
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

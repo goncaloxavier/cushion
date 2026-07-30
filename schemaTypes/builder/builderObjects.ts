@@ -1,4 +1,5 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
+import {videoCaptionsField} from '../components/videoCaptionsField'
 
 const localizedStringField = (name: string, title: string, description?: string) =>
   defineField({name, title, description, type: 'localizedString'})
@@ -320,6 +321,10 @@ export const builderMedia = defineType({
       options: {accept: 'video/*'},
       hidden: ({parent}) => parent?.kind !== 'video',
     }),
+    {
+      ...videoCaptionsField(),
+      hidden: ({parent}: {parent?: {kind?: string}}) => parent?.kind !== 'video',
+    },
     defineField({
       name: 'poster',
       title: 'Imagem de capa do vídeo',

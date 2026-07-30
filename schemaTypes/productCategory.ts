@@ -1,4 +1,6 @@
 import {defineField, defineType} from 'sanity'
+import {videoCaptionsField} from './components/videoCaptionsField'
+import {builderSectionMembers} from './builder/builderSections'
 
 export const productCategory = defineType({
   name: 'productCategory',
@@ -7,7 +9,7 @@ export const productCategory = defineType({
   groups: [
     {name: 'conteudo', title: 'Conteúdo', default: true},
     {name: 'imagens', title: 'Imagens'},
-    {name: 'seccoes', title: 'Conteúdo adicional'},
+    {name: 'seccoes', title: 'Conteúdo da página'},
     {name: 'organizacao', title: 'Organização'},
   ],
   fields: [
@@ -84,6 +86,7 @@ export const productCategory = defineType({
               description: 'Identifica o vídeo no player.',
               type: 'localizedString',
             }),
+            videoCaptionsField(),
             defineField({
               name: 'poster',
               title: 'Imagem de capa',
@@ -114,10 +117,11 @@ export const productCategory = defineType({
     }),
     defineField({
       name: 'contentSections',
-      title: 'Conteúdo adicional',
-      description: 'Blocos opcionais apresentados depois da galeria e da informação técnica.',
+      title: 'Blocos antigos',
+      description: 'Campo técnico oculto, mantido apenas para migrar conteúdo antigo.',
       type: 'array',
       group: 'seccoes',
+      hidden: true,
       validation: (Rule) => Rule.max(12),
       of: [
         defineField({
@@ -216,6 +220,10 @@ export const productCategory = defineType({
                   options: {accept: 'video/mp4,video/webm,video/quicktime'},
                   hidden: ({parent}) => parent?.kind !== 'upload',
                 }),
+                {
+                  ...videoCaptionsField(),
+                  hidden: ({parent}: {parent?: {kind?: string}}) => parent?.kind !== 'upload',
+                },
                 defineField({
                   name: 'youtubeUrl',
                   title: 'Link do YouTube',
@@ -340,6 +348,32 @@ export const productCategory = defineType({
           },
         }),
       ],
+    }),
+    defineField({
+      name: 'documentsTitle',
+      title: 'Título dos ficheiros',
+      description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+      type: 'localizedString',
+      group: 'conteudo',
+    }),
+    defineField({
+      name: 'documents',
+      title: 'Ficheiros para download',
+      description: 'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+      type: 'array',
+      of: [{type: 'downloadItem'}],
+      validation: (Rule) => Rule.max(12),
+      group: 'conteudo',
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Conteúdo da página',
+      description:
+        'Organize a apresentação atual e acrescente imagem, vídeo, texto, galerias ou chamadas para ação.',
+      type: 'array',
+      group: 'seccoes',
+      of: builderSectionMembers,
+      validation: (Rule) => Rule.max(30),
     }),
     defineField({
       name: 'dimensions',

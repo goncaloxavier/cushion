@@ -23,7 +23,7 @@ export const sitePage = defineType({
     defineField({
       name: 'title',
       title: 'Nome da página',
-      description: 'Usado no editor. O texto da página vive nas secções.',
+      description: 'Usado no editor. O texto vive no conteúdo da página.',
       type: 'string',
       validation: (Rule) => Rule.required().min(2).max(80),
       group: 'content',
@@ -51,8 +51,8 @@ export const sitePage = defineType({
     }),
     defineField({
       name: 'sections',
-      title: 'Secções',
-      description: 'Arraste para alterar a ordem.',
+      title: 'Conteúdo da página',
+      description: 'Adicione secções e arraste para alterar a ordem.',
       type: 'array',
       of: builderSectionMembers,
       group: 'content',

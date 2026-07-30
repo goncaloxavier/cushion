@@ -1,12 +1,14 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {seoDescription} from '$lib/seo'
   import StorePostalGate from '$lib/components/StorePostalGate.svelte'
   import {browser} from '$app/environment'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {collectionDetailHref} from '$lib/collection-page'
   import {imageSrcset, sizedImage} from '$lib/image'
   import {changeListPage} from '$lib/scroll'
@@ -22,8 +24,15 @@
     storeDeliveryEventName,
   } from '$lib/store-shipping'
   import {onMount, tick} from 'svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   type CategoryFilter = 'all' | StoreCategory
   type SortKey = StoreSortKey
@@ -41,9 +50,10 @@
   const pageSize = 9
 
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('storePage')!
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const storeHeroDataAttribute = (field: 'kicker' | 'title' | 'lead') =>
@@ -128,7 +138,7 @@
 
   const storeProductFieldDataAttribute = (product: StoreProduct, path: string) =>
     data.preview && data.studioUrl && product.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: product.studioDocumentId,
           type: 'storeProduct',
@@ -230,12 +240,28 @@
     content.storePage.hero.lead,
     content.storeProducts.map((product) => product.summary).join(' '),
   )}
+  pagination={{page, totalPages}}
 />
 
 <main class="store-page">
-  <PageHero {...hero} dataAttribute={storeHeroDataAttribute} />
+  <ManagedPageComposition
+    sections={content.storePage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...hero} dataAttribute={storeHeroDataAttribute}>
+      <DownloadList
+        documents={content.storePage.documents}
+        title={content.storePage.documentsTitle}
+        fallbackTitle={content.common.downloadsTitle}
+      />
+    </PageHero>
 
-  <section class="section store-section" bind:this={collectionSection}>
+    <section class="section store-section" bind:this={collectionSection}>
     {#if deliveryPostalCode}
       <Reveal class="store-delivery-strip" variant="panel">
         <div class="store-delivery-info">
@@ -390,5 +416,6 @@
         />
       </div>
     {/if}
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

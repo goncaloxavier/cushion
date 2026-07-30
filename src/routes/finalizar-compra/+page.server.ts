@@ -12,10 +12,11 @@ import {
   type CheckoutCartItem,
 } from '$lib/server/orders'
 import {isValidEmail} from '$lib/server/customer-auth'
-import {rateLimit, rateLimitKey} from '$lib/server/rate-limit'
+import {distributedRateLimit, rateLimitKey} from '$lib/server/rate-limit'
 import {isSupportedStorePostalCode} from '$lib/store-shipping'
 import {contentFromSanity, getLanguage, type StoreFinish} from '$lib/site-content'
-import {getSanityCollections} from '$lib/sanity'
+import {getSanityCollections, getSanityCollectionsStrict} from '$lib/sanity'
+import {recordOperationalIncident} from '$lib/server/incidents'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_checkout_csrf'
@@ -211,11 +212,39 @@ export const actions: Actions = {
     // above — a customer who mistypes an email or misses a field a few times
     // shouldn't burn the same budget as a scripted attempt to spam real orders.
     const ipKey = rateLimitKey('checkout', getClientAddress())
-    if (rateLimit(ipKey, 8, 15 * 60 * 1000)) {
+    if (await distributedRateLimit(ipKey, 8, 15 * 60 * 1000)) {
       return fail(429, {message: 'Demasiados pedidos. Aguarde alguns minutos antes de tentar novamente.', values})
     }
 
-    const site = contentFromSanity(await getSanityCollections(false))
+    const allowFallbackPricing = process.env.CHECKOUT_ALLOW_FALLBACK_PRICING === 'true'
+    let collections
+    try {
+      collections = allowFallbackPricing
+        ? await getSanityCollections(false, {store: true})
+        : await getSanityCollectionsStrict(false, {store: true})
+    } catch (error) {
+      console.error(
+        `[checkout] trusted catalogue unavailable: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      )
+      await recordOperationalIncident({
+        fingerprint: 'checkout-catalogue-unavailable',
+        category: 'checkout',
+        severity: 'critical',
+        title: 'Catálogo indisponível no checkout',
+        detail: error,
+      })
+      return fail(503, {
+        message:
+          'Não foi possível confirmar os preços neste momento. Aguarde um pouco e tente novamente.',
+        values,
+      })
+    }
+
+    const site = contentFromSanity(collections, {
+      strictStorePricing: !allowFallbackPricing,
+    })
     const content = site[language]
 
     try {
@@ -258,6 +287,13 @@ export const actions: Actions = {
       console.error(
         `[checkout] order creation failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}`,
       )
+      await recordOperationalIncident({
+        fingerprint: 'checkout-order-creation',
+        category: 'checkout',
+        severity: 'critical',
+        title: 'Falha ao criar encomenda',
+        detail: error,
+      })
       return fail(500, {
         message: 'Não foi possível criar a encomenda. Tente novamente dentro de instantes.',
         values,

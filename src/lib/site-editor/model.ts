@@ -1,3 +1,7 @@
+import {
+  managedDetailSectionDocumentTypes,
+  managedPageSectionScopeForRoot,
+} from '$lib/builder/managed-page-sections'
 import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import type {SiteEditorField, SiteEditorPanel} from './types'
 
@@ -120,116 +124,6 @@ const gallery: SiteEditorField = {
   description: 'Imagens e vídeos apresentados nesta página',
 }
 
-const productContentSectionItem: SiteEditorField = {
-  name: 'item',
-  label: 'Secção',
-  type: 'object',
-  fields: [
-    {
-      name: 'mediaSide',
-      label: 'Composição',
-      description: 'Posição da imagem ou do vídeo no computador',
-      type: 'select',
-      required: true,
-      options: [
-        {label: 'Visual à esquerda', value: 'left'},
-        {label: 'Visual à direita', value: 'right'},
-        {label: 'Visual acima', value: 'top'},
-      ],
-    },
-    {
-      name: 'surface',
-      label: 'Fundo',
-      description: 'O contraste do texto é ajustado automaticamente',
-      type: 'select',
-      required: true,
-      options: [
-        {label: 'Branco', value: 'white'},
-        {label: 'Névoa', value: 'fog'},
-        {label: 'Verde claro', value: 'mint'},
-        {label: 'Verde profundo', value: 'deep'},
-        {label: 'Azul mineral', value: 'blue'},
-      ],
-    },
-    {
-      name: 'mediaKind',
-      label: 'Conteúdo visual',
-      type: 'select',
-      required: true,
-      options: [
-        {label: 'Imagem', value: 'image'},
-        {label: 'Vídeo', value: 'video'},
-      ],
-    },
-    {
-      ...image('image', 'Imagem'),
-      visibleWhen: {sibling: 'mediaKind', equals: 'image'},
-    },
-    {
-      name: 'video',
-      label: 'Vídeo',
-      description: 'Carregue um ficheiro ou cole um link do YouTube',
-      type: 'video',
-      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
-    },
-    {
-      ...image('poster', 'Imagem de capa', 'Opcional. Aparece enquanto o vídeo carrega'),
-      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
-    },
-    {
-      ...localizedString(
-        'videoTitle',
-        'Nome do vídeo',
-        'Identifica o vídeo para leitores de ecrã',
-        'Ex.: Deck instalado num terraço',
-      ),
-      visibleWhen: {sibling: 'mediaKind', equals: 'video'},
-    },
-    localizedString(
-      'label',
-      'Rótulo',
-      'Opcional. Pequeno destaque sobre a imagem ou o vídeo',
-      'Ex.: Decking aplicado em exterior',
-    ),
-    {
-      name: 'labelStyle',
-      label: 'Estilo do rótulo',
-      description: 'Só é usado quando preenche o rótulo acima',
-      type: 'select',
-      options: [
-        {label: 'Legenda por baixo da imagem', value: 'caption'},
-        {label: 'Selo sobre a imagem', value: 'pill'},
-        {label: 'Texto acima do título', value: 'eyebrow'},
-      ],
-    },
-    localizedString(
-      'title',
-      'Título',
-      'Opcional',
-      'Ex.: Planeie o seu espaço',
-    ),
-    localizedText(
-      'text',
-      'Texto',
-      'Opcional',
-      'Ex.: Veja a aplicação em contexto e conheça as opções disponíveis.',
-    ),
-    localizedString(
-      'buttonLabel',
-      'Texto do botão',
-      'Opcional. Preencha também o destino',
-      'Ex.: Abrir simulador',
-    ),
-    {
-      name: 'buttonUrl',
-      label: 'Destino do botão',
-      description: 'Opcional. Página do site ou ligação externa',
-      placeholder: 'https://…',
-      type: 'url',
-    },
-  ],
-}
-
 const contactFormLabelFields = [
   localizedString('firstName', 'Primeiro nome', undefined, 'Ex.: Primeiro nome'),
   localizedString('lastName', 'Apelido', undefined, 'Ex.: Apelido'),
@@ -271,11 +165,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   home: [
     {
       id: 'home-main',
-      label: 'Página inicial',
+      label: 'Topo da página',
       fields: [
         {
           name: 'hero',
-          label: 'Topo da página',
+          // Not "Topo da página" — that is the panel this sits in.
+          label: 'Título',
           type: 'object',
           fields: [
             localizedString(
@@ -304,68 +199,13 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           undefined,
           'Ex.: Fechar vídeo',
         ),
-        {
-          name: 'impact',
-          label: 'Impacto e prova',
-          type: 'object',
-          fields: [
-            localizedString(
-              'title',
-              'Título',
-              undefined,
-              'Ex.: Menos desperdício, mais futuro',
-            ),
-            {name: 'stats', label: 'Números', type: 'array', item: contentCardItem},
-          ],
-        },
-        {
-          name: 'partners',
-          label: 'Parceiros e projetos',
-          type: 'object',
-          fields: [
-            localizedString('kicker', 'Etiqueta', undefined, 'Ex.: Parceiros'),
-            localizedString('title', 'Título', undefined, 'Ex.: Quem confia em nós'),
-            localizedText(
-              'lead',
-              'Texto',
-              undefined,
-              'Ex.: Empresas e projetos que já transformaram resíduos em soluções duradouras.',
-            ),
-            {
-              name: 'items',
-              label: 'Parceiros',
-              type: 'array',
-              item: {
-                name: 'item',
-                label: 'Parceiro',
-                type: 'object',
-                fields: [
-                  {
-                    name: 'name',
-                    label: 'Nome',
-                    type: 'string',
-                    placeholder: 'Ex.: Câmara Municipal de Condeixa',
-                  },
-                  {name: 'url', label: 'Ligação', type: 'url', placeholder: 'https://…'},
-                  image('logo', 'Logótipo'),
-                  localizedText(
-                    'text',
-                    'Texto',
-                    undefined,
-                    'Ex.: Parceria na requalificação de espaços públicos.',
-                  ),
-                ],
-              },
-            },
-          ],
-        },
       ],
     },
   ],
   about: [
     {
       id: 'about-main',
-      label: 'Página Sobre',
+      label: 'Apresentação e momentos',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Sobre nós',
@@ -382,13 +222,25 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   productsPage: [
     {
       id: 'products-page',
-      label: 'Página Produtos',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Produtos',
           title: 'Ex.: Soluções para exterior que não precisam de manutenção',
         }),
         image('heroImage', 'Imagem principal'),
+              {
+          name: 'documentsTitle',
+          label: 'Título dos ficheiros',
+          description: 'Deixe vazio para usar o texto global',
+          type: 'localizedString',
+        },
+        {
+          name: 'documents',
+          label: 'Ficheiros para download',
+          description: 'PDFs que o cliente pode transferir nesta página',
+          type: 'documents',
+        },
       ],
     },
   ],
@@ -398,10 +250,23 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       label: 'Topo da Loja',
       description: 'Título e etiqueta apresentados no início da Loja',
       fields: [
+
         copyBlock('hero', 'Texto do topo', false, {
           kicker: 'Ex.: Loja',
           title: 'Ex.: Produtos com preço para pedido direto',
         }),
+              {
+          name: 'documentsTitle',
+          label: 'Título dos ficheiros',
+          description: 'Deixe vazio para usar o texto global',
+          type: 'localizedString',
+        },
+        {
+          name: 'documents',
+          label: 'Ficheiros para download',
+          description: 'PDFs que o cliente pode transferir nesta página',
+          type: 'documents',
+        },
       ],
     },
     {
@@ -423,14 +288,26 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   ],
   cartPage: [
     {
-      id: 'cart-page',
-      label: 'Página Carrinho',
+      id: 'cart-page-top',
+      label: 'Topo do Carrinho',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Carrinho',
           title: 'Ex.: O seu carrinho',
         }),
-        localizedString('cartItems', 'Produtos no carrinho', undefined, 'Ex.: Produtos no carrinho'),
+      ],
+    },
+    {
+      id: 'cart-page-actions',
+      label: 'Estado e ações',
+      description: 'Carrinho vazio, botões e mensagens de confirmação',
+      fields: [
+        localizedString(
+          'cartItems',
+          'Produtos no carrinho',
+          undefined,
+          'Ex.: Produtos no carrinho',
+        ),
         localizedString('empty', 'Carrinho vazio', undefined, 'Ex.: O seu carrinho está vazio'),
         localizedString(
           'continueShopping',
@@ -446,26 +323,31 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           'Ex.: Tem a certeza que quer remover todos os produtos?',
         ),
         localizedString('request', 'Finalizar pedido', undefined, 'Ex.: Finalizar pedido'),
-        localizedString('quantity', 'Quantidade', undefined, 'Ex.: Quantidade'),
-        localizedString('remove', 'Remover produto', undefined, 'Ex.: Remover'),
         localizedString(
           'removed',
           'Aviso de produto removido',
           undefined,
           'Ex.: Produto removido do carrinho',
         ),
+      ],
+    },
+    {
+      id: 'cart-page-products',
+      label: 'Linhas dos produtos',
+      description: 'Nomes usados em cada produto adicionado ao carrinho',
+      fields: [
+        localizedString('product', 'Produto', undefined, 'Ex.: Produto'),
+        localizedString('quantity', 'Quantidade', undefined, 'Ex.: Quantidade'),
+        localizedString('remove', 'Remover produto', undefined, 'Ex.: Remover'),
         localizedString('finish', 'Acabamento', undefined, 'Ex.: Acabamento'),
         localizedString('unitPrice', 'Preço unitário', undefined, 'Ex.: Preço unitário'),
         localizedString('total', 'Total da linha', undefined, 'Ex.: Total'),
-        localizedString(
-          'productSubtotal',
-          'Subtotal dos produtos',
-          undefined,
-          'Ex.: Subtotal',
-        ),
-        localizedString('transport', 'Transporte', undefined, 'Ex.: Transporte'),
-        localizedString('iva', 'IVA', undefined, 'Ex.: IVA'),
-        localizedString('finalTotal', 'Total final', undefined, 'Ex.: Total a pagar'),
+      ],
+    },
+    {
+      id: 'cart-page-delivery',
+      label: 'Entrega e transporte',
+      fields: [
         localizedString(
           'deliveryPostcode',
           'Zona de entrega',
@@ -478,6 +360,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           undefined,
           'Ex.: Alterar código postal',
         ),
+        localizedString('transport', 'Transporte', undefined, 'Ex.: Transporte'),
         localizedString('totalWeight', 'Peso total', undefined, 'Ex.: Peso total'),
         localizedString(
           'transportPending',
@@ -491,15 +374,23 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           undefined,
           'Ex.: Este pedido excede o limite de peso da transportadora. Contacte-nos para uma solução.',
         ),
-        localizedString('summary', 'Resumo', undefined, 'Ex.: Resumo do pedido'),
-        localizedString('product', 'Produto', undefined, 'Ex.: Produto'),
+      ],
+    },
+    {
+      id: 'cart-page-totals',
+      label: 'Resumo e totais',
+      fields: [
+        localizedString('summary', 'Título do resumo', undefined, 'Ex.: Resumo do pedido'),
+        localizedString('productSubtotal', 'Subtotal dos produtos', undefined, 'Ex.: Subtotal'),
+        localizedString('iva', 'IVA', undefined, 'Ex.: IVA'),
+        localizedString('finalTotal', 'Total final', undefined, 'Ex.: Total a pagar'),
       ],
     },
   ],
   catalogue: [
     {
       id: 'catalogue-page',
-      label: 'Página Catálogo',
+      label: 'Topo e formulário',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Catálogo',
@@ -550,7 +441,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   casesPage: [
     {
       id: 'cases-page',
-      label: 'Página Casos',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Casos de estudo',
@@ -563,7 +454,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   blogPage: [
     {
       id: 'blog-page',
-      label: 'Página Blog',
+      label: 'Topo da página',
       fields: [
         copyBlock('hero', 'Topo da página', false, {
           kicker: 'Ex.: Blog',
@@ -576,7 +467,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   contactPage: [
     {
       id: 'contact-page',
-      label: 'Página Contacto',
+      label: 'Topo e formulário',
       fields: [
         copyBlock('hero', 'Topo da página', true, {
           kicker: 'Ex.: Contacto',
@@ -595,7 +486,7 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
   returnsPolicy: [
     {
       id: 'returns-policy',
-      label: 'Política de devoluções',
+      label: 'Texto e condições',
       fields: [
         localizedString('kicker', 'Etiqueta', undefined, 'Ex.: Política'),
         localizedString('title', 'Título', undefined, 'Ex.: Política de devoluções'),
@@ -664,8 +555,8 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       ],
     },
     {
-      id: 'legal',
-      label: 'Rodapé e legal',
+      id: 'complaints',
+      label: 'Livro de Reclamações',
       fields: [
         localizedString(
           'complaintsLabel',
@@ -685,6 +576,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           undefined,
           'Ex.: Enquanto entidade prestadora de bens e/ou serviços, disponibilizamos Livro de Reclamações físico e eletrónico.',
         ),
+      ],
+    },
+    {
+      id: 'privacy',
+      label: 'Privacidade e consentimento',
+      fields: [
         localizedString(
           'privacyPolicyLabel',
           'Política de Privacidade',
@@ -697,6 +594,24 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
           type: 'url',
           placeholder: '/politica-de-privacidade',
         },
+        localizedText(
+          'marketingConsent',
+          'Consentimento de contacto',
+          undefined,
+          'Ex.: Aceito receber comunicações da DaFábrica4You.',
+        ),
+        localizedString(
+          'privacyConsentPrefix',
+          'Texto antes da política',
+          undefined,
+          'Ex.: Ao submeter, aceita a nossa',
+        ),
+      ],
+    },
+    {
+      id: 'cookies',
+      label: 'Cookies',
+      fields: [
         localizedString(
           'cookiePolicyLabel',
           'Política de Cookies',
@@ -717,34 +632,16 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         ),
         localizedString(
           'cookieNoticeLearnMore',
-          'Ligação do aviso de cookies',
+          'Texto para saber mais',
           undefined,
           'Ex.: Saber mais',
         ),
-        localizedString(
-          'cookieNoticeAccept',
-          'Botão do aviso de cookies',
-          undefined,
-          'Ex.: Aceitar',
-        ),
-        localizedText(
-          'marketingConsent',
-          'Consentimento de contacto',
-          undefined,
-          'Ex.: Aceito receber comunicações da DaFábrica4You.',
-        ),
-        localizedString(
-          'privacyConsentPrefix',
-          'Texto antes da política',
-          undefined,
-          'Ex.: Ao submeter, aceita a nossa',
-        ),
+        localizedString('cookieNoticeAccept', 'Texto do botão Aceitar', undefined, 'Ex.: Aceitar'),
       ],
     },
     {
-      id: 'shared-copy',
-      label: 'Textos partilhados',
-      description: 'Botões, pesquisa, paginação e ligações repetidas no site',
+      id: 'shared-actions',
+      label: 'Botões partilhados',
       fields: [
         localizedString('readMore', 'Ler mais', undefined, 'Ex.: Ler mais'),
         localizedString('requestQuote', 'Pedir orçamento', undefined, 'Ex.: Pedir orçamento'),
@@ -757,8 +654,20 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         localizedString('viewCases', 'Ver casos', undefined, 'Ex.: Ver casos'),
         localizedString('allProducts', 'Todos os produtos', undefined, 'Ex.: Todos os produtos'),
         localizedString('latestPosts', 'Artigos recentes', undefined, 'Ex.: Artigos recentes'),
+      ],
+    },
+    {
+      id: 'shared-contact-labels',
+      label: 'Nomes de contacto',
+      fields: [
         localizedString('emailLabel', 'Email', undefined, 'Ex.: Email'),
         localizedString('phoneLabel', 'Telefone', undefined, 'Ex.: Telefone'),
+      ],
+    },
+    {
+      id: 'shared-back-links',
+      label: 'Ligações para voltar',
+      fields: [
         localizedString(
           'backToProducts',
           'Voltar aos produtos',
@@ -767,6 +676,12 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         ),
         localizedString('backToCases', 'Voltar aos casos', undefined, 'Ex.: Voltar aos casos'),
         localizedString('backToBlog', 'Voltar ao blog', undefined, 'Ex.: Voltar ao blog'),
+      ],
+    },
+    {
+      id: 'shared-search',
+      label: 'Pesquisa e resultados',
+      fields: [
         localizedString(
           'searchProducts',
           'Pesquisar produtos',
@@ -775,16 +690,23 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
         ),
         localizedString('searchCases', 'Pesquisar casos', undefined, 'Ex.: Pesquisar casos'),
         localizedString('searchPosts', 'Pesquisar artigos', undefined, 'Ex.: Pesquisar artigos'),
-        localizedString(
-          'searchPlaceholder',
-          'Texto da pesquisa',
-          undefined,
-          'Ex.: O que procura?',
-        ),
+        localizedString('searchPlaceholder', 'Texto da pesquisa', undefined, 'Ex.: O que procura?'),
         localizedString('noResults', 'Sem resultados', undefined, 'Ex.: Sem resultados'),
-        localizedString('pageLabel', 'Paginação', undefined, 'Ex.: Página'),
+      ],
+    },
+    {
+      id: 'shared-pagination',
+      label: 'Paginação',
+      fields: [
+        localizedString('pageLabel', 'Texto antes do número', undefined, 'Ex.: Página'),
         localizedString('previous', 'Anterior', undefined, 'Ex.: Anterior'),
         localizedString('next', 'Seguinte', undefined, 'Ex.: Seguinte'),
+      ],
+    },
+    {
+      id: 'shared-gallery',
+      label: 'Galerias',
+      fields: [
         localizedString('zoomImage', 'Ampliar imagem', undefined, 'Ex.: Ampliar imagem'),
         localizedString('close', 'Fechar', undefined, 'Ex.: Fechar'),
       ],
@@ -793,11 +715,58 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
 }
 
 export const documentPanels: Record<string, SiteEditorPanel[]> = {
+  storeCategory: [
+    {
+      id: 'category-details',
+      label: 'Categoria',
+      description: 'Nome e posição apresentados na Loja',
+      fields: [
+        {
+          ...localizedString(
+            'title',
+            'Nome da categoria',
+            'É o nome apresentado nos filtros e junto aos produtos',
+            'Ex.: Decking',
+          ),
+          required: true,
+        },
+        {
+          name: 'slug',
+          label: 'Endereço',
+          type: 'slug',
+          readOnly: true,
+          description:
+            'É criado com a categoria e fica estável para proteger os produtos associados',
+        },
+        {
+          name: 'orderRank',
+          label: 'Posição na Loja',
+          description: 'Os números mais baixos aparecem primeiro',
+          type: 'number',
+          min: 0,
+          step: 1,
+        },
+      ],
+    },
+    {
+      id: 'category-products',
+      label: 'Produtos associados',
+      description: 'Veja os produtos desta categoria e abra-os para os mover',
+      fields: [
+        {
+          name: 'products',
+          label: 'Produtos associados',
+          type: 'storeCategoryProducts',
+          virtual: true,
+        },
+      ],
+    },
+  ],
   productCategory: [
     {
-      ...baseDocumentPanels('Nome da solução', 'Ex.: Bancos para exterior')[0],
+      ...baseDocumentPanels('Nome do produto', 'Ex.: Bancos para exterior')[0],
       fields: [
-        ...baseDocumentPanels('Nome da solução', 'Ex.: Bancos para exterior')[0].fields,
+        ...baseDocumentPanels('Nome do produto', 'Ex.: Bancos para exterior')[0].fields,
         localizedText(
           'description',
           'Descrição',
@@ -806,7 +775,22 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         ),
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+      {
+        name: 'documentsTitle',
+        label: 'Título dos ficheiros',
+        description: 'Deixe vazio para usar o texto global',
+        type: 'localizedString',
+      },
+      {
+        name: 'documents',
+        label: 'Ficheiros para download',
+        description: 'PDFs que o cliente pode transferir nesta página',
+        type: 'documents',
+      },
+
+
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'specs',
       label: 'Especificações técnicas',
@@ -849,22 +833,17 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
       ],
     },
     {
-      id: 'content-sections',
-      label: 'Conteúdo adicional',
-      description: 'Secções com imagem ou vídeo, texto e botão opcionais',
-      fields: [
-        {
-          name: 'contentSections',
-          label: 'Secções da página',
-          type: 'array',
-          item: productContentSectionItem,
-        },
-      ],
-    },
-    {
       id: 'organization',
       label: 'Organização',
-      fields: [{name: 'orderRank', label: 'Ordem', type: 'number', step: 1}],
+      fields: [
+        {
+          name: 'orderRank',
+          label: 'Posição na lista',
+          description: 'Os números mais baixos aparecem primeiro',
+          type: 'number',
+          step: 1,
+        },
+      ],
     },
   ],
   storeProduct: [
@@ -895,7 +874,8 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         {name: 'hasFinishChoice', label: 'Permitir escolha de acabamento', type: 'boolean'},
         {
           name: 'variants',
-          label: 'Opções compráveis',
+          label: 'Tamanhos e preços',
+          description: 'Crie uma opção para cada tamanho ou modelo que pode ser comprado',
           type: 'array',
           item: {
             name: 'item',
@@ -924,25 +904,47 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
                 min: 0,
                 step: 0.01,
               },
-              localizedText(
-                'note',
-                'Nota',
-                undefined,
-                'Ex.: Inclui kit de fixação ao solo',
-              ),
+              localizedText('note', 'Nota', undefined, 'Ex.: Inclui kit de fixação ao solo'),
             ],
           },
         },
-        {name: 'flatTransportPrice', label: 'Transporte fixo', type: 'number', min: 0, step: 0.01},
+        {
+          name: 'flatTransportPrice',
+          label: 'Preço fixo de transporte',
+          description: 'Opcional. Deixe vazio para calcular o transporte pela zona de entrega',
+          type: 'number',
+          min: 0,
+          step: 0.01,
+        },
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+      {
+        name: 'documentsTitle',
+        label: 'Título dos ficheiros',
+        description: 'Deixe vazio para usar o texto global',
+        type: 'localizedString',
+      },
+      {
+        name: 'documents',
+        label: 'Ficheiros para download',
+        description: 'PDFs que o cliente pode transferir nesta página',
+        type: 'documents',
+      },
+
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
       label: 'Visibilidade',
       fields: [
         {name: 'active', label: 'Mostrar na Loja', type: 'boolean'},
-        {name: 'orderRank', label: 'Ordem', type: 'number', step: 1},
+        {
+          name: 'orderRank',
+          label: 'Posição na lista',
+          description: 'Os números mais baixos aparecem primeiro',
+          type: 'number',
+          step: 1,
+        },
       ],
     },
   ],
@@ -966,11 +968,20 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
         ),
       ],
     },
-    {id: 'media', label: 'Imagens e vídeos', fields: [image('image', 'Imagem principal'), gallery]},
+    {id: 'media', label: 'Imagens e vídeos', fields: [
+image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
       label: 'Organização',
-      fields: [{name: 'orderRank', label: 'Ordem', type: 'number', step: 1}],
+      fields: [
+        {
+          name: 'orderRank',
+          label: 'Posição na lista',
+          description: 'Os números mais baixos aparecem primeiro',
+          type: 'number',
+          step: 1,
+        },
+      ],
     },
   ],
   blogPost: [
@@ -1032,7 +1043,7 @@ export const documentPanels: Record<string, SiteEditorPanel[]> = {
           required: true,
         },
         {name: 'active', label: 'Mostrar no site', type: 'boolean'},
-        {name: 'sections', label: 'Estrutura da página', type: 'sections'},
+        {name: 'sections', label: 'Conteúdo da página', type: 'sections'},
       ],
     },
     {
@@ -1074,6 +1085,44 @@ export const panelsForEditorNode = (documentType: string | undefined, rootPath?:
       },
     ]
   }
-  if (documentType === 'siteLanding' && rootPath) return siteScopePanels[rootPath] ?? []
-  return (documentType && documentPanels[documentType]) || []
+  if (documentType === 'siteLanding' && rootPath) {
+    const panels = siteScopePanels[rootPath] ?? []
+    const scope = managedPageSectionScopeForRoot(rootPath)
+    if (!scope) return panels
+
+    return [
+      ...panels,
+      {
+        id: 'page-sections',
+        label: 'Conteúdo da página',
+        description: 'Adicione, ordene e edite os blocos apresentados nesta página',
+        fields: [
+          {
+            name: 'sections',
+            label: 'Editar conteúdo',
+            type: 'sections',
+          },
+        ],
+      },
+    ]
+  }
+  const panels = (documentType && documentPanels[documentType]) || []
+  if (
+    !documentType ||
+    !managedDetailSectionDocumentTypes.includes(
+      documentType as (typeof managedDetailSectionDocumentTypes)[number],
+    )
+  ) {
+    return panels
+  }
+
+  return [
+    ...panels,
+    {
+      id: 'page-sections',
+      label: 'Conteúdo da página',
+      description: 'Adicione, ordene e edite os blocos apresentados nesta página',
+      fields: [{name: 'sections', label: 'Editar conteúdo', type: 'sections'}],
+    },
+  ]
 }

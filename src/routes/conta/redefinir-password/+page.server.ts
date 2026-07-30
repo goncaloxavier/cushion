@@ -40,7 +40,7 @@ export const actions: Actions = {
     }
 
     const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
-    if (customerRateLimit(`reset-ip:${ipHash}`, 8, 15 * 60 * 1000)) {
+    if (await customerRateLimit(`reset-ip:${ipHash}`, 8, 15 * 60 * 1000)) {
       return fail(429, {message: 'Demasiadas tentativas. Aguarde alguns minutos.', token})
     }
 

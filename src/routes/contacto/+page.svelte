@@ -1,5 +1,6 @@
 <script lang="ts">
   import BrandIcon from '$lib/components/BrandIcon.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import PageHero from '$lib/components/PageHero.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
@@ -7,11 +8,13 @@
   import {contactFieldKeys, type ContactFieldKey} from '$lib/site-content'
   import {calculateStoreEstimate, postalZoneFor, readStorePostalCode} from '$lib/store-shipping'
   import {onMount} from 'svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   type ContactFormValues = Partial<Record<ContactFieldKey, string>>
 
   let {data, form} = $props()
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('contactPage')!
   const fallbackFieldLabels: Record<string, Record<ContactFieldKey, string>> = {
     pt: {
       firstName: 'Nome',
@@ -129,7 +132,6 @@
 
   const formIsComplete = $derived(
     contactFieldKeys.every((key) => Boolean(fieldValues[key]?.trim())) &&
-      consentAccepted &&
       privacyConsentAccepted,
   )
   const contactFields = $derived(
@@ -258,9 +260,18 @@
 />
 
 <main>
-  <PageHero {...content.contactPage.hero} />
+  <ManagedPageComposition
+    sections={content.contactPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <PageHero {...content.contactPage.hero} />
 
-  <section class="section contact-grid">
+    <section class="section contact-grid">
     <Reveal class="contact-method contact-method-email" variant="card" priority>
       <div class="contact-box">
         <span>{content.common.emailLabel}</span>
@@ -337,8 +348,6 @@
           <input
             name="marketingConsent"
             type="checkbox"
-            required
-            aria-required="true"
             bind:checked={consentAccepted}
           />
           <span>{content.common.marketingConsent}</span>
@@ -363,5 +372,6 @@
         </button>
       </form>
     </Reveal>
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

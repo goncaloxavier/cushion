@@ -11,7 +11,7 @@ import {
   SiteEditorConflictError,
 } from '$lib/server/site-editor'
 import type {SiteEditorDocument} from '$lib/site-editor/types'
-import {siteEditorE2eScope} from '$lib/server/site-editor-e2e'
+import {siteEditorE2eRequestStaff, siteEditorE2eScope} from '$lib/server/site-editor-e2e'
 import {
   SiteEditorCategoryInUseError,
   SiteEditorDuplicateError,
@@ -98,13 +98,15 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
     if (!canManageStaff(locals.staff)) error(403, 'Apenas administradores podem publicar.')
     if (!body.document) error(400, 'Conteúdo em falta.')
     const published = await runMutation(() => publishSiteEditorDocument(body.document!, scope))
-    await logStaffActivity({
-      staff: locals.staff,
-      action: 'site.publish',
-      entityType: 'siteDocument',
-      entityId: body.document._id,
-      entityLabel: body.document._type,
-    })
+    if (!siteEditorE2eRequestStaff(request.headers)) {
+      await logStaffActivity({
+        staff: locals.staff,
+        action: 'site.publish',
+        entityType: 'siteDocument',
+        entityId: body.document._id,
+        entityLabel: body.document._type,
+      })
+    }
     return json({document: published})
   }
   if (body.action === 'create') {
@@ -124,11 +126,13 @@ export const DELETE: RequestHandler = async ({request, url, cookies, locals}) =>
   const id = url.searchParams.get('id')?.trim()
   if (!id) error(400, 'Identificador em falta.')
   await runMutation(() => deleteSiteEditorDocument(id, siteEditorE2eScope(request.headers)))
-  await logStaffActivity({
-    staff: locals.staff,
-    action: 'site.delete',
-    entityType: 'siteDocument',
-    entityId: id,
-  })
+  if (!siteEditorE2eRequestStaff(request.headers)) {
+    await logStaffActivity({
+      staff: locals.staff,
+      action: 'site.delete',
+      entityType: 'siteDocument',
+      entityId: id,
+    })
+  }
   return json({ok: true})
 }

@@ -66,8 +66,8 @@ export const builderSectionDefinitions: Array<{
   },
   {
     type: 'builderContactSection',
-    title: 'Formulário de contacto',
-    description: 'Contacto geral, orçamento ou pedido de catálogo.',
+    title: 'Bloco de contacto',
+    description: 'Encaminha para contacto, orçamento ou pedido de catálogo.',
   },
 ]
 
@@ -90,6 +90,10 @@ const shortText = (value = '') => ({_type: 'localizedString' as const, pt: value
 const longText = (value = '') => ({_type: 'localizedText' as const, pt: value})
 
 export const createBuilderSection = (type: BuilderSectionType): BuilderSection => {
+  if (type === 'builderManagedSection') {
+    throw new Error('As áreas principais são criadas pela página e não podem ser adicionadas.')
+  }
+
   const base: BuilderSection = {
     _type: type,
     _key: createBuilderKey(),
@@ -136,7 +140,11 @@ export const createBuilderSection = (type: BuilderSectionType): BuilderSection =
   }
 
   if (type === 'builderRichTextSection') {
-    return {...base, title: shortText('Novo conteúdo'), body: []}
+    return {
+      ...base,
+      title: shortText('Novo conteúdo'),
+      body: {_type: 'localizedArticle', pt: []},
+    }
   }
 
   if (type === 'builderMediaSection') {
@@ -194,8 +202,6 @@ export const createBuilderSection = (type: BuilderSectionType): BuilderSection =
       body: longText(),
       source: 'productCategory',
       limit: 6,
-      showSearch: false,
-      showPagination: false,
       layout: {...defaultLayout('fog'), columns: 3, mobileColumns: 1},
     }
   }
@@ -272,7 +278,7 @@ export const createBuilderSiteSettings = (): BuilderSiteSettings => {
       textColor: '#10231f',
       mutedColor: '#49605a',
       deepColor: '#073f45',
-      greenColor: '#2f8b69',
+      greenColor: '#2b8261',
       blueColor: '#17657a',
       yellowColor: '#d7bd35',
       fogColor: '#eef7f3',

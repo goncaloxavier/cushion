@@ -365,6 +365,11 @@
     )
   }
 
+  let firstName = $state(untrack(() => (values.firstName as string) || ''))
+  let lastName = $state(untrack(() => (values.lastName as string) || ''))
+  let email = $state(untrack(() => (values.email as string) || ''))
+  let phone = $state(untrack(() => (values.phone as string) || ''))
+  let nif = $state(untrack(() => (values.nif as string) || ''))
   let phoneCountry = $state(untrack(() => (values.phoneCountry as string) || '+351'))
   let countryQuery = $state(countryText(countries.find((country) => country.code === phoneCountry) ?? countries[0]))
   let countryOpen = $state(false)
@@ -428,17 +433,17 @@
     <div class="account-form-row">
       <label>
         <span>{t.firstName}</span>
-        <input name="firstName" autocomplete="given-name" required value={values.firstName ?? ''} />
+        <input name="firstName" autocomplete="given-name" required bind:value={firstName} />
       </label>
       <label>
         <span>{t.lastName}</span>
-        <input name="lastName" autocomplete="family-name" required value={values.lastName ?? ''} />
+        <input name="lastName" autocomplete="family-name" required bind:value={lastName} />
       </label>
     </div>
 
     <label>
       <span>{t.email}</span>
-      <input name="email" type="email" autocomplete="email" required value={values.email ?? ''} />
+      <input name="email" type="email" autocomplete="email" required bind:value={email} />
     </label>
 
     <label>
@@ -502,14 +507,14 @@
           type="tel"
           autocomplete="tel-national"
           inputmode="tel"
-          value={values.phone ?? ''}
+          bind:value={phone}
         />
       </div>
     </label>
 
     <label>
       <span>{t.nif} <em>({t.optional})</em></span>
-      <input name="nif" inputmode="numeric" value={values.nif ?? ''} />
+      <input name="nif" inputmode="numeric" bind:value={nif} />
     </label>
 
     <label>

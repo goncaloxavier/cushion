@@ -1,7 +1,12 @@
 import type {LanguageCode} from '$lib/site-content'
 import {databaseConfigured, withTransaction} from './db'
+import {
+  contactsRecipient,
+  logEmailFailure,
+  sendTransactionalEmail,
+} from './email'
 import {tokenHashOf} from './password-auth'
-import {rateLimit, rateLimitKey} from './rate-limit'
+import {distributedRateLimit, rateLimitKey} from './rate-limit'
 
 export type SubmissionSource =
   | 'contact'
@@ -70,7 +75,6 @@ export const validateSubmission = (input: ContactSubmission): string[] => {
   if (input.postalCode.length < 3) errors.push('postalCode')
   if (input.locality.length < 2) errors.push('locality')
   if (input.message.length < 8) errors.push('message')
-  if (!input.marketingConsent) errors.push('marketingConsent')
   if (!input.privacyConsent) errors.push('privacyConsent')
 
   return errors
@@ -89,7 +93,10 @@ export const storeContactSubmission = async (
 
   const emailNormalized = normalizeEmail(input.email)
 
-  if (input.ipAddress && rateLimit(rateLimitKey('crm-ip', input.ipAddress), 5, 10 * 60 * 1000)) {
+  if (
+    input.ipAddress &&
+    (await distributedRateLimit(rateLimitKey('crm-ip', input.ipAddress), 5, 10 * 60 * 1000))
+  ) {
     return {
       ok: false,
       status: 429,
@@ -97,7 +104,9 @@ export const storeContactSubmission = async (
     }
   }
 
-  if (rateLimit(rateLimitKey('crm-email', emailNormalized), 3, 30 * 60 * 1000)) {
+  if (
+    await distributedRateLimit(rateLimitKey('crm-email', emailNormalized), 3, 30 * 60 * 1000)
+  ) {
     return {
       ok: false,
       status: 429,
@@ -112,9 +121,15 @@ export const storeContactSubmission = async (
       `insert into crm_client_profiles (
          first_name, last_name, name, email, email_normalized, phone, address, postal_code, locality,
          preferred_language, status, submission_count, first_submitted_at, last_submitted_at,
-         first_source, last_source, latest_message, marketing_consent, privacy_consent
+         first_source, last_source, latest_message, marketing_consent, privacy_consent,
+         marketing_consent_at, marketing_withdrawn_at
        )
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'new', 1, now(), now(), $11, $11, $12, $13, $14)
+       values (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'new', 1, now(), now(),
+         $11, $11, $12, $13, $14,
+         case when $13 then now() end,
+         case when $13 then null else now() end
+       )
        on conflict (email_normalized) do update
        set first_name = excluded.first_name,
            last_name = excluded.last_name,
@@ -126,6 +141,15 @@ export const storeContactSubmission = async (
            locality = excluded.locality,
            preferred_language = excluded.preferred_language,
            marketing_consent = excluded.marketing_consent,
+           marketing_consent_at = case
+             when excluded.marketing_consent
+               then coalesce(crm_client_profiles.marketing_consent_at, now())
+             else null
+           end,
+           marketing_withdrawn_at = case
+             when excluded.marketing_consent then null
+             else coalesce(crm_client_profiles.marketing_withdrawn_at, now())
+           end,
            privacy_consent = excluded.privacy_consent,
            last_submitted_at = now(),
            last_source = excluded.last_source,
@@ -184,6 +208,40 @@ export const storeContactSubmission = async (
 
     return submission.rows[0].id
   })
+
+  const recipient = contactsRecipient()
+  if (recipient) {
+    const sourceLabels: Record<SubmissionSource, string> = {
+      contact: 'Contacto',
+      catalogue: 'Catálogo',
+      product: 'Produto',
+      store: 'Loja',
+      case: 'Caso',
+      blog: 'Blog',
+      unknown: 'Website',
+    }
+    const result = await sendTransactionalEmail({
+      to: recipient,
+      subject: `Novo pedido pelo website · ${input.name}`,
+      text: [
+        `Origem: ${sourceLabels[input.source]}`,
+        `Nome: ${input.name}`,
+        `Email: ${input.email}`,
+        `Telefone: ${input.phone}`,
+        `Local: ${[input.postalCode, input.locality].filter(Boolean).join(' ')}`,
+        `Marketing: ${input.marketingConsent ? 'sim' : 'não'}`,
+        '',
+        input.message,
+        '',
+        `Pedido: ${submissionId}`,
+      ].join('\n'),
+    }).catch((error) => ({
+      ok: false as const,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Unknown email delivery error.',
+    }))
+    logEmailFailure(`contact submission ${submissionId}`, result)
+  }
 
   return {ok: true, requestId: submissionId}
 }

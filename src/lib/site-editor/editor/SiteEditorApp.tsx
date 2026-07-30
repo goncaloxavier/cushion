@@ -19,6 +19,17 @@ import {TabletDeviceIcon} from '@sanity/icons/TabletDevice'
 import {TagIcon} from '@sanity/icons/Tag'
 import {UndoIcon} from '@sanity/icons/Undo'
 import type {BuilderViewport} from '$lib/builder/types'
+import {buildHomeSections} from '$lib/builder/home-sections'
+import {
+  managedCoreSectionFor,
+  managedDetailSectionDocumentTypes,
+  managedPageSectionScopeForRoot,
+  withManagedCoreSection,
+} from '$lib/builder/managed-page-sections'
+import {
+  preserveLegacyProductSectionsOnLoad,
+  productBuilderSections,
+} from '$lib/builder/product-sections'
 import {getEditorValue, normalizeEditorDocumentId, setEditorValue} from '../path'
 import {textAppearanceFields} from '$lib/text-appearance'
 import type {
@@ -29,7 +40,7 @@ import type {
   SiteEditorNode,
   SiteEditorSaveState,
 } from '../types'
-import {createSiteEditorApi} from './api'
+import {createSiteEditorApi, isConflictError} from './api'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SiteEditorCanvas} from './SiteEditorCanvas'
@@ -49,6 +60,9 @@ type Notice = {
   title: string
   description?: string
   closing?: boolean
+  persistent?: boolean
+  actionLabel?: string
+  onAction?: () => void
 }
 
 type PublishState = 'idle' | 'publishing' | 'published'
@@ -64,6 +78,10 @@ type CreateState = {
 }
 
 const snapshot = <T,>(value: T): T => structuredClone(value)
+
+const prepareEditorDocument = (value: SiteEditorDocument): SiteEditorDocument => {
+  return preserveLegacyProductSectionsOnLoad(snapshot(value))
+}
 
 // Edits made within this window of each other collapse into one undo step
 // instead of one per keystroke — see replaceDocument.
@@ -174,13 +192,66 @@ const appearanceObjectPath = (path: string) => {
     : undefined
 }
 
+const builderPreviewPageFor = (
+  document: SiteEditorDocument | undefined,
+  node: SiteEditorNode | undefined,
+): SiteEditorDocument | undefined => {
+  if (!document) return undefined
+  if (document._type === 'sitePage') return document
+  const scope =
+    document._type === 'siteLanding'
+      ? managedPageSectionScopeForRoot(node?.rootPath)
+      : undefined
+  const isManagedDetail = managedDetailSectionDocumentTypes.includes(
+    document._type as (typeof managedDetailSectionDocumentTypes)[number],
+  )
+  if (!scope && (!isManagedDetail || !node?.route)) return undefined
+  const storedSections = getEditorValue(
+    document,
+    scope ? `${scope.rootPath}.sections` : 'sections',
+  )
+  const baseSections =
+    document._type === 'productCategory'
+      ? productBuilderSections(storedSections, document.contentSections)
+      : scope?.rootPath === 'home' &&
+          (!Array.isArray(storedSections) || storedSections.length === 0)
+        ? buildHomeSections(document, (() => {
+            let index = 0
+            return () => `legacy-home-${++index}`
+          })())
+        : Array.isArray(storedSections)
+          ? storedSections
+          : []
+  const sections = withManagedCoreSection(
+    baseSections,
+    managedCoreSectionFor(node?.rootPath, document._type),
+  )
+  return {
+    ...document,
+    _type: 'sitePage',
+    editorVersion: 1,
+    title: scope?.title ?? node?.title ?? 'Página',
+    route: scope?.route ?? node!.route!,
+    active: true,
+    sections,
+  }
+}
+
 const saveLabels: Record<SiteEditorSaveState, string> = {
   idle: 'Tudo guardado',
   dirty: 'Alterações por guardar',
   saving: 'A guardar…',
   saved: 'Guardado automaticamente',
   error: 'Erro ao guardar',
-  conflict: 'Conflito de edição',
+  conflict: 'Editado noutra janela',
+}
+
+// Shown from five different places, so it lives here instead of being retyped
+// each time — and it says why the editor is read-only, not just that it is.
+const readOnlyNotice = {
+  tone: 'warning' as const,
+  title: 'Não pode guardar alterações',
+  description: 'Esta sessão abriu em modo de consulta. Contacte o suporte técnico.',
 }
 
 export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Props) {
@@ -213,9 +284,15 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const [refreshToken, setRefreshToken] = useState(0)
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null)
   const previewRouteRef = useRef('/')
+  const expectedPreviewRoute = useRef<string>()
+  // Route whose preview-recovery reload has already been attempted — see
+  // syncPreviewRoute. Cleared as soon as any route syncs successfully.
+  const failedPreviewRoute = useRef<string>()
   const [notice, setNotice] = useState<Notice>()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const navigationDrawerRef = useRef<HTMLElement>(null)
+  const settingsDrawerRef = useRef<HTMLElement>(null)
   const [inspectorMode, setInspectorMode] = useState<'focused' | 'all'>('all')
   const inlineEditing = useRef(false)
   const fieldStateRef = useRef<Record<string, unknown>>()
@@ -224,12 +301,17 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const noticeRemoveTimer = useRef<number | undefined>(undefined)
   const publishResetTimer = useRef<number | undefined>(undefined)
   const [createState, setCreateState] = useState<CreateState>(initialCreateState)
+  const createModalRef = useRef<HTMLFormElement>(null)
   const [deleteState, setDeleteState] = useState({open: false, busy: false})
+  const [conflictState, setConflictState] = useState({open: false, busy: false})
   const dirtyVersion = useRef(0)
   const savedVersion = useRef(0)
   const saving = useRef<Promise<SiteEditorDocument> | null>(null)
   const publishing = useRef<Promise<SiteEditorDocument> | null>(null)
+  const deleting = useRef(false)
   const saveNowRef = useRef<() => Promise<SiteEditorDocument>>()
+  const documentLoadRequest = useRef(0)
+  const pendingDocumentOpen = useRef<Promise<boolean> | null>(null)
   const previewNeedsRefresh = useRef(false)
   const canPublish = manifest?.capabilities.canPublish ?? initialCanPublish
   const canWrite = manifest?.capabilities.canWrite ?? false
@@ -269,10 +351,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       window.clearTimeout(noticeRemoveTimer.current)
       const next = {...value, id: ++noticeId.current, closing: false}
       setNotice(next)
-      noticeDismissTimer.current = window.setTimeout(
-        () => dismissNotice(next.id),
-        value.tone === 'success' ? 4800 : 7600,
-      )
+      if (!value.persistent) {
+        noticeDismissTimer.current = window.setTimeout(
+          () => dismissNotice(next.id),
+          value.tone === 'success' ? 4800 : 7600,
+        )
+      }
     },
     [dismissNotice],
   )
@@ -321,8 +405,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   )
 
   useEffect(() => {
-    if (!frame?.contentWindow || document?._type !== 'sitePage') return
-    latestBuilderState.current = {page: document, selectedSectionKey}
+    const previewPage = builderPreviewPageFor(document, selectedNode)
+    if (!frame?.contentWindow || !previewPage) return
+    latestBuilderState.current = {page: previewPage, selectedSectionKey}
     // Trailing-edge throttle: the free-page canvas needs the live unsaved
     // document to preview edits as they happen, but posting (and structured-
     // cloning) the whole page on every single keystroke is wasted work once
@@ -346,62 +431,87 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         send()
       }, throttleMs - elapsed)
     }
-  }, [document, frame, selectedSectionKey])
+  }, [document, frame, selectedNode, selectedSectionKey])
 
   useEffect(() => () => window.clearTimeout(builderStateTimer.current), [])
 
+  useEffect(() => {
+    frame?.contentWindow?.postMessage(
+      {type: 'df4y:site-editor:permissions', canWrite},
+      window.location.origin,
+    )
+  }, [canWrite, frame])
+
   const openDocument = useCallback(
     async (node: SiteEditorNode, path?: string) => {
-      if (!node.documentId || !node.documentType) return
+      if (!node.documentId || !node.documentType) return false
+      const requestId = ++documentLoadRequest.current
 
       const switchingDocument =
         !documentRef.current ||
         normalizeEditorDocumentId(documentRef.current._id) !==
           normalizeEditorDocumentId(node.documentId)
 
+      if (switchingDocument && publishing.current) {
+        await publishing.current.catch(() => undefined)
+        if (requestId !== documentLoadRequest.current) return false
+      }
+
       if (switchingDocument && dirtyVersion.current > savedVersion.current) {
         // An edit is still sitting in the autosave debounce window on the document
         // we're about to leave — flush it now, otherwise fetching the new document
         // below overwrites documentRef.current and silently discards it.
-        await saveNowRef.current?.().catch(() => undefined)
+        try {
+          await saveNowRef.current?.()
+        } catch {
+          return false
+        }
+        if (requestId !== documentLoadRequest.current) return false
       }
 
-      const previousNode = selectedNodeRef.current
-      selectedNodeRef.current = node
-      setSelectedNode(node)
-      setArea(node.area)
       const normalizedSelectedPath = path ? normalizePath(path) : undefined
-      setSelectedPath(normalizedSelectedPath)
-      setSelectedSectionKey(
-        normalizedSelectedPath ? sectionKeyFromPath(normalizedSelectedPath) : undefined,
-      )
+      const applySelection = () => {
+        selectedNodeRef.current = node
+        setSelectedNode(node)
+        setArea(node.area)
+        setSelectedPath(normalizedSelectedPath)
+        setSelectedSectionKey(
+          normalizedSelectedPath ? sectionKeyFromPath(normalizedSelectedPath) : undefined,
+        )
+      }
 
       if (!switchingDocument) {
-        return
+        applySelection()
+        setDocumentLoading(false)
+        return true
       }
 
       setDocumentLoading(true)
       try {
         const next = await api.document(node.documentId)
-        const copy = snapshot(next)
+        if (requestId !== documentLoadRequest.current) return false
+        const copy = prepareEditorDocument(next)
+        applySelection()
         setDocument(copy)
         documentRef.current = copy
         setHistory([snapshot(copy)])
         setHistoryIndex(0)
         historyIndexRef.current = 0
+        lastHistoryPushAt.current = 0
         savedVersion.current = dirtyVersion.current
         previewNeedsRefresh.current = false
         setSaveState('idle')
+        return true
       } catch (error) {
-        selectedNodeRef.current = previousNode
-        setSelectedNode(previousNode)
+        if (requestId !== documentLoadRequest.current) return false
         pushNotice({
           tone: 'error',
           title: 'Não foi possível abrir o conteúdo',
           description: error instanceof Error ? error.message : undefined,
         })
+        return false
       } finally {
-        setDocumentLoading(false)
+        if (requestId === documentLoadRequest.current) setDocumentLoading(false)
       }
     },
     [api, pushNotice],
@@ -412,13 +522,32 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       // Global content and Loja categories open straight into settings (there's
       // no canvas element to click for them); everything else closes both
       // drawers so the canvas itself stays directly hoverable/clickable.
-      clearCanvasSelection(false)
-      setInspectorMode('all')
       const keepNavigationOpen = node.documentType === 'storeCategory'
-      if (!keepNavigationOpen) setNavigationOpen(false)
-      void openDocument(node).then(() => {
-        if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
-      })
+      const routeExpectation =
+        node.route && editorRouteKey(node.route) !== editorRouteKey(previewRouteRef.current)
+          ? node.route
+          : undefined
+      if (routeExpectation) expectedPreviewRoute.current = routeExpectation
+      const request = openDocument(node)
+      pendingDocumentOpen.current = request
+      void request
+        .then((opened) => {
+          if (!opened) return
+          clearCanvasSelection(false)
+          setInspectorMode('all')
+          if (!keepNavigationOpen) setNavigationOpen(false)
+          if (node.kind === 'global' || keepNavigationOpen) setSettingsOpen(true)
+        })
+        .finally(() => {
+          if (pendingDocumentOpen.current === request) pendingDocumentOpen.current = null
+          if (
+            routeExpectation &&
+            expectedPreviewRoute.current === routeExpectation &&
+            selectedNodeRef.current?.id !== node.id
+          ) {
+            expectedPreviewRoute.current = undefined
+          }
+        })
     },
     [clearCanvasSelection, openDocument],
   )
@@ -428,24 +557,31 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   // Stable references for the memoized SiteEditorInspector's callback props —
   // inline arrow functions here would be recreated on every SiteEditorApp
   // render (e.g. a toast, a save-state tick), defeating its React.memo.
-  const inspectorOnReplace = useCallback(
-    (next: SiteEditorDocument) => replaceDocument(next, true, next._type === 'sitePage'),
-    [replaceDocument],
-  )
   const inspectorOnUpload = useCallback(
     async (
       file: File,
-      kind: 'image' | 'video',
+      kind: import('../types').SiteEditorAssetKind,
       onProgress?: (progress: SiteEditorUploadProgress) => void,
-    ) => (await api.uploadAsset(file, kind, onProgress)).asset,
-    [api],
+    ) => {
+      if (!canWrite) throw new Error('Esta sessão abriu em modo de consulta.')
+      return (await api.uploadAsset(file, kind, onProgress)).asset
+    },
+    [api, canWrite],
   )
   const inspectorOnDelete = useCallback(() => setDeleteState({open: true, busy: false}), [])
   const inspectorOnShowAll = useCallback(() => setInspectorMode('all'), [])
   const inspectorOnOpenNode = useCallback(
     (node: SiteEditorNode, path?: string) => {
-      setInspectorMode(path ? 'focused' : 'all')
-      void openDocument(node, path)
+      if (node.route && editorRouteKey(node.route) !== editorRouteKey(previewRouteRef.current)) {
+        expectedPreviewRoute.current = node.route
+      }
+      void openDocument(node, path).then((opened) => {
+        if (opened) {
+          setInspectorMode(path ? 'focused' : 'all')
+        } else if (expectedPreviewRoute.current === node.route) {
+          expectedPreviewRoute.current = undefined
+        }
+      })
     },
     [openDocument],
   )
@@ -466,8 +602,17 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         : current
           ? next.nodes.find((node) => node.id === current.id)
           : next.nodes.find((node) => node.id === 'page-home')
-      if (target) await openDocument(target)
-      return target
+      if (!target) return undefined
+      const routeExpectation =
+        target.route && editorRouteKey(target.route) !== editorRouteKey(previewRouteRef.current)
+          ? target.route
+          : undefined
+      if (routeExpectation) expectedPreviewRoute.current = routeExpectation
+      const opened = await openDocument(target)
+      if (!opened && routeExpectation && expectedPreviewRoute.current === routeExpectation) {
+        expectedPreviewRoute.current = undefined
+      }
+      return opened ? target : undefined
     },
     [api, openDocument],
   )
@@ -507,10 +652,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   }, [loadManifest])
 
   const saveNow = useCallback(async () => {
+    if (deleting.current) throw new Error('Este conteúdo está a ser eliminado.')
     if (publishing.current) await publishing.current.catch(() => undefined)
     const current = documentRef.current
     if (!current || !canWrite) {
-      if (!canWrite) pushNotice({tone: 'warning', title: 'O editor está em modo de leitura'})
+      if (!canWrite) pushNotice(readOnlyNotice)
       throw new Error('Não existe acesso de escrita.')
     }
     if (saving.current) await saving.current
@@ -537,8 +683,16 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           ...latest,
           _id: saved._id,
           _rev: saved._rev,
+          // The server's baseline for the next save's conflict check. It has to
+          // travel with the document, not be recomputed here — see
+          // signatureField in server/site-editor.ts.
+          _editorSignature: saved._editorSignature,
           _createdAt: saved._createdAt,
           _updatedAt: saved._updatedAt,
+        }
+        if (saved._type === 'productCategory' && Array.isArray(saved.sections)) {
+          merged.sections = saved.sections
+          delete merged.contentSections
         }
         documentRef.current = merged
         setDocument(merged)
@@ -600,12 +754,21 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     } catch (error) {
       if (refreshPreview) previewNeedsRefresh.current = true
       const message = error instanceof Error ? error.message : 'Não foi possível guardar.'
-      const conflict = /conflito|alterado noutra|recarregue|revision/i.test(message)
+      // Prefer the server's own classification (409). The message check stays
+      // only as a fallback for failures that never made it through HTTP.
+      const conflict = isConflictError(error) || /alterado noutra|recarregue/i.test(message)
       setSaveState(conflict ? 'conflict' : 'error')
       pushNotice({
         tone: conflict ? 'warning' : 'error',
-        title: conflict ? 'Conflito de edição' : 'Não foi possível guardar',
+        title: conflict ? 'Este conteúdo foi editado noutra janela' : 'Não foi possível guardar',
         description: message,
+        ...(conflict
+          ? {
+              persistent: true,
+              actionLabel: 'Resolver conflito',
+              onAction: () => setConflictState({open: true, busy: false}),
+            }
+          : {}),
       })
       throw error
     } finally {
@@ -635,10 +798,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const publish = useCallback(async () => {
     if (!canPublish || !documentRef.current) {
-      pushNotice({tone: 'warning', title: 'Apenas administradores podem publicar'})
+      pushNotice({
+        tone: 'warning',
+        title: 'Não tem permissão para publicar',
+        description: 'As alterações ficam guardadas como rascunho até um administrador publicar.',
+      })
       return
     }
-    if (publishing.current) return
+    if (publishing.current || deleting.current) return
     window.clearTimeout(publishResetTimer.current)
     setPublishState('publishing')
     try {
@@ -650,15 +817,17 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const published = await request
       const latest = documentRef.current
       const hasNewerChanges = dirtyVersion.current !== version
-      const copy = hasNewerChanges && latest
-        ? {
-            ...latest,
-            _id: published._id,
-            _rev: published._rev,
-            _createdAt: published._createdAt,
-            _updatedAt: published._updatedAt,
-          }
-        : snapshot(published)
+      const copy =
+        hasNewerChanges && latest
+          ? {
+              ...latest,
+              _id: published._id,
+              _rev: published._rev,
+              _editorSignature: published._editorSignature,
+              _createdAt: published._createdAt,
+              _updatedAt: published._updatedAt,
+            }
+          : prepareEditorDocument(published)
       documentRef.current = copy
       setDocument(copy)
       savedVersion.current = version
@@ -668,6 +837,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         setHistory([snapshot(copy)])
         setHistoryIndex(0)
         historyIndexRef.current = 0
+        lastHistoryPushAt.current = 0
         setSaveState('saved')
       }
       try {
@@ -720,6 +890,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     }
     historyIndexRef.current = index
     setHistoryIndex(index)
+    lastHistoryPushAt.current = 0
     documentRef.current = next
     setDocument(next)
     dirtyVersion.current += 1
@@ -740,6 +911,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     }
     historyIndexRef.current = index
     setHistoryIndex(index)
+    lastHistoryPushAt.current = 0
     documentRef.current = next
     setDocument(next)
     dirtyVersion.current += 1
@@ -772,13 +944,18 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const updatePath = useCallback(
     (path: string, value: unknown, record = true, immediate = false) => {
+      if (!canWrite) {
+        pushNotice(readOnlyNotice)
+        return
+      }
       const current = documentRef.current
       if (!current) return
       const next = setEditorValue(current, path, value)
       const appearancePath = appearanceObjectPath(path)
       const patchPath = appearancePath ?? path
       const patchValue = appearancePath ? getEditorValue(next, appearancePath) : value
-      const canPatchPreview = current._type === 'sitePage' || Boolean(appearancePath) || typeof value === 'string'
+      const canPatchPreview =
+        current._type === 'sitePage' || Boolean(appearancePath) || typeof value === 'string'
       if (canPatchPreview && current._type !== 'sitePage') {
         frame?.contentWindow?.postMessage(
           {
@@ -801,7 +978,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       // There's no keystroke stream to protect here, so save right away.
       if (immediate) void saveNowRef.current?.().catch(() => undefined)
     },
-    [frame, replaceDocument],
+    [canWrite, frame, pushNotice, replaceDocument],
+  )
+
+  const inspectorOnChange = useCallback(
+    (path: string, value: unknown, immediate = false) => {
+      updatePath(path, value, true, immediate)
+    },
+    [updatePath],
   )
 
   const targetForSelection = useCallback(
@@ -854,27 +1038,66 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const syncPreviewRoute = useCallback(
     async (route: string) => {
-      if (!route) return
-      previewRouteRef.current = route
+      if (!route) return false
+      const previousRoute = previewRouteRef.current
+      const expectedRoute = expectedPreviewRoute.current
+      if (expectedRoute) {
+        if (editorRouteKey(route) !== editorRouteKey(expectedRoute)) return false
+        expectedPreviewRoute.current = undefined
+      }
       const current = selectedNodeRef.current
-      if (current?.route && editorRouteKey(current.route) === editorRouteKey(route)) return
+      if (current?.route && editorRouteKey(current.route) === editorRouteKey(route)) {
+        previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
+        return true
+      }
 
       const target = nodeForPreviewRoute(route)
-      if (!target || target.id === current?.id) return
-      clearCanvasSelection(false)
-      setInspectorMode('all')
-      await openDocument(target)
+      if (!target || target.id === current?.id) {
+        previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
+        return true
+      }
+      const opened = await openDocument(target)
+      if (opened) {
+        previewRouteRef.current = route
+        failedPreviewRoute.current = undefined
+        clearCanvasSelection(false)
+        setInspectorMode('all')
+        return true
+      }
+
+      previewRouteRef.current = previousRoute
+      // Bumping the refresh token reloads the preview so it lands back on the
+      // document that is actually open. But the reload's onLoad reports its
+      // route straight back into this function, so when the recovery cannot
+      // change anything the whole thing re-triggers itself — the preview
+      // reloads forever and the editor looks stuck on "A atualizar a página…".
+      // Recover at most once per route, and only when the reload has somewhere
+      // different to go.
+      const routeKey = editorRouteKey(route)
+      const alreadyRecovered = failedPreviewRoute.current === routeKey
+      failedPreviewRoute.current = routeKey
+      if (!alreadyRecovered && editorRouteKey(previousRoute) !== routeKey) {
+        setRefreshToken((token) => token + 1)
+      }
+      return false
     },
     [clearCanvasSelection, nodeForPreviewRoute, openDocument],
   )
 
   const openContextSettings = useCallback(async () => {
-    let route = previewRouteRef.current
-    try {
-      const current = frame?.contentWindow?.location
-      if (current) route = `${current.pathname}${current.search}`
-    } catch {
-      // Route messages remain the source of truth if the frame cannot be inspected.
+    const pending = pendingDocumentOpen.current
+    if (pending && !(await pending)) return
+
+    let route = expectedPreviewRoute.current || previewRouteRef.current
+    if (!expectedPreviewRoute.current) {
+      try {
+        const current = frame?.contentWindow?.location
+        if (current) route = `${current.pathname}${current.search}`
+      } catch {
+        // Route messages remain the source of truth if the frame cannot be inspected.
+      }
     }
 
     const current = selectedNodeRef.current
@@ -882,7 +1105,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       current?.route && editorRouteKey(current.route) === editorRouteKey(route)
         ? current
         : nodeForPreviewRoute(route)
-    if (target && target.id !== current?.id) await openDocument(target)
+    if (target && target.id !== current?.id && !(await openDocument(target))) return
     setInspectorMode('all')
     setSettingsOpen(true)
   }, [frame, nodeForPreviewRoute, openDocument])
@@ -894,9 +1117,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
       if (event.data.type === 'df4y:builder-ready') {
         const current = documentRef.current
-        if (current?._type === 'sitePage') {
+        const previewPage = builderPreviewPageFor(current, selectedNodeRef.current)
+        if (previewPage) {
           frame.contentWindow?.postMessage(
-            {type: 'df4y:builder-state', page: current, selectedSectionKey},
+            {type: 'df4y:builder-state', page: previewPage, selectedSectionKey},
             window.location.origin,
           )
         }
@@ -904,7 +1128,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       }
 
       if (event.data.type === 'df4y:builder-select') {
-        if (documentRef.current?._type !== 'sitePage') return
+        if (!builderPreviewPageFor(documentRef.current, selectedNodeRef.current)) return
         inlineEditing.current = false
         fieldStateRef.current = undefined
         setSelectedPath(undefined)
@@ -917,6 +1141,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (!event.data.type.startsWith('df4y:site-editor:')) return
 
       if (event.data.type === 'df4y:site-editor:ready') {
+        frame.contentWindow?.postMessage(
+          {type: 'df4y:site-editor:permissions', canWrite},
+          window.location.origin,
+        )
         if (event.data.route) await syncPreviewRoute(String(event.data.route))
         if (fieldStateRef.current) {
           frame.contentWindow?.postMessage(fieldStateRef.current, window.location.origin)
@@ -929,6 +1157,16 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         return
       }
 
+      if (event.data.type === 'df4y:site-editor:preview-refresh-error') {
+        pushNotice({
+          tone: 'warning',
+          title: 'A pré-visualização não acompanhou',
+          description:
+            'As alterações ficaram guardadas. Clique em “Atualizar página” para as ver aqui.',
+        })
+        return
+      }
+
       if (event.data.type === 'df4y:site-editor:clear-selection') {
         clearCanvasSelection()
         return
@@ -937,7 +1175,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       const path = normalizePath(String(event.data.path || ''))
       const target = targetForSelection(String(event.data.documentId || ''), path)
       if (!target) return
-      await openDocument(target, path)
+      if (!(await openDocument(target, path))) return
 
       if (event.data.type === 'df4y:site-editor:select') {
         setInspectorMode('focused')
@@ -983,8 +1221,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     return () => window.removeEventListener('message', listener)
   }, [
     clearCanvasSelection,
+    canWrite,
     frame,
     openDocument,
+    pushNotice,
     saveNow,
     syncPreviewRoute,
     targetForSelection,
@@ -1027,24 +1267,38 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   // at <body> after every open/close of the two most-used drawers.
   useEffect(() => {
     if (!navigationOpen) return
-    const previous = document.activeElement as HTMLElement | null
-    return () => previous?.focus()
-    // document.activeElement is a one-time snapshot read at open time, not a
-    // reactive dependency — including it would refocus on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const previous = window.document.activeElement as HTMLElement | null
+    const frameId = window.requestAnimationFrame(() =>
+      navigationDrawerRef.current
+        ?.querySelector<HTMLElement>('.site-editor-sidebar-close')
+        ?.focus({preventScroll: true}),
+    )
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      if (previous?.isConnected) previous.focus()
+    }
   }, [navigationOpen])
 
   useEffect(() => {
     if (!settingsOpen) return
-    const previous = document.activeElement as HTMLElement | null
-    return () => previous?.focus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const previous = window.document.activeElement as HTMLElement | null
+    const frameId = window.requestAnimationFrame(() =>
+      settingsDrawerRef.current
+        ?.querySelector<HTMLElement>('.site-editor-drawer-close')
+        ?.focus({preventScroll: true}),
+    )
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      if (previous?.isConnected) previous.focus()
+    }
   }, [settingsOpen])
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (deleteState.open) {
+      if (conflictState.open) {
+        return
+      } else if (deleteState.open) {
         if (!deleteState.busy) setDeleteState({open: false, busy: false})
       } else if (createState.open) {
         if (!createState.busy) setCreateState(initialCreateState)
@@ -1055,6 +1309,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     return () => window.removeEventListener('keydown', handleKeydown)
   }, [
     clearCanvasSelection,
+    conflictState.open,
     createState.busy,
     createState.open,
     deleteState.busy,
@@ -1063,20 +1318,55 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     settingsOpen,
   ])
 
-  const openCreate = useCallback((documentType?: SiteEditorDocumentType) => {
-    setCreateState({
-      ...initialCreateState,
-      open: true,
-      documentType: documentType ?? (area === 'pages' ? 'sitePage' : 'productCategory'),
-      fixedType: Boolean(documentType),
-    })
-  }, [area])
+  useEffect(() => {
+    if (!createState.open) return
+    const previous = window.document.activeElement as HTMLElement | null
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const controls = Array.from(
+        createModalRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      )
+      if (!controls.length) return
+      const first = controls[0]
+      const last = controls.at(-1)
+      if (event.shiftKey && window.document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && window.document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.document.addEventListener('keydown', trapFocus)
+    return () => {
+      window.document.removeEventListener('keydown', trapFocus)
+      previous?.focus()
+    }
+  }, [createState.open])
 
-  const openCreatedDraft = (
+  const openCreate = useCallback(
+    (documentType?: SiteEditorDocumentType) => {
+      if (!canWrite) {
+        pushNotice(readOnlyNotice)
+        return
+      }
+      setCreateState({
+        ...initialCreateState,
+        open: true,
+        documentType: documentType ?? (area === 'pages' ? 'sitePage' : 'productCategory'),
+        fixedType: Boolean(documentType),
+      })
+    },
+    [area, canWrite, pushNotice],
+  )
+
+  const optimisticNodeForCreatedDraft = (
     created: SiteEditorDocument,
     fallbackTitle: string,
     fallbackRoute: string,
-  ) => {
+  ): SiteEditorNode => {
     const id = normalizeEditorDocumentId(created._id)
     const titleValue = created.title as {pt?: string} | string | undefined
     const title = typeof titleValue === 'string' ? titleValue : titleValue?.pt || fallbackTitle
@@ -1095,7 +1385,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                     ? 'casos-de-estudo'
                     : 'blog'
             }${slug ? `/${slug}` : ''}`
-    const optimisticNode: SiteEditorNode = {
+    const parentCollection = manifest?.nodes.find(
+      (node) => node.kind === 'collection' && node.collectionType === created._type,
+    )
+    return {
       id: `${created._type === 'sitePage' ? 'page' : 'document'}-${id}`,
       kind: created._type === 'sitePage' ? 'flexiblePage' : 'document',
       area: created._type === 'sitePage' ? 'pages' : 'content',
@@ -1103,10 +1396,34 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       route,
       documentId: id,
       documentType: created._type,
+      parentId: parentCollection?.id,
       draft: true,
       active: created.active as boolean | undefined,
+      slug,
+      subtitle:
+        created._type === 'storeCategory'
+          ? '0 produtos'
+          : created._type === 'sitePage'
+            ? undefined
+            : route,
+      count: created._type === 'storeCategory' ? 0 : undefined,
+      category: typeof created.category === 'string' ? created.category : undefined,
     }
+  }
+
+  const openCreatedDraft = (
+    created: SiteEditorDocument,
+    fallbackTitle: string,
+    fallbackRoute: string,
+  ) => {
+    const optimisticNode = optimisticNodeForCreatedDraft(created, fallbackTitle, fallbackRoute)
     const copy = snapshot(created)
+    if (
+      optimisticNode.route &&
+      editorRouteKey(optimisticNode.route) !== editorRouteKey(previewRouteRef.current)
+    ) {
+      expectedPreviewRoute.current = optimisticNode.route
+    }
     selectedNodeRef.current = optimisticNode
     setSelectedNode(optimisticNode)
     setArea(optimisticNode.area)
@@ -1117,14 +1434,23 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     setHistory([snapshot(copy)])
     setHistoryIndex(0)
     historyIndexRef.current = 0
+    lastHistoryPushAt.current = 0
     savedVersion.current = dirtyVersion.current
     previewNeedsRefresh.current = false
     setSaveState('idle')
+    return optimisticNode
   }
 
   const createDocument = async () => {
+    if (!canWrite) {
+      setCreateState(initialCreateState)
+      pushNotice(readOnlyNotice)
+      return
+    }
     setCreateState((current) => ({...current, busy: true, error: undefined}))
     try {
+      if (publishing.current) await publishing.current.catch(() => undefined)
+      if (dirtyVersion.current > savedVersion.current) await saveNow()
       clearCanvasSelection(false)
       const created = await api.create(
         createState.documentType,
@@ -1133,21 +1459,75 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       )
       setCreateState(initialCreateState)
       let openedFromManifest = false
+      let createdNode: SiteEditorNode | undefined
+      // A manifest that resolves without the new document is just as stale as
+      // one that failed to load — the sidebar ends up missing an item that the
+      // editor is already showing. Both cases have to say so, otherwise the
+      // content looks like it was never created and gets created twice.
+      let staleList: string | undefined
       try {
         const target = await loadManifest(created._id)
         openedFromManifest = Boolean(target)
+        createdNode = target
+        if (!target) staleList = 'Atualize a página para o ver na lista.'
       } catch (refreshError) {
-        pushNotice({
-          tone: 'warning',
-          title: 'Conteúdo criado; a lista será atualizada em breve',
-          description: refreshError instanceof Error ? refreshError.message : undefined,
-        })
+        staleList =
+          refreshError instanceof Error
+            ? refreshError.message
+            : 'Atualize a página para o ver na lista.'
       }
       if (!openedFromManifest) {
-        openCreatedDraft(created, createState.title, createState.route)
+        createdNode = openCreatedDraft(created, createState.title, createState.route)
+      }
+      if (createdNode) {
+        const createdId = normalizeEditorDocumentId(created._id)
+        const categorySlug = (created.slug as {current?: string} | undefined)?.current
+        const categoryTitle = (created.title as {pt?: string} | undefined)?.pt
+        setManifest((current) => {
+          if (!current) return current
+          const alreadyListed = current.nodes.some(
+            (node) => node.documentId && normalizeEditorDocumentId(node.documentId) === createdId,
+          )
+          const nodes = alreadyListed
+            ? current.nodes
+            : [
+                ...current.nodes.map((node) =>
+                  node.id === createdNode?.parentId && typeof node.count === 'number'
+                    ? {...node, count: node.count + 1}
+                    : node,
+                ),
+                createdNode!,
+              ]
+          const storeCategories =
+            created._type === 'storeCategory' && categorySlug && categoryTitle
+              ? [
+                  ...current.optionSources.storeCategories.filter(
+                    (option) => option.value !== categorySlug,
+                  ),
+                  {label: categoryTitle, value: categorySlug},
+                ].sort((left, right) => left.label.localeCompare(right.label, 'pt'))
+              : current.optionSources.storeCategories
+          return {
+            ...current,
+            nodes,
+            optionSources: {...current.optionSources, storeCategories},
+          }
+        })
       }
       setRefreshToken((token) => token + 1)
-      pushNotice({tone: 'success', title: 'Conteúdo criado como rascunho'})
+      pushNotice(
+        staleList
+          ? {
+              tone: 'warning',
+              title: 'Conteúdo criado, mas a lista não atualizou',
+              description: staleList,
+            }
+          : {
+              tone: 'success',
+              title: 'Conteúdo criado',
+              description: 'Fica como rascunho até publicar.',
+            },
+      )
     } catch (error) {
       setCreateState((current) => ({
         ...current,
@@ -1159,27 +1539,85 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const deleteDocument = async () => {
     const current = documentRef.current
-    if (!current) return
+    if (!current || deleting.current) return
+    deleting.current = true
     setDeleteState({open: true, busy: true})
     try {
+      await Promise.allSettled(
+        [saving.current, publishing.current].filter(
+          (pending): pending is Promise<SiteEditorDocument> => Boolean(pending),
+        ),
+      )
       await api.delete(current._id)
       documentRef.current = undefined
       selectedNodeRef.current = undefined
       setDocument(undefined)
       setSelectedNode(undefined)
+      setDeleteState({open: false, busy: false})
+      pushNotice({tone: 'success', title: 'Conteúdo eliminado'})
       // refreshManifest (unlike loadManifest) has no page-home fallback, so with
       // the selection already cleared above it just refreshes the list without
       // reopening the inspector on an unrelated node or switching the left panel's
       // active tab away from wherever the user was.
-      await refreshManifest()
-      setDeleteState({open: false, busy: false})
-      pushNotice({tone: 'success', title: 'Conteúdo eliminado'})
+      try {
+        await refreshManifest()
+      } catch (refreshError) {
+        pushNotice({
+          tone: 'warning',
+          title: 'Conteúdo eliminado, mas a lista não atualizou',
+          description:
+            refreshError instanceof Error
+              ? refreshError.message
+              : 'Atualize a página para ver a lista correta.',
+        })
+      }
     } catch (error) {
       setDeleteState({open: true, busy: false})
       pushNotice({
         tone: 'error',
         title: 'Não foi possível eliminar',
         description: error instanceof Error ? error.message : undefined,
+      })
+    } finally {
+      deleting.current = false
+    }
+  }
+
+  const reloadConflictingDocument = async () => {
+    const current = documentRef.current
+    if (!current) {
+      setConflictState({open: false, busy: false})
+      return
+    }
+    setConflictState({open: true, busy: true})
+    try {
+      const latest = prepareEditorDocument(await api.document(current._id))
+      documentRef.current = latest
+      setDocument(latest)
+      setHistory([snapshot(latest)])
+      setHistoryIndex(0)
+      historyIndexRef.current = 0
+      lastHistoryPushAt.current = 0
+      savedVersion.current = dirtyVersion.current
+      previewNeedsRefresh.current = false
+      setSaveState('idle')
+      setConflictState({open: false, busy: false})
+      setRefreshToken((token) => token + 1)
+      dismissNotice()
+      pushNotice({
+        tone: 'success',
+        title: 'Versão mais recente carregada',
+        description: 'Pode continuar a editar normalmente.',
+      })
+    } catch (error) {
+      setConflictState({open: true, busy: false})
+      pushNotice({
+        tone: 'error',
+        title: 'Não foi possível carregar a versão recente',
+        description: error instanceof Error ? error.message : undefined,
+        persistent: true,
+        actionLabel: 'Tentar novamente',
+        onAction: () => void reloadConflictingDocument(),
       })
     }
   }
@@ -1281,7 +1719,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           <button
             type="button"
             onClick={undo}
-            disabled={historyIndex <= 0}
+            disabled={!canWrite || historyIndex <= 0}
             aria-label="Desfazer"
             title="Desfazer"
           >
@@ -1290,7 +1728,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           <button
             type="button"
             onClick={redo}
-            disabled={historyIndex >= history.length - 1}
+            disabled={!canWrite || historyIndex >= history.length - 1}
             aria-label="Refazer"
             title="Refazer"
           >
@@ -1367,13 +1805,17 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       />
 
       <aside
+        ref={navigationDrawerRef}
         className={`site-editor-drawer is-navigation${navigationOpen ? ' is-open' : ''}`}
         aria-label="Páginas e conteúdo"
+        aria-hidden={!navigationOpen}
+        inert={navigationOpen ? undefined : true}
       >
         <SiteEditorSidebar
           nodes={manifest.nodes}
           selectedNodeId={selectedNode?.id}
           area={area}
+          canCreate={canWrite}
           onAreaChange={setArea}
           onSelect={selectSidebarNode}
           onCreate={openCreate}
@@ -1382,8 +1824,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       </aside>
 
       <aside
+        ref={settingsDrawerRef}
         className={`site-editor-drawer is-settings${settingsOpen ? ' is-open' : ''}`}
         aria-label="Definições"
+        aria-hidden={!settingsOpen}
+        inert={settingsOpen ? undefined : true}
       >
         <button
           className="site-editor-drawer-close"
@@ -1403,12 +1848,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           projectId={manifest.capabilities.projectId}
           dataset={manifest.capabilities.dataset}
           viewport={viewport}
-          canDelete={canPublish}
+          canWrite={canWrite}
+          canDelete={canWrite && canPublish}
           mode={inspectorMode}
           nodes={manifest.nodes}
           optionSources={manifest.optionSources}
-          onChange={updatePath}
-          onReplace={inspectorOnReplace}
+          onChange={inspectorOnChange}
           onSelectSection={setSelectedSectionKey}
           onUpload={inspectorOnUpload}
           onDelete={inspectorOnDelete}
@@ -1426,6 +1871,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           <span>
             <strong>{notice.title}</strong>
             {notice.description ? <small>{notice.description}</small> : null}
+            {notice.actionLabel && notice.onAction ? (
+              <button className="site-editor-notice-action" type="button" onClick={notice.onAction}>
+                {notice.actionLabel}
+              </button>
+            ) : null}
           </span>
           <button
             type="button"
@@ -1447,9 +1897,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           }}
         >
           <form
+            ref={createModalRef}
             className="site-editor-modal"
             role="dialog"
             aria-modal="true"
+            aria-busy={createState.busy}
             aria-labelledby="site-editor-create-title"
             onSubmit={(event) => {
               event.preventDefault()
@@ -1464,6 +1916,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               </div>
               <button
                 type="button"
+                disabled={createState.busy}
                 onClick={() => setCreateState(initialCreateState)}
                 aria-label="Fechar"
               >
@@ -1479,6 +1932,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                       <button
                         key={type}
                         type="button"
+                        disabled={createState.busy}
                         className={type === createDocumentType ? 'is-active' : undefined}
                         aria-label={typeLabels[type]}
                         aria-pressed={type === createDocumentType}
@@ -1504,6 +1958,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                   <input
                     aria-label="Nome"
                     autoFocus
+                    disabled={createState.busy}
                     required
                     minLength={2}
                     maxLength={100}
@@ -1520,6 +1975,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                     <span>Endereço da página</span>
                     <input
                       aria-label="Endereço"
+                      disabled={createState.busy}
                       placeholder="Criado automaticamente a partir do nome"
                       value={createState.route}
                       onChange={(event) => {
@@ -1538,7 +1994,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             <div className="site-editor-modal-actions">
               <small>Depois de criar, pode completar tudo antes de publicar</small>
               <span>
-                <button type="button" onClick={() => setCreateState(initialCreateState)}>
+                <button
+                  type="button"
+                  disabled={createState.busy}
+                  onClick={() => setCreateState(initialCreateState)}
+                >
                   Cancelar
                 </button>
                 <button type="submit" disabled={createState.busy}>
@@ -1556,6 +2016,20 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         description="Esta ação remove o conteúdo do editor e do site depois de publicado. Não pode ser anulada."
         onCancel={() => setDeleteState({open: false, busy: false})}
         onConfirm={() => void deleteDocument()}
+      />
+      <ConfirmDialog
+        open={conflictState.open}
+        busy={conflictState.busy}
+        tone="warning"
+        eyebrow="Editado noutra janela"
+        title="Carregar a versão mais recente?"
+        description="As alterações locais que não foram guardadas serão substituídas pelo conteúdo mais recente. Esta é a forma segura de continuar sem sobrescrever o trabalho de outra pessoa."
+        confirmLabel="Carregar versão"
+        busyLabel="A carregar…"
+        onCancel={() => {
+          if (!conflictState.busy) setConflictState({open: false, busy: false})
+        }}
+        onConfirm={() => void reloadConflictingDocument()}
       />
     </div>
   )

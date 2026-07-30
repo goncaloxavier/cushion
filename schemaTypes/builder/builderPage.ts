@@ -70,7 +70,7 @@ export const builderPage = defineType({
     }),
     defineField({
       name: 'sections',
-      title: 'Secções',
+      title: 'Conteúdo da página',
       type: 'array',
       of: builderSectionMembers,
       validation: (Rule) =>

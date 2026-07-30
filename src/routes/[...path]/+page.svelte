@@ -1,21 +1,24 @@
 <script lang="ts">
   import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
+  import SeoHead from '$lib/components/SeoHead.svelte'
+  import {builderLocalized} from '$lib/builder/content'
+  import type {BuilderSeo} from '$lib/builder/types'
 
   let {data} = $props()
+  const seo = $derived((data.page.seo ?? {}) as BuilderSeo)
+  const title = $derived(builderLocalized(seo.title, data.language) || data.page.title)
+  const description = $derived(builderLocalized(seo.description, data.language))
 </script>
 
-<svelte:head>
-  <title>{data.page.seo?.title?.pt || data.page.title} | DaFábrica4You</title>
-  {#if data.page.seo?.description?.pt}
-    <meta name="description" content={data.page.seo.description.pt} />
-  {/if}
-</svelte:head>
+<SeoHead {title} {description} noindex={Boolean(seo.noIndex)} />
 
-<BuilderPageRenderer
-  page={data.page}
-  settings={data.settings}
-  content={data.site}
-  language={data.language}
-  dataset={data.sanityDataset}
-  preview={data.preview}
-/>
+<main class="builder-page-main">
+  <BuilderPageRenderer
+    page={data.page}
+    settings={data.settings}
+    content={data.site}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview}
+  />
+</main>

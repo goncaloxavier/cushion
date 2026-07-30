@@ -42,13 +42,17 @@ Use this to help agents avoid accidental damage.
 - Contact-form visible labels are editable, but backend field names are fixed (`name`, `email`, `phone`, `postalCode`, `locality`, `message`) for validation and CRM storage.
 - Shared contact, social, WhatsApp, complaints-book, privacy/cookie policy, and consent fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, footer, and contact page.
 - Sanity image/gallery fields, GROQ asset projections, fallback image handling, and public route image rendering must stay aligned.
-- The Decking video/tool support block is code-managed and slug-gated. Do not reintroduce generic product-category fields or let it appear on other product details.
+- Product detail support blocks, including the migrated Decking video/tool content, are Sanity-backed `contentSections`. Do not restore a slug-gated frontend exception. Keep section validation, editor controls, query projection, public rendering, and mobile/media behavior aligned.
 - Homepage media and partner fields must stay aligned across Sanity schema, GROQ projection, fallback normalization, local logo assets, and the public homepage renderer.
 - Schema definitions become fragile once real content exists in the Sanity dataset.
 - Primary navigation should keep stable route sets instead of replacing links by current route. Desktop carries the full route set; mobile uses a stable full-screen overlay menu with account/cart/language actions inside the menu.
 - Pagination scroll and refresh scroll reset depend on client-side browser behavior; keep them explicit when changing layout or route transitions.
 - Public Lenis/page-reset behavior must not mount under `/painel`. The editor canvas and each side panel own separate scroll containers; reintroducing public smooth-scroll there breaks mouse-wheel ownership and can reset the selected canvas element.
 - Canvas selection is identified by Sanity document id plus field path, not by a one-time DOM rectangle. The overlay must re-resolve its element and rectangle after scroll/resize and restore when an off-screen selection returns.
+- A document switch must flush any pending edit before replacing local state. Failed saves keep the current document open; stale document responses cannot replace a newer selection; publication and deletion cannot race a switch.
+- Revision conflicts must remain visible until resolved and offer a safe in-app reload of the latest document. Never overwrite another editor's revision or rely on a full browser refresh as conflict recovery.
+- A conflict means the editor-owned content diverged, not that `_rev` moved. The translation pipeline patches `en`/`es`/`translationHash` onto every localized value seconds after a publish, so a bare `_rev` check reports a conflict the user cannot have caused. `site-editor-conflict.ts` owns both halves of that split: `editorContentSignature` hashes only editor-owned content, and `carryMachineOwned` keeps the editor from writing its stale `en`/`es` back over a fresher translation. Any new background writer must either stay outside `editableFields` or be added to the machine-owned key list — otherwise it will start producing phantom conflicts again.
+- The iframe must receive the current write capability. Read-only sessions may inspect content but must not expose inline typing, creation, upload, undo/redo, or publication controls that appear functional.
 - Numeric Loja fields use `data-df4y-editor-field` to open their typed inspector input. Do not make them inline-editable strings or values such as `52 kg` can be written back into numeric Sanity fields.
 
 ## User-Facing Workflows
@@ -92,7 +96,7 @@ Use this to help agents avoid accidental damage.
 - Future public/private content boundaries if non-public draft content is introduced.
 - The current Railway deployment (`cushion` service, `dafab4you-website.up.railway.app`) is a dev/test preview server, not the client's final production domain (see `01-project-overview.md`'s open questions). Two infra gaps found in a security audit are real but lower urgency while that holds: `ADDRESS_HEADER`/`XFF_DEPTH` are unset, so in-process rate limiting (`src/lib/server/rate-limit.ts`) buckets by Railway's proxy IP rather than real visitor IPs; and `ORIGIN` is unset (only `APP_ORIGIN` is), so adapter-node derives `url.origin` from the raw client `Host` header, which could theoretically let a forged Host header land in a password-reset/verification email link. Revisit both before this deployment (or whatever replaces it) is treated as production-facing.
 - `BODY_SIZE_LIMIT` (adapter-node) must be set on the deployed Railway service — it defaults to `512K` when unset, which is far below `src/lib/server/builder.ts`'s own 25 MB image / 250 MB video upload limits and silently breaks real `/painel/site` media uploads in production (raw connection error or "Payload too large") while local `npm run dev` never hits it (Vite dev server, not adapter-node). Confirmed root cause of a real client-reported bug; see `.env.example`.
-- Public Sanity documents must have root-level IDs without dots. Sanity treats any ID containing `.` as a private sub-path that anonymous website queries cannot read, even after publication. The custom editor therefore creates public content with `<type>-<uuid>` IDs; keep the contract guard in `tests/sanity-contract.spec.ts` when changing document creation.
+- Public Sanity documents must have root-level IDs without dots. Sanity treats any ID containing `.` as a private sub-path that anonymous website queries cannot read, even after publication. The custom editor therefore derives a deterministic root ID from document type plus slug/route and uses `createIfNotExists`; keep the atomic-creation contract guard in `tests/sanity-contract.spec.ts`.
 
 ## Common Regression Patterns
 
@@ -117,7 +121,8 @@ Use this to help agents avoid accidental damage.
 - Validating the preview URL secret with the stega client; invisible stega metadata can corrupt the secret comparison.
 - Forgetting to pass the preview flag into large per-detail fetches such as blog article bodies.
 - Exposing `SANITY_VIEWER_TOKEN` to browser-visible environment variables or client-side code.
-- Switching `builderSiteSettings.rendererMode` before all routes have current-vs-builder content, layout, accessibility, SEO, and responsive parity.
+- Reintroducing a second `builderPage` persistence/preview model beside `sitePage`; free pages have one source of truth and the signed editor iframe renders the real route.
+- Ignoring unresolved `/painel/incidentes` alerts. Email/payment-log/checkout failures are grouped there specifically because stdout alone is not an operational notification channel.
 - Allowing copied builder preview query URLs to render drafts in normal top-level tabs, or broadening CSP framing beyond the same origin just to make the canvas load.
 - Treating `data-sanity-edit-target` as a marker on the same element as `data-sanity`. Sanity interprets it as a descendant-target instruction and registration can fail; use the project's private editor marker for typed fields instead.
 - Adding private CRM/staff fields to `src/lib/sanity.ts` or any public route by mistake.

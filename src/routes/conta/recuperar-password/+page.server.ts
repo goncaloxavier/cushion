@@ -43,8 +43,8 @@ export const actions: Actions = {
     const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
     const emailHash = tokenHashOf(`email:${email}`)
     if (
-      customerRateLimit(`recover-ip:${ipHash}`, 8, 15 * 60 * 1000) ||
-      customerRateLimit(`recover-email:${emailHash}`, 3, 30 * 60 * 1000)
+      (await customerRateLimit(`recover-ip:${ipHash}`, 8, 15 * 60 * 1000)) ||
+      (await customerRateLimit(`recover-email:${emailHash}`, 3, 30 * 60 * 1000))
     ) {
       return fail(429, {message: 'Aguarde alguns minutos antes de pedir um novo link.', email})
     }

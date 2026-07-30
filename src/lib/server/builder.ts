@@ -1,46 +1,21 @@
-import {createClient, type SanityClient} from '@sanity/client'
+import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
-import {
-  deleteBuilderPage as deletePageDocument,
-  loadBuilderPages,
-  loadBuilderSettings,
-  publishBuilderDocument,
-  saveBuilderPageDraft,
-  saveBuilderSettingsDraft,
-} from '$lib/builder/sanityDocuments'
-import type {BuilderPage, BuilderSiteSettings} from '$lib/builder/types'
-import {
-  hasBuilderErrors,
-  validateBuilderPage,
-  validateBuilderSettings,
-} from '$lib/builder/validation'
+import {assertUploadAllowed, type UploadKind} from './upload-guard'
 
 const projectId = 'u4uyfix8'
 const apiVersion = '2026-07-13'
 
-export const builderDataset = () => env.SANITY_DATASET || 'production'
-export const builderProjectId = projectId
-
-const clientFor = (token: string): SanityClient =>
+const clientFor = (token: string) =>
   createClient({
     projectId,
-    dataset: builderDataset(),
+    dataset: env.SANITY_DATASET || 'production',
     apiVersion,
     token,
     useCdn: false,
     perspective: 'raw',
   })
 
-const readToken = () => env.SANITY_WRITE_TOKEN || env.SANITY_VIEWER_TOKEN || ''
 const writeToken = () => env.SANITY_WRITE_TOKEN || ''
-
-const requireReadClient = () => {
-  const token = readToken()
-  if (!token) {
-    throw new Error('O editor não está configurado corretamente. Contacte o suporte técnico.')
-  }
-  return clientFor(token)
-}
 
 const requireWriteClient = () => {
   const token = writeToken()
@@ -50,118 +25,8 @@ const requireWriteClient = () => {
   return clientFor(token)
 }
 
-export const builderCapabilities = () => ({
-  canRead: Boolean(readToken()),
-  canWrite: Boolean(writeToken()),
-  dataset: builderDataset(),
-  projectId,
-})
-
-export const getBuilderState = async () => {
-  const client = requireReadClient()
-  const [pages, settings] = await Promise.all([
-    loadBuilderPages(client),
-    loadBuilderSettings(client),
-  ])
-
-  return {pages, settings}
-}
-
-export const getBuilderPreviewPage = async (route: string) => {
-  const client = requireReadClient()
-  const documents = await client.fetch<BuilderPage[]>(
-    `*[_type == "builderPage" && route == $route && !(_id in path("versions.**"))]`,
-    {route},
-  )
-
-  return documents.find((document) => document._id.startsWith('drafts.')) ?? documents[0] ?? null
-}
-
-export const getBuilderPreviewSettings = async () => {
-  const client = requireReadClient()
-  return (await loadBuilderSettings(client)) ?? null
-}
-
-export const saveBuilderPage = async (page: BuilderPage) => {
-  if (!page || page._type !== 'builderPage' || !Array.isArray(page.sections)) {
-    throw new Error('A página enviada não tem uma estrutura válida.')
-  }
-
-  const pages = await loadBuilderPages(requireReadClient())
-  const issues = validateBuilderPage(page, pages)
-  const structuralErrors = issues.filter(
-    (issue) => issue.level === 'error' && ['title', 'route'].includes(issue.field ?? ''),
-  )
-  if (structuralErrors.length) throw new Error(structuralErrors[0].message)
-
-  return saveBuilderPageDraft(requireWriteClient(), page)
-}
-
-export const saveBuilderSettings = async (settings: BuilderSiteSettings) => {
-  if (!settings || settings._type !== 'builderSiteSettings') {
-    throw new Error('As definições enviadas não têm uma estrutura válida.')
-  }
-
-  return saveBuilderSettingsDraft(requireWriteClient(), settings)
-}
-
-export const publishBuilderPage = async (page: BuilderPage) => {
-  const pages = await loadBuilderPages(requireReadClient())
-  const issues = validateBuilderPage(page, pages)
-  if (hasBuilderErrors(issues)) {
-    throw new Error(
-      issues.find((issue) => issue.level === 'error')?.message || 'A página tem erros.',
-    )
-  }
-
-  const saved = await saveBuilderPageDraft(requireWriteClient(), page)
-  return publishBuilderDocument(requireWriteClient(), saved)
-}
-
-export const publishBuilderSettings = async (settings: BuilderSiteSettings) => {
-  const issues = validateBuilderSettings(settings)
-  if (hasBuilderErrors(issues)) {
-    throw new Error(
-      issues.find((issue) => issue.level === 'error')?.message || 'As definições têm erros.',
-    )
-  }
-
-  const saved = await saveBuilderSettingsDraft(requireWriteClient(), settings)
-  return publishBuilderDocument(requireWriteClient(), saved)
-}
-
-export const deleteBuilderPage = (id: string) => deletePageDocument(requireWriteClient(), id)
-
-const allowedImageTypes = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/avif',
-])
-const allowedVideoTypes = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
-
-export const uploadBuilderAsset = async (file: File, kind: 'image' | 'video') => {
-  const maxBytes = kind === 'video' ? 250 * 1024 * 1024 : 25 * 1024 * 1024
-  // Explicit allowlist, not a startsWith('image/') check — that pattern also
-  // accepts image/svg+xml, which can carry inline <script>/event handlers.
-  const validType =
-    kind === 'image' ? allowedImageTypes.has(file.type) : allowedVideoTypes.has(file.type)
-
-  if (!validType) {
-    throw new Error(
-      kind === 'image'
-        ? 'Este ficheiro não é uma imagem aceite. Use JPEG, PNG, WebP, GIF ou AVIF.'
-        : 'Este ficheiro não é um vídeo aceite. Use MP4, WebM ou QuickTime.',
-    )
-  }
-  if (file.size <= 0 || file.size > maxBytes) {
-    throw new Error(
-      kind === 'image'
-        ? 'Esta imagem é maior do que 25 MB. Escolha um ficheiro mais pequeno.'
-        : 'Este vídeo é maior do que 250 MB. Escolha um ficheiro mais pequeno.',
-    )
-  }
+export const uploadBuilderAsset = async (file: File, kind: UploadKind) => {
+  assertUploadAllowed(file, kind)
 
   const bytes = Buffer.from(await file.arrayBuffer())
   return requireWriteClient().assets.upload(kind === 'image' ? 'image' : 'file', bytes, {

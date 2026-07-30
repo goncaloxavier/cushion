@@ -1,6 +1,9 @@
 import {createClient} from '@sanity/client'
 import {dev} from '$app/environment'
 import {env} from '$env/dynamic/private'
+import type {BuilderSection} from '$lib/builder/types'
+import type {ManagedDetailSectionScope} from '$lib/builder/managed-page-sections'
+import {productBuilderSections} from '$lib/builder/product-sections'
 
 const projectId = 'u4uyfix8'
 // Dataset is env-driven (defaults to `production`) so it can be repointed without
@@ -53,14 +56,412 @@ const siteEditorSettingsQuery = `coalesce(
   *[_type == "builderSiteSettings"][0]
 )`
 
+/**
+ * A page the client built themselves, as the offline fixtures see it. Pages like
+ * this are the one kind of route with no hardcoded fallback, so without a fixture
+ * the whole custom-page path — route resolution, section rendering, SEO — was
+ * only ever exercised against live Sanity. It also carries real section content,
+ * because a page that resolves but renders nothing is the failure worth catching.
+ */
+const FIXTURE_SITE_PAGE_ROUTE = '/pagina-de-teste'
+
+const localized = (pt: string) => ({_type: 'localizedString', pt})
+const localizedBody = (pt: string) => ({_type: 'localizedText', pt})
+
+const fixtureImage = {
+  _type: 'builderMedia',
+  kind: 'image',
+  image: {_type: 'image', asset: {_type: 'reference', _ref: 'image-7c3c2f899e18b83bcc6cf954a0d6a59666afec4f-1600x1201-jpg'}},
+  alt: localized('Imagem de exemplo'),
+  fit: 'cover',
+  position: 'center',
+}
+
+const richTextSection = {
+  _type: 'builderRichTextSection',
+  _key: 'fixture-page-section',
+  internalLabel: 'Introdução',
+  enabled: true,
+  title: localized('Uma página criada no editor'),
+  body: localizedBody('Conteúdo real desta página.'),
+}
+
+/**
+ * The states a page passes through while the client works on it. Each is a
+ * separate route so a layout check can open it directly, because the states that
+ * break layout are not the finished page — they are the half-finished ones: a
+ * page reduced to a single block, a section added and not yet filled, a section
+ * hidden rather than deleted.
+ */
+const fixtureSitePages: Record<string, unknown[]> = {
+  [FIXTURE_SITE_PAGE_ROUTE]: [richTextSection],
+
+  // A full page, the shape a finished one takes.
+  '/pagina-composta': [
+    {
+      _type: 'builderHeroSection',
+      _key: 'composed-hero',
+      internalLabel: 'Destaque',
+      enabled: true,
+      variant: 'split',
+      minHeight: 640,
+      title: localized('Sustentabilidade'),
+      body: localizedBody('Um resumo curto da página.'),
+      media: fixtureImage,
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'deep', verticalAlign: 'center'},
+    },
+    {
+      _type: 'builderMediaSection',
+      _key: 'composed-media',
+      internalLabel: 'Texto com imagem',
+      enabled: true,
+      mediaSide: 'left',
+      title: localized('Como trabalhamos'),
+      body: localizedBody('Texto ao lado de uma imagem.'),
+      media: fixtureImage,
+    },
+    {
+      _type: 'builderCtaSection',
+      _key: 'composed-cta',
+      internalLabel: 'Chamada para ação',
+      enabled: true,
+      title: localized('Fale connosco'),
+      body: localizedBody('Diga-nos o que precisa.'),
+      actions: [
+        {_type: 'builderLink', _key: 'cta-1', label: localized('Contactar'), href: '/contacto', style: 'primary'},
+      ],
+      layout: {_type: 'builderLayout', surface: 'mint'},
+    },
+  ],
+
+  // What is left after the client removes the rest. A hero alone still claims its
+  // full height, which is the empty band they reported seeing above the footer.
+  '/pagina-reduzida': [
+    {
+      _type: 'builderHeroSection',
+      _key: 'reduced-hero',
+      internalLabel: 'Destaque',
+      enabled: true,
+      variant: 'split',
+      minHeight: 640,
+      title: localized('Sustentabilidade'),
+      media: fixtureImage,
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'deep', verticalAlign: 'center'},
+    },
+  ],
+
+  // Added from the picker and not filled in yet — the state that rendered as a
+  // blank band on the live site.
+  '/pagina-por-preencher': [
+    richTextSection,
+    {_type: 'builderMediaSection', _key: 'blank-section', internalLabel: 'Secção nova', enabled: true},
+  ],
+
+  // Hidden rather than deleted: it must take up no room on the public page.
+  '/pagina-com-oculta': [
+    richTextSection,
+    {
+      _type: 'builderCtaSection',
+      _key: 'hidden-section',
+      internalLabel: 'Escondida',
+      enabled: false,
+      title: localized('Não deve aparecer'),
+    },
+  ],
+}
+
+// One section per background the editor offers, each carrying every kind of text
+// a section can hold. The client reported black text left sitting on a dark blue
+// background; this is the page that proves whether any surface does that.
+const surfaceSection = (surface: string, index: number) => ({
+  _type: 'builderCtaSection',
+  _key: `surface-${surface}`,
+  internalLabel: `Fundo ${surface}`,
+  enabled: true,
+  eyebrow: localized('Antes'),
+  title: localized(`Fundo ${surface}`),
+  body: localizedBody('Texto de exemplo sobre este fundo.'),
+  actions: [
+    {_type: 'builderLink', _key: `a-${index}`, label: localized('Saber mais'), href: '/contacto', style: 'secondary'},
+  ],
+  layout: {_type: 'builderLayout', surface},
+})
+
+fixtureSitePages['/pagina-fundos'] = ['white', 'fog', 'mint', 'deep', 'blue', 'transparent'].map(
+  surfaceSection,
+)
+
+// The reported case, reproduced exactly: text the client coloured while the
+// section was light, on a section they later made dark. Every one of these picks
+// is legible on white and unreadable where it now sits.
+fixtureSitePages['/pagina-fundos-escolhidos'] = [
+  {
+    _type: 'builderCtaSection',
+    _key: 'chosen-dark-on-deep',
+    internalLabel: 'Texto escuro em fundo escuro',
+    enabled: true,
+    eyebrow: {...localized('Antes'), color: 'text'},
+    title: {...localized('Título escolhido a preto'), color: 'text'},
+    body: {...localizedBody('Corpo de texto escolhido a preto.'), color: 'text'},
+    titleStyle: {_type: 'builderTypography', color: 'text'},
+    layout: {_type: 'builderLayout', surface: 'deep'},
+  },
+  {
+    _type: 'builderCtaSection',
+    _key: 'chosen-custom-on-blue',
+    internalLabel: 'Cor personalizada em fundo azul',
+    enabled: true,
+    title: {...localized('Título com cor personalizada'), color: '#101010'},
+    body: {...localizedBody('Corpo com cor personalizada.'), color: '#1a1a1a'},
+    layout: {_type: 'builderLayout', surface: 'blue'},
+  },
+  {
+    // The mirror image: white text the client chose, on a white section.
+    _type: 'builderCtaSection',
+    _key: 'chosen-white-on-white',
+    internalLabel: 'Texto branco em fundo branco',
+    enabled: true,
+    title: {...localized('Título branco'), color: 'white'},
+    body: {...localizedBody('Corpo branco.'), color: 'white'},
+    layout: {_type: 'builderLayout', surface: 'white'},
+  },
+]
+
+// Every section type the picker offers, all on the same dark background. The
+// client reported the automatic list still showing dark card text on blue; this
+// covers that and the nine other types alongside it, because a background choice
+// applies to all of them equally.
+const darkSurface = {_type: 'builderLayout', surface: 'blue', columns: 3, mobileColumns: 1}
+
+fixtureSitePages['/pagina-tipos-escuro'] = [
+  {
+    _type: 'builderHeroSection',
+    _key: 'dark-hero',
+    internalLabel: 'Destaque principal',
+    enabled: true,
+    variant: 'split',
+    minHeight: 420,
+    eyebrow: localized('Destaque'),
+    title: localized('Destaque principal'),
+    body: localizedBody('Abertura com título e imagem.'),
+    media: fixtureImage,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderMediaSection',
+    _key: 'dark-media',
+    internalLabel: 'Texto com imagem',
+    enabled: true,
+    mediaSide: 'left',
+    title: localized('Texto com imagem'),
+    body: localizedBody('Texto e media lado a lado.'),
+    media: fixtureImage,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderRichTextSection',
+    _key: 'dark-rich',
+    internalLabel: 'Texto editorial',
+    enabled: true,
+    title: localized('Texto editorial'),
+    body: {
+      _type: 'localizedArticle',
+      pt: [
+        {
+          _type: 'block',
+          _key: 'rt1',
+          style: 'normal',
+          children: [{_type: 'span', _key: 'rs1', text: 'Parágrafo editorial de exemplo.', marks: []}],
+        },
+      ],
+    },
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderGallerySection',
+    _key: 'dark-gallery',
+    internalLabel: 'Galeria',
+    enabled: true,
+    title: localized('Galeria'),
+    items: [{...fixtureImage, _key: 'g1', caption: localized('Legenda da imagem')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCardsSection',
+    _key: 'dark-cards',
+    internalLabel: 'Cartões',
+    enabled: true,
+    title: localized('Cartões'),
+    items: [
+      {
+        _key: 'c1',
+        eyebrow: localized('Etiqueta'),
+        title: localized('Cartão de exemplo'),
+        body: localizedBody('Descrição curta do cartão.'),
+      },
+    ],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderStatsSection',
+    _key: 'dark-stats',
+    internalLabel: 'Números',
+    enabled: true,
+    title: localized('Números'),
+    items: [{_key: 's1', value: localized('120'), label: localized('Projetos concluídos')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCollectionSection',
+    _key: 'dark-collection',
+    internalLabel: 'Lista automática',
+    enabled: true,
+    title: localized('Lista automática'),
+    source: 'productCategory',
+    limit: 3,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderPartnersSection',
+    _key: 'dark-partners',
+    internalLabel: 'Parceiros',
+    enabled: true,
+    title: localized('Parceiros'),
+    items: [{_key: 'p1', name: localized('Parceiro exemplo'), text: localized('Projeto conjunto')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCtaSection',
+    _key: 'dark-cta',
+    internalLabel: 'Chamada para ação',
+    enabled: true,
+    title: localized('Chamada para ação'),
+    body: localizedBody('Mensagem curta com um botão.'),
+    actions: [
+      {_type: 'builderLink', _key: 'ca1', label: localized('Contactar'), href: '/contacto', style: 'secondary'},
+    ],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderContactSection',
+    _key: 'dark-contact',
+    internalLabel: 'Contacto',
+    enabled: true,
+    title: localized('Contacto'),
+    body: localizedBody('Fale connosco.'),
+    formKind: 'contact',
+    showContactDetails: true,
+    layout: darkSurface,
+  },
+]
+
+const fixtureSitePage = (route: string) =>
+  fixtureSitePages[route]
+    ? {
+        _id: `sitePage.fixture${route.replace(/\//g, '-')}`,
+        _type: 'sitePage',
+        title: 'Página de teste',
+        route,
+        active: true,
+        sections: fixtureSitePages[route],
+      }
+    : null
+
 export const getSitePage = async (route: string, preview = false) => {
+  // The rest of this module refuses to reach Sanity when remote is disabled;
+  // these two did not, so every offline test run was quietly making live
+  // requests for custom pages and settings.
+  if (env.SANITY_DISABLE_REMOTE === 'true') return fixtureSitePage(route)
+
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(sitePageQuery, {route, includeInactive: preview})
 }
 
 export const getSiteEditorSettings = async (preview = false) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
+
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(siteEditorSettingsQuery)
+}
+
+/**
+ * Without this, no offline-fixture page ever has sections after its core block,
+ * so the branches that only exist when a detail page carries following content
+ * were unreachable in every test. A 500 on exactly that branch reached the live
+ * site through a fully green suite. One fixture product carries sections so the
+ * branch is exercised; every other page keeps the plain no-sections shape.
+ */
+const FIXTURE_SECTION_SLUG = 'decking-pavimentos-passadicos'
+
+const fixtureDetailSections = (scope: ManagedDetailSectionScope): BuilderSection[] =>
+  scope.slug === FIXTURE_SECTION_SLUG
+    ? ([
+        {
+          _type: 'builderRichTextSection',
+          _key: 'fixture-following-section',
+          internalLabel: 'Secção de teste',
+          enabled: true,
+          title: {_type: 'localizedString', pt: 'Secção adicional'},
+        },
+      ] as unknown as BuilderSection[])
+    : []
+
+export const getBuilderDocumentSections = async (
+  scope: ManagedDetailSectionScope,
+  preview = false,
+): Promise<BuilderSection[] | null> => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return fixtureDetailSections(scope)
+
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
+  try {
+    const source = await client.fetch<{
+      sections?: BuilderSection[]
+      contentSections?: unknown[]
+    } | null>(
+      `*[_type == $documentType && slug.current == $slug][0] {
+        sections,
+        contentSections
+      }`,
+      scope,
+    )
+    if (scope.documentType === 'productCategory') {
+      return productBuilderSections(source?.sections, source?.contentSections)
+    }
+    return Array.isArray(source?.sections) ? source.sections : []
+  } catch (error) {
+    console.warn(
+      `[sanity] section fetch failed for ${scope.documentType}/${scope.slug}: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+    return null
+  }
+}
+
+export const getPublicSitePages = async () => {
+  // Same fixture page as getSitePage, so the sitemap and the route agree offline
+  // — a custom page reachable but missing from the sitemap is invisible to search.
+  if (env.SANITY_DISABLE_REMOTE === 'true') {
+    return Object.keys(fixtureSitePages).map((route) => ({route, updatedAt: undefined}))
+  }
+  try {
+    return await publishedClient().fetch<Array<{route: string; updatedAt?: string}>>(`*[
+      _type == "sitePage" &&
+      coalesce(active, true) &&
+      !coalesce(seo.noIndex, false) &&
+      defined(route)
+    ] | order(route asc) {
+      route,
+      "updatedAt": _updatedAt
+    }`)
+  } catch (error) {
+    console.warn(
+      `[sanity] public site-page fetch failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+    return []
+  }
 }
 
 // Plain authed client for validating the preview-url secret. Must NOT use stega,
@@ -107,6 +508,7 @@ const collectionsQuery = `{
       previous,
       next,
       zoomImage,
+      downloadsTitle,
       close,
       contactEmail,
       contactPhone,
@@ -130,13 +532,18 @@ const collectionsQuery = `{
       privacyConsentPrefix
     },
     home {
+      // Sections come through unprojected, exactly as sitePageQuery returns
+      // them: BuilderPageRenderer resolves image references against the
+      // dataset itself, so a projection here would only strip what it needs.
+      sections,
       hero {
         title
       },
       heroVideo{
         kind,
         youtubeUrl,
-        "fileUrl": file.asset->url
+        "fileUrl": file.asset->url,
+        "captionsUrl": captions.asset->url
       },
       heroVideoLabel,
       heroVideoCloseLabel,
@@ -171,6 +578,7 @@ const collectionsQuery = `{
       }
     },
     about {
+      sections,
       hero {
         kicker,
         title
@@ -185,6 +593,14 @@ const collectionsQuery = `{
       }
     },
     productsPage {
+      sections,
+      documentsTitle,
+      documentsTitle,
+    "documents": documents[]{
+        title,
+        "fileUrl": file.asset->url,
+        "fileSize": file.asset->size
+      },
       hero {
         kicker,
         title
@@ -202,6 +618,14 @@ const collectionsQuery = `{
       }
     },
     storePage {
+      sections,
+      documentsTitle,
+      documentsTitle,
+    "documents": documents[]{
+        title,
+        "fileUrl": file.asset->url,
+        "fileSize": file.asset->size
+      },
       hero {
         kicker,
         title
@@ -224,6 +648,7 @@ const collectionsQuery = `{
       transportMultiplier
     },
     cartPage {
+      sections,
       hero {
         kicker,
         title
@@ -254,6 +679,7 @@ const collectionsQuery = `{
     },
     returnsPolicy,
     catalogue {
+      sections,
       hero {
         kicker,
         title
@@ -269,6 +695,7 @@ const collectionsQuery = `{
       }
     },
     casesPage {
+      sections,
       hero {
         kicker,
         title
@@ -286,6 +713,7 @@ const collectionsQuery = `{
       }
     },
     blogPage {
+      sections,
       hero {
         kicker,
         title
@@ -303,11 +731,12 @@ const collectionsQuery = `{
       }
     },
     contactPage {
+      sections,
       hero,
       formLabels
     }
   },
-  "products": *[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  "products": select($includeProducts => (*[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
     title,
@@ -347,6 +776,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -374,52 +810,11 @@ const collectionsQuery = `{
       },
     },
     description,
-    contentSections[] {
-      _key,
-      _type,
-      mediaKind,
-      mediaSide,
-      surface,
-      image {
-        asset -> {
-          url,
-          originalFilename,
-          metadata {
-            lqip,
-            dimensions {
-              aspectRatio
-            }
-          }
-        },
-        alt
-      },
-      video {
-        kind,
-        youtubeUrl,
-        "fileUrl": file.asset->url,
-        "fileName": file.asset->originalFilename,
-        "mimeType": file.asset->mimeType
-      },
-      poster {
-        asset -> {
-          url,
-          originalFilename,
-          metadata {
-            lqip,
-            dimensions {
-              aspectRatio
-            }
-          }
-        },
-        alt
-      },
-      videoTitle,
-      label,
-      labelStyle,
+    documentsTitle,
+    "documents": documents[]{
       title,
-      text,
-      buttonLabel,
-      buttonUrl
+      "fileUrl": file.asset->url,
+      "fileSize": file.asset->size
     },
     "specs": {
       "dimensions": dimensions[],
@@ -427,14 +822,14 @@ const collectionsQuery = `{
       "specifications": specifications[],
       "advantages": advantages[]
     }
-  },
-  "storeCategories": *[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  }), []),
+  "storeCategories": select($includeStore => (*[_type == "storeCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     title,
     slug,
     orderRank
-  },
-  "storeProducts": *[
+  }), []),
+  "storeProducts": select($includeStore => (*[
     _type == "storeProduct" &&
     defined(slug.current) &&
     ($includeInactive || coalesce(active, true))
@@ -447,6 +842,12 @@ const collectionsQuery = `{
     summary,
     hasFinishChoice,
     flatTransportPrice,
+    documentsTitle,
+    "documents": documents[]{
+      title,
+      "fileUrl": file.asset->url,
+      "fileSize": file.asset->size
+    },
     image {
       asset -> {
         url,
@@ -482,6 +883,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -517,8 +925,8 @@ const collectionsQuery = `{
       priceDark,
       note
     }
-  },
-  "caseStudies": *[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
+  }), []),
+  "caseStudies": select($includeCases => (*[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
     title,
@@ -557,6 +965,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -589,8 +1004,8 @@ const collectionsQuery = `{
     challenge,
     solution,
     result
-  },
-  "blogPosts": *[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
+  }), []),
+  "blogPosts": select($includeBlog => (*[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc) {
     _id,
     _updatedAt,
     title,
@@ -629,6 +1044,13 @@ const collectionsQuery = `{
           size
         },
         title,
+        captions {
+          asset -> {
+            url,
+            originalFilename,
+            mimeType
+          }
+        },
         poster {
           asset -> {
             url,
@@ -658,7 +1080,7 @@ const collectionsQuery = `{
     excerpt,
     publishedAt,
     category
-  }
+  }), [])
 }`
 
 // Article bodies are large (~2.6 MB across all posts) and only needed on a
@@ -731,33 +1153,103 @@ const blogPostDetailQuery = `*[_type == "blogPost" && slug.current == $slug][0] 
 }`
 
 const collectionCacheTtlMs = Math.max(0, Number(env.SANITY_COLLECTION_CACHE_MS ?? 15_000))
-let collectionCache: {
-  expiresAt: number
-  value: unknown
-} | null = null
+export type SanityCollectionScope = {
+  products?: boolean
+  store?: boolean
+  cases?: boolean
+  blog?: boolean
+}
+
+const allCollections: Required<SanityCollectionScope> = {
+  products: true,
+  store: true,
+  cases: true,
+  blog: true,
+}
+
+const normalizedCollectionScope = (
+  scope: SanityCollectionScope = allCollections,
+): Required<SanityCollectionScope> => ({
+  products: scope.products ?? false,
+  store: scope.store ?? false,
+  cases: scope.cases ?? false,
+  blog: scope.blog ?? false,
+})
+
+const collectionScopeKey = (scope: Required<SanityCollectionScope>) =>
+  `${Number(scope.products)}${Number(scope.store)}${Number(scope.cases)}${Number(scope.blog)}`
+
+const collectionParams = (
+  scope: Required<SanityCollectionScope>,
+  includeInactive: boolean,
+) => ({
+  includeInactive,
+  includeProducts: scope.products,
+  includeStore: scope.store,
+  includeCases: scope.cases,
+  includeBlog: scope.blog,
+})
+
+const collectionCache = new Map<string, {expiresAt: number; value: unknown}>()
 
 export const invalidateSanityCollectionsCache = () => {
-  collectionCache = null
+  collectionCache.clear()
   preferFreshPublishedUntil = Date.now() + 30_000
 }
 
-export const getSanityCollections = async (preview = false) => {
+export const getSanityCollections = async (
+  preview = false,
+  requestedScope: SanityCollectionScope = allCollections,
+) => {
   if (env.SANITY_DISABLE_REMOTE === 'true') return null
 
-  if (!preview && collectionCache && collectionCache.expiresAt > Date.now()) {
-    return collectionCache.value
+  const scope = normalizedCollectionScope(requestedScope)
+  const cacheKey = collectionScopeKey(scope)
+  const cached = collectionCache.get(cacheKey)
+  if (!preview && cached && cached.expiresAt > Date.now()) {
+    return cached.value
   }
 
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
-    const value = await client.fetch(collectionsQuery, {includeInactive: preview})
+    const value = await client.fetch(collectionsQuery, collectionParams(scope, preview))
     if (!preview && collectionCacheTtlMs > 0) {
-      collectionCache = {value, expiresAt: Date.now() + collectionCacheTtlMs}
+      collectionCache.set(cacheKey, {value, expiresAt: Date.now() + collectionCacheTtlMs})
     }
     return value
-  } catch {
+  } catch (error) {
+    console.warn(
+      `[sanity] collection fetch failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
     return null
   }
+}
+
+export const getSanityCollectionsStrict = async (
+  preview = false,
+  requestedScope: SanityCollectionScope = allCollections,
+) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') {
+    throw new Error('Sanity remote access is disabled')
+  }
+
+  const scope = normalizedCollectionScope(requestedScope)
+  const cacheKey = collectionScopeKey(scope)
+  const cached = collectionCache.get(cacheKey)
+  if (!preview && cached && cached.expiresAt > Date.now()) {
+    return cached.value
+  }
+
+  const client = preview && previewEnabled() ? previewClient : publishedClient()
+  const value = await client.fetch(collectionsQuery, collectionParams(scope, preview))
+
+  if (!preview && collectionCacheTtlMs > 0) {
+    collectionCache.set(cacheKey, {value, expiresAt: Date.now() + collectionCacheTtlMs})
+  }
+
+  return value
 }
 
 export const getBlogPostDetail = async (slug: string, preview = false) => {

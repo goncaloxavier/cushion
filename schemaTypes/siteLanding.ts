@@ -1,4 +1,6 @@
 import {defineField, defineType} from 'sanity'
+import {builderSectionMembers} from './builder/builderSections'
+import {videoCaptionsField} from './components/videoCaptionsField'
 
 const localizedStringField = (
   name: string,
@@ -92,6 +94,16 @@ const localizedStringListField = (name: string, title: string, description?: str
     description,
     type: 'array',
     of: [{type: 'localizedString'}],
+  })
+
+const builderSectionsField = () =>
+  defineField({
+    name: 'sections',
+    title: 'Conteúdo da página',
+    description:
+      'Organize o conteúdo atual e acrescente novas secções sem alterar a estrutura aprovada.',
+    type: 'array',
+    of: builderSectionMembers,
   })
 
 const contactFormLabelsField = () =>
@@ -283,6 +295,10 @@ export const siteLanding = defineType({
               options: {accept: 'video/mp4,video/webm,video/quicktime'},
               hidden: ({parent}) => parent?.kind !== 'upload',
             }),
+            {
+              ...videoCaptionsField(),
+              hidden: ({parent}: {parent?: {kind?: string}}) => parent?.kind !== 'upload',
+            },
             defineField({
               name: 'youtubeUrl',
               title: 'Link do YouTube',
@@ -315,8 +331,9 @@ export const siteLanding = defineType({
             partnerItemsField('items', 'Parceiros'),
           ],
         }),
+        builderSectionsField(),
       ],
-      'Textos, vídeo e parceiros da página inicial.',
+      'Textos, vídeo, parceiros e conteúdo da página inicial.',
     ),
     pageSectionField(
       'about',
@@ -325,6 +342,7 @@ export const siteLanding = defineType({
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         copyBlockField('statement', 'Apresentação da história', undefined, {includeLead: false}),
         contentCardsField('timeline', 'Momentos da empresa'),
+        builderSectionsField(),
       ],
       'Título, apresentação e momentos da empresa.',
     ),
@@ -334,6 +352,22 @@ export const siteLanding = defineType({
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
+        defineField({
+          name: 'documentsTitle',
+          title: 'Título dos ficheiros',
+          description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+          type: 'localizedString',
+        }),
+        defineField({
+          name: 'documents',
+          title: 'Ficheiros para download',
+          description:
+            'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+          type: 'array',
+          of: [{type: 'downloadItem'}],
+          validation: (Rule) => Rule.max(12),
+        }),
+        builderSectionsField(),
       ],
       'Topo da listagem. Edite cada solução na área Produtos.',
     ),
@@ -342,6 +376,21 @@ export const siteLanding = defineType({
       'Página Loja',
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
+        defineField({
+          name: 'documentsTitle',
+          title: 'Título dos ficheiros',
+          description: 'Texto acima dos downloads. Deixe vazio para usar o texto global.',
+          type: 'localizedString',
+        }),
+        defineField({
+          name: 'documents',
+          title: 'Ficheiros para download',
+          description:
+            'PDFs que o cliente pode transferir nesta página. Deixe vazio para não mostrar nada.',
+          type: 'array',
+          of: [{type: 'downloadItem'}],
+          validation: (Rule) => Rule.max(12),
+        }),
         {...localizedStringField('searchLabel', 'Nome da pesquisa'), hidden: true},
         {...localizedStringField('categoryLabel', 'Nome das categorias'), hidden: true},
         {...localizedStringField('finishLabel', 'Nome dos acabamentos'), hidden: true},
@@ -398,6 +447,7 @@ export const siteLanding = defineType({
           initialValue: 2.5,
           validation: (Rule) => Rule.min(0.1).max(20).precision(2),
         }),
+        builderSectionsField(),
       ],
       'Topo e cálculo de transporte. Produtos e preços ficam na área Loja.',
     ),
@@ -429,6 +479,7 @@ export const siteLanding = defineType({
         localizedTextField('transportOverweight', 'Aviso de excesso de peso'),
         localizedStringField('summary', 'Resumo'),
         localizedStringField('product', 'Produto'),
+        builderSectionsField(),
       ],
       'Textos visíveis no carrinho e no resumo do pedido.',
     ),
@@ -440,6 +491,7 @@ export const siteLanding = defineType({
         localizedStringField('title', 'Título'),
         localizedTextField('lead', 'Texto'),
         localizedStringListField('conditions', 'Condições'),
+        builderSectionsField(),
       ],
       'Texto e lista de condições da política de devoluções.',
     ),
@@ -464,6 +516,7 @@ export const siteLanding = defineType({
             localizedStringListField('checklist', 'Itens da lista'),
           ],
         }),
+        builderSectionsField(),
       ],
       'Topo, instruções e botão do formulário.',
     ),
@@ -473,6 +526,7 @@ export const siteLanding = defineType({
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
+        builderSectionsField(),
       ],
       'Topo da listagem. Edite cada projeto na área Casos de estudo.',
     ),
@@ -482,13 +536,18 @@ export const siteLanding = defineType({
       [
         copyBlockField('hero', 'Topo da página', undefined, {includeLead: false}),
         pageImageField('heroImage', 'Imagem principal', 'Imagem usada no topo da página.'),
+        builderSectionsField(),
       ],
       'Topo da listagem. Edite cada artigo na área Artigos do blog.',
     ),
     pageSectionField(
       'contactPage',
       'Página Contacto',
-      [copyBlockField('hero', 'Topo da página'), contactFormLabelsField()],
+      [
+        copyBlockField('hero', 'Topo da página'),
+        contactFormLabelsField(),
+        builderSectionsField(),
+      ],
       'Topo e nomes visíveis dos campos.',
     ),
     defineField({
@@ -522,6 +581,7 @@ export const siteLanding = defineType({
         localizedStringField('previous', 'Página anterior'),
         localizedStringField('next', 'Página seguinte'),
         localizedStringField('zoomImage', 'Ampliar imagem'),
+        localizedStringField('downloadsTitle', 'Título dos ficheiros para download'),
         localizedStringField('close', 'Fechar'),
         defineField({
           name: 'contactEmail',

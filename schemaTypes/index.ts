@@ -5,6 +5,7 @@ import {contentCard} from './objects/contentCard'
 import {localizedArticle} from './objects/localizedArticle'
 import {localizedString} from './objects/localizedString'
 import {localizedText} from './objects/localizedText'
+import {downloadItem} from './objects/downloadItem'
 import {partnerItem} from './objects/partnerItem'
 import {productCategory} from './productCategory'
 import {storeProduct} from './storeProduct'
@@ -26,6 +27,7 @@ export const websiteSchemaTypes = [
   localizedArticle,
   localizedString,
   localizedText,
+  downloadItem,
   partnerItem,
   contentCard,
   ...builderObjectTypes,

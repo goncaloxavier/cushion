@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pagination from '$lib/components/Pagination.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import {browser} from '$app/environment'
@@ -10,6 +11,7 @@
   import {changeListPage} from '$lib/scroll'
   import {tick} from 'svelte'
   import {textAppearanceStyle} from '$lib/text-appearance'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
   const readArticleLabels: Record<LanguageCode, string> = {
@@ -19,6 +21,7 @@
   }
   const readArticleLabel = $derived(readArticleLabels[data.language])
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('blogPage')!
   let query = $state('')
   let page = $state((() => data.initialPage)())
   let swapping = $state(false)
@@ -82,10 +85,20 @@
   title={content.nav.blog}
   description={content.blogPage.hero.lead || content.blogPage.hero.title}
   image={content.blogPage.heroImage}
+  pagination={{page, totalPages}}
 />
 
 <main class="blog-page">
-  <section class="blog-index-hero">
+  <ManagedPageComposition
+    sections={content.blogPage.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <section class="blog-index-hero">
     <Reveal class="blog-index-copy" variant="hero" priority>
       <p
         class="kicker cms-styled-text"
@@ -112,9 +125,9 @@
           : undefined}
       />
     </Reveal>
-  </section>
+    </section>
 
-  <section class="section collection-section blog-collection-section" bind:this={collectionSection}>
+    <section class="section collection-section blog-collection-section" bind:this={collectionSection}>
     <Reveal variant="panel">
       <div class="collection-tools">
         <label class="search-field">
@@ -183,5 +196,6 @@
       nextLabel={content.common.next}
       disabled={swapping}
     />
-  </section>
+    </section>
+  </ManagedPageComposition>
 </main>

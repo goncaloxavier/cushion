@@ -1,10 +1,13 @@
 import type {
+  SiteEditorAssetKind,
   SiteEditorDocument,
   SiteEditorDocumentType,
   SiteEditorManifest,
 } from '../types'
 
 type DocumentResponse = {document: SiteEditorDocument}
+const requestTimeoutMs = 30_000
+const uploadTimeoutMs = 10 * 60_000
 
 export type SiteEditorUploadProgress = {
   loaded: number
@@ -12,34 +15,64 @@ export type SiteEditorUploadProgress = {
   percent: number
 }
 
+// The server already classifies failures — a save that lost a race throws
+// SiteEditorConflictError and comes back as 409. Keeping the status on the
+// error lets callers branch on that fact instead of pattern-matching the
+// Portuguese message, which silently stops working the moment someone
+// rewords it.
+export class SiteEditorRequestError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'SiteEditorRequestError'
+    this.status = status
+  }
+}
+
+export const isConflictError = (error: unknown) =>
+  error instanceof SiteEditorRequestError && error.status === 409
+
 const responseError = async (response: Response) => {
   const fallback = `O servidor respondeu com o estado ${response.status}.`
   try {
     const payload = (await response.json()) as {message?: string}
-    return new Error(payload.message || fallback)
+    return new SiteEditorRequestError(payload.message || fallback, response.status)
   } catch {
-    return new Error(fallback)
+    return new SiteEditorRequestError(fallback, response.status)
   }
 }
 
 const request = async <T>(url: string, init: RequestInit = {}): Promise<T> => {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    ...init,
-    headers: {accept: 'application/json', ...init.headers},
-  })
-  if (!response.ok) throw await responseError(response)
-  return response.json() as Promise<T>
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs)
+  const abortFromCaller = () => controller.abort()
+  init.signal?.addEventListener('abort', abortFromCaller, {once: true})
+  try {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      ...init,
+      signal: controller.signal,
+      headers: {accept: 'application/json', ...init.headers},
+    })
+    if (!response.ok) throw await responseError(response)
+    return response.json() as Promise<T>
+  } catch (error) {
+    if (controller.signal.aborted && !init.signal?.aborted) {
+      throw new Error('A ligação demorou demasiado. Verifique a internet e tente novamente.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+    init.signal?.removeEventListener('abort', abortFromCaller)
+  }
 }
 
 export const createSiteEditorApi = (csrfToken: string) => ({
   manifest: () => request<SiteEditorManifest>('/painel/site/api'),
   document: async (id: string) =>
-    (
-      await request<DocumentResponse>(
-        `/painel/site/api?document=${encodeURIComponent(id)}`,
-      )
-    ).document,
+    (await request<DocumentResponse>(`/painel/site/api?document=${encodeURIComponent(id)}`))
+      .document,
   save: async (document: SiteEditorDocument) =>
     (
       await request<DocumentResponse>('/painel/site/api', {
@@ -71,7 +104,7 @@ export const createSiteEditorApi = (csrfToken: string) => ({
     }),
   uploadAsset: async (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => {
     const body = new FormData()
@@ -90,6 +123,7 @@ export const createSiteEditorApi = (csrfToken: string) => ({
     return new Promise<ResponsePayload>((resolve, reject) => {
       const upload = new XMLHttpRequest()
       upload.open('POST', '/painel/site/api/media')
+      upload.timeout = uploadTimeoutMs
       upload.withCredentials = true
       upload.setRequestHeader('accept', 'application/json')
       upload.setRequestHeader('x-csrf-token', csrfToken)
@@ -122,6 +156,11 @@ export const createSiteEditorApi = (csrfToken: string) => ({
       })
       upload.addEventListener('error', () =>
         reject(new Error('A ligação falhou durante o carregamento. Tente novamente.')),
+      )
+      upload.addEventListener('timeout', () =>
+        reject(
+          new Error('O carregamento demorou demasiado. Verifique a internet e tente novamente.'),
+        ),
       )
       upload.addEventListener('abort', () => reject(new Error('O carregamento foi cancelado.')))
       upload.send(body)

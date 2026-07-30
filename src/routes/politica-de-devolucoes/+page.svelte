@@ -1,13 +1,22 @@
 <script lang="ts">
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
+  import {managedCoreSectionForRoot} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
   const content = $derived(data.site)
+  const pageCore = managedCoreSectionForRoot('returnsPolicy')!
   const t = $derived(content.returnsPolicy)
   const siteContentDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl
-      ? createDataAttribute({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
+      ? dataAttributeFactory?.({baseUrl: data.studioUrl, id: 'siteContent', type: 'siteLanding'})
       : null,
   )
   const returnsPolicyDataAttribute = (path: string) =>
@@ -17,12 +26,22 @@
 <SeoHead title={t.title} description={t.lead} />
 
 <main class="article-page policy-page">
-  <p class="kicker" data-sanity={returnsPolicyDataAttribute('kicker.pt')}>{t.kicker}</p>
-  <h1 data-sanity={returnsPolicyDataAttribute('title.pt')}>{t.title}</h1>
-  <p class="policy-lead" data-sanity={returnsPolicyDataAttribute('lead.pt')}>{t.lead}</p>
-  <ul class="policy-list" data-sanity={returnsPolicyDataAttribute('conditions')}>
-    {#each t.conditions as condition}
-      <li>{condition}</li>
-    {/each}
-  </ul>
+  <ManagedPageComposition
+    sections={t.sections}
+    core={pageCore}
+    settings={data.settings}
+    {content}
+    language={data.language}
+    dataset={data.sanityDataset}
+    preview={data.preview || data.builderPreview}
+  >
+    <p class="kicker" data-sanity={returnsPolicyDataAttribute('kicker.pt')}>{t.kicker}</p>
+    <h1 data-sanity={returnsPolicyDataAttribute('title.pt')}>{t.title}</h1>
+    <p class="policy-lead" data-sanity={returnsPolicyDataAttribute('lead.pt')}>{t.lead}</p>
+    <ul class="policy-list" data-sanity={returnsPolicyDataAttribute('conditions')}>
+      {#each t.conditions as condition}
+        <li>{condition}</li>
+      {/each}
+    </ul>
+  </ManagedPageComposition>
 </main>

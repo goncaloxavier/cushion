@@ -77,7 +77,14 @@ export const actions: Actions = {
     }
 
     const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
-    if (customerRateLimit(`resend:${locals.customer.id}`, 3, 15 * 60 * 1000) || customerRateLimit(`resend-ip:${ipHash}`, 8, 15 * 60 * 1000)) {
+    if (
+      (await customerRateLimit(
+        `resend:${locals.customer.id}`,
+        3,
+        15 * 60 * 1000,
+      )) ||
+      (await customerRateLimit(`resend-ip:${ipHash}`, 8, 15 * 60 * 1000))
+    ) {
       return fail(429, {resend: 'error', message: 'Já enviámos vários emails. Aguarde alguns minutos.'})
     }
 

@@ -1,53 +1,12 @@
 import React from 'react'
 import {ChevronRightIcon} from '@sanity/icons/ChevronRight'
 import {StackCompactIcon} from '@sanity/icons/StackCompact'
-import type {BuilderViewport} from '$lib/builder/types'
-import type {
-  Asset,
-  SiteEditorDocument,
-  SiteEditorField,
-  SiteEditorNode,
-} from '$lib/site-editor/types'
-import {SiteEditorFieldInput} from './SiteEditorField'
+import type {SiteEditorNode} from '$lib/site-editor/types'
 
 type Props = {
-  document: SiteEditorDocument
   products: SiteEditorNode[]
   pendingProducts: SiteEditorNode[]
-  selectedPath?: string
-  projectId: string
-  dataset: string
-  viewport: BuilderViewport
-  onChange: (path: string, value: unknown) => void
-  onUpload: (file: File, kind: 'image' | 'video') => Promise<Asset>
   onOpenProduct: (node: SiteEditorNode) => void
-}
-
-const titleField: SiteEditorField = {
-  name: 'title',
-  label: 'Nome da categoria',
-  description: 'É o nome apresentado nos filtros e junto aos produtos',
-  placeholder: 'Ex.: Decking',
-  type: 'localizedString',
-  required: true,
-}
-
-const slugField: SiteEditorField = {
-  name: 'slug',
-  label: 'Endereço',
-  type: 'slug',
-  readOnly: true,
-  description:
-    'Gerado a partir do nome na primeira vez que a categoria é guardada. Fica estável depois para não quebrar os produtos associados',
-}
-
-const orderField: SiteEditorField = {
-  name: 'orderRank',
-  label: 'Posição na Loja',
-  description: 'Os números mais baixos aparecem primeiro',
-  type: 'number',
-  min: 0,
-  step: 1,
 }
 
 const compactThumbnail = (source?: string) => {
@@ -66,18 +25,7 @@ const compactThumbnail = (source?: string) => {
   }
 }
 
-export function StoreCategoryManager({
-  document,
-  products,
-  pendingProducts,
-  selectedPath,
-  projectId,
-  dataset,
-  viewport,
-  onChange,
-  onUpload,
-  onOpenProduct,
-}: Props) {
+export function StoreCategoryProductsField({products, pendingProducts, onOpenProduct}: Props) {
   const productRow = (product: SiteEditorNode, action: string) => {
     const thumbnail = compactThumbnail(product.thumbnailUrl)
     return (
@@ -106,49 +54,6 @@ export function StoreCategoryManager({
 
   return (
     <div className="site-editor-category-manager">
-      <section className="site-editor-category-details">
-        <header>
-          <small>Categoria da Loja</small>
-          <strong>Nome e posição</strong>
-        </header>
-        <SiteEditorFieldInput
-          field={titleField}
-          path="title"
-          source={document}
-          documentType={document._type}
-          selectedPath={selectedPath}
-          projectId={projectId}
-          dataset={dataset}
-          viewport={viewport}
-          onChange={onChange}
-          onUpload={onUpload}
-        />
-        <SiteEditorFieldInput
-          field={slugField}
-          path="slug"
-          source={document}
-          documentType={document._type}
-          selectedPath={selectedPath}
-          projectId={projectId}
-          dataset={dataset}
-          viewport={viewport}
-          onChange={onChange}
-          onUpload={onUpload}
-        />
-        <SiteEditorFieldInput
-          field={orderField}
-          path="orderRank"
-          source={document}
-          documentType={document._type}
-          selectedPath={selectedPath}
-          projectId={projectId}
-          dataset={dataset}
-          viewport={viewport}
-          onChange={onChange}
-          onUpload={onUpload}
-        />
-      </section>
-
       <section className="site-editor-category-products">
         <header>
           <span>

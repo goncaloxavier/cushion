@@ -5,7 +5,7 @@ import {blogDetailContent} from '$lib/site-content'
 import type {PageServerLoad} from './$types'
 
 export const load: PageServerLoad = async ({params, parent, url}) => {
-  const {site, language, preview, builderPreview} = await parent()
+  const {site, language, preview, builderPreview, detailSections} = await parent()
   const content = site
   const post = content.blogPosts.find((item) => item.slug === params.slug)
   const returnPage = pageFromSearchParams(url.searchParams, 'fromPage')
@@ -20,8 +20,8 @@ export const load: PageServerLoad = async ({params, parent, url}) => {
   const detail = await getBlogPostDetail(params.slug, preview || builderPreview)
   if (detail) {
     const {body, article} = blogDetailContent(detail, language)
-    return {post: {...post, body, article}, language, returnPage}
+    return {post: {...post, body, article, sections: detailSections}, language, returnPage}
   }
 
-  return {post, language, returnPage}
+  return {post: {...post, sections: detailSections}, language, returnPage}
 }

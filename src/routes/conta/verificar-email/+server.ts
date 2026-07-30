@@ -13,7 +13,7 @@ export const GET: RequestHandler = async ({cookies, getClientAddress, request, u
   const token = url.searchParams.get('token') ?? ''
   const language = url.searchParams.get('lang') || 'pt'
   const ipHash = tokenHashOf(`ip:${getClientAddress()}`)
-  const limited = customerRateLimit(`verify-ip:${ipHash}`, 10, 15 * 60 * 1000)
+  const limited = await customerRateLimit(`verify-ip:${ipHash}`, 10, 15 * 60 * 1000)
 
   if (databaseConfigured() && token && !limited) {
     const verification = await verifyCustomerEmailToken(token).catch((error) => {

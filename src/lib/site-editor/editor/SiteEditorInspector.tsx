@@ -8,6 +8,7 @@ import {panelsForEditorNode} from '../model'
 import {getEditorValue} from '../path'
 import type {
   Asset,
+  SiteEditorAssetKind,
   SiteEditorDocument,
   SiteEditorField,
   SiteEditorNode,
@@ -19,12 +20,21 @@ import {SiteEditorFieldInput} from './SiteEditorField'
 import {SitePageSectionsEditor} from './SitePageSectionsEditor'
 import type {SiteEditorUploadProgress} from './api'
 import type {BuilderViewport} from '$lib/builder/types'
+import {buildHomeSections} from '$lib/builder/home-sections'
+import {
+  managedCoreSectionFor,
+  managedPageSectionScopeForRoot,
+  withManagedCoreSection,
+} from '$lib/builder/managed-page-sections'
+import {productBuilderSections} from '$lib/builder/product-sections'
 
 const ArticleWorkspace = React.lazy(() =>
   import('./ArticleWorkspace').then((module) => ({default: module.ArticleWorkspace})),
 )
-const StoreCategoryManager = React.lazy(() =>
-  import('./StoreCategoryManager').then((module) => ({default: module.StoreCategoryManager})),
+const StoreCategoryProductsField = React.lazy(() =>
+  import('./StoreCategoryProductsField').then((module) => ({
+    default: module.StoreCategoryProductsField,
+  })),
 )
 
 type Props = {
@@ -37,16 +47,16 @@ type Props = {
   projectId: string
   dataset: string
   viewport: BuilderViewport
+  canWrite: boolean
   canDelete: boolean
   mode: 'focused' | 'all'
   nodes: SiteEditorNode[]
   optionSources: Record<string, Array<{label: string; value: string}>>
   onChange: (path: string, value: unknown, immediate?: boolean) => void
-  onReplace: (document: SiteEditorDocument) => void
   onSelectSection: (key?: string) => void
   onUpload: (
     file: File,
-    kind: 'image' | 'video',
+    kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onDelete: () => void
@@ -126,6 +136,17 @@ const itemCountLabel = (count: number, singular: string, plural: string) =>
 const emptyFieldSummary = (field: SiteEditorField) =>
   field.required ? 'Preenchimento obrigatório' : 'Opcional'
 
+const hasMeaningfulValue = (value: unknown): boolean => {
+  if (typeof value === 'string') return Boolean(value.trim())
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (typeof value === 'boolean') return value
+  if (Array.isArray(value)) return value.some(hasMeaningfulValue)
+  if (!value || typeof value !== 'object') return false
+  return Object.entries(value as Record<string, unknown>).some(
+    ([key, item]) => !key.startsWith('_') && hasMeaningfulValue(item),
+  )
+}
+
 const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'localizedString' || field.type === 'localizedText') {
     const text =
@@ -160,6 +181,9 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'gallery') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'ficheiro', 'ficheiros')
   }
+  if (field.type === 'documents') {
+    return itemCountLabel(Array.isArray(value) ? value.length : 0, 'documento', 'documentos')
+  }
   if (field.type === 'video') {
     const video =
       value && typeof value === 'object' && !Array.isArray(value)
@@ -181,6 +205,9 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
   if (field.type === 'sections') {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'secção', 'secções')
   }
+  if (field.type === 'storeCategoryProducts') {
+    return 'Lista de produtos da categoria'
+  }
   if (field.type === 'article') {
     const article =
       value && typeof value === 'object' && !Array.isArray(value)
@@ -192,13 +219,7 @@ const fieldValueSummary = (field: SiteEditorField, value: unknown) => {
     return itemCountLabel(Array.isArray(value) ? value.length : 0, 'item', 'itens')
   }
   if (field.type === 'object') {
-    const count =
-      value && typeof value === 'object' && !Array.isArray(value)
-        ? Object.values(value as Record<string, unknown>).filter(
-            (item) => item !== undefined && item !== null && item !== '',
-          ).length
-        : 0
-    return count ? 'Configurado' : emptyFieldSummary(field)
+    return hasMeaningfulValue(value) ? 'Configurado' : emptyFieldSummary(field)
   }
   return String(value || '').trim() || emptyFieldSummary(field)
 }
@@ -225,12 +246,12 @@ function SiteEditorInspectorComponent({
   projectId,
   dataset,
   viewport,
+  canWrite,
   canDelete,
   mode,
   nodes,
   optionSources,
   onChange,
-  onReplace,
   onSelectSection,
   onUpload,
   onDelete,
@@ -259,7 +280,35 @@ function SiteEditorInspectorComponent({
     () => (mode === 'focused' ? focusedFieldFor(panels, node?.rootPath, selectedPath) : undefined),
     [mode, node?.rootPath, panels, selectedPath],
   )
-  const focusedSection = mode === 'focused' && document?._type === 'sitePage' && selectedSectionKey
+  const managedSectionScope =
+    document?._type === 'siteLanding'
+      ? managedPageSectionScopeForRoot(node?.rootPath)
+      : undefined
+  const managedCoreBase = managedCoreSectionFor(node?.rootPath, document?._type)
+  // The core block appears twice by design — once in the section list, where it
+  // can be positioned, and once in the panel index, where it is edited. It must
+  // not appear under two different names. Each core carried its own label, so
+  // Sobre listed "História da empresa" beside a panel called "Apresentação e
+  // momentos": one block, two names, on every managed page. The panel is the
+  // single source of that name now, so the two cannot drift apart.
+  const managedCoreDefinition = useMemo(() => {
+    if (!managedCoreBase) return undefined
+    const owningPanel = panels.find((panel) => panel.id === managedCoreBase.panelIds[0])
+    return owningPanel ? {...managedCoreBase, label: owningPanel.label} : managedCoreBase
+  }, [managedCoreBase, panels])
+  // A document's own fields stay in the panel index, including the ones the
+  // managed core also exposes. Filtering them out here moved a shop product's
+  // name, price, variants and images behind "Conteúdo da página" → core
+  // section: three steps to change a price, and it files commercial data under
+  // page composition, which is not what it is. The core section keeps its job —
+  // letting the client position or hide the block — but it is not the only way
+  // in.
+  const overviewPanels = panels
+  const canEditSections =
+    document?._type === 'sitePage' ||
+    Boolean(managedSectionScope) ||
+    panels.some((panel) => panel.fields.some((field) => field.type === 'sections'))
+  const focusedSection = mode === 'focused' && canEditSections && selectedSectionKey
   const focusedUnavailable = mode === 'focused' && !focusedField && !focusedSection
   const categoryProducts = useMemo(
     () =>
@@ -311,18 +360,70 @@ function SiteEditorInspectorComponent({
       returnFocus,
     })
 
+  const sectionFieldPath = fieldPath(node?.rootPath, 'sections')
+  const storedSections = document ? getEditorValue(document, sectionFieldPath) : undefined
+  const visibleSections = withManagedCoreSection(
+    document?._type === 'productCategory'
+      ? productBuilderSections(storedSections, document.contentSections)
+      : managedSectionScope?.rootPath === 'home' &&
+          (!Array.isArray(storedSections) || storedSections.length === 0)
+        ? buildHomeSections(document ?? {}, (() => {
+            let index = 0
+            return () => `legacy-home-${++index}`
+          })())
+        : Array.isArray(storedSections)
+          ? storedSections
+          : [],
+    managedCoreDefinition,
+  )
+  const sectionEditorPage = document
+    ? ({
+        ...document,
+        sections: visibleSections,
+      } as unknown as SitePageDocument)
+    : undefined
+  const replaceSections = (next: SitePageDocument) =>
+    onChange(sectionFieldPath, next.sections ?? [])
+  const sectionEditorLabel = managedSectionScope?.title ?? node?.title ?? 'Página livre'
+  const managedEmptyCopy =
+    managedSectionScope || (canEditSections && document?._type !== 'sitePage')
+    ? {
+        emptyTitle: 'Ainda não adicionou conteúdo a esta página.',
+        emptyDescription:
+          'Adicione e organize os blocos que quer apresentar nesta página.',
+      }
+    : undefined
+
   const renderField = (field: SiteEditorField) =>
-    field.type === 'sections' && document?._type === 'sitePage' ? (
+    field.type === 'sections' && canEditSections && sectionEditorPage ? (
       <SitePageSectionsEditor
         key={field.name}
-        page={document as SitePageDocument}
+        page={sectionEditorPage}
+        contextLabel={sectionEditorLabel}
+        emptyTitle={managedEmptyCopy?.emptyTitle}
+        emptyDescription={managedEmptyCopy?.emptyDescription}
         selectedSectionKey={selectedSectionKey}
         dataset={dataset}
         onSelectSection={onSelectSection}
-        onChange={(next) => onReplace(next)}
+        onChange={replaceSections}
         onUpload={onUpload}
         onOpenArticle={openSectionArticle}
       />
+    ) : field.type === 'storeCategoryProducts' ? (
+      <Suspense
+        key={field.name}
+        fallback={
+          <div className="site-editor-inspector-loading" role="status">
+            <span /> A preparar produtos…
+          </div>
+        }
+      >
+        <StoreCategoryProductsField
+          products={categoryProducts}
+          pendingProducts={categoryPendingProducts}
+          onOpenProduct={(product) => onOpenNode(product, 'category')}
+        />
+      </Suspense>
     ) : (
       <SiteEditorFieldInput
         key={field.name}
@@ -342,6 +443,11 @@ function SiteEditorInspectorComponent({
       />
     )
 
+  // The page's designed block appears in the section list so it can be
+  // positioned and hidden alongside the free sections — but it is not a second
+  // place to edit it. It used to re-render the very same panels that sit in the
+  // index above, so every managed page offered two routes to one set of fields,
+  // under two different names. One route, named once: this points at the panel.
   const focusedRootField = focusedField?.panel.fields.find((field) =>
     selectedPath ? pathContains(selectedPath, fieldPath(node?.rootPath, field.name)) : false,
   )
@@ -371,6 +477,14 @@ function SiteEditorInspectorComponent({
         <div className="site-editor-inspector-empty">
           Clique numa página ou num elemento da pré-visualização para o editar.
         </div>
+      ) : !canWrite ? (
+        <div className="site-editor-inspector-readonly" role="status">
+          <strong>Editor em modo de leitura</strong>
+          <p>
+            Pode consultar a página na pré-visualização, mas esta sessão não tem acesso para alterar
+            o conteúdo.
+          </p>
+        </div>
       ) : (
         <div className="site-editor-inspector-scroll" onWheel={scrollPanelWithWheel}>
           {mode === 'focused' ? (
@@ -398,31 +512,19 @@ function SiteEditorInspectorComponent({
             </div>
           ) : null}
 
-          {document._type === 'storeCategory' && mode === 'all' ? (
-            <Suspense fallback={null}>
-              <StoreCategoryManager
-                document={document}
-                products={categoryProducts}
-                pendingProducts={categoryPendingProducts}
-                selectedPath={selectedPath}
-                projectId={projectId}
-                dataset={dataset}
-                viewport={viewport}
-                onChange={onChange}
-                onUpload={onUpload}
-                onOpenProduct={(product) => onOpenNode(product, 'category')}
-              />
-            </Suspense>
-          ) : focusedSection ? (
+          {focusedSection && sectionEditorPage ? (
             <SitePageSectionsEditor
-              page={document as SitePageDocument}
+              page={sectionEditorPage}
+              contextLabel={sectionEditorLabel}
+              emptyTitle={managedEmptyCopy?.emptyTitle}
+              emptyDescription={managedEmptyCopy?.emptyDescription}
               selectedSectionKey={selectedSectionKey}
               dataset={dataset}
               onSelectSection={onSelectSection}
-              onChange={(next) => onReplace(next)}
+              onChange={replaceSections}
               onUpload={onUpload}
               onOpenArticle={openSectionArticle}
-            />
+                  />
           ) : focusedField ? (
             <div className="site-editor-focused-field">
               <SiteEditorFieldInput
@@ -483,10 +585,24 @@ function SiteEditorInspectorComponent({
                           <span>
                             <strong>{field.label}</strong>
                             <small>
-                              {fieldValueSummary(
-                                field,
-                                getEditorValue(document, fieldPath(node.rootPath, field.name)),
-                              )}
+                              {field.type === 'storeCategoryProducts'
+                                ? `${itemCountLabel(
+                                    categoryProducts.length,
+                                    'produto',
+                                    'produtos',
+                                  )}${
+                                    categoryPendingProducts.length
+                                      ? ` · ${itemCountLabel(
+                                          categoryPendingProducts.length,
+                                          'mudança por publicar',
+                                          'mudanças por publicar',
+                                        )}`
+                                      : ''
+                                  }`
+                                : fieldValueSummary(
+                                    field,
+                                    getEditorValue(document, fieldPath(node.rootPath, field.name)),
+                                  )}
                             </small>
                           </span>
                           <ChevronRightIcon />
@@ -495,7 +611,7 @@ function SiteEditorInspectorComponent({
                     </div>
                   )}
                 </section>
-              ) : panels.length ? (
+              ) : overviewPanels.length ? (
                 <div className="site-editor-panel-overview">
                   <header>
                     <small>Definições desta página</small>
@@ -503,7 +619,7 @@ function SiteEditorInspectorComponent({
                     <p>Abra uma área para ver apenas os campos relacionados.</p>
                   </header>
                   <div className="site-editor-panel-index">
-                    {panels.map((panel) => (
+                    {overviewPanels.map((panel) => (
                       <button
                         key={panel.id}
                         type="button"
@@ -558,7 +674,13 @@ function SiteEditorInspectorComponent({
         </div>
       )}
       {articleWorkspace && document && node ? (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <div className="site-editor-workspace-loading" role="status">
+              <span /> A preparar o editor do artigo…
+            </div>
+          }
+        >
           <ArticleWorkspace
             document={document}
             documentTitle={node.title}

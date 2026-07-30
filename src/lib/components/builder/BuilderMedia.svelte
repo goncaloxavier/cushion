@@ -9,11 +9,16 @@
     dataset,
     language,
     className = '',
+    preview = false,
   } = $props<{
     media?: BuilderMedia
     dataset: string
     language: LanguageCode
     className?: string
+    // The "add an image" placeholder is an instruction to the editor. Without
+    // this it rendered on the public page too, so a section the client had added
+    // but not filled in told visitors to add an image.
+    preview?: boolean
   }>()
 
   const alt = $derived(builderLocalized(media?.alt, language))
@@ -27,9 +32,14 @@
   const imageUrl = $derived(builderAssetUrl(media?.image?.asset?._ref, dataset))
   const videoUrl = $derived(builderAssetUrl(media?.videoFile?.asset?._ref, dataset))
   const posterUrl = $derived(builderAssetUrl(media?.poster?.asset?._ref, dataset))
+  const captionsUrl = $derived(builderAssetUrl(media?.captions?.asset?._ref, dataset))
   const youtubeUrl = $derived(builderYoutubeEmbedUrl(media?.youtubeUrl))
+  // Nothing to show and nobody editing: render no figure at all rather than an
+  // empty grey box sitting in the middle of a public page.
+  const hasRenderableMedia = $derived(Boolean(imageUrl || videoUrl || youtubeUrl))
 </script>
 
+{#if hasRenderableMedia || preview}
 <figure class={`builder-media ${className}`}>
   {#if media?.kind === 'video' && videoUrl}
     <video
@@ -43,7 +53,11 @@
       playsinline
       style:object-fit={fit}
       style:object-position={position}
-    ></video>
+    >
+      {#if captionsUrl}
+        <track kind="captions" src={captionsUrl} srclang="pt" label="Português" default />
+      {/if}
+    </video>
   {:else if media?.kind === 'youtube' && youtubeUrl}
     <iframe
       src={youtubeUrl}
@@ -61,7 +75,7 @@
       style:object-fit={fit}
       style:object-position={position}
     />
-  {:else}
+  {:else if preview}
     <div class="builder-media-empty">
       <span aria-hidden="true">+</span>
       <strong>Adicionar imagem ou vídeo</strong>
@@ -71,3 +85,4 @@
     <figcaption>{caption}</figcaption>
   {/if}
 </figure>
+{/if}

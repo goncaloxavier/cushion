@@ -7,13 +7,30 @@ const {Pool} = pg
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) {
-  console.error('DATABASE_URL is required to run migrations.')
-  process.exit(1)
+  // Not an error. The app runs without a database — 48 call sites guard on
+  // databaseConfigured(), and the public site serves fine while /painel and
+  // /conta degrade. Since production starts with `db:migrate && start`, exiting
+  // non-zero here would turn a missing DATABASE_URL into a total outage rather
+  // than the partial one the app is designed for.
+  console.warn('[db:migrate] DATABASE_URL is not set — skipping migrations.')
+  process.exit(0)
 }
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: databaseUrl.includes('railway.app') ? {rejectUnauthorized: false} : undefined,
+  ssl:
+    process.env.DATABASE_SSL_MODE === 'disable'
+      ? undefined
+      : databaseUrl.includes('railway.app') ||
+          databaseUrl.includes('proxy.rlwy.net') ||
+          process.env.DATABASE_SSL_MODE === 'require'
+        ? {rejectUnauthorized: false}
+        : process.env.DATABASE_SSL_MODE === 'verify-full'
+          ? {rejectUnauthorized: true}
+          : undefined,
+  connectionTimeoutMillis: 10_000,
+  query_timeout: 60_000,
+  statement_timeout: 60_000,
 })
 
 const migrationsDir = join(process.cwd(), 'migrations')
@@ -23,6 +40,7 @@ try {
   const client = await pool.connect()
 
   try {
+    await client.query(`select pg_advisory_lock(hashtext('df4y-schema-migrations'))`)
     await client.query(`
       create table if not exists schema_migrations (
         version text primary key,
@@ -50,6 +68,9 @@ try {
       }
     }
   } finally {
+    await client
+      .query(`select pg_advisory_unlock(hashtext('df4y-schema-migrations'))`)
+      .catch(() => undefined)
     client.release()
   }
 } finally {

@@ -1,4 +1,4 @@
-import React, {useMemo, useRef, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {AddIcon} from '@sanity/icons/Add'
 import {ChevronDownIcon} from '@sanity/icons/ChevronDown'
 import {CloseIcon} from '@sanity/icons/Close'
@@ -34,6 +34,7 @@ type Props = {
   nodes: SiteEditorNode[]
   selectedNodeId?: string
   area: SiteEditorArea
+  canCreate: boolean
   onAreaChange: (area: SiteEditorArea) => void
   onSelect: (node: SiteEditorNode) => void
   onCreate: (documentType?: SiteEditorDocumentType) => void
@@ -65,6 +66,7 @@ function SiteEditorSidebarComponent({
   nodes,
   selectedNodeId,
   area,
+  canCreate,
   onAreaChange,
   onSelect,
   onCreate,
@@ -101,6 +103,31 @@ function SiteEditorSidebarComponent({
           .map((node) => node.id),
       ),
   )
+  const treeRef = useRef<HTMLDivElement>(null)
+
+  // Selecting a document from the canvas (not this list) can land on an item
+  // nested inside a collection the user never opened — expand just that one
+  // parent so the tree shows where the selection actually is. Manual
+  // collapse/expand clicks don't touch selectedNodeId, so they're untouched.
+  useEffect(() => {
+    if (!selectedNodeId) return
+    const parentId = nodes.find((node) => node.id === selectedNodeId)?.parentId
+    if (!parentId) return
+    setCollapsed((current) => {
+      if (!current.has(parentId)) return current
+      const next = new Set(current)
+      next.delete(parentId)
+      return next
+    })
+  }, [selectedNodeId, nodes])
+
+  useEffect(() => {
+    if (!selectedNodeId) return
+    treeRef.current
+      ?.querySelector(`[data-node-id="${selectedNodeId}"]`)
+      ?.scrollIntoView({block: 'nearest'})
+  }, [selectedNodeId, collapsed])
+
   const normalizedQuery = query.trim().toLocaleLowerCase('pt')
 
   const areaNodes = useMemo(() => {
@@ -155,6 +182,7 @@ function SiteEditorSidebarComponent({
     const treeButton = (
       <button
         type="button"
+        data-node-id={node.id}
         className={`site-editor-tree-item${nested ? ' is-nested' : ''}${
           selectedNodeId === node.id ? ' is-selected' : ''
         }${collection ? ' is-collection' : ''}`}
@@ -165,13 +193,7 @@ function SiteEditorSidebarComponent({
           className={`site-editor-tree-icon${thumbnail ? ' has-thumbnail' : ''}`}
           aria-hidden="true"
         >
-          {collection ? (
-            <StackCompactIcon />
-          ) : node.route === '/' ? (
-            <HomeIcon />
-          ) : (
-            <DocumentIcon />
-          )}
+          {collection ? <StackCompactIcon /> : node.route === '/' ? <HomeIcon /> : <DocumentIcon />}
           {thumbnail ? <img src={thumbnail} alt="" loading="lazy" decoding="async" /> : null}
         </span>
         <span className="site-editor-tree-copy">
@@ -193,7 +215,7 @@ function SiteEditorSidebarComponent({
 
     return (
       <React.Fragment key={node.id}>
-        {collection && node.collectionType ? (
+        {collection && node.collectionType && canCreate ? (
           <div className="site-editor-tree-collection-row">
             {treeButton}
             <button
@@ -266,6 +288,7 @@ function SiteEditorSidebarComponent({
       </label>
 
       <div
+        ref={treeRef}
         className="site-editor-tree"
         id="site-editor-area-panel"
         role="tabpanel"
@@ -278,7 +301,7 @@ function SiteEditorSidebarComponent({
         ) : null}
       </div>
 
-      {area !== 'global' ? (
+      {area !== 'global' && canCreate ? (
         <button className="site-editor-create" type="button" onClick={() => onCreate()}>
           <AddIcon />
           {area === 'pages' ? 'Nova página' : 'Novo conteúdo'}

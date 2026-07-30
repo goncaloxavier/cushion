@@ -9,7 +9,12 @@
   let mobileMenuOpen = $state(false)
 
   const navGroups = $derived([
-    {label: 'Visão geral', items: [{href: '/painel', label: 'Início'}]},
+    {
+      label: 'Visão geral',
+      items: [
+        {href: '/painel', label: 'Início'},
+      ],
+    },
     {
       label: 'Vendas',
       items: [

@@ -1,7 +1,12 @@
 import {createClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
-import {findLocalizedFields, reinsertLeaves, type PortableTextBlock} from './translate-content'
-import {logTranslationFailure, translateBatch} from './translate'
+import {
+  findLocalizedFields,
+  reinsertLeaves,
+  type LocalizedShapeMismatch,
+  type PortableTextBlock,
+} from './translate-content'
+import {deeplConfigured, logTranslationFailure, translateBatch} from './translate'
 import {buildTranslationContext} from './translation-fidelity'
 
 const projectId = 'u4uyfix8'
@@ -29,7 +34,7 @@ export const translateDocument = async (
   documentId: string,
   options: {force?: boolean} = {},
 ): Promise<TranslateDocumentResult> => {
-  if (!env.SANITY_WRITE_TOKEN || !env.DEEPL_API_KEY) {
+  if (!env.SANITY_WRITE_TOKEN || !(await deeplConfigured())) {
     return {ok: false, reason: 'not-configured'}
   }
 
@@ -37,7 +42,17 @@ export const translateDocument = async (
   const doc = await client.getDocument(documentId)
   if (!doc) return {ok: false, reason: 'not-found'}
 
-  const localizedFields = findLocalizedFields(doc)
+  // A field that reads as translatable but fails the shape check is skipped with
+  // no other trace: the run still reports success, and the page just keeps its old
+  // translation forever. That is how the blog heading stayed wrong. Say so.
+  const mismatches: LocalizedShapeMismatch[] = []
+  const localizedFields = findLocalizedFields(doc, '', mismatches)
+  for (const mismatch of mismatches) {
+    console.warn(
+      `[translate] ${documentId} ${mismatch.path} looks translatable but was skipped — unexpected keys: ${mismatch.unexpectedKeys.join(', ')}`,
+    )
+  }
+
   const tasks = localizedFields.filter((task) => options.force || task.hash !== task.currentHash)
   if (!tasks.length) return {ok: true, changed: 0}
 

@@ -10,6 +10,34 @@
   font-family: var(--builder-body-font);
 }
 
+/**
+ * A page whose sections do not reach the fold used to show the page's own white
+ * background between the last section and the footer — a band of the wrong
+ * colour that appeared the moment the client removed a section and looked like
+ * something had broken. The last section now takes the leftover height, so its
+ * surface runs to the footer and a short page reads as finished rather than cut
+ * off. Embedded compositions are excluded: there the surrounding page owns the
+ * height.
+ */
+.builder-page-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-page:not(.is-embedded) {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.builder-page:not(.is-embedded) > .builder-render-section:last-of-type {
+  flex: 1 0 auto;
+}
+
+.builder-page.is-embedded {
+  min-height: 0;
+}
+
 .builder-render-section {
   position: relative;
   min-height: var(--builder-min-height, 0);
@@ -20,9 +48,81 @@
 .builder-render-section.is-white { background: #fff; }
 .builder-render-section.is-fog { background: var(--builder-fog); }
 .builder-render-section.is-mint { background: var(--builder-mint); }
-.builder-render-section.is-deep { color: #fff; background: var(--builder-deep); }
-.builder-render-section.is-blue { color: #fff; background: var(--builder-blue); }
+/**
+ * A dark background is one choice in one dropdown, but it changes what every
+ * colour inside the section has to be. Setting only `color` covered the text that
+ * inherits and left everything keyed to a token behind: the automatic list's card
+ * titles at 2.5:1 and their descriptions at 1.6:1, editorial paragraphs at 1.6:1,
+ * partner captions at 1.0:1.
+ *
+ * Redefining the tokens for the scope fixes all of them at once, and — the point
+ * — fixes any component added later that uses the same tokens, without anyone
+ * remembering to. Both palettes clear 4.5:1 against deep and against blue.
+ */
+.builder-render-section.is-deep,
+.builder-render-section.is-blue {
+  --builder-text: #fff;
+  --builder-muted: #d5e8e2;
+  --ink: #fff;
+  --muted: #d5e8e2;
+
+  /* Accent *text* only. --builder-green is deliberately left alone: it is also
+     the fill behind primary buttons, and lightening it there put white labels on
+     a pale mint button. */
+  --builder-accent-text: #c4ecd8;
+
+  color: #fff;
+}
+
+/**
+ * Islands that paint their own light background inside a dark section — a card,
+ * a media figure and its caption. The scope's light-on-dark tokens would be
+ * invisible on them, so the light-surface values are restored for their subtree.
+ */
+.builder-render-section.is-deep :is(.builder-card, .builder-media),
+.builder-render-section.is-blue :is(.builder-card, .builder-media) {
+  --builder-text: #10231f;
+  --builder-muted: #49605a;
+  --ink: #10231f;
+  --muted: #49605a;
+  --builder-accent-text: #27735a;
+
+  color: var(--builder-text);
+}
+
+.builder-render-section.is-deep { background: var(--builder-deep); }
+.builder-render-section.is-blue { background: var(--builder-blue); }
 .builder-render-section.is-transparent { background: transparent; }
+
+.builder-render-section.is-product-feature {
+  padding: 0;
+}
+
+.builder-render-section.is-product-feature > .builder-render-inner {
+  width: 100%;
+  max-width: none;
+}
+
+.builder-render-section.is-product-feature .product-content-section {
+  background: transparent;
+}
+
+.builder-render-section.is-product-feature .product-content-media > .builder-media {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.builder-render-section.is-product-feature .product-content-media > .builder-media > :is(img, video, iframe) {
+  width: 100%;
+  height: 100%;
+}
+
+.builder-render-section.is-product-feature .product-content-actions {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
 
 .builder-page.is-preview .builder-render-section:hover,
 .builder-render-section.is-selected {
@@ -57,6 +157,14 @@
   border-radius: 4px;
 }
 
+/* Distinct from "hidden": the client chose to hide that one, whereas this one is
+   simply not filled in yet and is telling them why it is absent from the site. */
+.builder-hidden-badge.is-empty {
+  color: #6a4b10;
+  background: #fdf4e0;
+  border-color: #e6d3a8;
+}
+
 .builder-section-hit-area {
   position: absolute;
   z-index: 9;
@@ -82,6 +190,45 @@
 .builder-render-inner.is-content { max-width: 65rem; }
 .builder-render-inner.is-wide { max-width: 80rem; }
 .builder-render-inner.is-full { max-width: none; }
+.builder-render-inner.is-landing { max-width: var(--max, 73.75rem); }
+
+/* Landing migrations keep the public design while gaining section controls.
+   These selectors outrank the generic surface classes without hardcoding the
+   presentation into every newly-created section. */
+.home-page .builder-render-section.home-impact-ledger.is-deep {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 14%, rgb(34 111 136 / 34%), transparent 24rem),
+    linear-gradient(135deg, #082c34, #123f43 58%, #0f3033);
+}
+
+.home-page .builder-render-section.home-partners-section.is-white {
+  background:
+    radial-gradient(circle at 90% 12%, rgb(38 113 137 / 12%), transparent 22rem),
+    linear-gradient(135deg, #f8fbf9, #eef6f2 58%, #e8f1f3);
+}
+
+.home-page .builder-render-section.home-impact-ledger:not(.is-deep):not(.is-blue) {
+  color: var(--builder-text);
+}
+
+.home-page
+  .builder-render-section.home-impact-ledger:not(.is-deep):not(.is-blue)
+  :is(.impact-copy h2, .impact-ledger strong) {
+  color: var(--builder-text);
+}
+
+.home-page
+  .builder-render-section.home-impact-ledger:not(.is-deep):not(.is-blue)
+  :is(.impact-copy p, .impact-ledger p) {
+  color: var(--builder-muted);
+}
+
+.home-page
+  .builder-render-section.home-impact-ledger:not(.is-deep):not(.is-blue)
+  :is(.impact-ledger, .impact-ledger article) {
+  border-color: rgb(16 35 31 / 16%);
+}
 
 .builder-hero,
 .builder-media-copy,
@@ -91,6 +238,26 @@
   gap: clamp(2rem, 6vw, 5rem);
   align-items: center;
   min-height: inherit;
+}
+
+.builder-contact-action {
+  display: grid;
+  gap: 1.25rem;
+  justify-items: start;
+  align-content: center;
+}
+
+.builder-contact-action > div {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.builder-contact-action > div a {
+  color: inherit;
+  font-size: clamp(1rem, 1.7vw, 1.3rem);
+  font-weight: 650;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
 }
 
 .builder-hero.is-overlay {
@@ -114,6 +281,14 @@
   height: 100%;
   min-height: inherit;
   filter: brightness(0.58);
+}
+
+/* The one place cropping is still right: here the media is a backdrop behind
+   the hero copy, so it has to fill the block rather than set its height. */
+.builder-hero.is-overlay .builder-media > :is(img, video) {
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
 }
 
 .builder-hero.is-media-first .builder-section-heading { order: 2; }
@@ -143,15 +318,21 @@
 
 .builder-responsive-body { font-size: var(--builder-font-desktop); }
 
+/* Brand green at 12px fails everywhere it is used: 4.19:1 on white, 3.83 on fog,
+   3.50 on mint. At this size and weight there is no large-text exemption, so
+   these are the nearest greens to the brand that clear 4.5:1 on the worst
+   surface each is used on — mint for the light one, blue for the dark. Kept as
+   variables so a future theme can override them deliberately rather than by
+   inheriting a colour picked for buttons. */
 .builder-eyebrow {
-  color: var(--builder-green);
+  color: var(--builder-accent-text, var(--builder-eyebrow, #27735a));
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .is-deep .builder-eyebrow,
-.is-blue .builder-eyebrow { color: #9fdac0; }
+.is-blue .builder-eyebrow { color: var(--builder-eyebrow-on-dark, #c4ecd8); }
 
 .builder-actions {
   display: flex;
@@ -186,14 +367,28 @@
   border-radius: var(--builder-radius);
 }
 
+/* Uploaded media keeps its own proportions. The previous rule forced every
+   image into 4/3 at width:100% with no object-fit, so the browser's default
+   `fill` stretched anything that was not already 4/3 — a panorama squashed
+   and a portrait pulled wide. Height is capped rather than free so one very
+   tall image cannot take over the whole section; object-fit only comes into
+   play once that cap bites, and letterboxes against the figure background
+   instead of distorting. */
 .builder-media > img,
-.builder-media > video,
+.builder-media > video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 80svh;
+  object-fit: contain;
+  border: 0;
+}
+
+/* Embeds have no intrinsic size to be true to, so they keep a frame. */
 .builder-media > iframe {
   display: block;
   width: 100%;
-  height: 100%;
-  min-height: 18rem;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   border: 0;
 }
 
@@ -228,7 +423,7 @@
   grid-column: 1 / -1;
 }
 
-.builder-gallery.is-gallery .builder-media:first-child > :is(img, video, iframe) {
+.builder-gallery.is-gallery .builder-media:first-child > iframe {
   aspect-ratio: 16 / 8;
 }
 
@@ -252,7 +447,7 @@
 .builder-card h3 { font-family: var(--builder-heading-font); font-size: 1.35rem; }
 .builder-card p { color: var(--builder-muted); line-height: 1.5; }
 .builder-card small,
-.builder-collection small { color: var(--builder-green); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.builder-collection small { color: var(--builder-accent-text, #27735a); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
 
 .builder-stats article {
   display: grid;
@@ -286,14 +481,46 @@
   border-radius: var(--builder-radius);
 }
 
-.builder-partners article {
+.builder-partner {
   display: grid;
+  gap: 0.5rem;
   place-items: center;
+  align-content: start;
   min-height: 6.5rem;
   padding: 1rem;
+  color: inherit;
   text-align: center;
+  text-decoration: none;
   border: 1px solid #d4dfda;
   border-radius: var(--builder-radius);
+}
+
+/* Logos arrive at wildly different proportions and some are white-on-transparent,
+   which is what logoTone is for. Contain rather than crop — a cropped logo is a
+   damaged trademark. */
+.builder-partner-logo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 3.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+}
+
+.builder-partner-logo[data-logo-tone='dark'] {
+  background: #10231f;
+}
+
+.builder-partner-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.builder-partner-text {
+  color: var(--builder-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .builder-editorial { display: grid; gap: 2rem; }
@@ -347,4 +574,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .builder-render-section { scroll-behavior: auto; }
+}
+
+/* Call to action. The heading comes from BuilderSectionHeading like every other
+   section; this only lays out the buttons and any background media beneath it. */
+.builder-cta-media {
+  margin-bottom: 1.4rem;
+}
+
+.builder-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
 }

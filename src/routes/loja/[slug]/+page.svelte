@@ -1,8 +1,10 @@
 <script lang="ts">
+  import DownloadList from '$lib/components/DownloadList.svelte'
   import {browser} from '$app/environment'
   import {page} from '$app/state'
-  import {createDataAttribute} from '@sanity/visual-editing/create-data-attribute'
+  import {loadSanityDataAttributeFactory, type SanityDataAttributeFactory} from '$lib/sanity-edit-attributes'
   import {lineReveal} from '$lib/actions/line-reveal'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import Reveal from '$lib/components/Reveal.svelte'
   import SeoHead from '$lib/components/SeoHead.svelte'
   import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
@@ -27,8 +29,16 @@
     storeDeliveryEventName,
   } from '$lib/store-shipping'
   import {onMount} from 'svelte'
+  import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  const pageCore = managedCoreSectionForDocumentType('storeProduct')!
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+  $effect(() => {
+    if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   const finishes: StoreFinish[] = ['natural', 'dark']
   let selectedVariantIndex = $state(0)
@@ -52,7 +62,7 @@
   )
   const storeProductDataAttribute = $derived(
     (data.preview || data.builderPreview) && data.studioUrl && data.storeProduct.studioDocumentId
-      ? createDataAttribute({
+      ? dataAttributeFactory?.({
           baseUrl: data.studioUrl,
           id: data.storeProduct.studioDocumentId,
           type: 'storeProduct',
@@ -193,12 +203,21 @@
 
 <main class="store-detail-page">
   {#if deliveryPostalCode}
-    <article
-      class="detail-page store-detail"
-      class:store-blurred-preview={deliveryModalOpen}
-      aria-hidden={deliveryModalOpen}
-      inert={deliveryModalOpen}
+    <ManagedPageComposition
+      sections={data.storeProduct.sections ?? []}
+      core={pageCore}
+      settings={data.settings}
+      {content}
+      language={data.language}
+      dataset={data.sanityDataset}
+      preview={data.preview || data.builderPreview}
     >
+      <article
+        class="detail-page store-detail"
+        class:store-blurred-preview={deliveryModalOpen}
+        aria-hidden={deliveryModalOpen}
+        inert={deliveryModalOpen}
+      >
     <Reveal class="store-detail-head-reveal" variant="panel">
       <div class="store-detail-head">
         <a class="detail-back-link" href={backHref}>
@@ -254,6 +273,12 @@
         >
           {data.storeProduct.summary}
         </p>
+
+        <DownloadList
+          documents={data.storeProduct.documents}
+          title={data.storeProduct.documentsTitle}
+          fallbackTitle={content.common.downloadsTitle}
+        />
       </Reveal>
 
       <Reveal class="store-detail-visual-reveal" delay={120} variant="media">
@@ -286,12 +311,13 @@
       <div class="store-option-grid">
         <fieldset class="store-detail-variants">
           <legend>{labels.variant}</legend>
-          <div>
+          <div role="radiogroup" aria-label={labels.variant}>
             {#each data.storeProduct.variants as variant, index}
               <button
                 type="button"
+                role="radio"
                 class:active={selectedVariantIndex === index}
-                aria-pressed={selectedVariantIndex === index}
+                aria-checked={selectedVariantIndex === index}
                 onclick={() => {
                   selectedVariantIndex = index
                 }}
@@ -305,12 +331,13 @@
         {#if hasFinishChoice}
           <fieldset class="store-detail-finishes">
             <legend>{labels.finish}</legend>
-            <div>
+            <div role="radiogroup" aria-label={labels.finish}>
               {#each finishes as finish}
                 <button
                   type="button"
+                  role="radio"
                   class:active={selectedFinish === finish}
-                  aria-pressed={selectedFinish === finish}
+                  aria-checked={selectedFinish === finish}
                   onclick={() => {
                     selectedFinish = finish
                   }}
@@ -405,7 +432,8 @@
       </div>
     </section>
     </Reveal>
-    </article>
+      </article>
+    </ManagedPageComposition>
 
     {#if deliveryModalOpen}
       <div class="store-gate-layer" role="presentation">

@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {createHash} from 'node:crypto'
 import {createClient, type SanityClient} from '@sanity/client'
 import {env} from '$env/dynamic/private'
 import type {
@@ -8,6 +8,11 @@ import type {
   SiteEditorNode,
 } from '$lib/site-editor/types'
 import {createBuilderSection} from '$lib/builder/defaults'
+import {
+  managedDetailSectionDocumentTypes,
+  managedPageSectionScopes,
+} from '$lib/builder/managed-page-sections'
+import {validateBuilderSections} from '$lib/builder/validation'
 import {invalidateSanityCollectionsCache} from '$lib/sanity'
 import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {editorDraftId, normalizeEditorDocumentId} from '$lib/site-editor/path'
@@ -20,6 +25,7 @@ import {
   saveSiteEditorE2eDocument,
   siteEditorE2eEnabled,
 } from './site-editor-e2e'
+import {carryMachineOwned, editorContentSignature, editorSignatureMismatch} from './site-editor-conflict'
 import {
   SiteEditorCategoryInUseError,
   SiteEditorDuplicateError,
@@ -58,10 +64,12 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
   productCategory: [
     'title',
     'slug',
+    'documents',
+    'documentsTitle',
     'image',
     'gallery',
     'description',
-    'contentSections',
+    'sections',
     'dimensions',
     'materials',
     'specifications',
@@ -72,6 +80,8 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
   storeProduct: [
     'title',
     'slug',
+    'documents',
+    'documentsTitle',
     'category',
     'summary',
     'hasFinishChoice',
@@ -79,6 +89,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'gallery',
     'variants',
     'flatTransportPrice',
+    'sections',
     'active',
     'orderRank',
   ],
@@ -90,6 +101,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'location',
     'summary',
     'description',
+    'sections',
     'orderRank',
   ],
   blogPost: [
@@ -102,6 +114,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'excerpt',
     'article',
     'body',
+    'sections',
   ],
   sitePage: ['editorVersion', 'title', 'route', 'active', 'sections', 'seo'],
 }
@@ -111,23 +124,7 @@ const staticPages: Array<{
   title: string
   route: string
   rootPath: string
-}> = [
-  {id: 'page-home', title: 'Página inicial', route: '/', rootPath: 'home'},
-  {id: 'page-about', title: 'Sobre', route: '/sobre-nos', rootPath: 'about'},
-  {id: 'page-products', title: 'Produtos', route: '/produtos', rootPath: 'productsPage'},
-  {id: 'page-store', title: 'Loja', route: '/loja', rootPath: 'storePage'},
-  {id: 'page-cart', title: 'Carrinho', route: '/carrinho', rootPath: 'cartPage'},
-  {id: 'page-catalogue', title: 'Catálogo', route: '/catalogo', rootPath: 'catalogue'},
-  {id: 'page-cases', title: 'Casos de estudo', route: '/casos-de-estudo', rootPath: 'casesPage'},
-  {id: 'page-blog', title: 'Blog', route: '/blog', rootPath: 'blogPage'},
-  {id: 'page-contact', title: 'Contacto', route: '/contacto', rootPath: 'contactPage'},
-  {
-    id: 'page-returns',
-    title: 'Política de devoluções',
-    route: '/politica-de-devolucoes',
-    rootPath: 'returnsPolicy',
-  },
-]
+}> = [...managedPageSectionScopes]
 
 const collectionDefinitions: Array<{
   id: string
@@ -208,6 +205,18 @@ type ManifestDocument = {
 }
 
 export class SiteEditorConflictError extends Error {}
+
+const editorSignature = (document: SiteEditorDocument | null | undefined) =>
+  document ? editorContentSignature(document, editableFields[document._type]) : ''
+
+// Returned alongside every document the editor loads or saves, and echoed back
+// on the next save as the baseline to compare against. Not persisted.
+export const signatureField = '_editorSignature'
+
+const withSignature = (document: SiteEditorDocument): SiteEditorDocument => ({
+  ...document,
+  [signatureField]: editorSignature(document),
+})
 
 export const siteEditorDataset = () =>
   siteEditorE2eEnabled() ? 'site-editor-e2e' : env.SANITY_DATASET || 'production'
@@ -528,10 +537,11 @@ export const getSiteEditorManifest = async (
     ...buildFreePageNodes(preferred),
   ]
 
+  const capabilities = siteEditorCapabilities()
   return {
     nodes,
     optionSources: {storeCategories: [...lookups.storeCategoryOptions.values()]},
-    capabilities: {...siteEditorCapabilities(), canPublish},
+    capabilities: {...capabilities, canPublish: canPublish && capabilities.canWrite},
   }
 }
 
@@ -558,13 +568,19 @@ export const getSiteEditorDocument = async (id: string, scope = 'default') => {
     throw new SiteEditorValidationError(
       'Este conteúdo já não existe — pode ter sido eliminado por outra pessoa. Atualize a página.',
     )
+  // The signature is the baseline the next save is checked against, so it has to
+  // describe what is *stored*. Signing the augmented copy instead meant the
+  // client echoed back a baseline for a document the server had never held: the
+  // comparison failed on the very first save and the client was told to reload
+  // over a default this code had just invented for them.
+  const signed = withSignature(document)
   if (
     document._type === 'siteLanding' &&
     (!Array.isArray(document.navigation) || document.navigation.length === 0)
   ) {
-    return {...document, navigation: defaultNavigationDocuments()}
+    return {...signed, navigation: defaultNavigationDocuments()}
   }
-  return document
+  return signed
 }
 
 const validateStructuredValue = (value: unknown, depth = 0): void => {
@@ -696,10 +712,37 @@ const validateDocument = (document: SiteEditorDocument) => {
     if (!/^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       throw new SiteEditorValidationError('Use um endereço válido, por exemplo /sustentabilidade.')
     }
-  } else if (document._type !== 'siteLanding') {
+    const sectionError = validateBuilderSections(document.sections).find(
+      (issue) => issue.level === 'error',
+    )
+    if (sectionError) throw new SiteEditorValidationError(sectionError.message)
+  } else if (document._type === 'siteLanding') {
+    for (const scope of managedPageSectionScopes) {
+      const page = document[scope.rootPath]
+      if (!page || typeof page !== 'object' || Array.isArray(page)) continue
+      const sections = (page as Record<string, unknown>).sections
+      if (sections === undefined) continue
+      const sectionError = validateBuilderSections(sections).find((issue) => issue.level === 'error')
+      if (sectionError) {
+        throw new SiteEditorValidationError(`${scope.title}: ${sectionError.message}`)
+      }
+    }
+  } else {
     const slug = (document.slug as {current?: unknown} | undefined)?.current
     if (typeof slug !== 'string' || !slug.trim())
       throw new SiteEditorValidationError('Preencha o endereço da página.')
+
+    if (
+      managedDetailSectionDocumentTypes.includes(
+        document._type as (typeof managedDetailSectionDocumentTypes)[number],
+      ) &&
+      document.sections !== undefined
+    ) {
+      const sectionError = validateBuilderSections(document.sections).find(
+        (issue) => issue.level === 'error',
+      )
+      if (sectionError) throw new SiteEditorValidationError(sectionError.message)
+    }
   }
 
   if (document._type === 'storeProduct') {
@@ -741,63 +784,6 @@ const validateDocument = (document: SiteEditorDocument) => {
     })
   }
 
-  if (document._type === 'productCategory' && document.contentSections !== undefined) {
-    if (!Array.isArray(document.contentSections) || document.contentSections.length > 12) {
-      throw new SiteEditorValidationError('Adicione no máximo 12 secções de conteúdo adicional.')
-    }
-    document.contentSections.forEach((item, index) => {
-      const position = `a secção ${index + 1} de conteúdo adicional`
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        throw new SiteEditorValidationError(
-          `Falta preencher ${position} — abra-a e verifique os campos.`,
-        )
-      }
-      const section = item as Record<string, unknown>
-      const sectionTitle = section.title as {pt?: unknown} | undefined
-      const name = typeof sectionTitle?.pt === 'string' ? sectionTitle.pt.trim() : ''
-      const named = name ? `a secção "${name}"` : position
-      const mediaKind = section.mediaKind
-      if (!['left', 'right', 'top'].includes(String(section.mediaSide || 'left'))) {
-        throw new SiteEditorValidationError(`Escolha uma composição válida em ${named}.`)
-      }
-      if (!['white', 'fog', 'mint', 'deep', 'blue'].includes(String(section.surface || 'white'))) {
-        throw new SiteEditorValidationError(`Escolha um fundo válido em ${named}.`)
-      }
-      if (!['caption', 'pill', 'eyebrow'].includes(String(section.labelStyle || 'caption'))) {
-        throw new SiteEditorValidationError(`Escolha um estilo de rótulo válido em ${named}.`)
-      }
-      const image = section.image as {asset?: {_ref?: unknown}} | undefined
-      const video = section.video as
-        | {file?: {asset?: {_ref?: unknown}}; youtubeUrl?: unknown}
-        | undefined
-      if (mediaKind === 'image' && typeof image?.asset?._ref !== 'string') {
-        throw new SiteEditorValidationError(
-          `Adicione uma imagem a ${named} — está marcada como imagem mas ainda não tem nenhuma.`,
-        )
-      }
-      if (
-        mediaKind === 'video' &&
-        typeof video?.file?.asset?._ref !== 'string' &&
-        (typeof video?.youtubeUrl !== 'string' || !video.youtubeUrl.trim())
-      ) {
-        throw new SiteEditorValidationError(
-          `Carregue um vídeo ou indique um link do YouTube em ${named}.`,
-        )
-      }
-      if (mediaKind !== 'image' && mediaKind !== 'video') {
-        throw new SiteEditorValidationError(`Escolha imagem ou vídeo em ${named}.`)
-      }
-      const buttonLabel = section.buttonLabel as {pt?: unknown} | undefined
-      const hasButtonLabel = typeof buttonLabel?.pt === 'string' && Boolean(buttonLabel.pt.trim())
-      const hasButtonUrl =
-        typeof section.buttonUrl === 'string' && Boolean(section.buttonUrl.trim())
-      if (hasButtonLabel !== hasButtonUrl) {
-        throw new SiteEditorValidationError(
-          `Em ${named}, preencha o texto e o destino do botão, ou deixe os dois campos vazios.`,
-        )
-      }
-    })
-  }
 }
 
 const unsetMissingFields = (document: SiteEditorDocument) =>
@@ -841,6 +827,8 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   }
 
   const document = editableDocument(input)
+  const migratesLegacyProductSections =
+    document._type === 'productCategory' && Array.isArray(document.sections)
 
   if (document._type === 'storeCategory') {
     const existingSlug = documentSlug(draft ?? published)
@@ -852,8 +840,49 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     }
   }
 
+  // A moved _rev on its own is not a conflict. The translation webhook patches
+  // every published document seconds after it is published, and the editor is
+  // usually still open on it — under a plain _rev check that guarantees a
+  // "recarregue a página" the first time the user types afterwards, over a
+  // change to fields the editor does not even own. Only treat it as a conflict
+  // when the editor-owned content actually moved away from the baseline the
+  // client last saw.
+  /**
+   * A rejected save is either a real concurrent edit or a fault in our own
+   * baseline, and until now the two looked identical from the outside. This
+   * records which editor-owned fields actually differ, plus whether the client
+   * even sent a baseline — an absent one means the document was loaded by a path
+   * that did not attach a signature, which is a bug on our side, not a conflict.
+   */
+  const reportConflict = (
+    documentId: string,
+    sent: Record<string, unknown>,
+    stored: SiteEditorDocument,
+  ) => {
+    const fields = editableFields[stored._type as keyof typeof editableFields]
+    const differing = editorSignatureMismatch(
+      sent as Record<string, unknown>,
+      stored as unknown as Record<string, unknown>,
+      fields,
+    )
+    const sentBaseline = typeof sent[signatureField] === 'string' ? sent[signatureField] : ''
+    console.warn(
+      `[site-editor] rejected a save of ${documentId} (${stored._type}): ` +
+        `baseline ${sentBaseline ? 'sent' : 'MISSING — the load path did not attach one'}, ` +
+        `sent _rev ${String(sent._rev ?? 'none')} vs stored ${stored._rev}, ` +
+        `differing fields: ${differing.length ? differing.join(', ') : 'none — the fields agree, so this rejection was wrong'}`,
+    )
+  }
+
+  const baseline = typeof input[signatureField] === 'string' ? input[signatureField] : ''
+  const matchesBaseline = (existing: SiteEditorDocument | null | undefined) =>
+    Boolean(baseline) && baseline === editorSignature(existing)
+
   if (draft) {
-    if (!isDraft(input._id) || input._rev !== draft._rev) {
+    if ((!isDraft(input._id) || input._rev !== draft._rev) && !matchesBaseline(draft)) {
+      // Says why, so the next wrongly-rejected save explains itself in the logs
+      // instead of having to be reproduced. Field names only, never content.
+      reportConflict(publishedId, input, draft)
       throw new SiteEditorConflictError(
         'Este conteúdo foi alterado noutra janela. Recarregue antes de continuar.',
       )
@@ -861,13 +890,17 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     const values = {...document} as Record<string, unknown>
     delete values._id
     delete values._type
-    let patch = client.patch(draftId).set(values).ifRevisionId(draft._rev)
+    let patch = client
+      .patch(draftId)
+      .set(carryMachineOwned(values, draft) as Record<string, unknown>)
+      .ifRevisionId(draft._rev)
     const missing = unsetMissingFields(document)
     if (missing.length) patch = patch.unset(missing)
-    return patch.commit({returnDocuments: true}) as Promise<SiteEditorDocument>
+    if (migratesLegacyProductSections) patch = patch.unset(['contentSections'])
+    return withSignature((await patch.commit({returnDocuments: true})) as SiteEditorDocument)
   }
 
-  if (published && input._rev !== published._rev) {
+  if (published && input._rev !== published._rev && !matchesBaseline(published)) {
     throw new SiteEditorConflictError(
       'A versão publicada mudou enquanto editava. Recarregue antes de continuar.',
     )
@@ -876,18 +909,21 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   const source = published ? structuredClone(published) : {}
   const draftDocument = {
     ...source,
-    ...document,
+    ...(carryMachineOwned(document, published) as Record<string, unknown>),
     _id: draftId,
     _type: document._type,
   } as Record<string, unknown>
   delete draftDocument._rev
   delete draftDocument._createdAt
   delete draftDocument._updatedAt
+  delete draftDocument[signatureField]
   for (const field of unsetMissingFields(document)) delete draftDocument[field]
-  return client.create(draftDocument as SiteEditorDocument)
+  if (migratesLegacyProductSections) delete draftDocument.contentSections
+  return withSignature(await client.create(draftDocument as SiteEditorDocument))
 }
 
 export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope = 'default') => {
+  validateDocument(input)
   if (siteEditorE2eEnabled()) return publishSiteEditorE2eDocument(input, scope)
   const client = requireWriteClient()
   // publishedId is derivable from input._id alone, so the save (which fetches/writes the
@@ -912,7 +948,7 @@ export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope
       'A publicação não foi confirmada. Tente novamente — se persistir, contacte o suporte técnico.',
     )
   invalidateSanityCollectionsCache()
-  return result
+  return withSignature(result)
 }
 
 const slugFromTitle = (title: string) =>
@@ -966,7 +1002,8 @@ export const createSiteEditorDocument = async (
   }
   // Sanity treats every ID containing a dot as a private sub-path. Keep
   // published website content at the root so anonymous visitors can read it.
-  const id = `${type}-${randomUUID()}`
+  const identity = type === 'sitePage' ? (normalizedRoute ?? `/${slug}`) : `${type}:${slug}`
+  const id = `${type}-${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
   const base: Record<string, unknown> = {
     _id: editorDraftId(id),
     _type: type,
@@ -975,7 +1012,7 @@ export const createSiteEditorDocument = async (
   if (type === 'sitePage') {
     const hero = createBuilderSection('builderHeroSection')
     hero.title = {...hero.title, pt: title}
-    hero.body = {...hero.body, pt: ''}
+    hero.body = {_type: 'localizedText', pt: ''}
     base.editorVersion = 1
     base.title = title
     base.route = normalizedRoute
@@ -1001,7 +1038,11 @@ export const createSiteEditorDocument = async (
   }
 
   validateStructuredValue(base)
-  return requireWriteClient().create(base as SiteEditorDocument)
+  const created = await requireWriteClient().createIfNotExists(base as SiteEditorDocument)
+  if (created._type !== type) {
+    throw new SiteEditorDuplicateError('Já existe conteúdo com este endereço.')
+  }
+  return withSignature(created)
 }
 
 export const deleteSiteEditorDocument = async (id: string, scope = 'default') => {

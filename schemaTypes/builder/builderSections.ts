@@ -57,6 +57,34 @@ const sectionPreview = (fallbackTitle: string) => ({
   }),
 })
 
+export const builderManagedSection = defineType({
+  name: 'builderManagedSection',
+  title: 'Conteúdo atual da página',
+  type: 'object',
+  fields: [
+    defineField({
+      name: 'internalLabel',
+      title: 'Nome no editor',
+      type: 'string',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'component',
+      title: 'Componente da página',
+      type: 'string',
+      readOnly: true,
+      hidden: true,
+    }),
+    defineField({
+      name: 'enabled',
+      title: 'Mostrar no site',
+      type: 'boolean',
+      initialValue: true,
+    }),
+  ],
+  preview: sectionPreview('Conteúdo atual da página'),
+})
+
 export const builderHeroSection = defineType({
   name: 'builderHeroSection',
   title: 'Destaque principal',
@@ -130,6 +158,19 @@ export const builderMediaSection = defineType({
         ],
         layout: 'radio',
       },
+    }),
+    defineField({
+      name: 'variant',
+      title: 'Apresentação interna',
+      description: 'Mantém a apresentação de secções migradas pelo editor do site.',
+      type: 'string',
+      hidden: true,
+    }),
+    defineField({
+      name: 'labelStyle',
+      title: 'Apresentação do rótulo',
+      type: 'string',
+      hidden: true,
     }),
   ],
   preview: sectionPreview('Texto com imagem ou vídeo'),
@@ -251,12 +292,14 @@ export const builderCollectionSection = defineType({
       title: 'Mostrar pesquisa',
       type: 'boolean',
       initialValue: false,
+      hidden: true,
     }),
     defineField({
       name: 'showPagination',
       title: 'Mostrar paginação',
       type: 'boolean',
       initialValue: false,
+      hidden: true,
     }),
     actionsField(),
   ],
@@ -296,7 +339,7 @@ export const builderCtaSection = defineType({
 
 export const builderContactSection = defineType({
   name: 'builderContactSection',
-  title: 'Formulário de contacto',
+  title: 'Bloco de contacto',
   type: 'object',
   fields: [
     ...commonSectionFields(),
@@ -322,10 +365,11 @@ export const builderContactSection = defineType({
       initialValue: true,
     }),
   ],
-  preview: sectionPreview('Formulário de contacto'),
+  preview: sectionPreview('Bloco de contacto'),
 })
 
 export const builderSectionTypes = [
+  builderManagedSection,
   builderHeroSection,
   builderRichTextSection,
   builderMediaSection,

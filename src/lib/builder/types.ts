@@ -9,6 +9,13 @@ export type LocalizedValue = TextAppearance & {
   translationHash?: string
 }
 
+export type LocalizedArticleValue = {
+  _type?: 'localizedArticle'
+  pt?: unknown[]
+  en?: unknown[]
+  es?: unknown[]
+}
+
 export type BuilderTypography = {
   _type?: 'builderTypography'
   fontFamily?: string
@@ -51,6 +58,7 @@ export type BuilderMedia = {
   image?: SanityAssetValue
   videoFile?: SanityAssetValue
   poster?: SanityAssetValue
+  captions?: SanityAssetValue
   youtubeUrl?: string
   alt?: LocalizedValue
   caption?: LocalizedValue
@@ -90,6 +98,7 @@ export type BuilderStat = {
 }
 
 export type BuilderSectionType =
+  | 'builderManagedSection'
   | 'builderHeroSection'
   | 'builderRichTextSection'
   | 'builderMediaSection'
@@ -101,22 +110,40 @@ export type BuilderSectionType =
   | 'builderCtaSection'
   | 'builderContactSection'
 
+export type ManagedSectionComponent =
+  | 'homeCore'
+  | 'aboutCore'
+  | 'productsCore'
+  | 'storeCore'
+  | 'cartCore'
+  | 'catalogueCore'
+  | 'casesCore'
+  | 'blogCore'
+  | 'contactCore'
+  | 'returnsCore'
+  | 'productDetailCore'
+  | 'storeDetailCore'
+  | 'caseDetailCore'
+  | 'blogDetailCore'
+
 export type BuilderSection = {
   _type: BuilderSectionType
   _key: string
+  component?: ManagedSectionComponent
   internalLabel?: string
   anchor?: string
   enabled?: boolean
   layout?: BuilderLayout
   eyebrow?: LocalizedValue
   title?: LocalizedValue
-  body?: LocalizedValue | unknown[]
+  body?: LocalizedValue | LocalizedArticleValue | unknown[]
   titleStyle?: BuilderTypography
   bodyStyle?: BuilderTypography
   actions?: BuilderLink[]
   media?: BuilderMedia
   items?: Array<BuilderMedia | BuilderCard | BuilderStat | Record<string, unknown>>
   variant?: string
+  labelStyle?: 'caption' | 'pill' | 'eyebrow'
   minHeight?: number
   mediaSide?: string
   presentation?: string

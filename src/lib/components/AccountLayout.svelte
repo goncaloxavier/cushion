@@ -17,11 +17,43 @@
 
   const copy: Record<
     string,
-    {kicker: string; title: string; logout: string; data: string; addresses: string; orders: string}
+    {
+      kicker: string
+      title: string
+      logout: string
+      data: string
+      addresses: string
+      orders: string
+      privacy: string
+    }
   > = {
-    pt: {kicker: 'Área de cliente', title: 'A sua conta', logout: 'Terminar sessão', data: 'Dados', addresses: 'Moradas', orders: 'Encomendas'},
-    en: {kicker: 'Customer area', title: 'Your account', logout: 'Sign out', data: 'Details', addresses: 'Addresses', orders: 'Orders'},
-    es: {kicker: 'Área de cliente', title: 'Tu cuenta', logout: 'Cerrar sesión', data: 'Datos', addresses: 'Direcciones', orders: 'Pedidos'},
+    pt: {
+      kicker: 'Área de cliente',
+      title: 'A sua conta',
+      logout: 'Terminar sessão',
+      data: 'Dados',
+      addresses: 'Moradas',
+      orders: 'Encomendas',
+      privacy: 'Privacidade',
+    },
+    en: {
+      kicker: 'Customer area',
+      title: 'Your account',
+      logout: 'Sign out',
+      data: 'Details',
+      addresses: 'Addresses',
+      orders: 'Orders',
+      privacy: 'Privacy',
+    },
+    es: {
+      kicker: 'Área de cliente',
+      title: 'Tu cuenta',
+      logout: 'Cerrar sesión',
+      data: 'Datos',
+      addresses: 'Direcciones',
+      orders: 'Pedidos',
+      privacy: 'Privacidad',
+    },
   }
 
   const t = $derived(copy[language] ?? copy.pt)
@@ -31,6 +63,7 @@
     {key: 'dados', href: `/conta/dados${langQuery}`, label: t.data},
     {key: 'moradas', href: `/conta/moradas${langQuery}`, label: t.addresses},
     {key: 'encomendas', href: `/conta/encomendas${langQuery}`, label: t.orders},
+    {key: 'privacidade', href: `/conta/privacidade${langQuery}`, label: t.privacy},
   ])
 
   const active = $derived(
@@ -38,6 +71,8 @@
       ? 'moradas'
       : page.url.pathname.includes('/encomendas')
         ? 'encomendas'
+        : page.url.pathname.includes('/privacidade')
+          ? 'privacidade'
         : 'dados',
   )
 

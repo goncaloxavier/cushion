@@ -1,6 +1,6 @@
 import type {Cookies} from '@sveltejs/kit'
 import {databaseConfigured, query, withTransaction} from './db'
-import {rateLimit} from './rate-limit'
+import {distributedRateLimit} from './rate-limit'
 import {dummyHash, hashPassword, randomToken, tokenHashOf, verifyPassword} from './password-auth'
 
 export {tokenHashOf} from './password-auth'
@@ -44,7 +44,7 @@ const mapCustomer = (row: CustomerRow): CustomerUser => ({
   privacyConsentAt: row.privacy_consent_at,
 })
 
-export const customerRateLimit = rateLimit
+export const customerRateLimit = distributedRateLimit
 
 export const normalizeCustomerEmail = (value: string) => value.trim().toLowerCase()
 
@@ -250,17 +250,16 @@ export const createEmailVerificationToken = async (customerId: string) => {
 export const verifyCustomerEmailToken = async (token: string) => {
   const hash = tokenHashOf(token)
   return withTransaction(async (client) => {
-    const found = await client.query<{id: string; customer_id: string}>(
-      `select id, customer_id
-       from email_verification_tokens
+    const consumed = await client.query<{customer_id: string}>(
+      `update email_verification_tokens
+       set used_at = now()
        where token_hash = $1 and used_at is null and expires_at > now()
-       limit 1`,
+       returning customer_id`,
       [hash],
     )
-    const row = found.rows[0]
+    const row = consumed.rows[0]
     if (!row) return {ok: false as const, customerId: ''}
 
-    await client.query('update email_verification_tokens set used_at = now() where id = $1', [row.id])
     await client.query('update customers set email_verified_at = now(), updated_at = now() where id = $1', [
       row.customer_id,
     ])
@@ -290,17 +289,16 @@ export const resetCustomerPasswordWithToken = async (token: string, password: st
   const hash = tokenHashOf(token)
 
   return withTransaction(async (client) => {
-    const found = await client.query<{id: string; customer_id: string}>(
-      `select id, customer_id
-       from password_reset_tokens
+    const consumed = await client.query<{customer_id: string}>(
+      `update password_reset_tokens
+       set used_at = now()
        where token_hash = $1 and used_at is null and expires_at > now()
-       limit 1`,
+       returning customer_id`,
       [hash],
     )
-    const row = found.rows[0]
+    const row = consumed.rows[0]
     if (!row) return false
 
-    await client.query('update password_reset_tokens set used_at = now() where id = $1', [row.id])
     await client.query('update customers set password_hash = $1, updated_at = now() where id = $2', [
       passwordHash,
       row.customer_id,

@@ -21,10 +21,23 @@ import {
 import {syncPreviewAdminPolicy} from '../src/lib/server/preview-admin'
 import {storeContactSubmission} from '../src/lib/server/crm'
 import {deleteSetting, getSetting, getSettingMeta, setSetting} from '../src/lib/server/app-settings'
+import {
+  countOpenOperationalIncidents,
+  listOperationalIncidents,
+  recordOperationalIncident,
+  resolveOperationalIncident,
+} from '../src/lib/server/incidents'
+import {
+  createPrivacyRequest,
+  exportCustomerData,
+  listCustomerPrivacyRequests,
+} from '../src/lib/server/privacy'
 
 const uniqueSuffix = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 test.describe('server foundations', () => {
-  test('customer lifecycle and staff order updates persist against Postgres', async ({browserName}, testInfo) => {
+  test('customer lifecycle, staff order updates, and privacy-safe exports persist against Postgres', async ({
+    browserName,
+  }, testInfo) => {
     test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
     test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
 
@@ -60,18 +73,18 @@ test.describe('server foundations', () => {
 
       const inserted = await query<{id: string}>(
         `insert into orders (
-          order_number, language, customer_name, email, phone, nif, purchase_type,
+          customer_id, order_number, language, customer_name, email, phone, nif, purchase_type,
           billing_address, billing_postal_code, billing_locality,
           delivery_address, delivery_postal_code, delivery_locality, delivery_zone,
           product_net, transport_net, vat, total_gross, total_weight_kg, transport_multiplier,
           privacy_consent_at
         ) values (
-          $1, 'pt', 'Audit customer', $2, '', '', 'individual',
+          $1, $2, 'pt', 'Audit customer', $3, '', '', 'individual',
           'Rua de teste', '1000-001', 'Lisboa',
           'Rua de teste', '1000-001', 'Lisboa', 'Lisboa',
           10, 2, 2.76, 14.76, 1, 2.5, now()
         ) returning id`,
-        [`AUDIT-${suffix}`, email],
+        [customer.id, `AUDIT-${suffix}`, email],
       )
       orderId = inserted.rows[0]!.id
 
@@ -82,9 +95,102 @@ test.describe('server foundations', () => {
       expect(order?.internalNotes).toContain('Pagamento preparado para validação.')
       expect(order?.events.some((event) => event.status === 'payment_link_sent')).toBe(true)
       expect(order?.events.some((event) => event.status === 'internal_note')).toBe(true)
+
+      const exported = await exportCustomerData(customer.id)
+      expect(exported.orders).toHaveLength(1)
+      expect(exported.orderEvents.some((event) => event.status === 'payment_link_sent')).toBe(true)
+      expect(exported.orderEvents.some((event) => event.status === 'internal_note')).toBe(false)
+      expect(
+        exported.orderEvents.every(
+          (event) =>
+            !Object.prototype.hasOwnProperty.call(event, 'actor_label') &&
+            !Object.prototype.hasOwnProperty.call(event, 'actorLabel'),
+        ),
+      ).toBe(true)
+      expect(JSON.stringify(exported.orderEvents)).not.toContain(
+        'Pagamento preparado para validação.',
+      )
     } finally {
       if (orderId) await query('delete from orders where id = $1', [orderId])
       if (customerId) await query('delete from customers where id = $1', [customerId])
+    }
+  })
+
+  test('customer registration, verified login, account access, and logout work through the real routes', async ({
+    page,
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    const email = `route-account-${suffix}@example.test`
+    const password = 'Route-password-123!'
+    let customerId = ''
+
+    try {
+      // This suite deliberately reuses a local development database between
+      // runs. Clear only its test-owned customer-auth buckets so repeated
+      // audits do not trip the production rate limit with Playwright's shared
+      // loopback address.
+      await query(
+        `delete from rate_limit_buckets
+         where key like 'register:%'
+            or key like 'register-email:%'
+            or key like 'login:%'
+            or key like 'login-email:%'`,
+      )
+
+      await page.goto('/conta/registar?lang=pt')
+      await page.waitForLoadState('networkidle')
+      const firstNameInput = page.locator('input[name="firstName"]')
+      const lastNameInput = page.locator('input[name="lastName"]')
+      const emailInput = page.locator('input[name="email"]')
+      await firstNameInput.fill('Conta')
+      await lastNameInput.fill('Auditoria')
+      await emailInput.fill(email)
+      await page.locator('input[name="password"]').fill(password)
+      await page.locator('input[name="passwordConfirm"]').fill(password)
+      await page.locator('input[name="privacyConsent"]').check()
+      await expect(firstNameInput).toHaveValue('Conta')
+      await expect(lastNameInput).toHaveValue('Auditoria')
+      await expect(emailInput).toHaveValue(email)
+      await page.getByRole('button', {name: 'Criar conta'}).click()
+      await expect(page).toHaveURL(/\/conta\/entrar/)
+
+      const customer = await query<{id: string}>(
+        `update customers
+         set email_verified_at = now(), updated_at = now()
+         where email = $1
+         returning id`,
+        [email],
+      )
+      customerId = customer.rows[0]!.id
+
+      await page.waitForLoadState('networkidle')
+      const loginEmailInput = page.locator('input[name="email"]')
+      const loginPasswordInput = page.locator('input[name="password"]')
+      await loginEmailInput.fill(email)
+      await loginPasswordInput.fill(password)
+      await expect(loginEmailInput).toHaveValue(email)
+      await expect(loginPasswordInput).toHaveValue(password)
+      await page.getByRole('button', {name: 'Entrar', exact: true}).click()
+      await expect(page).toHaveURL(/\/conta\/dados/)
+      await expect(page.getByRole('heading', {name: 'A sua conta'})).toBeVisible()
+
+      await page.getByRole('button', {name: 'Terminar sessão'}).click()
+      await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:\d+\/$/)
+      await page.goto('/conta/dados?lang=pt')
+      await expect(page).toHaveURL(/\/conta\/entrar/)
+    } finally {
+      if (customerId) await query('delete from customers where id = $1', [customerId])
+      await query(
+        `delete from rate_limit_buckets
+         where key like 'register:%'
+            or key like 'register-email:%'
+            or key like 'login:%'
+            or key like 'login-email:%'`,
+      )
     }
   })
 
@@ -349,6 +455,88 @@ test.describe('server foundations', () => {
       expect(await getSetting(key)).toBeNull()
     } finally {
       await query('delete from app_settings where key = $1', [key])
+    }
+  })
+
+  test('operational incidents deduplicate, remain visible, and can be resolved', async ({
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    const fingerprint = `audit-incident-${suffix}`
+    const title = `Falha de auditoria ${suffix}`
+    let staffId = ''
+    try {
+      const staff = await createStaff({
+        name: 'Incident Auditor',
+        username: `incident-${suffix}`,
+        password: 'Audit-password-123!',
+        role: 'admin',
+      })
+      staffId = staff.id
+      const before = await countOpenOperationalIncidents()
+      await recordOperationalIncident({
+        fingerprint,
+        category: 'test',
+        title,
+        detail: 'Primeira ocorrência',
+      })
+      await recordOperationalIncident({
+        fingerprint,
+        category: 'test',
+        severity: 'error',
+        title,
+        detail: 'Segunda ocorrência',
+      })
+      const incident = (await listOperationalIncidents()).find(
+        (row) => row.title === title,
+      )
+      expect(incident).toBeTruthy()
+      expect(incident?.occurrences).toBe(2)
+      expect(await countOpenOperationalIncidents()).toBe(before + 1)
+      expect(await resolveOperationalIncident(incident!.id, staff.id)).toBe(true)
+      expect((await listOperationalIncidents()).some((row) => row.id === incident!.id)).toBe(false)
+    } finally {
+      await query(
+        `delete from operational_incidents
+         where category = 'test' and title = $1`,
+        [title],
+      )
+      if (staffId) await query('delete from staff_users where id = $1', [staffId])
+    }
+  })
+
+  test('customer privacy requests are deduplicated and exports include the request', async ({
+    browserName,
+  }, testInfo) => {
+    test.skip(Boolean(browserName) && testInfo.project.name !== 'desktop-chrome', 'Runs once against CI Postgres')
+    test.skip(!databaseConfigured(), 'Requires DATABASE_URL (CI supplies an ephemeral Postgres service)')
+
+    const suffix = uniqueSuffix()
+    const email = `privacy-${suffix}@example.test`
+    let customerId = ''
+    try {
+      const customer = await createCustomer({
+        email,
+        password: 'Audit-password-123!',
+        name: 'Privacy Auditor',
+      })
+      customerId = customer.id
+      const first = await createPrivacyRequest(customer, 'access', 'Primeiro pedido')
+      const second = await createPrivacyRequest(customer, 'access', 'Pedido atualizado')
+      expect(second.id).toBe(first.id)
+      expect((await listCustomerPrivacyRequests(customer.id))).toHaveLength(1)
+      const exported = await exportCustomerData(customer.id)
+      expect(exported.customer).toMatchObject({email})
+      expect(exported.privacyRequests).toHaveLength(1)
+      expect(exported.privacyRequests[0]).toMatchObject({requestType: 'access'})
+    } finally {
+      if (customerId) {
+        await query('delete from privacy_requests where customer_id = $1', [customerId])
+        await query('delete from customers where id = $1', [customerId])
+      }
     }
   })
 })
