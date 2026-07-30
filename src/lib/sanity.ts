@@ -56,12 +56,49 @@ const siteEditorSettingsQuery = `coalesce(
   *[_type == "builderSiteSettings"][0]
 )`
 
+/**
+ * A page the client built themselves, as the offline fixtures see it. Pages like
+ * this are the one kind of route with no hardcoded fallback, so without a fixture
+ * the whole custom-page path — route resolution, section rendering, SEO — was
+ * only ever exercised against live Sanity. It also carries real section content,
+ * because a page that resolves but renders nothing is the failure worth catching.
+ */
+const FIXTURE_SITE_PAGE_ROUTE = '/pagina-de-teste'
+
+const fixtureSitePage = (route: string) =>
+  route === FIXTURE_SITE_PAGE_ROUTE
+    ? {
+        _id: 'sitePage.fixture',
+        _type: 'sitePage',
+        title: 'Página de teste',
+        route: FIXTURE_SITE_PAGE_ROUTE,
+        active: true,
+        sections: [
+          {
+            _type: 'builderRichTextSection',
+            _key: 'fixture-page-section',
+            internalLabel: 'Introdução',
+            enabled: true,
+            title: {_type: 'localizedString', pt: 'Uma página criada no editor'},
+            body: {_type: 'localizedText', pt: 'Conteúdo real desta página.'},
+          },
+        ],
+      }
+    : null
+
 export const getSitePage = async (route: string, preview = false) => {
+  // The rest of this module refuses to reach Sanity when remote is disabled;
+  // these two did not, so every offline test run was quietly making live
+  // requests for custom pages and settings.
+  if (env.SANITY_DISABLE_REMOTE === 'true') return fixtureSitePage(route)
+
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(sitePageQuery, {route, includeInactive: preview})
 }
 
 export const getSiteEditorSettings = async (preview = false) => {
+  if (env.SANITY_DISABLE_REMOTE === 'true') return null
+
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   return client.fetch(siteEditorSettingsQuery)
 }
@@ -121,7 +158,9 @@ export const getBuilderDocumentSections = async (
 }
 
 export const getPublicSitePages = async () => {
-  if (env.SANITY_DISABLE_REMOTE === 'true') return []
+  // Same fixture page as getSitePage, so the sitemap and the route agree offline
+  // — a custom page reachable but missing from the sitemap is invisible to search.
+  if (env.SANITY_DISABLE_REMOTE === 'true') return [{route: FIXTURE_SITE_PAGE_ROUTE}]
   try {
     return await publishedClient().fetch<Array<{route: string; updatedAt?: string}>>(`*[
       _type == "sitePage" &&
