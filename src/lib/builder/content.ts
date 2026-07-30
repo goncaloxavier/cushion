@@ -4,10 +4,20 @@ import type {
 } from '$lib/builder/types'
 import type {LanguageCode} from '$lib/site-content'
 
+/**
+ * Localized *text*. A rich-text field has the same shape but holds an array of
+ * blocks per language, and callers cannot always tell the two apart — handing one
+ * here used to throw `.trim is not a function`, which broke hydration and took
+ * every section on the page down with it. Anything that is not a string reads as
+ * "no text", which is what the callers actually mean.
+ */
 export const builderLocalized = (
   value: LocalizedValue | undefined,
   language: LanguageCode,
-) => value?.[language]?.trim() || value?.pt?.trim() || ''
+) => {
+  const text = (candidate: unknown) => (typeof candidate === 'string' ? candidate.trim() : '')
+  return text(value?.[language]) || text(value?.pt) || ''
+}
 
 export const builderLocalizedArticle = (value: unknown, language: LanguageCode): unknown[] => {
   if (Array.isArray(value)) return value

@@ -170,6 +170,191 @@ const fixtureSitePages: Record<string, unknown[]> = {
   ],
 }
 
+// One section per background the editor offers, each carrying every kind of text
+// a section can hold. The client reported black text left sitting on a dark blue
+// background; this is the page that proves whether any surface does that.
+const surfaceSection = (surface: string, index: number) => ({
+  _type: 'builderCtaSection',
+  _key: `surface-${surface}`,
+  internalLabel: `Fundo ${surface}`,
+  enabled: true,
+  eyebrow: localized('Antes'),
+  title: localized(`Fundo ${surface}`),
+  body: localizedBody('Texto de exemplo sobre este fundo.'),
+  actions: [
+    {_type: 'builderLink', _key: `a-${index}`, label: localized('Saber mais'), href: '/contacto', style: 'secondary'},
+  ],
+  layout: {_type: 'builderLayout', surface},
+})
+
+fixtureSitePages['/pagina-fundos'] = ['white', 'fog', 'mint', 'deep', 'blue', 'transparent'].map(
+  surfaceSection,
+)
+
+// The reported case, reproduced exactly: text the client coloured while the
+// section was light, on a section they later made dark. Every one of these picks
+// is legible on white and unreadable where it now sits.
+fixtureSitePages['/pagina-fundos-escolhidos'] = [
+  {
+    _type: 'builderCtaSection',
+    _key: 'chosen-dark-on-deep',
+    internalLabel: 'Texto escuro em fundo escuro',
+    enabled: true,
+    eyebrow: {...localized('Antes'), color: 'text'},
+    title: {...localized('Título escolhido a preto'), color: 'text'},
+    body: {...localizedBody('Corpo de texto escolhido a preto.'), color: 'text'},
+    titleStyle: {_type: 'builderTypography', color: 'text'},
+    layout: {_type: 'builderLayout', surface: 'deep'},
+  },
+  {
+    _type: 'builderCtaSection',
+    _key: 'chosen-custom-on-blue',
+    internalLabel: 'Cor personalizada em fundo azul',
+    enabled: true,
+    title: {...localized('Título com cor personalizada'), color: '#101010'},
+    body: {...localizedBody('Corpo com cor personalizada.'), color: '#1a1a1a'},
+    layout: {_type: 'builderLayout', surface: 'blue'},
+  },
+  {
+    // The mirror image: white text the client chose, on a white section.
+    _type: 'builderCtaSection',
+    _key: 'chosen-white-on-white',
+    internalLabel: 'Texto branco em fundo branco',
+    enabled: true,
+    title: {...localized('Título branco'), color: 'white'},
+    body: {...localizedBody('Corpo branco.'), color: 'white'},
+    layout: {_type: 'builderLayout', surface: 'white'},
+  },
+]
+
+// Every section type the picker offers, all on the same dark background. The
+// client reported the automatic list still showing dark card text on blue; this
+// covers that and the nine other types alongside it, because a background choice
+// applies to all of them equally.
+const darkSurface = {_type: 'builderLayout', surface: 'blue', columns: 3, mobileColumns: 1}
+
+fixtureSitePages['/pagina-tipos-escuro'] = [
+  {
+    _type: 'builderHeroSection',
+    _key: 'dark-hero',
+    internalLabel: 'Destaque principal',
+    enabled: true,
+    variant: 'split',
+    minHeight: 420,
+    eyebrow: localized('Destaque'),
+    title: localized('Destaque principal'),
+    body: localizedBody('Abertura com título e imagem.'),
+    media: fixtureImage,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderMediaSection',
+    _key: 'dark-media',
+    internalLabel: 'Texto com imagem',
+    enabled: true,
+    mediaSide: 'left',
+    title: localized('Texto com imagem'),
+    body: localizedBody('Texto e media lado a lado.'),
+    media: fixtureImage,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderRichTextSection',
+    _key: 'dark-rich',
+    internalLabel: 'Texto editorial',
+    enabled: true,
+    title: localized('Texto editorial'),
+    body: {
+      _type: 'localizedArticle',
+      pt: [
+        {
+          _type: 'block',
+          _key: 'rt1',
+          style: 'normal',
+          children: [{_type: 'span', _key: 'rs1', text: 'Parágrafo editorial de exemplo.', marks: []}],
+        },
+      ],
+    },
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderGallerySection',
+    _key: 'dark-gallery',
+    internalLabel: 'Galeria',
+    enabled: true,
+    title: localized('Galeria'),
+    items: [{...fixtureImage, _key: 'g1', caption: localized('Legenda da imagem')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCardsSection',
+    _key: 'dark-cards',
+    internalLabel: 'Cartões',
+    enabled: true,
+    title: localized('Cartões'),
+    items: [
+      {
+        _key: 'c1',
+        eyebrow: localized('Etiqueta'),
+        title: localized('Cartão de exemplo'),
+        body: localizedBody('Descrição curta do cartão.'),
+      },
+    ],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderStatsSection',
+    _key: 'dark-stats',
+    internalLabel: 'Números',
+    enabled: true,
+    title: localized('Números'),
+    items: [{_key: 's1', value: localized('120'), label: localized('Projetos concluídos')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCollectionSection',
+    _key: 'dark-collection',
+    internalLabel: 'Lista automática',
+    enabled: true,
+    title: localized('Lista automática'),
+    source: 'productCategory',
+    limit: 3,
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderPartnersSection',
+    _key: 'dark-partners',
+    internalLabel: 'Parceiros',
+    enabled: true,
+    title: localized('Parceiros'),
+    items: [{_key: 'p1', name: localized('Parceiro exemplo'), text: localized('Projeto conjunto')}],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderCtaSection',
+    _key: 'dark-cta',
+    internalLabel: 'Chamada para ação',
+    enabled: true,
+    title: localized('Chamada para ação'),
+    body: localizedBody('Mensagem curta com um botão.'),
+    actions: [
+      {_type: 'builderLink', _key: 'ca1', label: localized('Contactar'), href: '/contacto', style: 'secondary'},
+    ],
+    layout: darkSurface,
+  },
+  {
+    _type: 'builderContactSection',
+    _key: 'dark-contact',
+    internalLabel: 'Contacto',
+    enabled: true,
+    title: localized('Contacto'),
+    body: localizedBody('Fale connosco.'),
+    formKind: 'contact',
+    showContactDetails: true,
+    layout: darkSurface,
+  },
+]
+
 const fixtureSitePage = (route: string) =>
   fixtureSitePages[route]
     ? {

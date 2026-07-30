@@ -159,3 +159,90 @@ test.describe('a page built from sections keeps its layout', () => {
     expect(result.sections).toHaveLength(1)
   })
 })
+
+/**
+ * Background and text colour are picked in two different places, at two
+ * different times. The client styled a heading while its section was light, then
+ * made the section dark blue — and the heading kept the near-black they had
+ * chosen, because an inline colour beats the surface's own rule. Nothing warned
+ * them; the page just became unreadable.
+ *
+ * These render every background the editor offers, and the reported case
+ * exactly: colours that are fine on white, sitting on a section that no longer
+ * is.
+ */
+const CONTRAST_FLOOR = 4.5
+
+const measureText = (page: Page) =>
+  page.evaluate(`(function () {
+    function parse(value) {
+      var parts = value.match(/[\\d.]+/g)
+      if (!parts) return null
+      return {r: +parts[0], g: +parts[1], b: +parts[2], a: parts[3] === undefined ? 1 : +parts[3]}
+    }
+    function channel(c) { var v = c / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+    function lum(c) { return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b) }
+
+    var out = []
+    document.querySelectorAll('main .builder-render-section').forEach(function (section) {
+      // Walk outwards for the colour actually painted behind the text: a
+      // transparent section shows whatever is under it.
+      var surface = (section.className.match(/is-[a-z]+/) || ['?'])[0]
+
+      // Resolved from the text node outwards, so a card that paints its own
+      // background is measured against that and not against the section.
+      function backdropFor(node) {
+        for (var el = node; el; el = el.parentElement) {
+          var bg = parse(getComputedStyle(el).backgroundColor)
+          if (bg && bg.a > 0.95) return bg
+        }
+        return {r: 255, g: 255, b: 255}
+      }
+      // Every element that paints its own text, not a hand-kept list of classes:
+      // the classes are exactly what a new section type would not be added to.
+      var texts = [].slice.call(section.querySelectorAll('*')).filter(function (node) {
+        if (node.closest('.builder-empty-state')) return false
+        var own = [].slice.call(node.childNodes).some(function (child) {
+          return child.nodeType === 3 && child.textContent.trim().length > 1
+        })
+        if (!own) return false
+        var box = node.getBoundingClientRect()
+        return box.width > 0 && box.height > 0
+      })
+      texts.forEach(function (node) {
+        var backdrop = backdropFor(node)
+        var fg = parse(getComputedStyle(node).color)
+        var alpha = fg.a
+        var blended = {
+          r: fg.r * alpha + backdrop.r * (1 - alpha),
+          g: fg.g * alpha + backdrop.g * (1 - alpha),
+          b: fg.b * alpha + backdrop.b * (1 - alpha)
+        }
+        var pair = [lum(blended), lum(backdrop)].sort(function (x, y) { return y - x })
+        out.push({
+          surface: surface,
+          what: node.tagName.toLowerCase() + (node.className ? '.' + String(node.className).split(' ')[0] : ''),
+          text: (node.textContent || '').trim().slice(0, 32),
+          ratio: (pair[0] + 0.05) / (pair[1] + 0.05)
+        })
+      })
+    })
+    return out
+  })()`) as Promise<Array<{surface: string; what: string; text: string; ratio: number}>>
+
+for (const route of ['/pagina-fundos', '/pagina-fundos-escolhidos', '/pagina-tipos-escuro']) {
+  test(`text stays readable on every background (${route})`, async ({page}, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Desktop contrast contract')
+    await page.goto(`${route}?lang=pt`)
+    await expect(page.locator('main .builder-render-section').first()).toBeVisible()
+
+    const measured = await measureText(page)
+    expect(measured.length, 'no section text was measured').toBeGreaterThan(0)
+
+    const failures = measured
+      .filter((entry) => entry.ratio < CONTRAST_FLOOR)
+      .map((entry) => `${entry.surface} ${entry.what} ("${entry.text}") is ${entry.ratio.toFixed(2)}:1`)
+
+    expect(failures, `unreadable text:\n${failures.join('\n')}`).toEqual([])
+  })
+}

@@ -86,7 +86,10 @@
       `--builder-text:${safeHex(theme?.textColor, '#10231f')}`,
       `--builder-muted:${safeHex(theme?.mutedColor, '#49605a')}`,
       `--builder-deep:${safeHex(theme?.deepColor, '#073f45')}`,
-      `--builder-green:${safeHex(theme?.greenColor, '#2f8b69')}`,
+      // #2f8b69 gives white button labels 4.19:1. This is the nearest green that
+      // clears 4.5:1 — a difference of a couple of steps, and the difference
+      // between a compliant button and one that is not.
+      `--builder-green:${safeHex(theme?.greenColor, '#2b8261')}`,
       `--builder-blue:${safeHex(theme?.blueColor, '#17657a')}`,
       `--builder-yellow:${safeHex(theme?.yellowColor, '#d7bd35')}`,
       `--builder-fog:${safeHex(theme?.fogColor, '#eef7f3')}`,
@@ -201,12 +204,17 @@
     // section's own fields — empty fields there mean nothing.
     if (landingVariant(section) || section.variant === 'product-feature') return true
 
-    const text = [section.eyebrow, section.title, section.body]
-      .map((value) => builderLocalized(value, language))
-      .some((value) => Boolean(value && String(value).trim()))
-    if (text) return true
+    // A rich-text body is an article array, not a string, and builderLocalized
+    // calls .trim() on whatever it finds — handing it an array throws, which
+    // killed hydration and took every section on the page with it.
+    const plainText = (value: unknown) => {
+      const localized = value as Record<string, unknown> | undefined
+      const candidate = localized?.[language] ?? localized?.pt
+      return typeof candidate === 'string' ? candidate.trim() : ''
+    }
 
-    // Rich text bodies are article arrays rather than plain strings.
+    if ([section.eyebrow, section.title, section.body].some((value) => plainText(value))) return true
+
     const body = (section as Record<string, any>).body
     if (Array.isArray(body?.[language]) && body[language].length) return true
     if (Array.isArray(body?.pt) && body.pt.length) return true
@@ -468,7 +476,7 @@
             <Reveal variant={section._type === 'builderHeroSection' ? 'hero' : 'panel'} priority={preview}>
               {#if section._type === 'builderHeroSection'}
                 <div class={`builder-hero is-${section.variant ?? 'split'}`}>
-                  <BuilderSectionHeading {section} {language} {preview} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                   <BuilderMedia media={section.media} {dataset} {language} {preview} />
                 </div>
               {:else if section._type === 'builderMediaSection'}
@@ -476,18 +484,18 @@
                   {#if section.mediaSide === 'left' || section.mediaSide === 'top'}
                     <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   {/if}
-                  <BuilderSectionHeading {section} {language} {preview} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                   {#if section.mediaSide !== 'left' && section.mediaSide !== 'top'}
                     <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   {/if}
                 </div>
               {:else if section._type === 'builderRichTextSection'}
                 <div class="builder-editorial">
-                  <BuilderSectionHeading {section} {language} {preview} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                   <BuilderRichText value={section.body} {language} {dataset} />
                 </div>
               {:else if section._type === 'builderGallerySection'}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 <div
                   class={`builder-grid builder-gallery is-${section.presentation ?? 'grid'}`}
                   style={columnsStyle(section, 3)}
@@ -499,7 +507,7 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderCardsSection'}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 <div class="builder-grid builder-card-grid" style={columnsStyle(section, 3)}>
                   {#each sectionCards(section) ?? [] as card (card._key)}
                     <article class="builder-card">
@@ -517,7 +525,7 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderStatsSection'}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 <div class="builder-grid builder-stats" style={columnsStyle(section, 4)}>
                   {#each sectionStats(section) ?? [] as stat (stat._key)}
                     <article>
@@ -529,7 +537,7 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderCollectionSection'}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 <div class="builder-grid builder-collection" style={columnsStyle(section, 3)}>
                   {#each collectionItems(section) as item, index}
                     <CollectionCard
@@ -546,7 +554,7 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderPartnersSection'}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 <div class="builder-grid builder-partners" style={columnsStyle(section, 4)}>
                   {#each section.items ?? [] as partner, index}
                     {@const item = partner as Record<string, any>}
@@ -588,7 +596,7 @@
                     <BuilderMedia media={section.media} {dataset} {language} {preview} />
                   </div>
                 {/if}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                 {#if sectionActions(section).length}
                   <div class="builder-cta-actions">
                     {#each sectionActions(section) as action (action.key || action.href)}
@@ -603,7 +611,7 @@
                 {/if}
               {:else if section._type === 'builderContactSection'}
                 <div class="builder-contact-preview">
-                  <BuilderSectionHeading {section} {language} {preview} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
                   <div class="builder-contact-action">
                     {#if section.showContactDetails !== false}
                       <div>
@@ -625,7 +633,7 @@
                   </div>
                 </div>
               {:else}
-                <BuilderSectionHeading {section} {language} {preview} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
               {/if}
             </Reveal>
             {/if}

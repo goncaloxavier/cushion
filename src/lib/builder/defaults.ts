@@ -278,7 +278,7 @@ export const createBuilderSiteSettings = (): BuilderSiteSettings => {
       textColor: '#10231f',
       mutedColor: '#49605a',
       deepColor: '#073f45',
-      greenColor: '#2f8b69',
+      greenColor: '#2b8261',
       blueColor: '#17657a',
       yellowColor: '#d7bd35',
       fogColor: '#eef7f3',
