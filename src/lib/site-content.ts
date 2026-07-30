@@ -2359,13 +2359,30 @@ const contentCardsFromSanity = (
   language: LanguageCode,
   fallback: ContentCard[],
 ) => {
+  // The fallback is for a list the client has never touched. Once they are
+  // managing it, the list is theirs — and it was still being merged entry by
+  // entry, by position. Clearing an entry brought back the hardcoded copy that
+  // happened to sit at the same index, so a moment the client had emptied kept
+  // showing "Hoje" on the site while the editor showed it blank, and there was no
+  // way to delete text they had never written. Inserting an entry shifted every
+  // default onto the wrong row.
   if (!items?.length) return fallback
 
-  return items.map((item, index) => ({
-    title: localized(item.title, language, fallback[index]?.title ?? ''),
-    text: localized(item.text, language, fallback[index]?.text ?? ''),
-    textAppearance: appearanceMap({title: item.title, text: item.text}),
-  }))
+  return items
+    .map((item) => ({
+      title: localized(item.title, language, ''),
+      text: localized(item.text, language, ''),
+      textAppearance: appearanceMap({title: item.title, text: item.text}),
+    }))
+    // Emptiness is decided by the Portuguese, because Portuguese is what the
+    // client writes and en/es are machine output. An entry cleared in Portuguese
+    // kept rendering on the translated pages from the English left behind by an
+    // earlier version of it — so the About timeline showed two moments in
+    // Portuguese and four in English.
+    .filter((_item, index) => {
+      const source = items[index]
+      return Boolean(source?.title?.pt?.trim() || source?.text?.pt?.trim())
+    })
 }
 
 const localizedListFromSanity = (
@@ -2375,8 +2392,10 @@ const localizedListFromSanity = (
 ) => {
   if (!items?.length) return fallback
 
+  // Same positional coupling as the cards above: an entry the client cleared
+  // would show whichever hardcoded string sat at that index.
   return items
-    .map((item, index) => localized(item, language, fallback[index] ?? ''))
+    .map((item) => localized(item, language, ''))
     .filter(Boolean)
 }
 
@@ -2659,16 +2678,17 @@ const partnersFromSanity = (
   if (!items?.length) return fallback
 
   const normalized = items
-    .map((item, index) => {
-      const fallbackItem = fallback[index]
-      const fallbackLogo = fallbackItem?.logo ?? partnerLogos.abaae
-
+    .map((item) => {
+      // A partner the client cleared must not inherit the name, link or logo of
+      // whichever seeded partner shared its position. The logo is the one thing
+      // that still needs a stand-in, since a card with no image renders broken —
+      // and the filter below drops the entry anyway when there is no name.
       return {
-        name: item.name?.trim() || fallbackItem?.name || '',
-        url: item.url?.trim() || fallbackItem?.url || '',
-        logo: imageFromSanity(item.logo, language, fallbackLogo),
-        logoTone: item.logoTone ?? fallbackItem?.logoTone ?? 'light',
-        text: localized(item.text, language, fallbackItem?.text ?? ''),
+        name: item.name?.trim() || '',
+        url: item.url?.trim() || '',
+        logo: imageFromSanity(item.logo, language, partnerLogos.abaae),
+        logoTone: item.logoTone ?? 'light',
+        text: localized(item.text, language, ''),
       }
     })
     .filter((item) => item.name && item.logo.url)
