@@ -1,5 +1,9 @@
 import {expect, test} from '@playwright/test'
-import {carryMachineOwned, editorContentSignature} from '../src/lib/server/site-editor-conflict'
+import {
+  carryMachineOwned,
+  editorContentSignature,
+  editorSignatureMismatch,
+} from '../src/lib/server/site-editor-conflict'
 
 const blogFields = ['title', 'excerpt', 'gallery'] as const
 
@@ -140,4 +144,54 @@ test.describe('carryMachineOwned', () => {
     const created = post()
     expect(carryMachineOwned(created, undefined)).toEqual(created)
   })
+})
+
+test('the baseline describes the stored document, not a defaulted copy of it', () => {
+  // A landing document with no navigation gets defaults filled in on load so the
+  // editor has something to show. The signature is the baseline the next save is
+  // compared against, so it has to describe what the server actually holds — sign
+  // the defaulted copy instead and the first save fails a comparison against a
+  // document that never existed, and the client is told to reload the page over a
+  // default this code invented for them.
+  const landingFields = ['navigation', 'home'] as const
+  const stored = {
+    _id: 'drafts.siteLanding',
+    _type: 'siteLanding',
+    home: {hero: {title: {_type: 'localizedString', pt: 'Início'}}},
+  }
+  const defaulted = {
+    ...stored,
+    navigation: [{_key: 'n1', label: {_type: 'localizedString', pt: 'Sobre'}, href: '/sobre-nos'}],
+  }
+
+  const storedSignature = editorContentSignature(stored, landingFields)
+
+  // The two must differ — otherwise this test proves nothing about the ordering.
+  expect(editorContentSignature(defaulted, landingFields)).not.toBe(storedSignature)
+
+  // What the save path recomputes from the stored draft has to equal the baseline
+  // the load handed the client.
+  expect(editorContentSignature({...stored}, landingFields)).toBe(storedSignature)
+})
+
+test('a rejected save can name the field it disagreed about', () => {
+  // The reason this exists: a rejection used to be a single bit — the hashes
+  // matched or they did not — so telling a genuine concurrent edit from a fault
+  // in our own baseline meant reproducing it by hand. Naming the field turns the
+  // next occurrence into a log line.
+  const stored = post({gallery: [{_key: 'g1', alt: {_type: 'localizedString', pt: 'Imagem'}}]})
+  const sent = post({
+    title: {_type: 'localizedString', pt: 'Outro título'},
+    gallery: [{_key: 'g1', alt: {_type: 'localizedString', pt: 'Imagem'}}],
+  })
+
+  expect(editorSignatureMismatch(sent, stored, blogFields)).toEqual(['title'])
+
+  // A translation landing must not read as a disagreement — that was the whole
+  // point of hashing editor-owned content only.
+  expect(editorSignatureMismatch(translated(), post(), blogFields)).toEqual([])
+
+  // Identical documents disagree about nothing, so a rejection reporting "none"
+  // is itself the finding: the check fired when it should not have.
+  expect(editorSignatureMismatch(post(), post(), blogFields)).toEqual([])
 })

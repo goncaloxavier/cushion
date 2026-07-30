@@ -25,7 +25,7 @@ import {
   saveSiteEditorE2eDocument,
   siteEditorE2eEnabled,
 } from './site-editor-e2e'
-import {carryMachineOwned, editorContentSignature} from './site-editor-conflict'
+import {carryMachineOwned, editorContentSignature, editorSignatureMismatch} from './site-editor-conflict'
 import {
   SiteEditorCategoryInUseError,
   SiteEditorDuplicateError,
@@ -568,13 +568,19 @@ export const getSiteEditorDocument = async (id: string, scope = 'default') => {
     throw new SiteEditorValidationError(
       'Este conteúdo já não existe — pode ter sido eliminado por outra pessoa. Atualize a página.',
     )
+  // The signature is the baseline the next save is checked against, so it has to
+  // describe what is *stored*. Signing the augmented copy instead meant the
+  // client echoed back a baseline for a document the server had never held: the
+  // comparison failed on the very first save and the client was told to reload
+  // over a default this code had just invented for them.
+  const signed = withSignature(document)
   if (
     document._type === 'siteLanding' &&
     (!Array.isArray(document.navigation) || document.navigation.length === 0)
   ) {
-    return withSignature({...document, navigation: defaultNavigationDocuments()})
+    return {...signed, navigation: defaultNavigationDocuments()}
   }
-  return withSignature(document)
+  return signed
 }
 
 const validateStructuredValue = (value: unknown, depth = 0): void => {
@@ -841,12 +847,42 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   // change to fields the editor does not even own. Only treat it as a conflict
   // when the editor-owned content actually moved away from the baseline the
   // client last saw.
+  /**
+   * A rejected save is either a real concurrent edit or a fault in our own
+   * baseline, and until now the two looked identical from the outside. This
+   * records which editor-owned fields actually differ, plus whether the client
+   * even sent a baseline — an absent one means the document was loaded by a path
+   * that did not attach a signature, which is a bug on our side, not a conflict.
+   */
+  const reportConflict = (
+    documentId: string,
+    sent: Record<string, unknown>,
+    stored: SiteEditorDocument,
+  ) => {
+    const fields = editableFields[stored._type as keyof typeof editableFields]
+    const differing = editorSignatureMismatch(
+      sent as Record<string, unknown>,
+      stored as unknown as Record<string, unknown>,
+      fields,
+    )
+    const sentBaseline = typeof sent[signatureField] === 'string' ? sent[signatureField] : ''
+    console.warn(
+      `[site-editor] rejected a save of ${documentId} (${stored._type}): ` +
+        `baseline ${sentBaseline ? 'sent' : 'MISSING — the load path did not attach one'}, ` +
+        `sent _rev ${String(sent._rev ?? 'none')} vs stored ${stored._rev}, ` +
+        `differing fields: ${differing.length ? differing.join(', ') : 'none — the fields agree, so this rejection was wrong'}`,
+    )
+  }
+
   const baseline = typeof input[signatureField] === 'string' ? input[signatureField] : ''
   const matchesBaseline = (existing: SiteEditorDocument | null | undefined) =>
     Boolean(baseline) && baseline === editorSignature(existing)
 
   if (draft) {
     if ((!isDraft(input._id) || input._rev !== draft._rev) && !matchesBaseline(draft)) {
+      // Says why, so the next wrongly-rejected save explains itself in the logs
+      // instead of having to be reproduced. Field names only, never content.
+      reportConflict(publishedId, input, draft)
       throw new SiteEditorConflictError(
         'Este conteúdo foi alterado noutra janela. Recarregue antes de continuar.',
       )

@@ -89,3 +89,26 @@ export const carryMachineOwned = (next: unknown, previous: unknown): unknown => 
   }
   return result
 }
+
+/**
+ * Which fields the two sides disagree about.
+ *
+ * A rejected save currently tells the client to reload and tells us nothing. The
+ * whole-document hash is a single bit of information — same or different — so
+ * every wrongly-rejected save has had to be reproduced by hand before it could be
+ * explained. Hashing field by field turns the next occurrence into a log line
+ * naming the field, which is the one thing needed to tell a genuine concurrent
+ * edit from a bug in our own baseline.
+ *
+ * Content is never logged, only field names: these documents are the client's.
+ */
+export const editorSignatureMismatch = (
+  a: Record<string, unknown> | null | undefined,
+  b: Record<string, unknown> | null | undefined,
+  fields: readonly string[] | undefined,
+): string[] => {
+  if (!fields) return []
+  return fields.filter(
+    (field) => editorContentSignature(a, [field]) !== editorContentSignature(b, [field]),
+  )
+}
