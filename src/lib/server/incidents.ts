@@ -1,6 +1,17 @@
 import {createHash} from 'node:crypto'
 import {databaseConfigured, query} from './db'
 
+/**
+ * A developer-side record of failures that leave no other trace — checkout losing
+ * the catalogue, an order that could not be created, an email that did not send.
+ *
+ * It used to have a backoffice screen. That screen was removed: it asked the
+ * client to triage infrastructure faults, for a shop that is not fully wired yet,
+ * and every entry in that sidebar is something they have to understand. The
+ * writes stay because they cost nothing and the plumbing should already exist
+ * when checkout does go live — read them from the database or the logs, both of
+ * which are ours, not theirs.
+ */
 export type IncidentSeverity = 'warning' | 'error' | 'critical'
 
 export type OperationalIncident = {

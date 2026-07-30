@@ -62,7 +62,10 @@ export const actions: Actions = {
           `Pedido: ${privacyRequest.id}`,
           note ? `Nota: ${note}` : '',
           '',
-          'Consulte e trate o pedido no backoffice.',
+          // This email is the whole handover now: the staff queue it used to
+          // point at is gone, because it listed an event that happens roughly
+          // never and cost a permanent entry in a sidebar José reads every day.
+          'Responda diretamente ao cliente. O prazo legal de resposta é de um mês.',
         ]
           .filter(Boolean)
           .join('\n'),

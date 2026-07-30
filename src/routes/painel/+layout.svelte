@@ -13,7 +13,6 @@
       label: 'Visão geral',
       items: [
         {href: '/painel', label: 'Início'},
-        {href: '/painel/incidentes', label: 'Alertas'},
       ],
     },
     {
@@ -22,7 +21,6 @@
         {href: '/painel/pedidos', label: 'Pedidos de contacto'},
         {href: '/painel/perfis', label: 'Perfis de clientes'},
         {href: '/painel/encomendas', label: 'Encomendas'},
-        {href: '/painel/privacidade', label: 'Privacidade'},
       ],
     },
     {label: 'Site', items: [{href: '/painel/site', label: 'Website'}]},

@@ -26,13 +26,6 @@
   </div>
 </header>
 
-{#if data.incidentCount > 0}
-  <a class="painel-alert painel-dashboard-alert" data-tone="warn" href="/painel/incidentes">
-    <strong>{data.incidentCount} {data.incidentCount === 1 ? 'alerta operacional' : 'alertas operacionais'}</strong>
-    <span>Ver falhas que precisam de confirmação.</span>
-  </a>
-{/if}
-
 <div class="painel-stats">
   <a class="painel-stat" data-tone="accent" href="/painel/pedidos">
     <span>Pedidos de contacto por tratar</span>
