@@ -229,9 +229,28 @@ test('no editor control clips its own labels', async ({page}, testInfo) => {
     .click()
 
   // Open a section so its own controls are on screen — the composition picker
-  // that started this lives there, not in the section list.
-  await settings.locator('.site-editor-section-main').first().click()
-  await expect(settings.locator('.site-page-field, .site-page-choice').first()).toBeVisible()
+  // that started this lives there, not in the section list. It has to be a real
+  // section: the designed block is listed too, and opening that one leaves the
+  // list for the page's own fields instead of showing section controls.
+  const rows = settings.locator('.site-editor-section-list > article')
+  const count = await rows.count()
+  let opened = false
+  for (let index = 0; index < count; index += 1) {
+    await rows.nth(index).locator('.site-editor-section-main').click()
+    if (await settings.locator('.site-page-field, .site-page-choice').first().isVisible().catch(() => false)) {
+      opened = true
+      break
+    }
+    // That row was the designed block; go back and try the next one.
+    const back = settings.locator('.site-editor-panel-workspace-head > button, .site-editor-inspector-head button').first()
+    if (await back.count()) await back.click().catch(() => undefined)
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+      .catch(() => undefined)
+  }
+  expect(opened, 'no section exposed its own controls').toBe(true)
 
   // "Imagem primeiro" was rendered as "Imagem pri…" because the control scrolled
   // sideways with its scrollbar hidden: the overflow was real, the affordance was

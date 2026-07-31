@@ -152,14 +152,35 @@ test('a page core is edited in one place, not two', async ({page}, testInfo) => 
   // No panel may share a name with another in the same index.
   expect(new Set(panelLabels).size, `duplicate panel names: ${panelLabels}`).toBe(panelLabels.length)
 
-  // The page's designed block is edited in its own panel and is not listed
-  // among the sections. Listing it too put one block under two names in two
-  // places, which is what this asserts can no longer happen.
+  // The rule is one place to *edit* the designed block, not one place to mention
+  // it. An earlier version asserted its name never appeared in the section list,
+  // which also forbade showing where it sits among the sections — genuinely
+  // useful, and not the thing that was confusing. What was confusing was two
+  // editors for one block.
   await panelIndex.filter({hasText: 'Conteúdo da página'}).click()
-  const listed = (
-    await settings.locator('.site-editor-section-list > article strong').allInnerTexts()
-  ).map((t) => t.trim())
-  for (const label of panelLabels) {
-    expect(listed, `"${label}" is both a panel and a section entry`).not.toContain(label)
-  }
+  const sectionList = settings.locator('.site-editor-section-list > article')
+  const core = sectionList.filter({hasText: panelLabels[0]}).first()
+  await expect(core, 'the designed block is not shown among the sections').toHaveCount(1)
+
+  // It has no editing controls of its own: it cannot be copied into a second
+  // block, and it cannot be deleted out from under the page.
+  await core.locator('.site-editor-section-menu-button').click()
+  const menu = core.locator('.site-editor-section-menu')
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('button', {name: 'Duplicar'})).toHaveCount(0)
+  await expect(menu.getByRole('button', {name: 'Eliminar'})).toHaveCount(0)
+  // Toggle it shut rather than pressing Escape: the open menu overlays the row
+  // and swallows the next click.
+  await core.locator('.site-editor-section-menu-button').click()
+  await expect(menu).toHaveCount(0)
+
+  // And opening it leaves the section list for the block's own fields, rather
+  // than unfolding a second editor beside the list. That is the whole rule: the
+  // entry is a pointer to the one editor, not another one.
+  await core.locator('.site-editor-section-main').click()
+  await expect(settings.locator('.site-editor-inspector')).toBeVisible()
+  await expect(
+    settings.locator('.site-editor-section-list'),
+    'the designed block opened alongside the section list instead of replacing it',
+  ).toHaveCount(0)
 })

@@ -3480,7 +3480,9 @@
   color: #425951;
   background: #e3e9e7;
   border-radius: 999px;
-  font-size: 8px;
+  /* Was 8px — roughly half the body size, and the "Oculta" badge is a state the
+     client needs to read at a glance. The floor exists for exactly this. */
+  font-size: var(--editor-text-2xs);
   font-style: normal;
   font-weight: 850;
   letter-spacing: 0.04em;
@@ -3662,7 +3664,7 @@
 .site-editor-section-picker-group > strong {
   padding: 0 8px 3px;
   color: #60736c;
-  font-size: 9px;
+  font-size: var(--editor-text-2xs);
   font-weight: 850;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -5137,13 +5139,13 @@
 }
 
 .site-editor-page-starters button strong {
-  font-size: 10px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.25;
 }
 
 .site-editor-page-starters button small {
   color: var(--editor-muted);
-  font-size: 9px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.35;
 }
 

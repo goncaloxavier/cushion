@@ -1550,42 +1550,14 @@ test.describe('visual website editor', () => {
     await heading.click()
     await page.keyboard.press('End')
     await page.keyboard.type(` ${linkText}`)
-    const selectionPoints = await heading.evaluate((element, targetText) => {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
-      let node = walker.nextNode()
-      while (node) {
-        const text = node.textContent || ''
-        const startOffset = text.indexOf(targetText)
-        if (startOffset >= 0) {
-          node.parentElement?.scrollIntoView({block: 'center'})
-          const startRange = document.createRange()
-          startRange.setStart(node, startOffset)
-          startRange.collapse(true)
-          const endRange = document.createRange()
-          endRange.setStart(node, startOffset + targetText.length)
-          endRange.collapse(true)
-          const start = startRange.getBoundingClientRect()
-          const end = endRange.getBoundingClientRect()
-          const elementRect = element.getBoundingClientRect()
-          return {
-            start: {
-              x: start.x - elementRect.x,
-              y: start.y - elementRect.y + Math.max(start.height, 20) / 2,
-            },
-            end: {
-              x: end.x - elementRect.x,
-              y: end.y - elementRect.y + Math.max(end.height, 20) / 2,
-            },
-          }
-        }
-        node = walker.nextNode()
-      }
-      throw new Error(`Não foi possível localizar o texto “${targetText}”.`)
-    }, linkText)
-    await heading.hover({position: selectionPoints.end})
-    await page.mouse.down()
-    await heading.hover({position: selectionPoints.start})
-    await page.mouse.up()
+    // Selecting by keyboard rather than by dragging between measured
+    // coordinates: the phrase was just typed at the end, so shift-left over its
+    // own length lands on exactly it. The drag depended on scroll position and
+    // hit-testing inside a live rich-text editor, which is why it selected the
+    // wrong range on a loaded machine and the link then annotated nothing.
+    for (let index = 0; index < linkText.length; index += 1) {
+      await page.keyboard.press('Shift+ArrowLeft')
+    }
     await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe(linkText)
 
     await workspace.getByRole('button', {name: 'Adicionar ligação'}).click()
