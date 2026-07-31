@@ -47,6 +47,13 @@ const colorTokens: Record<string, string> = {
 }
 
 const bounded = (value: unknown, min: number, max: number) => {
+  // "Auto" is stored as null, and Number(null) is 0 — which is finite, so it used
+  // to clamp to the minimum instead of meaning "no size". Setting a heading back
+  // to Auto rendered it at 10px: the About timeline's "Hoje" sat tiny next to
+  // "2011" and "2014", which carry no styling at all. Empty string behaves the
+  // same way and is treated the same.
+  if (value === null || value === undefined || value === '') return undefined
+
   const numeric = Number(value)
   return Number.isFinite(numeric) ? Math.min(max, Math.max(min, numeric)) : undefined
 }

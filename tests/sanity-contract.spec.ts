@@ -119,6 +119,86 @@ test.describe('Sanity Studio content contract', () => {
     expect(fieldNames).toEqual(['hero', 'documentsTitle', 'documents', 'transportMultiplier'])
   })
 
+  test('"Auto" size means no size, not the smallest one', () => {
+    // Auto is stored as null, and Number(null) is 0 — finite, so it clamped to the
+    // minimum. Setting a heading back to Auto rendered it at 10px: the About
+    // timeline's "Hoje" sat tiny beside "2011" and "2014", which carry no styling
+    // at all and therefore inherit the design's own size.
+    expect(textAppearanceStyle({fontSize: null} as never)).not.toContain('--cms-text-size')
+    expect(textAppearanceStyle({fontSize: undefined})).not.toContain('--cms-text-size')
+    expect(textAppearanceStyle({fontSize: '' as never})).not.toContain('--cms-text-size')
+
+    // A cleared size must not drag the tablet and mobile sizes down with it, and
+    // the styling chosen alongside it still applies.
+    const style = textAppearanceStyle({fontSize: null, fontWeight: 'bold'} as never)
+    expect(style).not.toContain('--cms-text-size')
+    expect(style).toContain('font-weight:700')
+
+    // A real size still works and is still clamped at the bottom.
+    expect(textAppearanceStyle({fontSize: 48})).toContain('--cms-text-size-desktop:48px')
+    expect(textAppearanceStyle({fontSize: 2})).toContain('--cms-text-size-desktop:10px')
+  })
+
+  test('a list the client manages is theirs — no hardcoded entry leaks back in', () => {
+    // The About timeline showed "Hoje / A empresa produz soluções..." on the site
+    // while the editor showed that entry blank, and the client had no way to
+    // delete words they had never written. The fallback was being merged entry by
+    // entry *by position*, so clearing one brought back whichever seeded copy sat
+    // at the same index — and inserting one shifted every default onto the wrong
+    // row.
+    const built = contentFromSanity({
+      siteContent: {
+        about: {
+          timeline: [
+            {
+              _key: 'a',
+              title: {_type: 'localizedString', pt: '2011'},
+              text: {_type: 'localizedText', pt: 'O início.'},
+            },
+            // Cleared by the client. Nothing may appear here.
+            {_key: 'b', title: {_type: 'localizedString', pt: ''}, text: {_type: 'localizedText', pt: ''}},
+          ],
+        },
+      },
+    } as never)
+
+    const pt = built.pt.about.timeline
+    expect(pt).toHaveLength(1)
+    expect(pt[0].title).toBe('2011')
+    expect(JSON.stringify(pt)).not.toContain('Hoje')
+  })
+
+  test('an entry cleared in Portuguese disappears in every language', () => {
+    // Portuguese is what the client writes; en/es are machine output. An entry
+    // emptied in Portuguese kept rendering on the translated pages from English
+    // left behind by an earlier version of it, so the About page showed two
+    // moments in Portuguese and four in English.
+    const collections = {
+      siteContent: {
+        about: {
+          timeline: [
+            {
+              _key: 'a',
+              title: {_type: 'localizedString', pt: '2011', en: '2011'},
+              text: {_type: 'localizedText', pt: 'O início.', en: 'The beginning.'},
+            },
+            {
+              _key: 'b',
+              title: {_type: 'localizedString', pt: '', en: 'Today'},
+              text: {_type: 'localizedText', pt: '', en: 'The company provides solutions.'},
+            },
+          ],
+        },
+      },
+    } as never
+
+    const built = contentFromSanity(collections)
+    expect(built.pt.about.timeline).toHaveLength(1)
+    expect(built.en.about.timeline, 'English kept an entry Portuguese no longer has').toHaveLength(1)
+    expect(built.es.about.timeline).toHaveLength(1)
+    expect(JSON.stringify(built.en.about.timeline)).not.toContain('Today')
+  })
+
   test('typography survives the Sanity adapter used by public pages', () => {
     const stegaFontFamily = vercelStegaCombine('georgia', {
       origin: 'sanity.io',

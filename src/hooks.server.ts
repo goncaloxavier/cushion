@@ -53,13 +53,31 @@ export const handle: Handle = async ({event, resolve}) => {
     pathname.startsWith('/conta/') ||
     pathname === '/finalizar-compra' ||
     pathname.startsWith('/api/')
+  // SvelteKit serves a page's data as JSON on every in-app navigation, and that
+  // JSON was falling into the static-asset rule below — cached publicly for five
+  // minutes. So switching language, or any client-side navigation, showed content
+  // from up to five minutes ago while a hard refresh showed the truth, which is
+  // exactly how a fresh translation looked like it had not been applied. The data
+  // for a page is as changeable as the page, so it follows the page's policy.
+  // Not a path check: SvelteKit strips the /__data.json suffix from event.url
+  // before hooks run, so the pathname of a data request is the page's own.
+  const isPageData = event.isDataRequest
+
   headers.set(
     'cache-control',
     isPrivate
       ? 'no-store, max-age=0'
       : contentType.includes('text/html')
         ? 'private, no-cache'
-        : 'public, max-age=300',
+        : isPageData
+          ? // Fifteen seconds matches the server's own collection cache, so the
+            // browser never holds a page's data longer than the server would have
+            // served the same thing anyway. `private` because this is one
+            // visitor's response. Revalidating on every navigation instead was
+            // correct and far too slow — it refetches the whole layout payload
+            // each time, and that payload is known to be oversized.
+            'private, max-age=15'
+          : 'public, max-age=300',
   )
 
   if (!contentType.includes('text/html')) {
