@@ -7,7 +7,7 @@ import type {
   SiteEditorNode,
 } from '$lib/site-editor/types'
 import {editorDraftId, normalizeEditorDocumentId} from '$lib/site-editor/path'
-import {createBuilderSection} from '$lib/builder/defaults'
+import {createBuilderPageSections} from '$lib/builder/defaults'
 import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {SiteEditorCategoryInUseError, SiteEditorDuplicateError} from './site-editor-errors'
 import {createSiteEditorStarterFields} from './site-editor-starters'
@@ -592,6 +592,7 @@ export const createSiteEditorE2eDocument = (
   title: string,
   route: string | undefined,
   scope = 'default',
+  sitePageStarter?: unknown,
 ) => {
   if (type === 'siteLanding') throw new Error('O conteúdo global já existe.')
   const slug = fixtureSlug(title)
@@ -611,9 +612,6 @@ export const createSiteEditorE2eDocument = (
       'Já existe conteúdo deste tipo com o mesmo endereço.',
     )
   }
-  const hero = createBuilderSection('builderHeroSection')
-  hero.title = {...hero.title, pt: title}
-  hero.body = {_type: 'localizedText', pt: ''}
   const document = {
     _id: editorDraftId(id),
     _type: type,
@@ -626,7 +624,7 @@ export const createSiteEditorE2eDocument = (
           title,
           route: route || `/${slug}`,
           active: true,
-          sections: [hero],
+          sections: createBuilderPageSections(title, sitePageStarter),
           seo: {
             _type: 'builderSeo',
             title: localizedString(title),

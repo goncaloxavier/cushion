@@ -7,6 +7,7 @@ import {
   useEditorSelector,
   type BlockListItemRenderProps,
   type BlockRenderProps,
+  type EditorSelection,
   type Path,
   type PortableTextBlock,
   type PortableTextObject,
@@ -17,6 +18,7 @@ import {
 import {defineBehavior, raise} from '@portabletext/editor/behaviors'
 import {BehaviorPlugin, EventListenerPlugin} from '@portabletext/editor/plugins'
 import * as selectors from '@portabletext/editor/selectors'
+import {getSelectionEndPoint} from '@portabletext/editor/utils'
 import {MarkdownShortcutsPlugin} from '@portabletext/plugin-markdown-shortcuts'
 import {PasteLinkPlugin} from '@portabletext/plugin-paste-link'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
@@ -473,6 +475,7 @@ function ArticleToolbar({
   const [videoUrl, setVideoUrl] = useState('')
   const [videoTitle, setVideoTitle] = useState('')
   const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const linkSelectionRef = useRef<NonNullable<EditorSelection>>()
 
   const preserveSelection = (event: React.MouseEvent) => event.preventDefault()
   const refocus = () => editor.send({type: 'focus'})
@@ -585,8 +588,12 @@ function ArticleToolbar({
                 if (linked) {
                   editor.send({type: 'annotation.remove', annotation: {name: 'link'}})
                   refocus()
+                } else if (openForm === 'link') {
+                  linkSelectionRef.current = undefined
+                  setOpenForm(undefined)
                 } else {
-                  setOpenForm((current) => (current === 'link' ? undefined : 'link'))
+                  linkSelectionRef.current = editor.getSnapshot().context.selection ?? undefined
+                  setOpenForm('link')
                 }
               }}
               aria-label={linked ? 'Remover ligação' : 'Adicionar ligação'}
@@ -698,10 +705,19 @@ function ArticleToolbar({
           onSubmit={(event) => {
             event.preventDefault()
             if (!link.trim()) return
+            const selection = linkSelectionRef.current
+            if (selection) editor.send({type: 'select', at: selection})
             editor.send({
               type: 'annotation.add',
               annotation: {name: 'link', value: {href: link.trim()}},
+              ...(selection ? {at: selection} : {}),
             })
+            const selectionAfterLink = editor.getSnapshot().context.selection
+            const endPoint = getSelectionEndPoint(selectionAfterLink)
+            if (endPoint) {
+              editor.send({type: 'select', at: {anchor: endPoint, focus: endPoint}})
+            }
+            linkSelectionRef.current = undefined
             setLink('')
             setOpenForm(undefined)
             refocus()
@@ -718,7 +734,15 @@ function ArticleToolbar({
             />
           </label>
           <button type="submit">Aplicar</button>
-          <button type="button" onClick={() => setOpenForm(undefined)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => {
+              linkSelectionRef.current = undefined
+              setOpenForm(undefined)
+              refocus()
+            }}
+            aria-label="Fechar"
+          >
             <CloseIcon />
           </button>
         </form>

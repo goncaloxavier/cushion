@@ -9,7 +9,7 @@
   import type {LanguageCode} from '$lib/site-content'
   import {textAppearanceStyle} from '$lib/text-appearance'
 
-  let {section, language, preview = false, surface, theme} = $props<{
+  let {section, language, preview = false, surface, theme, dataAttribute} = $props<{
     section: BuilderSection
     language: LanguageCode
     preview?: boolean
@@ -18,6 +18,7 @@
     // they make the section dark — which is how black text ended up on blue.
     surface?: string
     theme?: BuilderSiteSettings['theme']
+    dataAttribute?: (path: string) => string | undefined
   }>()
 
   // Appended last so it wins over the colour the client chose, and only when that
@@ -48,12 +49,14 @@
     <p
       class="builder-eyebrow cms-styled-text"
       style={`${textAppearanceStyle(section.eyebrow)}${legible(fieldColor(section.eyebrow))}`}
+      data-sanity={dataAttribute?.(`eyebrow.${language}`)}
     >{eyebrow}</p>
   {/if}
   {#if title}
     <h2
       class="builder-responsive-title cms-styled-text"
       style={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}${legible(fieldColor(section.title) ?? section.titleStyle?.color)}`}
+      data-sanity={dataAttribute?.(`title.${language}`)}
     >
       {title}
     </h2>
@@ -62,13 +65,17 @@
     <p
       class="builder-responsive-body cms-styled-text"
       style={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(section.body as Parameters<typeof textAppearanceStyle>[0])}${legible(fieldColor(section.body) ?? section.bodyStyle?.color)}`}
+      data-sanity={dataAttribute?.(`body.${language}`)}
     >
       {body}
     </p>
   {/if}
   {#if section.actions?.length}
     <div class="builder-actions">
-      {#each section.actions as action (action._key)}
+      {#each section.actions as action, index (action._key)}
+        {@const actionPath = action._key
+          ? `actions[_key=="${action._key.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`
+          : `actions[${index}]`}
         <a
           class={`builder-action is-${action.style ?? 'primary'} cms-styled-text`}
           style={`${textAppearanceStyle(action.label)}${action.style === 'text' || action.style === 'secondary' ? legible(fieldColor(action.label)) : ''}`}
@@ -76,6 +83,8 @@
           target={action.newTab ? '_blank' : undefined}
           rel={action.newTab ? 'noreferrer noopener' : undefined}
           aria-label={builderLocalized(action.ariaLabel, language) || undefined}
+          data-sanity={dataAttribute?.(`${actionPath}.label.${language}`)}
+          data-df4y-editor-label="Botão"
           onclick={blockPreviewNavigation}
         >
           {builderLocalized(action.label, language) || 'Botão'}

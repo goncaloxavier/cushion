@@ -105,6 +105,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'casesPage',
+    }}
   >
     <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>

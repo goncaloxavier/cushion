@@ -121,6 +121,20 @@ const fixtureSitePages: Record<string, unknown[]> = {
       media: fixtureImage,
     },
     {
+      _type: 'builderGallerySection',
+      _key: 'composed-gallery',
+      internalLabel: 'Galeria',
+      enabled: true,
+      presentation: 'gallery',
+      title: localized('Uma galeria navegável'),
+      body: localizedBody('Escolha uma miniatura ou amplie a imagem.'),
+      items: [
+        {...fixtureImage, _key: 'composed-gallery-one', alt: localized('Primeira imagem da galeria')},
+        {...fixtureImage, _key: 'composed-gallery-two', alt: localized('Segunda imagem da galeria')},
+      ],
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'white', columns: 3},
+    },
+    {
       _type: 'builderCtaSection',
       _key: 'composed-cta',
       internalLabel: 'Chamada para ação',
@@ -739,6 +753,7 @@ const collectionsQuery = `{
   "products": select($includeProducts => (*[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
+    active,
     title,
     slug,
     image {

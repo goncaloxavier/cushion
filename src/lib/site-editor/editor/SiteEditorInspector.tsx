@@ -360,6 +360,12 @@ function SiteEditorInspectorComponent({
       returnFocus,
     })
 
+  const openManagedSection = () => {
+    const panelId = managedCoreDefinition?.panelIds[0]
+    if (panelId) showAllDefinitions(panelId)
+    else showAllDefinitions()
+  }
+
   const sectionFieldPath = fieldPath(node?.rootPath, 'sections')
   const storedSections = document ? getEditorValue(document, sectionFieldPath) : undefined
   const visibleSections = withManagedCoreSection(
@@ -382,8 +388,8 @@ function SiteEditorInspectorComponent({
         sections: visibleSections,
       } as unknown as SitePageDocument)
     : undefined
-  const replaceSections = (next: SitePageDocument) =>
-    onChange(sectionFieldPath, next.sections ?? [])
+  const replaceSections = (next: SitePageDocument, options?: {structural?: boolean}) =>
+    onChange(sectionFieldPath, next.sections ?? [], Boolean(options?.structural))
   const sectionEditorLabel = managedSectionScope?.title ?? node?.title ?? 'Página livre'
   const managedEmptyCopy =
     managedSectionScope || (canEditSections && document?._type !== 'sitePage')
@@ -399,6 +405,7 @@ function SiteEditorInspectorComponent({
       <SitePageSectionsEditor
         key={field.name}
         page={sectionEditorPage}
+        documentType={document?._type}
         contextLabel={sectionEditorLabel}
         emptyTitle={managedEmptyCopy?.emptyTitle}
         emptyDescription={managedEmptyCopy?.emptyDescription}
@@ -408,6 +415,7 @@ function SiteEditorInspectorComponent({
         onChange={replaceSections}
         onUpload={onUpload}
         onOpenArticle={openSectionArticle}
+        onOpenManagedSection={openManagedSection}
       />
     ) : field.type === 'storeCategoryProducts' ? (
       <Suspense
@@ -515,6 +523,7 @@ function SiteEditorInspectorComponent({
           {focusedSection && sectionEditorPage ? (
             <SitePageSectionsEditor
               page={sectionEditorPage}
+              documentType={document?._type}
               contextLabel={sectionEditorLabel}
               emptyTitle={managedEmptyCopy?.emptyTitle}
               emptyDescription={managedEmptyCopy?.emptyDescription}
@@ -524,7 +533,8 @@ function SiteEditorInspectorComponent({
               onChange={replaceSections}
               onUpload={onUpload}
               onOpenArticle={openSectionArticle}
-                  />
+              onOpenManagedSection={openManagedSection}
+            />
           ) : focusedField ? (
             <div className="site-editor-focused-field">
               <SiteEditorFieldInput

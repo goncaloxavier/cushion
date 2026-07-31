@@ -67,7 +67,7 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
   const empty: SearchResults = {products: [], storeProducts: [], caseStudies: [], blogPosts: []}
   if (tokens.length === 0) return empty
 
-  const products = rank(content.products, tokens, (item) => [
+  const products = rank(content.products.filter((item) => item.active !== false), tokens, (item) => [
     {text: item.title, weight: 5},
     {text: item.description, weight: 3},
   ]).map(({item}) => ({

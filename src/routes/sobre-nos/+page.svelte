@@ -34,6 +34,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'about',
+    }}
   >
     <section class="about-index-hero about-index-hero-solo">
       <Reveal class="about-index-copy" variant="hero" priority>

@@ -36,7 +36,9 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
   // date would be worse than omitting the tag entirely.
   const entries = [
     ...staticPaths.map((path) => ({path, lastmod: content.updatedAt})),
-    ...content.products.map((item) => ({path: `/produtos/${item.slug}`, lastmod: item.updatedAt})),
+    ...content.products
+      .filter((item) => item.active !== false)
+      .map((item) => ({path: `/produtos/${item.slug}`, lastmod: item.updatedAt})),
     ...content.storeProducts.map((item) => ({
       path: `/loja/${item.slug}`,
       lastmod: item.updatedAt,

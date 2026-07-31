@@ -85,16 +85,22 @@ export type ContentVideo = {
   captionsUrl?: string
 }
 
-export type StoreProductMedia =
-  | (ContentImage & {
-      type: 'image'
-      // Sanity field path for click-to-edit (e.g. `image`, `gallery[_key=="..."]`).
-      editPath?: string
-    })
-  | (ContentVideo & {
-      type: 'video'
-      editPath?: string
-    })
+export type ContentEmbedVideo = {
+  url: string
+  title: string
+  provider: 'youtube'
+  poster?: ContentImage
+}
+
+export type StoreProductMedia = (
+  | (ContentImage & {type: 'image'})
+  | (ContentVideo & {type: 'video'})
+  | (ContentEmbedVideo & {type: 'embed'})
+) & {
+  // Sanity field path for click-to-edit (e.g. `image`, `gallery[_key=="..."]`).
+  editPath?: string
+  caption?: string
+}
 
 // A downloadable file offered on a page. Same shape on product details, store
 // products and both listings, so one component renders all four.
@@ -115,6 +121,7 @@ export type PartnerItem = {
 export type ProductItem = {
   studioDocumentId?: string
   updatedAt?: string
+  active?: boolean
   title: string
   slug: string
   description: string
@@ -448,6 +455,7 @@ type SanityProduct = {
   documentsTitle?: LocalizedValue
   _id?: string
   _updatedAt?: string
+  active?: boolean
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -2765,6 +2773,7 @@ const productsFromSanity = (
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
         updatedAt: product._updatedAt,
+        active: product.active !== false,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],

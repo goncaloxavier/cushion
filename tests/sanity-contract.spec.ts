@@ -599,6 +599,9 @@ test.describe('Sanity Studio content contract', () => {
       expect(source, `${route} bypasses the canonical page stream`).toContain(
         '<ManagedPageComposition',
       )
+      expect(source, `${route} does not connect authored sections to visual editing`).toContain(
+        'editorSource=',
+      )
       expect(source, `${route} still appends a parallel section stream`).not.toContain(
         '<ManagedPageSections',
       )
@@ -609,6 +612,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(composition).toContain('composition.before')
     expect(composition).toContain('composition.after')
     expect(composition).toContain('{@render children()}')
+    expect(composition).toContain('loadSanityDataAttributeFactory')
+    expect(composition).toContain('dataAttribute={sectionDataAttribute}')
+
+    const sectionStream = read('src/lib/components/builder/ManagedPageSections.svelte')
+    expect(sectionStream).toContain('dataAttribute?: (path: string) => string | undefined')
+    expect(sectionStream).toContain('{dataAttribute}')
   })
 
   test('public page copy is managed through the website Studio workspace', () => {
@@ -733,6 +742,29 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).not.toContain('impactStat')
     expect(siteSchema).not.toContain("name: 'fields'")
     expect(siteSchema).not.toContain("name: 'name',\n        title: 'Nome antigo'")
+  })
+
+  test('isolated product previews stay directly reviewable without leaking into public listings', () => {
+    const productSchema = read('schemaTypes/productCategory.ts')
+    const starters = read('src/lib/server/site-editor-starters.ts')
+    const contentModel = read('src/lib/site-content.ts')
+    const productList = read('src/routes/produtos/+page.svelte')
+    const productDetail = read('src/routes/produtos/[slug]/+page.svelte')
+    const clientSearch = read('src/lib/search.ts')
+    const serverSearch = read('src/lib/server/search.ts')
+    const sitemap = read('src/routes/sitemap.xml/+server.ts')
+
+    expect(productSchema).toContain("name: 'active'")
+    expect(productSchema).toContain("title: 'Mostrar na página Produtos'")
+    expect(starters).toContain('active: false')
+    expect(contentModel).toContain('active: product.active !== false')
+    expect(productList).toContain(
+      'content.products.filter((product) => product.active !== false)',
+    )
+    expect(productDetail).toContain('noindex={data.product.active === false}')
+    expect(clientSearch).toContain('content.products.filter((item) => item.active !== false)')
+    expect(serverSearch).toContain('content.products.filter((item) => item.active !== false)')
+    expect(sitemap).toContain('.filter((item) => item.active !== false)')
   })
 
   test('Loja categories are editable, dynamic, and safe in visual preview', () => {
@@ -1198,6 +1230,7 @@ test.describe('Sanity Studio content contract', () => {
     const sanityClient = read('src/lib/sanity.ts')
     const renderer = read('src/lib/components/StructuredArticleBody.svelte')
     const route = read('src/routes/blog/[slug]/+page.svelte')
+    const styles = read('src/app.css')
 
     expect(schemaIndex).toContain('localizedArticle')
     expect(blogSchema).toContain("name: 'article'")
@@ -1212,6 +1245,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('metadata {')
     expect(renderer).toContain('youtubeEmbed')
     expect(route).toContain('article={data.post.article}')
+    expect(styles).toMatch(/\.article-embedded-image img\s*\{[^}]*width:\s*100%;/s)
   })
 
   test('case studies support migrated old-site case pages', () => {

@@ -1,5 +1,8 @@
 import {expect, test} from '@playwright/test'
-import {createBuilderSection} from '../src/lib/builder/defaults'
+import {
+  createBuilderPageSections,
+  createBuilderSection,
+} from '../src/lib/builder/defaults'
 import {buildHomeSections} from '../src/lib/builder/home-sections'
 import {
   createManagedCoreSection,
@@ -52,6 +55,44 @@ test('every managed fixed page preserves sections and normalizes an absent list'
 test('new editorial sections start with a structured article body', () => {
   const section = createBuilderSection('builderRichTextSection')
   expect(section.body).toEqual({_type: 'localizedArticle', pt: []})
+})
+
+test('new hero and action sections start as complete responsive calls to action', () => {
+  for (const type of ['builderHeroSection', 'builderCtaSection'] as const) {
+    const section = createBuilderSection(type)
+    expect(section.enabled).toBe(true)
+    expect(section.layout?.mobileColumns).toBe(1)
+    expect(section.actions).toHaveLength(1)
+    expect(section.actions?.[0]).toMatchObject({
+      label: {pt: 'Falar connosco'},
+      href: '/contacto',
+      style: 'primary',
+    })
+  }
+})
+
+test('free-page starters create the promised section shape and keep the supplied title', () => {
+  const essential = createBuilderPageSections('Página essencial de teste', 'essential')
+  const visual = createBuilderPageSections('Página visual de teste', 'visual')
+  const opening = createBuilderPageSections('Página mínima de teste', 'opening')
+
+  expect(essential.map((section) => section._type)).toEqual([
+    'builderHeroSection',
+    'builderMediaSection',
+    'builderCtaSection',
+  ])
+  expect(visual.map((section) => section._type)).toEqual([
+    'builderHeroSection',
+    'builderMediaSection',
+    'builderGallerySection',
+    'builderCtaSection',
+  ])
+  expect(opening.map((section) => section._type)).toEqual(['builderHeroSection'])
+  expect(essential[0]?.title).toMatchObject({pt: 'Página essencial de teste'})
+  expect(createBuilderPageSections('Fallback seguro', 'valor-inválido')[0]?.title).toMatchObject({
+    pt: 'Fallback seguro',
+  })
+  expect(createBuilderPageSections('Fallback seguro', 'valor-inválido')).toHaveLength(3)
 })
 
 test('every designed page exposes one valid managed area in the shared section stream', () => {

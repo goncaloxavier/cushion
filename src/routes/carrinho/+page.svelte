@@ -153,6 +153,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'cartPage',
+    }}
   >
     <PageHero {...labels.hero} dataAttribute={cartHeroDataAttribute} />
 

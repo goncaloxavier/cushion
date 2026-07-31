@@ -24,6 +24,7 @@
     items,
     action,
     preview = false,
+    dataAttribute,
   } = $props<{
     variant: 'solutions' | 'work'
     eyebrow?: string
@@ -33,15 +34,16 @@
     items: LandingCollectionItem[]
     action?: {label: string; href: string; style?: string}
     preview?: boolean
+    dataAttribute?: (path: string) => string | undefined
   }>()
 </script>
 
 <Reveal class="home-section-head" variant="panel" priority={preview}>
   {#if eyebrow}
-    <p class="kicker cms-styled-text" style={eyebrowStyle}>{eyebrow}</p>
+    <p class="kicker cms-styled-text" style={eyebrowStyle} data-sanity={dataAttribute?.('eyebrow.pt')}>{eyebrow}</p>
   {/if}
   {#if title}
-    <h2 class="cms-styled-text" style={titleStyle}>{title}</h2>
+    <h2 class="cms-styled-text" style={titleStyle} data-sanity={dataAttribute?.('title.pt')}>{title}</h2>
   {/if}
 </Reveal>
 
@@ -69,6 +71,8 @@
       class="home-section-cta cms-styled-text"
       style={action.style}
       href={action.href}
+      data-sanity={dataAttribute?.('actions[0].label.pt')}
+      data-df4y-editor-label="Botão"
       onclick={(event: MouseEvent) => preview && event.preventDefault()}
     >
       {action.label}

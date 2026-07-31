@@ -4,6 +4,7 @@ import type {
   SiteEditorDocumentType,
   SiteEditorManifest,
 } from '../types'
+import type {BuilderPageStarter} from '$lib/builder/defaults'
 
 type DocumentResponse = {document: SiteEditorDocument}
 const requestTimeoutMs = 30_000
@@ -89,12 +90,17 @@ export const createSiteEditorApi = (csrfToken: string) => ({
         body: JSON.stringify({action: 'publish', document}),
       })
     ).document,
-  create: async (documentType: SiteEditorDocumentType, title: string, route?: string) =>
+  create: async (
+    documentType: SiteEditorDocumentType,
+    title: string,
+    route?: string,
+    sitePageStarter?: BuilderPageStarter,
+  ) =>
     (
       await request<DocumentResponse>('/painel/site/api', {
         method: 'POST',
         headers: {'content-type': 'application/json', 'x-csrf-token': csrfToken},
-        body: JSON.stringify({action: 'create', documentType, title, route}),
+        body: JSON.stringify({action: 'create', documentType, title, route, sitePageStarter}),
       })
     ).document,
   delete: (id: string) =>

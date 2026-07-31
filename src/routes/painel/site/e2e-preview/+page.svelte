@@ -48,6 +48,7 @@
       content={data.site}
       language={data.language}
       dataset="site-editor-e2e"
+      dataAttribute={(path) => sanity(data.created.id, data.created.type, path)}
       preview
     />
   </div>

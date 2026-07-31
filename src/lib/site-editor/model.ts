@@ -834,8 +834,14 @@ image('image', 'Imagem principal'), gallery]},
     },
     {
       id: 'organization',
-      label: 'Organização',
+      label: 'Visibilidade',
       fields: [
+        {
+          name: 'active',
+          label: 'Mostrar na página Produtos',
+          description: 'Desative para rever pelo endereço direto sem colocar o produto nas listas',
+          type: 'boolean',
+        },
         {
           name: 'orderRank',
           label: 'Posição na lista',

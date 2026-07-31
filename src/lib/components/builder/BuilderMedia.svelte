@@ -10,6 +10,7 @@
     language,
     className = '',
     preview = false,
+    dataAttribute,
   } = $props<{
     media?: BuilderMedia
     dataset: string
@@ -19,6 +20,7 @@
     // this it rendered on the public page too, so a section the client had added
     // but not filled in told visitors to add an image.
     preview?: boolean
+    dataAttribute?: string
   }>()
 
   const alt = $derived(builderLocalized(media?.alt, language))
@@ -40,7 +42,13 @@
 </script>
 
 {#if hasRenderableMedia || preview}
-<figure class={`builder-media ${className}`}>
+<figure
+  class={`builder-media ${className}`}
+  data-sanity={dataAttribute}
+  data-df4y-editor-field={dataAttribute ? true : undefined}
+  data-df4y-editor-kind={dataAttribute ? (media?.kind === 'image' ? 'image' : 'video') : undefined}
+  data-df4y-editor-label={dataAttribute ? 'Imagem ou vídeo' : undefined}
+>
   {#if media?.kind === 'video' && videoUrl}
     <video
       src={videoUrl}

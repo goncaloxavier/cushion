@@ -5,10 +5,11 @@
   import type {RichArticleBlock} from '$lib/article-structure'
   import type {LanguageCode} from '$lib/site-content'
 
-  let {value, language, dataset} = $props<{
+  let {value, language, dataset, dataAttribute} = $props<{
     value: unknown
     language: LanguageCode
     dataset: string
+    dataAttribute?: string
   }>()
 
   const article = $derived(
@@ -26,6 +27,11 @@
   )
 </script>
 
-<div class="builder-rich-text">
+<div
+  class="builder-rich-text"
+  data-sanity={dataAttribute}
+  data-df4y-editor-field={dataAttribute ? true : undefined}
+  data-df4y-editor-label={dataAttribute ? 'Texto editorial' : undefined}
+>
   <StructuredArticleBody body="" {article} />
 </div>

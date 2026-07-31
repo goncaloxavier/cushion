@@ -44,9 +44,10 @@
   let queryEffectInitialized = false
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
+  const listedProducts = $derived(content.products.filter((product) => product.active !== false))
   const normalizedQuery = $derived(query.trim().toLowerCase())
   const filteredProducts = $derived(
-    content.products.filter((product) =>
+    listedProducts.filter((product) =>
       [product.title, product.description]
         .join(' ')
         .toLowerCase()
@@ -106,7 +107,7 @@
   description={seoDescription(
     data.language,
     content.productsPage.hero.lead,
-    content.products.map((product) => product.description).join(' '),
+    listedProducts.map((product) => product.description).join(' '),
   )}
   image={content.productsPage.heroImage}
   pagination={{page, totalPages}}
@@ -121,6 +122,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'productsPage',
+    }}
   >
     <section class="product-index-hero">
     <Reveal class="product-index-copy" variant="hero" priority>
@@ -171,7 +178,7 @@
             placeholder={content.common.searchPlaceholder}
           />
         </label>
-        <p>{filteredProducts.length} / {content.products.length}</p>
+        <p>{filteredProducts.length} / {listedProducts.length}</p>
       </div>
     </Reveal>
 

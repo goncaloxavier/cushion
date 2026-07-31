@@ -65,6 +65,11 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: data.caseStudy.studioDocumentId,
+      type: 'caseStudy',
+    }}
   >
     <article class="detail-page case-detail">
       <section class="case-detail-hero">

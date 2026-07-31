@@ -34,6 +34,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'returnsPolicy',
+    }}
   >
     <p class="kicker" data-sanity={returnsPolicyDataAttribute('kicker.pt')}>{t.kicker}</p>
     <h1 data-sanity={returnsPolicyDataAttribute('title.pt')}>{t.title}</h1>

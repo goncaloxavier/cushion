@@ -44,6 +44,7 @@ export const createSiteEditorStarterFields = ({
       description: localizedText(
         'Apresente aqui, numa frase, onde este produto é útil. Descreva o produto, as aplicações e as principais vantagens.',
       ),
+      active: false,
       orderRank: 100,
     }
   }

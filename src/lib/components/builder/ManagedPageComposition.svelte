@@ -5,8 +5,19 @@
     splitManagedCoreSections,
     type ManagedCoreSectionDefinition,
   } from '$lib/builder/managed-page-sections'
+  import {
+    loadSanityDataAttributeFactory,
+    type SanityDataAttributeFactory,
+  } from '$lib/sanity-edit-attributes'
   import type {LanguageCode, SiteContent} from '$lib/site-content'
   import ManagedPageSections from './ManagedPageSections.svelte'
+
+  type EditorSource = {
+    baseUrl?: string
+    id?: string
+    type: string
+    rootPath?: string
+  }
 
   let {
     sections,
@@ -16,6 +27,7 @@
     language,
     dataset,
     preview = false,
+    editorSource,
     children,
   } = $props<{
     sections: BuilderSection[]
@@ -25,12 +37,20 @@
     language: LanguageCode
     dataset: string
     preview?: boolean
+    editorSource?: EditorSource
     children: Snippet
   }>()
 
   let liveSections = $state<BuilderSection[]>([])
   let selectedSectionKey = $state<string>()
   let coreRoot = $state<HTMLDivElement | null>(null)
+  let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
+
+  $effect(() => {
+    if (preview && editorSource?.baseUrl && !dataAttributeFactory) {
+      void loadSanityDataAttributeFactory().then((factory) => (dataAttributeFactory = factory))
+    }
+  })
 
   $effect(() => {
     liveSections = sections
@@ -38,6 +58,24 @@
 
   const composition = $derived(splitManagedCoreSections(liveSections, core))
   const coreVisible = $derived(composition.core.enabled !== false)
+  const sectionDataAttribute = $derived.by(() => {
+    if (
+      !preview ||
+      !dataAttributeFactory ||
+      !editorSource?.baseUrl ||
+      !editorSource.id
+    ) {
+      return undefined
+    }
+
+    const attribute = dataAttributeFactory({
+      baseUrl: editorSource.baseUrl,
+      id: editorSource.id,
+      type: editorSource.type,
+    })
+    const prefix = editorSource.rootPath?.trim()
+    return (path: string) => attribute(prefix ? `${prefix}.${path}` : path)
+  })
 
   const selectCore = (event: MouseEvent) => {
     if (!preview) return
@@ -102,6 +140,7 @@
   {preview}
   listenForState={false}
   {selectedSectionKey}
+  dataAttribute={sectionDataAttribute}
 />
 
 {#if preview}
@@ -139,6 +178,7 @@
   {preview}
   listenForState={false}
   {selectedSectionKey}
+  dataAttribute={sectionDataAttribute}
 />
 
 <style>

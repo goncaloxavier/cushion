@@ -88,6 +88,14 @@ const defaultLayout = (surface: BuilderLayout['surface'] = 'fog'): BuilderLayout
 
 const shortText = (value = '') => ({_type: 'localizedString' as const, pt: value})
 const longText = (value = '') => ({_type: 'localizedText' as const, pt: value})
+const contactAction = () => ({
+  _type: 'builderLink' as const,
+  _key: createBuilderKey(),
+  label: shortText('Falar connosco'),
+  href: '/contacto',
+  style: 'primary' as const,
+  newTab: false,
+})
 
 export const createBuilderSection = (type: BuilderSectionType): BuilderSection => {
   if (type === 'builderManagedSection') {
@@ -135,7 +143,7 @@ export const createBuilderSection = (type: BuilderSectionType): BuilderSection =
         alt: shortText(),
       },
       layout: defaultLayout('deep'),
-      actions: [],
+      actions: [contactAction()],
     }
   }
 
@@ -221,7 +229,7 @@ export const createBuilderSection = (type: BuilderSectionType): BuilderSection =
       ...base,
       title: shortText('Vamos falar sobre o seu projeto'),
       body: longText('Diga-nos o que precisa e ajudamos a encontrar a solução certa.'),
-      actions: [],
+      actions: [contactAction()],
       layout: defaultLayout('deep'),
     }
   }
@@ -233,6 +241,38 @@ export const createBuilderSection = (type: BuilderSectionType): BuilderSection =
     formKind: 'contact',
     showContactDetails: true,
   }
+}
+
+export const builderPageStarterValues = ['essential', 'visual', 'opening'] as const
+export type BuilderPageStarter = (typeof builderPageStarterValues)[number]
+
+export const normalizeBuilderPageStarter = (value: unknown): BuilderPageStarter =>
+  builderPageStarterValues.includes(value as BuilderPageStarter)
+    ? (value as BuilderPageStarter)
+    : 'essential'
+
+export const createBuilderPageSections = (
+  title: string,
+  starterValue: unknown = 'essential',
+): BuilderSection[] => {
+  const starter = normalizeBuilderPageStarter(starterValue)
+  const hero = createBuilderSection('builderHeroSection')
+  hero.title = shortText(title)
+  hero.body = longText('')
+
+  if (starter === 'opening') return [hero]
+
+  const callToAction = createBuilderSection('builderCtaSection')
+  if (starter === 'visual') {
+    return [
+      hero,
+      createBuilderSection('builderMediaSection'),
+      createBuilderSection('builderGallerySection'),
+      callToAction,
+    ]
+  }
+
+  return [hero, createBuilderSection('builderMediaSection'), callToAction]
 }
 
 export const createBuilderPage = (pageNumber = 1): BuilderPage => {
@@ -249,7 +289,10 @@ export const createBuilderPage = (pageNumber = 1): BuilderPage => {
     route: pageNumber === 1 ? '/' : `/nova-pagina-${pageNumber}`,
     pageKind: pageNumber === 1 ? 'home' : 'standard',
     active: true,
-    sections: [createBuilderSection('builderHeroSection')],
+    sections: createBuilderPageSections(
+      pageNumber === 1 ? 'Página inicial' : `Nova página ${pageNumber}`,
+      pageNumber === 1 ? 'opening' : 'essential',
+    ),
     seo: {
       _type: 'builderSeo',
       title: shortText(),

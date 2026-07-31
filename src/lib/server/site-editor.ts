@@ -7,7 +7,7 @@ import type {
   SiteEditorManifest,
   SiteEditorNode,
 } from '$lib/site-editor/types'
-import {createBuilderSection} from '$lib/builder/defaults'
+import {createBuilderPageSections} from '$lib/builder/defaults'
 import {
   managedDetailSectionDocumentTypes,
   managedPageSectionScopes,
@@ -74,6 +74,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'materials',
     'specifications',
     'advantages',
+    'active',
     'orderRank',
   ],
   storeCategory: ['title', 'slug', 'orderRank'],
@@ -976,6 +977,7 @@ export const createSiteEditorDocument = async (
   titleValue: unknown,
   routeValue?: unknown,
   scope = 'default',
+  sitePageStarter?: unknown,
 ) => {
   const type = assertDocumentType(typeValue)
   if (type === 'siteLanding')
@@ -986,7 +988,7 @@ export const createSiteEditorDocument = async (
   const slug = slugFromTitle(title)
   const normalizedRoute = type === 'sitePage' ? sitePageRoute(routeValue, slug) : undefined
   if (siteEditorE2eEnabled()) {
-    return createSiteEditorE2eDocument(type, title, normalizedRoute, scope)
+    return createSiteEditorE2eDocument(type, title, normalizedRoute, scope, sitePageStarter)
   }
   const existing = await requireReadClient().fetch<string | null>(
     type === 'sitePage'
@@ -1010,14 +1012,11 @@ export const createSiteEditorDocument = async (
   }
 
   if (type === 'sitePage') {
-    const hero = createBuilderSection('builderHeroSection')
-    hero.title = {...hero.title, pt: title}
-    hero.body = {_type: 'localizedText', pt: ''}
     base.editorVersion = 1
     base.title = title
     base.route = normalizedRoute
     base.active = true
-    base.sections = [hero]
+    base.sections = createBuilderPageSections(title, sitePageStarter)
     base.seo = {
       _type: 'builderSeo',
       title: {_type: 'localizedString', pt: title},
