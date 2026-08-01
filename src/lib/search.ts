@@ -53,7 +53,7 @@ export const topItemsPerCategory = (content: SiteContent, count = 3): SearchResu
     href: `${ROUTE_PREFIX.storeProducts}/${item.slug}`,
     snippet: snippet(item.summary),
   })),
-  caseStudies: content.caseStudies.slice(0, count).map((item) => ({
+  caseStudies: content.caseStudies.filter((item) => item.active !== false).slice(0, count).map((item) => ({
     category: 'caseStudies',
     title: item.title,
     slug: item.slug,

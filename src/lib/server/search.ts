@@ -90,7 +90,7 @@ export const searchSite = (content: SiteContent, query: string): SearchResults =
     snippet: snippet(item.summary),
   }))
 
-  const caseStudies = rank(content.caseStudies, tokens, (item) => [
+  const caseStudies = rank(content.caseStudies.filter((item) => item.active !== false), tokens, (item) => [
     {text: item.title, weight: 5},
     {text: item.summary, weight: 3},
     {text: item.location, weight: 2},

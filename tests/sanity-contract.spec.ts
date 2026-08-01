@@ -139,6 +139,67 @@ test.describe('Sanity Studio content contract', () => {
     expect(textAppearanceStyle({fontSize: 2})).toContain('--cms-text-size-desktop:10px')
   })
 
+  test('every collection the client publishes into can be hidden from its list', () => {
+    // Products and shop items could always be published and reviewed at their own
+    // address without appearing in a listing. Cases and shop categories could not:
+    // creating one put it straight in front of visitors, with no way back short of
+    // deleting it. Four collection types, two of them with a safety the other two
+    // lacked — and the missing half is exactly where an example or a
+    // work-in-progress entry would have been noticed by the public first.
+    // storeCategory is deliberately excluded: a category is a filter facet, not
+    // content. Hiding one while its products stay visible would leave those
+    // products pointing at a facet nobody can see, so categories are created and
+    // deleted rather than hidden — a rule the Loja contract below already holds.
+    for (const type of ['productCategory', 'storeProduct', 'caseStudy']) {
+      const schema = readFileSync(`schemaTypes/${type}.ts`, 'utf8')
+      expect(schema, `${type} has no visibility control`).toContain("name: 'active'")
+
+      const allowlist = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+      const entry = allowlist.slice(allowlist.indexOf(`  ${type}: [`))
+      expect(
+        entry.slice(0, entry.indexOf(']')),
+        `${type} cannot save the field the editor shows`,
+      ).toContain("'active'")
+    }
+
+    // And the flag has to reach the page, not just the document: a case marked
+    // hidden must leave the listing, the search index and the sitemap.
+    const built = contentFromSanity({
+      caseStudies: [
+        {
+          _id: 'a',
+          title: {_type: 'localizedString', pt: 'Caso visível'},
+          slug: {current: 'caso-visivel'},
+        },
+        {
+          _id: 'b',
+          active: false,
+          title: {_type: 'localizedString', pt: 'Caso escondido'},
+          slug: {current: 'caso-escondido'},
+        },
+      ],
+    } as never)
+
+    const cases = built.pt.caseStudies
+    expect(cases).toHaveLength(2)
+    expect(cases.find((item) => item.slug === 'caso-visivel')?.active).toBe(true)
+    expect(
+      cases.find((item) => item.slug === 'caso-escondido')?.active,
+      'a hidden case is not marked hidden once it reaches the page',
+    ).toBe(false)
+
+    for (const consumer of [
+      'src/routes/casos-de-estudo/+page.svelte',
+      'src/lib/search.ts',
+      'src/lib/server/search.ts',
+      'src/routes/sitemap.xml/+server.ts',
+    ]) {
+      const source = readFileSync(consumer, 'utf8')
+      const cased = source.slice(source.indexOf('caseStudies'))
+      expect(cased, `${consumer} lists hidden cases`).toContain('active !== false')
+    }
+  })
+
   test('a list the client manages is theirs — no hardcoded entry leaks back in', () => {
     // The About timeline showed "Hoje / A empresa produz soluções..." on the site
     // while the editor showed that entry blank, and the client had no way to

@@ -944,6 +944,7 @@ const collectionsQuery = `{
   "caseStudies": select($includeCases => (*[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
+    active,
     title,
     slug,
     image {

@@ -43,7 +43,9 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
       path: `/loja/${item.slug}`,
       lastmod: item.updatedAt,
     })),
-    ...content.caseStudies.map((item) => ({
+    ...content.caseStudies
+      .filter((item) => item.active !== false)
+      .map((item) => ({
       path: `/casos-de-estudo/${item.slug}`,
       lastmod: item.updatedAt,
     })),

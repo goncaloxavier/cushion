@@ -103,6 +103,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'summary',
     'description',
     'sections',
+    'active',
     'orderRank',
   ],
   blogPost: [

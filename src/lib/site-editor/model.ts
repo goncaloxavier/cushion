@@ -978,8 +978,14 @@ image('image', 'Imagem principal'), gallery]},
 image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
-      label: 'Organização',
+      label: 'Visibilidade',
       fields: [
+        {
+          name: 'active',
+          label: 'Mostrar na página Casos de estudo',
+          description: 'Desative para rever pelo endereço direto sem colocar o caso nas listas',
+          type: 'boolean',
+        },
         {
           name: 'orderRank',
           label: 'Posição na lista',

@@ -155,6 +155,15 @@ export const caseStudy = defineType({
       validation: (Rule) => Rule.max(30),
     }),
     defineField({
+      name: 'active',
+      title: 'Mostrar na página Casos de estudo',
+      description:
+        'Desative para publicar e rever pelo endereço direto sem mostrar este caso nas listas ou nos motores de pesquisa.',
+      type: 'boolean',
+      group: 'organizacao',
+      initialValue: true,
+    }),
+    defineField({
       name: 'orderRank',
       title: 'Ordem de apresentação',
       description: 'O número mais baixo aparece primeiro.',

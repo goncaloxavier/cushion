@@ -143,6 +143,7 @@ export type ProductItem = {
 export type CaseStudy = {
   studioDocumentId?: string
   updatedAt?: string
+  active?: boolean
   title: string
   slug: string
   location: string
@@ -472,6 +473,7 @@ type SanityProduct = {
 type SanityCaseStudy = {
   _id?: string
   _updatedAt?: string
+  active?: boolean
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -2943,6 +2945,7 @@ const casesFromSanity = (
       return {
         studioDocumentId: item._id?.replace(/^drafts\./, ''),
         updatedAt: item._updatedAt,
+        active: item.active !== false,
         title: localized(item.title, language, fallbackCase?.title ?? 'Case study'),
         slug: slug || fallbackCase?.slug || `case-${index + 1}`,
         image: images[0],

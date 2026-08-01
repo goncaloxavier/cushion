@@ -340,7 +340,7 @@
       }))
     }
     if (section.source === 'caseStudy') {
-      return content.caseStudies.slice(0, limit).map((item) => ({
+      return content.caseStudies.filter((item) => item.active !== false).slice(0, limit).map((item) => ({
         key: item.slug,
         title: item.title,
         meta: item.location,
