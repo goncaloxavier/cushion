@@ -1277,6 +1277,14 @@ test.describe('visual website editor', () => {
       const modal = page.locator('.site-editor-modal')
       await modal.getByRole('button', {name: draft.label, exact: true}).click()
       await modal.getByLabel('Nome').fill(draft.title)
+      if (draft.type === 'storeProduct') {
+        // A shop product has to be filed under a category before it exists:
+        // guessing one put a planter in "Bancos" without telling anybody. The
+        // dialog asks, so the form does not submit until it is answered.
+        const category = modal.getByLabel('Categoria', {exact: true})
+        await expect(category).toHaveValue('')
+        await category.selectOption('cultivo')
+      }
       await modal.getByRole('button', {name: 'Criar e editar'}).click()
 
       await expect(modal).toHaveCount(0)
