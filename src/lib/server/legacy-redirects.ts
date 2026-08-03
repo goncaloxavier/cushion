@@ -73,37 +73,41 @@ const sharedPaths = new Set([
 ])
 
 /**
- * Blog posts whose slug changed. Deliberately empty: three old slugs look like
- * renames of posts that exist —
+ * Blog posts whose slug changed.
  *
- *   porque-garrafas-de-plastico-sao-um-drama  ~ porque-garrafas-de-plastico-sao-uma-drama
- *   abate-de-arvores-consequencias-para-meio-ambiente ~ abate-de-arvores
- *   dafabrica4you-desenvolveu-um-processo-industrial-… ~ usar-como-materia-prima-os-residuos-do-ecoponto-amarelo
+ * Mostly these are the translated URLs. The old site gave a post's English and
+ * Spanish versions their own, longer slugs — /l/en-us-abate-de-arvores-
+ * consequencias-para-meio-ambiente for a post whose Portuguese original was
+ * simply /l/abate-de-arvores — so the translations look like missing content
+ * when they are the same article under a different name.
  *
- * — but "looks like" is not good enough to send a reader somewhere. Sending
- * someone to the wrong article is worse than a 404, and unlike a 404 nobody
- * notices. They stay unmapped until someone confirms they are the same posts.
+ * The last two were written in English and published on the Portuguese site,
+ * then rewritten in Portuguese here. Each pair was confirmed by reading both
+ * pages, not by matching strings: "Overview of the Drought Situation in Algarve
+ * in 2024" and "Seca no Algarve em 2024" are the same article.
  */
-const blogSlugRenames: Record<string, string> = {}
+const blogSlugRenames: Record<string, string> = {
+  'abate-de-arvores-consequencias-para-meio-ambiente': 'abate-de-arvores',
+  'porque-garrafas-de-plastico-sao-um-drama': 'porque-garrafas-de-plastico-sao-uma-drama',
+  'dafabrica4you-desenvolveu-um-processo-industrial-em-que-usamos-como-materia-prima-os-residuos-do-ecoponto-amarelo':
+    'usar-como-materia-prima-os-residuos-do-ecoponto-amarelo',
+  'overview-of-the-drought-situation-in-algarve-in-2024': 'seca-no-algarve-em-2024',
+  'portuguese-municipalities-have-to-collect-organic-waste-from-1-january-2024-onwards':
+    'os-municipios-portugueses-a-partir-de-1-de-janeiro-de-2024-tem-que-recolher-residuos-organicos',
+}
 
 /**
- * Old post slugs with nothing to point at. Listed as an exclusion rather than
- * checking the 56 posts that do exist: an inclusion list would have to be kept
- * in step with every post the client publishes or renames, and would silently
- * stop redirecting the day it fell behind. This only names what is known gone.
+ * Old post slugs with nothing to point at, which 404 honestly rather than being
+ * redirected into a dead end.
  *
- * The first three are the rename candidates above; the last two never made it
- * across. Each returns a plain 404, which is the honest answer — a redirect to
- * a page that does not exist costs a round trip and still ends in a 404.
+ * This one is the only piece of content genuinely lost in the move. Its
+ * Portuguese original already 404s on the old site — the sitemap still lists it,
+ * which is how it looked like a live post — and only the English and Spanish
+ * versions still answer. Nothing here replaces it. If the client wants those two
+ * URLs back, the article has to be republished; then this entry comes out and a
+ * rename goes in above.
  */
-const retiredBlogSlugs = new Set([
-  'porque-garrafas-de-plastico-sao-um-drama',
-  'abate-de-arvores-consequencias-para-meio-ambiente',
-  'dafabrica4you-desenvolveu-um-processo-industrial-em-que-usamos-como-materia-prima-os-residuos-do-ecoponto-amarelo',
-  'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem',
-  'overview-of-the-drought-situation-in-algarve-in-2024',
-  'portuguese-municipalities-have-to-collect-organic-waste-from-1-january-2024-onwards',
-])
+const retiredBlogSlugs = new Set(['o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem'])
 
 /**
  * The privacy policy is hosted by iubenda and linked from the footer, so the old

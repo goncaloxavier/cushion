@@ -69,13 +69,9 @@ test('nothing is redirected to a page that does not exist', () => {
   // The rule the whole file turns on. A redirect landing on a 404 costs a round
   // trip and still ends in a 404, and a crawler reads it as a soft 404 — so a
   // URL with no destination is left to 404 honestly instead.
-  for (const slug of [
-    'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem',
-    'overview-of-the-drought-situation-in-algarve-in-2024',
-  ]) {
-    expect(legacyRedirect(`/l/${slug}/`), `${slug} is redirected into a dead end`).toBeNull()
-    expect(legacyRedirect(`/l/en-us-${slug}/`)).toBeNull()
-  }
+  const retired = 'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem'
+  expect(legacyRedirect(`/l/en-us-${retired}/`), 'a retired post is sent into a dead end').toBeNull()
+  expect(legacyRedirect(`/l/es-${retired}/`)).toBeNull()
 
   // And a translated URL is not passed through on the assumption its Portuguese
   // path survived: /en-us/<removed> must not become /<removed>?lang=en.
@@ -107,8 +103,27 @@ test('every URL the old site published is either mapped or deliberately not', ()
   const other = unmapped.filter((url) => !url.startsWith('/l/'))
 
   expect(other, `these old URLs have no destination and no decision: ${other}`).toEqual([])
-  // Six posts across three languages, each confirmed absent from the new site.
-  expect(retiredPosts.length, `unexpected unmapped posts: ${retiredPosts}`).toBe(10)
+  // One retired post, in the two languages that still answer on the old site.
+  expect(retiredPosts.length, `unexpected unmapped posts: ${retiredPosts}`).toBe(2)
+})
+
+test('a translation whose slug differs from its original still lands', () => {
+  // The old site gave a post's English and Spanish versions their own, longer
+  // slugs than the Portuguese original, so they look like missing content until
+  // you notice they are the same article.
+  expect(legacyRedirect('/l/en-us-abate-de-arvores-consequencias-para-meio-ambiente/')).toBe(
+    '/blog/abate-de-arvores?lang=en',
+  )
+  expect(legacyRedirect('/l/es-abate-de-arvores-consequencias-para-meio-ambiente/')).toBe(
+    '/blog/abate-de-arvores?lang=es',
+  )
+  // The Portuguese original of that same post, unchanged.
+  expect(legacyRedirect('/l/abate-de-arvores/')).toBe('/blog/abate-de-arvores')
+
+  // Written in English on the Portuguese site, rewritten in Portuguese here.
+  expect(legacyRedirect('/l/overview-of-the-drought-situation-in-algarve-in-2024/')).toBe(
+    '/blog/seca-no-algarve-em-2024',
+  )
 })
 
 test('the redirect runs before anything else can answer', () => {
