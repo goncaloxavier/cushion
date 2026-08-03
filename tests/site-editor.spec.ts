@@ -308,9 +308,9 @@ test.describe('visual website editor', () => {
     })
     await page.locator('.site-editor-publish-button').click()
     await expect(page.locator('.site-editor-publish-button')).toContainText('A publicar…')
-    await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
+    await expect(page.locator('.site-editor-notice')).toContainText('Português publicado')
     await expect(page.locator('.site-editor-notice')).toContainText(
-      'A versão pública do site já está atualizada.',
+      'A versão em português já está online. Inglês e espanhol são atualizados automaticamente e podem demorar alguns minutos.',
     )
     await expect(frame.locator('html')).toHaveAttribute(
       'data-site-editor-fixture-boot',
@@ -355,7 +355,7 @@ test.describe('visual website editor', () => {
     await heading.fill('Alteração mais recente preservada')
     await heading.press('Enter')
 
-    await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
+    await expect(page.locator('.site-editor-notice')).toContainText('Português publicado')
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
     await expect(heading).toHaveText('Alteração mais recente preservada')
   })
@@ -597,19 +597,22 @@ test.describe('visual website editor', () => {
       .locator('.site-editor-panel-index > button')
       .filter({hasText: 'Conteúdo da página'})
       .click()
-    // The page's designed block is edited in its own panel, not listed here, so
-    // this list holds only what the client can add, reorder and remove. It still
-    // renders on the page — hence four sections in the preview against four
-    // entries in the list.
+    // The designed block is an anchor in the same ordered stream. It remains
+    // edited through its canonical fields, while the section list owns its
+    // position and visibility alongside the four authored blocks.
     await expect(
       settings.locator('.site-editor-section-list > article').filter({hasText: 'Topo da página'}),
-    ).toHaveCount(0)
-    await expect(settings.locator('.site-editor-section-list > article')).toHaveCount(4)
+    ).toHaveCount(1)
+    await expect(settings.locator('.site-editor-section-list > article')).toHaveCount(5)
     await expect(frame.locator('.builder-render-section')).toHaveCount(4)
 
     await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await expect(settings.getByText('Abrir a página', {exact: true})).toBeVisible()
+    await expect(settings.getByText('Explicar e mostrar', {exact: true})).toBeVisible()
+    await expect(settings.getByText('Concluir', {exact: true})).toBeVisible()
     await settings.getByRole('button', {name: /Chamada para ação/}).click()
     await expect(frame.locator('.builder-render-section')).toHaveCount(5)
+    await expect(frame.getByRole('link', {name: 'Falar connosco'}).last()).toBeVisible()
     await settings
       .locator('.site-page-editor-group.is-open textarea')
       .first()
@@ -617,7 +620,57 @@ test.describe('visual website editor', () => {
     await expect(
       frame.getByText('Uma chamada criada sem sair da página', {exact: true}),
     ).toBeVisible()
+    await settings.getByText('Botões', {exact: true}).click()
+    await settings.getByRole('button', {name: 'Adicionar botão'}).click()
+    const action = settings.locator('.site-page-action-row').last()
+    await action.locator('input').nth(0).fill('Abrir contacto')
+    await action.locator('input').nth(1).fill('/contacto')
+    await expect(frame.getByRole('link', {name: 'Abrir contacto'})).toHaveCount(1)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
+    const addedRow = settings
+      .locator('.site-editor-section-list > article')
+      .filter({hasText: 'Chamada para ação'})
+      .last()
+    await addedRow.getByRole('button', {name: /Ações de Chamada para ação/}).click()
+    await addedRow.getByRole('button', {name: 'Ocultar do site'}).click()
+    await expect(addedRow.getByText('Oculta', {exact: true})).toBeVisible()
+    await expect(frame.getByText('Oculta no site', {exact: true})).toBeVisible()
+
+    await addedRow.getByRole('button', {name: /Ações de Chamada para ação/}).click()
+    await addedRow.getByRole('button', {name: 'Mostrar no site'}).click()
+    await expect(addedRow.getByText('Oculta', {exact: true})).toHaveCount(0)
+    await expect(frame.getByText('Oculta no site', {exact: true})).toHaveCount(0)
+    await expect(
+      frame.getByText('Uma chamada criada sem sair da página', {exact: true}),
+    ).toBeVisible()
+
+    await addedRow.getByRole('button', {name: /Ações de Chamada para ação/}).click()
+    await addedRow.getByRole('button', {name: 'Duplicar'}).click()
+    await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
+    const cloneRow = settings
+      .locator('.site-editor-section-list > article')
+      .filter({hasText: 'Chamada para ação (cópia)'})
+    await expect(cloneRow).toHaveCount(1)
+    const cloneIndexBefore = await settings
+      .locator('.site-editor-section-list > article')
+      .allTextContents()
+      .then((rows) => rows.findIndex((row) => row.includes('Chamada para ação (cópia)')))
+    await cloneRow.getByRole('button', {name: /Ações de Chamada para ação \(cópia\)/}).click()
+    await cloneRow.getByRole('button', {name: 'Mover para cima'}).click()
+    const cloneIndexAfter = await settings
+      .locator('.site-editor-section-list > article')
+      .allTextContents()
+      .then((rows) => rows.findIndex((row) => row.includes('Chamada para ação (cópia)')))
+    expect(cloneIndexAfter).toBe(cloneIndexBefore - 1)
+
+    await cloneRow.getByRole('button', {name: /Ações de Chamada para ação \(cópia\)/}).click()
+    await cloneRow.getByRole('button', {name: 'Eliminar'}).click()
+    await page.getByRole('alertdialog').getByRole('button', {name: 'Eliminar', exact: true}).click()
+    await expect(cloneRow).toHaveCount(0)
+    await page.getByRole('button', {name: 'Desfazer'}).click()
+    await expect(cloneRow).toHaveCount(1)
 
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     const navigation = page.locator('.site-editor-drawer.is-navigation')
@@ -638,6 +691,97 @@ test.describe('visual website editor', () => {
     await expect(frame.getByText('Conteúdo da página do produto', {exact: true})).toBeVisible()
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
+  })
+
+  test('anchors the designed product area and presets new product media sections', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Product composition workflow runs once')
+    test.setTimeout(45_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await modal.getByRole('button', {name: 'Produto', exact: true}).click()
+    await modal.getByLabel('Nome').fill('Produto com composição editorial')
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
+    await expect(modal).toHaveCount(0)
+    await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
+
+    const documentId = await frame
+      .locator('html')
+      .evaluate(() => new URL(window.location.href).searchParams.get('document'))
+    expect(documentId).toBeTruthy()
+
+    await page.keyboard.press('Escape')
+    await expect(navigation).not.toHaveClass(/is-open/)
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+
+    const rows = settings.locator('.site-editor-section-list > article')
+    const managedRow = rows.filter({hasText: 'Conteúdo atual da página'})
+    await expect(rows).toHaveCount(1)
+    await expect(managedRow).toHaveCount(1)
+
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Texto com imagem/}).click()
+    await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
+
+    const featureRow = rows.filter({hasText: 'Secção do produto'})
+    await expect(rows).toHaveCount(2)
+    await expect(featureRow).toHaveCount(1)
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    await expect
+      .poll(async () => {
+        return page.evaluate(async (id) => {
+          const response = await fetch(`/painel/site/api?document=${encodeURIComponent(id)}`)
+          const payload = (await response.json()) as {
+            document?: {active?: boolean; sections?: Array<Record<string, unknown>>}
+          }
+          return {
+            active: payload.document?.active,
+            sections: payload.document?.sections ?? [],
+          }
+        }, documentId!)
+      })
+      .toMatchObject({
+        active: false,
+        sections: [
+          {_type: 'builderManagedSection', component: 'productDetailCore'},
+          {
+            _type: 'builderMediaSection',
+            variant: 'product-feature',
+            mediaSide: 'left',
+            layout: {width: 'full', surface: 'white'},
+          },
+        ],
+      })
+
+    await featureRow.getByRole('button', {name: /Ações de Secção do produto/}).click()
+    await featureRow.getByRole('button', {name: 'Mover para cima'}).click()
+    await expect(rows.nth(0)).toContainText('Secção do produto')
+
+    await featureRow.getByRole('button', {name: /Ações de Secção do produto/}).click()
+    await featureRow.getByRole('button', {name: 'Mover para baixo'}).click()
+    await expect(rows.nth(0)).toContainText('Conteúdo atual da página')
+
+    await managedRow.locator('.site-editor-section-main').click()
+    await expect(settings.locator('.site-editor-panel-workspace-head strong')).toHaveText(
+      'Conteúdo',
+    )
+    await settings
+      .locator('.site-editor-field-index > button')
+      .filter({hasText: 'Nome do produto'})
+      .click()
+    await expect(settings.getByRole('textbox', {name: 'Nome do produto'})).toBeVisible()
   })
 
   test('keeps undo history intact when editing again immediately after undo', async ({
@@ -952,7 +1096,7 @@ test.describe('visual website editor', () => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Creation workflow runs once')
     const pageErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
-    await openEditor(page, testInfo)
+    const frame = await openEditor(page, testInfo)
 
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     const navigation = page.locator('.site-editor-drawer.is-navigation')
@@ -978,11 +1122,63 @@ test.describe('visual website editor', () => {
     modal = page.locator('.site-editor-modal')
     await modal.getByLabel('Nome').fill('Página criada no editor')
     await modal.getByLabel('Endereço').fill('/pagina-criada-no-editor')
+    await expect(modal.getByText('Como quer começar?')).toBeVisible()
+    await expect(modal.getByRole('button', {name: /Página essencial/})).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await modal.getByRole('button', {name: /Página visual/}).click()
     await modal.getByRole('button', {name: 'Criar e editar'}).click()
     await expect(modal).toHaveCount(0)
     await expect(page.locator('.site-editor-shell')).toBeVisible()
     await expect(navigation.getByRole('button', {name: /Página criada no editor/})).toBeVisible()
+    await expect(frame.locator('.builder-render-section')).toHaveCount(4)
+    const contactAction = frame.getByRole('link', {name: 'Falar connosco'}).last()
+    await expect(contactAction).toBeVisible()
+    await expect(contactAction).toHaveAttribute('data-sanity', /.+/)
+    await expect(frame.locator('.builder-media[data-sanity]')).not.toHaveCount(0)
+    await navigation.getByRole('button', {name: 'Fechar páginas e conteúdo'}).click()
+    await waitForVisualEditor(frame)
+    const createdPageTitle = frame.locator('.builder-responsive-title').first()
+    await hoverEditableTarget(frame, createdPageTitle, 'Editar texto')
+    await createdPageTitle.click()
+    await expect(createdPageTitle).toHaveAttribute('contenteditable', 'plaintext-only')
+    await createdPageTitle.press('Escape')
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
+  })
+
+  test('keeps the guided page and section choices contained on mobile', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chrome', 'Mobile creation layout runs once')
+    await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Páginas'}).click()
+    await navigation.getByRole('button', {name: 'Nova página'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await expect(modal.getByRole('button', {name: /Página essencial/})).toBeVisible()
+    await expect(modal.getByRole('button', {name: /Página visual/})).toBeVisible()
+    await expect(modal.getByRole('button', {name: /Só a abertura/})).toBeVisible()
+    const modalBox = await modal.boundingBox()
+    expect(modalBox).not.toBeNull()
+    expect(modalBox!.x).toBeGreaterThanOrEqual(0)
+    expect(modalBox!.x + modalBox!.width).toBeLessThanOrEqual(390)
+    await modal.getByRole('button', {name: 'Fechar'}).click()
+
+    await navigation.getByRole('button', {name: 'Fechar páginas e conteúdo'}).click()
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await expect(settings.getByText('Abrir a página', {exact: true})).toBeVisible()
+    await expect(settings.getByText('Explicar e mostrar', {exact: true})).toBeVisible()
+    await expect(settings.getByText('Concluir', {exact: true})).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   })
 
   test('updates a free-page preview immediately while autosave is still pending', async ({
@@ -1001,7 +1197,7 @@ test.describe('visual website editor', () => {
     await modal.getByRole('button', {name: 'Criar e editar'}).click()
 
     await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
-    await expect(frame.locator('.builder-responsive-title')).toHaveText(
+    await expect(frame.locator('.builder-responsive-title').first()).toHaveText(
       'Página com pré-visualização imediata',
     )
     const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
@@ -1010,7 +1206,21 @@ test.describe('visual website editor', () => {
     await navigation.getByRole('button', {name: 'Fechar páginas e conteúdo'}).click()
     await expect(navigation).not.toHaveClass(/is-open/)
 
-    await frame.getByRole('button', {name: 'Editar Destaque principal'}).click()
+    await waitForVisualEditor(frame)
+    const visualTitle = frame.locator('.builder-responsive-title').first()
+    await visualTitle.hover()
+    await expect(frame.locator('.site-editor-outline.is-hovered > span')).toHaveText('Editar texto')
+
+    const sectionShell = frame.getByRole('button', {name: 'Editar Destaque principal'})
+    const [sectionBox, shellBox] = await Promise.all([
+      frame.locator('.builder-render-section').first().boundingBox(),
+      sectionShell.boundingBox(),
+    ])
+    expect(sectionBox).not.toBeNull()
+    expect(shellBox).not.toBeNull()
+    expect(shellBox!.width).toBeLessThan(sectionBox!.width / 2)
+
+    await sectionShell.click()
     const settings = page.locator('.site-editor-drawer.is-settings')
     await expect(settings).toHaveClass(/is-open/)
     await expect(
@@ -1030,7 +1240,7 @@ test.describe('visual website editor', () => {
     })
 
     await settings.getByLabel('Título').fill('O texto aparece sem esperar pelo autosave')
-    await expect(frame.locator('.builder-responsive-title')).toHaveText(
+    await expect(frame.locator('.builder-responsive-title').first()).toHaveText(
       'O texto aparece sem esperar pelo autosave',
       {timeout: 500},
     )
@@ -1067,6 +1277,14 @@ test.describe('visual website editor', () => {
       const modal = page.locator('.site-editor-modal')
       await modal.getByRole('button', {name: draft.label, exact: true}).click()
       await modal.getByLabel('Nome').fill(draft.title)
+      if (draft.type === 'storeProduct') {
+        // A shop product has to be filed under a category before it exists:
+        // guessing one put a planter in "Bancos" without telling anybody. The
+        // dialog asks, so the form does not submit until it is answered.
+        const category = modal.getByLabel('Categoria', {exact: true})
+        await expect(category).toHaveValue('')
+        await category.selectOption('cultivo')
+      }
       await modal.getByRole('button', {name: 'Criar e editar'}).click()
 
       await expect(modal).toHaveCount(0)
@@ -1315,6 +1533,83 @@ test.describe('visual website editor', () => {
     expect(storedShape.at(-1)?.columns).toEqual(['Material', 'Quantidade'])
     expect(storedShape.at(-1)?.rows).toHaveLength(2)
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
+  })
+
+  test('keeps the selected article text while the link form has focus', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Link selection round trip runs once')
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Artigos do Blog/)
+    await navigation.getByRole('button', {name: /Artigo estruturado completo/}).click()
+
+    const article = frame.getByTestId('fixture-created-article')
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await selectEditableTarget(page, article, settings)
+    const {workspace} = await openArticleWorkspace(page, settings)
+    const canvas = workspace.locator('.site-editor-rich-canvas')
+    const heading = canvas.locator('h2').first()
+    const linkText = 'ligação nova'
+
+    await heading.click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(` ${linkText}`)
+    // Selecting by keyboard rather than by dragging between measured
+    // coordinates: the phrase was just typed at the end, so shift-left over its
+    // own length lands on exactly it. The drag depended on scroll position and
+    // hit-testing inside a live rich-text editor, which is why it selected the
+    // wrong range on a loaded machine and the link then annotated nothing.
+    for (let index = 0; index < linkText.length; index += 1) {
+      await page.keyboard.press('Shift+ArrowLeft')
+    }
+    await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe(linkText)
+
+    await workspace.getByRole('button', {name: 'Adicionar ligação'}).click()
+    await workspace.getByLabel('Destino da ligação').fill('https://www.dafabrica4you.pt/produtos/')
+    await workspace.getByRole('button', {name: 'Aplicar', exact: true}).click()
+
+    await expect(heading.getByRole('link', {name: linkText})).toHaveAttribute(
+      'href',
+      'https://www.dafabrica4you.pt/produtos/',
+    )
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+    await expect
+      .poll(() =>
+        page.evaluate(async (expectedText) => {
+          const response = await fetch('/painel/site/api?document=blogPost.rich-article-fixture')
+          const payload = (await response.json()) as {
+            document?: {article?: {pt?: Array<Record<string, unknown>>}}
+          }
+          const blocks = payload.document?.article?.pt ?? []
+          return blocks.some((block) => {
+            const markDefs = Array.isArray(block.markDefs) ? block.markDefs : []
+            const children = Array.isArray(block.children) ? block.children : []
+            const linkKey = markDefs.find(
+              (mark) =>
+                typeof mark === 'object' &&
+                mark !== null &&
+                (mark as {_type?: string})._type === 'link' &&
+                (mark as {href?: string}).href === 'https://www.dafabrica4you.pt/produtos/',
+            ) as {_key?: string} | undefined
+            return Boolean(
+              linkKey?._key &&
+                children.some(
+                  (child) =>
+                    typeof child === 'object' &&
+                    child !== null &&
+                    (child as {text?: string}).text === expectedText &&
+                    Array.isArray((child as {marks?: unknown[]}).marks) &&
+                    (child as {marks: unknown[]}).marks.includes(linkKey._key),
+                ),
+            )
+          })
+        }, linkText),
+      )
+      .toBe(true)
   })
 
   test('keeps the article toolbar and table workflow contained on desktop and mobile', async ({
@@ -1574,7 +1869,7 @@ test.describe('visual website editor', () => {
     await pendingManager.getByRole('button', {name: /Abrir e publicar: Banco editorial/}).click()
     await expect(settings.getByRole('combobox', {name: 'Categoria'})).toHaveValue('mesas')
     await page.locator('.site-editor-publish-button').click()
-    await expect(page.locator('.site-editor-notice')).toContainText('Alterações publicadas')
+    await expect(page.locator('.site-editor-notice')).toContainText('Português publicado')
 
     await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
     await navigation.getByRole('button', {name: /Bancos exteriores.*0 produtos/}).click()

@@ -97,6 +97,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'blogPage',
+    }}
   >
     <section class="blog-index-hero">
     <Reveal class="blog-index-copy" variant="hero" priority>

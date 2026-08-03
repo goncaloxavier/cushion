@@ -16,6 +16,22 @@ export const builderAssetUrl = (reference: string | undefined, dataset: string) 
   return ''
 }
 
+export const builderImageAspectRatio = (reference: string | undefined) => {
+  const dimensions = reference?.match(/-(\d+)x(\d+)-[a-z0-9]+$/i)
+  if (!dimensions) return undefined
+
+  const width = Number(dimensions[1])
+  const height = Number(dimensions[2])
+  return width > 0 && height > 0 ? width / height : undefined
+}
+
+export const builderVideoMimeType = (reference: string | undefined) => {
+  const extension = reference?.match(/-([a-z0-9]+)$/i)?.[1]?.toLowerCase()
+  if (extension === 'webm') return 'video/webm'
+  if (extension === 'mov' || extension === 'quicktime') return 'video/quicktime'
+  return 'video/mp4'
+}
+
 export const builderYoutubeEmbedUrl = (value: string | undefined) => {
   if (!value) return ''
 

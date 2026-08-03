@@ -834,8 +834,14 @@ image('image', 'Imagem principal'), gallery]},
     },
     {
       id: 'organization',
-      label: 'Organização',
+      label: 'Visibilidade',
       fields: [
+        {
+          name: 'active',
+          label: 'Mostrar na página Produtos',
+          description: 'Desative para rever pelo endereço direto sem colocar o produto nas listas',
+          type: 'boolean',
+        },
         {
           name: 'orderRank',
           label: 'Posição na lista',
@@ -953,7 +959,16 @@ image('image', 'Imagem principal'), gallery]},
       ...baseDocumentPanels('Nome do caso', 'Ex.: Proteção de piscina na Trofa')[0],
       fields: [
         ...baseDocumentPanels('Nome do caso', 'Ex.: Proteção de piscina na Trofa')[0].fields,
-        localizedString('location', 'Local', undefined, 'Ex.: Trofa, Porto'),
+        // A place name, not copy: the Sanity schema stores it as a plain string
+        // and the reader trims it as one. Declaring it localized here wrote an
+        // object into that field, and every page that loads cases — including
+        // the home page — threw on `location.trim`.
+        {
+          name: 'location',
+          label: 'Local',
+          type: 'string',
+          placeholder: 'Ex.: Trofa, Porto',
+        },
         localizedText(
           'summary',
           'Resumo',
@@ -972,8 +987,14 @@ image('image', 'Imagem principal'), gallery]},
 image('image', 'Imagem principal'), gallery]},
     {
       id: 'organization',
-      label: 'Organização',
+      label: 'Visibilidade',
       fields: [
+        {
+          name: 'active',
+          label: 'Mostrar na página Casos de estudo',
+          description: 'Desative para rever pelo endereço direto sem colocar o caso nas listas',
+          type: 'boolean',
+        },
         {
           name: 'orderRank',
           label: 'Posição na lista',

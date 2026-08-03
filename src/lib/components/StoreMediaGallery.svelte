@@ -6,7 +6,7 @@
   import {prefersReducedMotion} from '$lib/motion'
   import {tick} from 'svelte'
 
-  type ImageMedia = StoreProductMedia & ContentImage & {type: 'image'}
+  type ImageMedia = Extract<StoreProductMedia, {type: 'image'}>
 
   const lqipBackground = (img: ContentImage | undefined) =>
     img?.lqip ? `center / cover no-repeat url(${img.lqip})` : undefined
@@ -80,7 +80,7 @@
       ? `--image-aspect: ${visualImage.aspectRatio}`
       : undefined,
   )
-  const itemLabel = $derived(item?.type === 'video' ? item.title || label : label)
+  const itemLabel = $derived(item?.type === 'image' ? label : item?.title || label)
   const altFor = (candidate: ContentImage) => candidate.alt?.trim() || label
 
   const selectItem = (index: number) => {
@@ -130,7 +130,7 @@
   <div class={`product-gallery image-gallery product-media-gallery ${className}`}>
     <button
       class="detail-hero-media product-gallery-main image-gallery-main"
-      class:is-video={item.type === 'video'}
+      class:is-video={item.type !== 'image'}
       type="button"
       aria-label={itemLabel}
       style={mediaStyle}
@@ -151,7 +151,7 @@
           style:background={lqipBackground(item)}
           style:view-transition-name={transitionName}
         />
-      {:else}
+      {:else if item.type === 'video'}
         <video
           class="media-gallery-video"
           src={item.url}
@@ -175,12 +175,35 @@
             <path d="m16.5 9.5 4 5M20.5 9.5l-4 5" />
           </svg>
         </span>
+      {:else}
+        {#if item.poster}
+          <img
+            class="media-gallery-embed-poster"
+            src={sizedImage(item.poster.url, 1600, 76)}
+            srcset={imageSrcset(item.poster.url, [640, 900, 1200, 1600], 76)}
+            {sizes}
+            alt={altFor(item.poster)}
+            decoding="async"
+            style:background={lqipBackground(item.poster)}
+          />
+        {:else}
+          <span class="media-gallery-embed-placeholder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        {/if}
+        <span class="media-gallery-badge is-play" aria-hidden="true"></span>
       {/if}
       <span class="image-gallery-zoom" aria-hidden="true"></span>
       {#if hasMultiple}
         <span class="image-gallery-count">{position}</span>
       {/if}
     </button>
+
+    {#if item.caption}
+      <p class="image-gallery-caption" aria-live="polite">{item.caption}</p>
+    {/if}
 
     {#if hasMultiple}
       <div class="product-thumbnails image-gallery-thumbnails" aria-label={label}>
@@ -190,8 +213,8 @@
           <button
             type="button"
             class:active={selectedIndex === index}
-            class:is-video={mediaItem.type === 'video'}
-            aria-label={`${mediaItem.type === 'video' ? mediaItem.title || label : label} ${index + 1}`}
+            class:is-video={mediaItem.type !== 'image'}
+            aria-label={`${mediaItem.type === 'image' ? label : mediaItem.title || label} ${index + 1}`}
             data-sanity={thumbAttr}
             data-df4y-editor-kind={mediaItem.type}
             onclick={() => {
@@ -215,7 +238,7 @@
                 </svg>
               </span>
             {/if}
-            {#if mediaItem.type === 'video'}
+            {#if mediaItem.type !== 'image'}
               <span class="media-gallery-thumb-play" aria-hidden="true"></span>
             {/if}
           </button>
@@ -244,7 +267,7 @@
       if (event.key === 'ArrowRight') moveItem(1)
     }}
   >
-    <figure class="lightbox-frame" class:is-video={item.type === 'video'}>
+    <figure class="lightbox-frame" class:is-video={item.type !== 'image'}>
       {#if item.type === 'image'}
         <img
           src={sizedImage(item.url, lightboxWidth)}
@@ -254,7 +277,7 @@
           decoding="async"
           style:background={lqipBackground(item)}
         />
-      {:else}
+      {:else if item.type === 'video'}
         <video
           class="lightbox-video"
           controls
@@ -267,6 +290,14 @@
             <track kind="captions" src={item.captionsUrl} srclang="pt" label="Português" default />
           {/if}
         </video>
+      {:else}
+        <iframe
+          class="lightbox-video lightbox-embed"
+          src={item.url}
+          title={item.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
       {/if}
       {#if hasMultiple}
         <figcaption class="lightbox-counter">{position}</figcaption>

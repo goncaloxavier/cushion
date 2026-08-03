@@ -39,7 +39,7 @@ export const snippet = (...candidates: (string | undefined)[]) => {
 // Free, in-memory "recent/default" results for the empty-query state — no
 // network round trip, since `content` is already loaded by the root layout.
 export const topItemsPerCategory = (content: SiteContent, count = 3): SearchResults => ({
-  products: content.products.slice(0, count).map((item) => ({
+  products: content.products.filter((item) => item.active !== false).slice(0, count).map((item) => ({
     category: 'products',
     title: item.title,
     slug: item.slug,
@@ -53,7 +53,7 @@ export const topItemsPerCategory = (content: SiteContent, count = 3): SearchResu
     href: `${ROUTE_PREFIX.storeProducts}/${item.slug}`,
     snippet: snippet(item.summary),
   })),
-  caseStudies: content.caseStudies.slice(0, count).map((item) => ({
+  caseStudies: content.caseStudies.filter((item) => item.active !== false).slice(0, count).map((item) => ({
     category: 'caseStudies',
     title: item.title,
     slug: item.slug,

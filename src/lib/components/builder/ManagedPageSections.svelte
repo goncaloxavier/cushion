@@ -13,6 +13,7 @@
     preview = false,
     listenForState = true,
     selectedSectionKey,
+    dataAttribute,
   } = $props<{
     sections: BuilderSection[]
     settings: BuilderSiteSettings | null
@@ -22,6 +23,7 @@
     preview?: boolean
     listenForState?: boolean
     selectedSectionKey?: string
+    dataAttribute?: (path: string) => string | undefined
   }>()
 
   const page = $derived({sections} as SitePageDocument)
@@ -37,6 +39,7 @@
     {preview}
     {listenForState}
     externalSelectedSectionKey={selectedSectionKey}
+    {dataAttribute}
     embedded
   />
 {/if}

@@ -2882,10 +2882,14 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   box-shadow: 0 0.85rem 1.8rem rgba(17, 57, 60, 0.18);
 }
 
+/* Heading and summary sit at the top, the price is pinned to the bottom. The
+   middle row takes the slack, so a two-line description and a four-line one
+   still put their price on the same line — the cards in a row are already the
+   same height, it was only the price that floated up behind a short summary. */
 .store-card-body {
   display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 0.9rem;
-  align-content: start;
   padding: 1.1rem;
 }
 
@@ -3983,6 +3987,19 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   background: #071c1b;
 }
 
+.media-gallery-embed-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--green-dark), var(--brand-sea));
+}
+
+.media-gallery-embed-placeholder svg {
+  width: clamp(2.5rem, 7vw, 4.5rem);
+}
+
 /* Small muted-audio chip on an inline-playing video (bottom-left, mirrors the
    zoom chip). The frame click expands to the lightbox for full sound. */
 .media-gallery-badge {
@@ -3996,6 +4013,23 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
 .media-gallery-badge svg {
   width: 1.1rem;
   height: 1.1rem;
+}
+
+.media-gallery-badge.is-play::before {
+  width: 0;
+  height: 0;
+  margin-left: 0.16rem;
+  border-top: 0.38rem solid transparent;
+  border-bottom: 0.38rem solid transparent;
+  border-left: 0.62rem solid currentColor;
+  content: '';
+}
+
+.image-gallery-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
 }
 
 .media-gallery-video-thumb {
@@ -4287,6 +4321,11 @@ body.lightbox-open {
   border-radius: 8px;
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.32);
   pointer-events: auto;
+}
+
+.lightbox-embed {
+  aspect-ratio: 16 / 9;
+  border: 0;
 }
 
 .lightbox-counter {
@@ -5311,7 +5350,7 @@ body.lightbox-open {
 
 .article-embedded-image img {
   display: block;
-  width: auto;
+  width: 100%;
   max-width: 100%;
   height: auto;
   max-height: min(68svh, 38rem);

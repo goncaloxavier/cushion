@@ -128,6 +128,14 @@ route markup at its stored position. `BuilderPageRenderer` renders the free bloc
 For visitors, the designed markup is emitted without an extra wrapper. During visual editing, a
 preview-only wrapper carries selection state without creating a second source of truth.
 
+Every composition also declares the Sanity document that owns its section stream. The shared
+composition prefixes fixed-page paths such as `home.sections` and uses root `sections` paths for
+product, Loja product, case-study, blog, and free-page documents. The renderer then gives each
+visible title, paragraph, action, media item, card, statistic, and partner its own edit target. A
+small **Editar secção** control opens the section settings without covering those inner targets.
+Navigation remains menu-only: global header links are edited from **Global > Cabeçalho e
+navegação**, not by clicking the public navbar.
+
 Older documents may not yet store the managed marker. `withManagedCoreSection` injects a
 deterministic virtual marker so the designed area is present immediately in the editor and public
 composition; the marker is persisted on the first order/visibility change. Existing canonical text,

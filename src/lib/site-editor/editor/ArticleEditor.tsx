@@ -7,6 +7,7 @@ import {
   useEditorSelector,
   type BlockListItemRenderProps,
   type BlockRenderProps,
+  type EditorSelection,
   type Path,
   type PortableTextBlock,
   type PortableTextObject,
@@ -17,6 +18,7 @@ import {
 import {defineBehavior, raise} from '@portabletext/editor/behaviors'
 import {BehaviorPlugin, EventListenerPlugin} from '@portabletext/editor/plugins'
 import * as selectors from '@portabletext/editor/selectors'
+import {getSelectionEndPoint} from '@portabletext/editor/utils'
 import {MarkdownShortcutsPlugin} from '@portabletext/plugin-markdown-shortcuts'
 import {PasteLinkPlugin} from '@portabletext/plugin-paste-link'
 import {ArrowDownIcon} from '@sanity/icons/ArrowDown'
@@ -454,6 +456,19 @@ function ArticleObjectCard({
   )
 }
 
+/**
+ * A caret rather than a span of text. Annotating a collapsed range marks nothing,
+ * so the link the client asked for simply never appears — with no error and no
+ * clue why. Worth distinguishing before either remembering or restoring one.
+ */
+const isCollapsedSelection = (selection: EditorSelection | undefined) => {
+  if (!selection) return true
+  const {anchor, focus} = selection
+  return (
+    anchor.offset === focus.offset && JSON.stringify(anchor.path) === JSON.stringify(focus.path)
+  )
+}
+
 function ArticleToolbar({
   onUpload,
   onObjectInserted,
@@ -473,6 +488,7 @@ function ArticleToolbar({
   const [videoUrl, setVideoUrl] = useState('')
   const [videoTitle, setVideoTitle] = useState('')
   const [uploadStatus, setUploadStatus] = useState<MediaUploadStatus>()
+  const linkSelectionRef = useRef<NonNullable<EditorSelection>>()
 
   const preserveSelection = (event: React.MouseEvent) => event.preventDefault()
   const refocus = () => editor.send({type: 'focus'})
@@ -585,8 +601,21 @@ function ArticleToolbar({
                 if (linked) {
                   editor.send({type: 'annotation.remove', annotation: {name: 'link'}})
                   refocus()
+                } else if (openForm === 'link') {
+                  linkSelectionRef.current = undefined
+                  setOpenForm(undefined)
                 } else {
-                  setOpenForm((current) => (current === 'link' ? undefined : 'link'))
+                  // Only a real range is worth remembering. The editor's own
+                  // selection can still be the caret from an earlier click if the
+                  // drag that selected the phrase has not reached it yet — and a
+                  // collapsed range annotates nothing, so the link silently never
+                  // appears. Falling back to the live selection at submit time is
+                  // better than restoring a caret over it.
+                  const captured = editor.getSnapshot().context.selection
+                  linkSelectionRef.current = isCollapsedSelection(captured)
+                    ? undefined
+                    : (captured ?? undefined)
+                  setOpenForm('link')
                 }
               }}
               aria-label={linked ? 'Remover ligação' : 'Adicionar ligação'}
@@ -698,10 +727,35 @@ function ArticleToolbar({
           onSubmit={(event) => {
             event.preventDefault()
             if (!link.trim()) return
-            editor.send({
-              type: 'annotation.add',
-              annotation: {name: 'link', value: {href: link.trim()}},
-            })
+            const remembered = linkSelectionRef.current
+            const live = editor.getSnapshot().context.selection
+            const selection = remembered ?? (isCollapsedSelection(live) ? undefined : live)
+            const href = link.trim()
+
+            // `select` is dispatched, not applied inline, so annotating in the
+            // same tick could run against the selection the editor still had —
+            // usually a caret, which marks nothing and drops the link with no
+            // error. Restoring the range first and applying once it has landed
+            // is what makes this survive a slow machine.
+            const applyLink = () => {
+              editor.send({
+                type: 'annotation.add',
+                annotation: {name: 'link', value: {href}},
+                ...(selection ? {at: selection} : {}),
+              })
+              const endPoint = getSelectionEndPoint(editor.getSnapshot().context.selection)
+              if (endPoint) {
+                editor.send({type: 'select', at: {anchor: endPoint, focus: endPoint}})
+              }
+            }
+
+            if (selection) {
+              editor.send({type: 'select', at: selection})
+              setTimeout(applyLink, 0)
+            } else {
+              applyLink()
+            }
+            linkSelectionRef.current = undefined
             setLink('')
             setOpenForm(undefined)
             refocus()
@@ -718,7 +772,15 @@ function ArticleToolbar({
             />
           </label>
           <button type="submit">Aplicar</button>
-          <button type="button" onClick={() => setOpenForm(undefined)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => {
+              linkSelectionRef.current = undefined
+              setOpenForm(undefined)
+              refocus()
+            }}
+            aria-label="Fechar"
+          >
             <CloseIcon />
           </button>
         </form>

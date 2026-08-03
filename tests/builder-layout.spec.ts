@@ -161,6 +161,166 @@ test.describe('a page built from sections keeps its layout', () => {
   })
 })
 
+test.describe('a page built from sections adapts to mobile', () => {
+  test.beforeEach(async ({page}, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chrome', 'Mobile layout contract')
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('df4y-cookie-notice-seen', '1')
+      } catch {
+        // private mode
+      }
+    })
+  })
+
+  test('text and media stack instead of squeezing into desktop columns', async ({page}) => {
+    await page.goto('/pagina-composta?lang=pt')
+    const section = page.locator('.builder-media-copy').first()
+    await expect(section).toBeVisible()
+
+    const widths = await section.evaluate((element) => {
+      const sectionWidth = element.getBoundingClientRect().width
+      const childWidths = Array.from(element.children).map(
+        (child) => (child as HTMLElement).getBoundingClientRect().width,
+      )
+      return {sectionWidth, childWidths}
+    })
+
+    expect(widths.childWidths.length).toBeGreaterThan(1)
+    for (const width of widths.childWidths) {
+      expect(width).toBeGreaterThan(widths.sectionWidth * 0.9)
+    }
+  })
+})
+
+test.describe('a gallery section behaves like a gallery', () => {
+  test.beforeEach(async ({page}) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('df4y-cookie-notice-seen', '1')
+      } catch {
+        // private mode
+      }
+    })
+    await page.goto('/pagina-composta?lang=pt')
+  })
+
+  test('selects media, opens the lightbox and keeps the page fixed behind it', async ({page}) => {
+    const gallery = page.locator('.builder-interactive-gallery')
+    const main = gallery.locator('.image-gallery-main')
+    const thumbnails = gallery.locator('.image-gallery-thumbnails button')
+
+    await expect(gallery).toBeVisible()
+    await expect(thumbnails).toHaveCount(2)
+    await expect(main.locator('img')).toHaveAttribute('alt', 'Primeira imagem da galeria')
+
+    await thumbnails.nth(1).click()
+    await expect(main.locator('img')).toHaveAttribute('alt', 'Segunda imagem da galeria')
+    await expect(gallery.locator('.image-gallery-count')).toHaveText('2 / 2')
+
+    await main.click()
+    const dialog = page.locator('.image-lightbox')
+    await expect(dialog).toBeVisible()
+    await expect(page.locator('html')).toHaveClass(/lightbox-open/)
+    await expect(page.locator('body')).toHaveClass(/lightbox-open/)
+
+    await page.keyboard.press('ArrowLeft')
+    await expect(dialog.locator('img')).toHaveAttribute('alt', 'Primeira imagem da galeria')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page.locator('html')).not.toHaveClass(/lightbox-open/)
+    await expect(page.locator('body')).not.toHaveClass(/lightbox-open/)
+  })
+
+  test('stays contained at the active viewport width', async ({page}) => {
+    const gallery = page.locator('.builder-interactive-gallery')
+    await expect(gallery).toBeVisible()
+    const box = await gallery.boundingBox()
+    const viewport = page.viewportSize()
+
+    expect(box).not.toBeNull()
+    expect(viewport).not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      viewport!.width + 1,
+    )
+  })
+})
+
+test.describe('a generated page uses the site motion language', () => {
+  test.beforeEach(async ({page}, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Pointer interaction contract')
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('df4y-cookie-notice-seen', '1')
+      } catch {
+        // private mode
+      }
+    })
+  })
+
+  test('reveals its first section immediately and gives actions clear interaction feedback', async ({
+    page,
+  }) => {
+    await page.goto('/pagina-composta?lang=pt&motion=on')
+
+    const firstReveal = page.locator('.builder-render-section').first().locator('.reveal')
+    const firstHeading = firstReveal.getByRole('heading', {name: 'Sustentabilidade'})
+    await expect(firstReveal).toHaveClass(/visible/)
+    await expect(firstHeading).toBeVisible()
+
+    const headingMotion = await firstHeading.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {name: style.animationName, duration: style.animationDuration}
+    })
+    expect(headingMotion.name).toContain('builder-copy-enter')
+    expect(Number.parseFloat(headingMotion.duration)).toBeGreaterThan(0)
+
+    const action = page.getByRole('link', {name: 'Contactar'})
+    await action.scrollIntoViewIfNeeded()
+    await expect(action).toBeVisible()
+    await page.waitForTimeout(800)
+
+    const resting = await action.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {shadow: style.boxShadow, transition: style.transitionProperty}
+    })
+    expect(resting.transition).toContain('transform')
+
+    await action.hover()
+    await expect
+      .poll(() => action.evaluate((element) => getComputedStyle(element).transform))
+      .not.toBe('none')
+    const hoveredShadow = await action.evaluate((element) => getComputedStyle(element).boxShadow)
+    expect(hoveredShadow).not.toBe(resting.shadow)
+
+    await action.focus()
+    const focusRing = await action.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {style: style.outlineStyle, width: Number.parseFloat(style.outlineWidth)}
+    })
+    expect(focusRing.style).not.toBe('none')
+    expect(focusRing.width).toBeGreaterThanOrEqual(2)
+  })
+
+  test('removes generated-page motion when the visitor requests reduced motion', async ({page}) => {
+    await page.emulateMedia({reducedMotion: 'reduce'})
+    await page.goto('/pagina-composta?lang=pt&motion=off')
+
+    const heading = page.getByRole('heading', {name: 'Sustentabilidade'})
+    const action = page.getByRole('link', {name: 'Contactar'})
+    await action.scrollIntoViewIfNeeded()
+
+    await expect(page.locator('html')).toHaveClass(/reduce-motion/)
+    await expect(heading).toBeVisible()
+    expect(await heading.evaluate((element) => getComputedStyle(element).animationName)).toBe('none')
+    expect(await action.evaluate((element) => getComputedStyle(element).transitionProperty)).toBe(
+      'none',
+    )
+  })
+})
+
 /**
  * Background and text colour are picked in two different places, at two
  * different times. The client styled a heading while its section was light, then

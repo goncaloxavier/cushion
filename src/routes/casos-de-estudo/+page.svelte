@@ -24,8 +24,11 @@
   let collectionSection: HTMLElement | null = null
   const pageSize = 9
   const normalizedQuery = $derived(query.trim().toLowerCase())
+  // A case can be published for review at its own address without appearing
+  // here — the same control products already had.
+  const listedCases = $derived(content.caseStudies.filter((item) => item.active !== false))
   const filteredCases = $derived(
-    content.caseStudies.filter((item) =>
+    listedCases.filter((item) =>
       [
         item.title,
         item.location,
@@ -90,7 +93,7 @@
   description={seoDescription(
     data.language,
     content.casesPage.hero.lead,
-    content.caseStudies.map((item) => item.summary || item.description).join(' '),
+    listedCases.map((item) => item.summary || item.description).join(' '),
   )}
   image={content.casesPage.heroImage}
   pagination={{page, totalPages}}
@@ -105,6 +108,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'casesPage',
+    }}
   >
     <section class="case-index-hero">
     <Reveal class="case-index-copy" variant="hero" priority>
@@ -146,7 +155,7 @@
             placeholder={content.common.searchPlaceholder}
           />
         </label>
-        <p>{filteredCases.length} / {content.caseStudies.length}</p>
+        <p>{filteredCases.length} / {listedCases.length}</p>
       </div>
     </Reveal>
 

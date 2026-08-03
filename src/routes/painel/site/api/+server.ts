@@ -90,7 +90,14 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
   requireMutationAccess(request, url, cookies)
   const body = await readBody<
     | {action: 'publish'; document?: SiteEditorDocument}
-    | {action: 'create'; documentType?: string; title?: string; route?: string}
+    | {
+        action: 'create'
+        documentType?: string
+        title?: string
+        route?: string
+        sitePageStarter?: string
+        storeCategory?: string
+      }
   >(request)
   const scope = siteEditorE2eScope(request.headers)
 
@@ -112,7 +119,14 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
   if (body.action === 'create') {
     return json({
       document: await runMutation(() =>
-        createSiteEditorDocument(body.documentType, body.title, body.route, scope),
+        createSiteEditorDocument(
+          body.documentType,
+          body.title,
+          body.route,
+          scope,
+          body.sitePageStarter,
+          body.storeCategory,
+        ),
       ),
     })
   }

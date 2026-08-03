@@ -85,16 +85,22 @@ export type ContentVideo = {
   captionsUrl?: string
 }
 
-export type StoreProductMedia =
-  | (ContentImage & {
-      type: 'image'
-      // Sanity field path for click-to-edit (e.g. `image`, `gallery[_key=="..."]`).
-      editPath?: string
-    })
-  | (ContentVideo & {
-      type: 'video'
-      editPath?: string
-    })
+export type ContentEmbedVideo = {
+  url: string
+  title: string
+  provider: 'youtube'
+  poster?: ContentImage
+}
+
+export type StoreProductMedia = (
+  | (ContentImage & {type: 'image'})
+  | (ContentVideo & {type: 'video'})
+  | (ContentEmbedVideo & {type: 'embed'})
+) & {
+  // Sanity field path for click-to-edit (e.g. `image`, `gallery[_key=="..."]`).
+  editPath?: string
+  caption?: string
+}
 
 // A downloadable file offered on a page. Same shape on product details, store
 // products and both listings, so one component renders all four.
@@ -115,6 +121,7 @@ export type PartnerItem = {
 export type ProductItem = {
   studioDocumentId?: string
   updatedAt?: string
+  active?: boolean
   title: string
   slug: string
   description: string
@@ -136,6 +143,7 @@ export type ProductItem = {
 export type CaseStudy = {
   studioDocumentId?: string
   updatedAt?: string
+  active?: boolean
   title: string
   slug: string
   location: string
@@ -448,6 +456,7 @@ type SanityProduct = {
   documentsTitle?: LocalizedValue
   _id?: string
   _updatedAt?: string
+  active?: boolean
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
@@ -464,11 +473,14 @@ type SanityProduct = {
 type SanityCaseStudy = {
   _id?: string
   _updatedAt?: string
+  active?: boolean
   title?: LocalizedValue
   slug?: {current?: string}
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
-  location?: string
+  // Authored as a plain string, but documents written while the editor treated
+  // it as a localized field carry an object here.
+  location?: string | LocalizedValue
   summary?: LocalizedValue
   description?: LocalizedValue
   challenge?: LocalizedValue
@@ -2268,6 +2280,14 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
   value?.[language]?.trim() || value?.pt?.trim() || fallback
 
+// For fields the schema declares as plain strings. Editors have written
+// localized objects into them, so reading one must never depend on the shape.
+const plainString = (value: string | LocalizedValue | undefined, language: LanguageCode) => {
+  if (typeof value === 'string') return value.trim()
+  if (!value || typeof value !== 'object') return ''
+  return localized(value, language, '')
+}
+
 const appearanceFrom = (value: LocalizedValue | undefined): TextAppearance | undefined => {
   if (!value) return undefined
   const appearance = Object.fromEntries(
@@ -2765,6 +2785,7 @@ const productsFromSanity = (
       return {
         studioDocumentId: product._id?.replace(/^drafts\./, ''),
         updatedAt: product._updatedAt,
+        active: product.active !== false,
         title: localized(product.title, language, fallbackProduct?.title ?? 'Product'),
         slug: slug || fallbackProduct?.slug || `product-${index + 1}`,
         image: productImages[0],
@@ -2934,12 +2955,16 @@ const casesFromSanity = (
       return {
         studioDocumentId: item._id?.replace(/^drafts\./, ''),
         updatedAt: item._updatedAt,
+        active: item.active !== false,
         title: localized(item.title, language, fallbackCase?.title ?? 'Case study'),
         slug: slug || fallbackCase?.slug || `case-${index + 1}`,
         image: images[0],
         images,
         media,
-        location: item.location?.trim() || fallbackCase?.location || '',
+        // Never assume the shape: one case study holding an object here used to
+        // throw inside this map, which took down every page that loads cases —
+        // the home page included.
+        location: plainString(item.location, language) || fallbackCase?.location || '',
         summary: localized(item.summary, language, ''),
         description: localized(item.description, language, ''),
         challenge: localized(item.challenge, language, ''),

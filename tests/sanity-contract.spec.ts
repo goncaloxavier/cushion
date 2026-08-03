@@ -12,6 +12,7 @@ import {
   storeVatRate,
   transportEstimateFor,
 } from '../src/lib/store-shipping'
+import {createSiteEditorStarterFields} from '../src/lib/server/site-editor-starters'
 import {sameOriginOk} from '../src/lib/server/form-guard'
 import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
 import {
@@ -137,6 +138,91 @@ test.describe('Sanity Studio content contract', () => {
     // A real size still works and is still clamped at the bottom.
     expect(textAppearanceStyle({fontSize: 48})).toContain('--cms-text-size-desktop:48px')
     expect(textAppearanceStyle({fontSize: 2})).toContain('--cms-text-size-desktop:10px')
+  })
+
+  test('every collection the client publishes into can be hidden from its list', () => {
+    // Products and shop items could always be published and reviewed at their own
+    // address without appearing in a listing. Cases and shop categories could not:
+    // creating one put it straight in front of visitors, with no way back short of
+    // deleting it. Four collection types, two of them with a safety the other two
+    // lacked — and the missing half is exactly where an example or a
+    // work-in-progress entry would have been noticed by the public first.
+    // storeCategory is deliberately excluded: a category is a filter facet, not
+    // content. Hiding one while its products stay visible would leave those
+    // products pointing at a facet nobody can see, so categories are created and
+    // deleted rather than hidden — a rule the Loja contract below already holds.
+    for (const type of ['productCategory', 'storeProduct', 'caseStudy']) {
+      const schema = readFileSync(`schemaTypes/${type}.ts`, 'utf8')
+      expect(schema, `${type} has no visibility control`).toContain("name: 'active'")
+
+      const allowlist = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+      const entry = allowlist.slice(allowlist.indexOf(`  ${type}: [`))
+      expect(
+        entry.slice(0, entry.indexOf(']')),
+        `${type} cannot save the field the editor shows`,
+      ).toContain("'active'")
+
+      // The toggle is only a safety if a newly created entry actually starts
+      // off. `caseStudy` shipped the schema field and the editor toggle but not
+      // this line, so the field was absent — and every reader treats absent as
+      // visible. The editor read "Desativado" while the first publish put the
+      // case into the list, the search index and the sitemap.
+      const starter = createSiteEditorStarterFields({
+        type: type as 'caseStudy',
+        title: 'Exemplo',
+        slug: 'exemplo',
+      })
+      expect(starter.active, `a new ${type} is created visible to the public`).toBe(false)
+    }
+
+    // And the flag has to reach the page, not just the document: a case marked
+    // hidden must leave the listing, the search index and the sitemap.
+    const built = contentFromSanity({
+      caseStudies: [
+        {
+          _id: 'a',
+          title: {_type: 'localizedString', pt: 'Caso visível'},
+          slug: {current: 'caso-visivel'},
+        },
+        {
+          _id: 'b',
+          active: false,
+          title: {_type: 'localizedString', pt: 'Caso escondido'},
+          slug: {current: 'caso-escondido'},
+        },
+      ],
+    } as never)
+
+    const cases = built.pt.caseStudies
+    expect(cases).toHaveLength(2)
+    expect(cases.find((item) => item.slug === 'caso-visivel')?.active).toBe(true)
+    expect(
+      cases.find((item) => item.slug === 'caso-escondido')?.active,
+      'a hidden case is not marked hidden once it reaches the page',
+    ).toBe(false)
+
+    for (const consumer of [
+      'src/routes/casos-de-estudo/+page.svelte',
+      'src/lib/search.ts',
+      'src/lib/server/search.ts',
+      'src/routes/sitemap.xml/+server.ts',
+    ]) {
+      const source = readFileSync(consumer, 'utf8')
+      const cased = source.slice(source.indexOf('caseStudies'))
+      expect(cased, `${consumer} lists hidden cases`).toContain('active !== false')
+    }
+
+    // The detail page stays reachable so the entry can be reviewed — which is
+    // exactly why it has to tell crawlers not to index it.
+    for (const [detail, field] of [
+      ['src/routes/produtos/[slug]/+page.svelte', 'product'],
+      ['src/routes/casos-de-estudo/[slug]/+page.svelte', 'caseStudy'],
+    ] as const) {
+      expect(
+        readFileSync(detail, 'utf8'),
+        `${detail} lets search engines index a hidden entry`,
+      ).toContain(`noindex={data.${field}.active === false}`)
+    }
   })
 
   test('a list the client manages is theirs — no hardcoded entry leaks back in', () => {
@@ -599,6 +685,9 @@ test.describe('Sanity Studio content contract', () => {
       expect(source, `${route} bypasses the canonical page stream`).toContain(
         '<ManagedPageComposition',
       )
+      expect(source, `${route} does not connect authored sections to visual editing`).toContain(
+        'editorSource=',
+      )
       expect(source, `${route} still appends a parallel section stream`).not.toContain(
         '<ManagedPageSections',
       )
@@ -609,6 +698,12 @@ test.describe('Sanity Studio content contract', () => {
     expect(composition).toContain('composition.before')
     expect(composition).toContain('composition.after')
     expect(composition).toContain('{@render children()}')
+    expect(composition).toContain('loadSanityDataAttributeFactory')
+    expect(composition).toContain('dataAttribute={sectionDataAttribute}')
+
+    const sectionStream = read('src/lib/components/builder/ManagedPageSections.svelte')
+    expect(sectionStream).toContain('dataAttribute?: (path: string) => string | undefined')
+    expect(sectionStream).toContain('{dataAttribute}')
   })
 
   test('public page copy is managed through the website Studio workspace', () => {
@@ -733,6 +828,29 @@ test.describe('Sanity Studio content contract', () => {
     expect(schemaIndex).not.toContain('impactStat')
     expect(siteSchema).not.toContain("name: 'fields'")
     expect(siteSchema).not.toContain("name: 'name',\n        title: 'Nome antigo'")
+  })
+
+  test('isolated product previews stay directly reviewable without leaking into public listings', () => {
+    const productSchema = read('schemaTypes/productCategory.ts')
+    const starters = read('src/lib/server/site-editor-starters.ts')
+    const contentModel = read('src/lib/site-content.ts')
+    const productList = read('src/routes/produtos/+page.svelte')
+    const productDetail = read('src/routes/produtos/[slug]/+page.svelte')
+    const clientSearch = read('src/lib/search.ts')
+    const serverSearch = read('src/lib/server/search.ts')
+    const sitemap = read('src/routes/sitemap.xml/+server.ts')
+
+    expect(productSchema).toContain("name: 'active'")
+    expect(productSchema).toContain("title: 'Mostrar na página Produtos'")
+    expect(starters).toContain('active: false')
+    expect(contentModel).toContain('active: product.active !== false')
+    expect(productList).toContain(
+      'content.products.filter((product) => product.active !== false)',
+    )
+    expect(productDetail).toContain('noindex={data.product.active === false}')
+    expect(clientSearch).toContain('content.products.filter((item) => item.active !== false)')
+    expect(serverSearch).toContain('content.products.filter((item) => item.active !== false)')
+    expect(sitemap).toContain('.filter((item) => item.active !== false)')
   })
 
   test('Loja categories are editable, dynamic, and safe in visual preview', () => {
@@ -1198,6 +1316,7 @@ test.describe('Sanity Studio content contract', () => {
     const sanityClient = read('src/lib/sanity.ts')
     const renderer = read('src/lib/components/StructuredArticleBody.svelte')
     const route = read('src/routes/blog/[slug]/+page.svelte')
+    const styles = read('src/app.css')
 
     expect(schemaIndex).toContain('localizedArticle')
     expect(blogSchema).toContain("name: 'article'")
@@ -1212,6 +1331,7 @@ test.describe('Sanity Studio content contract', () => {
     expect(sanityClient).toContain('metadata {')
     expect(renderer).toContain('youtubeEmbed')
     expect(route).toContain('article={data.post.article}')
+    expect(styles).toMatch(/\.article-embedded-image img\s*\{[^}]*width:\s*100%;/s)
   })
 
   test('case studies support migrated old-site case pages', () => {
@@ -1585,4 +1705,101 @@ test.describe('Sanity Studio content contract', () => {
     expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
     expect(envExample).not.toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })
+})
+
+test('a case study survives a location written in the wrong shape', () => {
+  // The site editor declared `location` as a localized field while the Sanity
+  // schema and this reader treat it as a plain string. One case study edited
+  // through the editor then threw `location.trim is not a function` inside the
+  // map — which took down the case list, every case page, and the home page,
+  // because all of them load cases. The editor now writes a string; this keeps
+  // the documents already carrying an object readable.
+  const withObjectLocation = contentFromSanity({
+    caseStudies: [
+      {
+        _id: 'case-object-location',
+        title: {_type: 'localizedString', pt: 'Parque ribeirinho'},
+        slug: {current: 'parque-ribeirinho'},
+        location: {_type: 'localizedString', pt: 'Alcanena · Santarém', en: 'Alcanena'},
+        summary: {_type: 'localizedText', pt: 'Resumo'},
+      },
+    ],
+  } as never)
+
+  const pt = withObjectLocation.pt.caseStudies.find((item) => item.slug === 'parque-ribeirinho')
+  expect(pt, 'the case study was dropped rather than read').toBeTruthy()
+  expect(pt!.location).toBe('Alcanena · Santarém')
+  const en = withObjectLocation.en.caseStudies.find((item) => item.slug === 'parque-ribeirinho')
+  expect(en!.location).toBe('Alcanena')
+
+  // And the ordinary shape still reads as it always did.
+  const withStringLocation = contentFromSanity({
+    caseStudies: [
+      {
+        _id: 'case-string-location',
+        title: {_type: 'localizedString', pt: 'Vedação'},
+        slug: {current: 'vedacao'},
+        location: '  Trofa, Porto  ',
+      },
+    ],
+  } as never)
+  expect(
+    withStringLocation.pt.caseStudies.find((item) => item.slug === 'vedacao')!.location,
+  ).toBe('Trofa, Porto')
+})
+
+test('the editor never offers a localized editor for a plain-string schema field', () => {
+  // The mismatch above is only invisible until a client types into the field.
+  // Every field the editor edits as localized must be localized in the schema,
+  // or the first edit writes an object where a string is read.
+  const schema = readFileSync('schemaTypes/caseStudy.ts', 'utf8')
+  const localizedInEditor = documentPanels.caseStudy
+    .flatMap((panel) => panel.fields)
+    .filter((field) => field.type === 'localizedString' || field.type === 'localizedText')
+    .map((field) => field.name)
+
+  // Guards the guard: an empty list would make the loop below pass vacuously.
+  expect(localizedInEditor).toEqual(expect.arrayContaining(['title', 'summary', 'description']))
+
+  for (const field of localizedInEditor) {
+    const declaration = schema.match(
+      new RegExp(`name: '${field}',[\\s\\S]{0,240}?type: '([A-Za-z]+)'`),
+    )
+    if (!declaration) continue
+    expect(
+      declaration[1],
+      `the editor edits caseStudy.${field} as localized but the schema stores a ${declaration[1]}`,
+    ).toMatch(/^localized/)
+  }
+})
+
+test('a shop product is never filed under a category nobody chose', () => {
+  // Creation used to pick whichever category sorted first and say nothing, so a
+  // planter was created inside "Bancos" — a wrong answer to the shop's only
+  // filter, and one the client had no reason to go looking for. The category
+  // decides where the product is found, so it is asked for, not guessed.
+  const server = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+  const create = server.slice(server.indexOf('export const createSiteEditorDocument'))
+  expect(
+    create,
+    'creating a shop product still falls back to a category the client never picked',
+  ).not.toMatch(/defaultStoreCategoryOptions\[0\]|order\(orderRank asc, title\.pt asc\)\[0\]/)
+
+  // And the slug that arrives has to name a category that exists, or the product
+  // answers to a filter facet no visitor can select.
+  const resolver = server.slice(server.indexOf('const resolveStoreCategory'))
+  const body = resolver.slice(0, resolver.indexOf('\n}\n'))
+  expect(body, 'the requested category is not checked against the real list').toContain('known.has')
+  expect(body, 'a missing category is accepted').toContain('SiteEditorValidationError')
+
+  // The dialog has to offer the choice, otherwise the server check is just a
+  // wall the client cannot get past.
+  const app = readFileSync('src/lib/site-editor/editor/SiteEditorApp.tsx', 'utf8')
+  const field = app.slice(app.indexOf("createDocumentType === 'storeProduct' ?"))
+  expect(field.slice(0, field.indexOf(') : null}')), 'the create dialog does not ask').toContain(
+    'required',
+  )
+  expect(app, 'the create call drops the chosen category').toContain(
+    "createState.documentType === 'storeProduct' ? createState.storeCategory : undefined",
+  )
 })

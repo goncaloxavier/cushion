@@ -126,6 +126,12 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={previewMode}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: 'siteContent',
+      type: 'siteLanding',
+      rootPath: 'home',
+    }}
   >
     <section class="home-hero">
     <div class="home-hero-bg" aria-hidden="true">

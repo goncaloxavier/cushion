@@ -3461,6 +3461,34 @@
   font-size: 12px;
 }
 
+.site-editor-section-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+
+.site-editor-section-name > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-editor-section-name > em {
+  flex: none;
+  padding: 2px 6px;
+  color: #425951;
+  background: #e3e9e7;
+  border-radius: 999px;
+  /* Was 8px — roughly half the body size, and the "Oculta" badge is a state the
+     client needs to read at a glance. The floor exists for exactly this. */
+  font-size: var(--editor-text-2xs);
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .site-editor-section-main small {
   font-size: var(--editor-text-2xs);
 }
@@ -3621,11 +3649,37 @@
   line-height: 1.4;
 }
 
-.site-editor-section-picker > button {
+.site-editor-section-picker-group {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px;
+  gap: 3px;
+  padding: 5px 0 1px;
+}
+
+.site-editor-section-picker-group + .site-editor-section-picker-group {
+  margin-top: 3px;
+  padding-top: 9px;
+  border-top: 1px solid #edf1ef;
+}
+
+.site-editor-section-picker-group > strong {
+  padding: 0 8px 3px;
+  color: #60736c;
+  font-size: var(--editor-text-2xs);
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.site-editor-section-picker-group > div {
+  display: grid;
+  gap: 2px;
+}
+
+.site-editor-section-picker-group button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 24px;
   align-items: center;
-  min-height: 54px;
+  min-height: 58px;
   gap: 8px;
   padding: 8px 9px;
   color: #213b34;
@@ -3636,28 +3690,43 @@
   text-align: left;
 }
 
-.site-editor-section-picker > button:hover,
-.site-editor-section-picker > button:focus-visible {
+.site-editor-section-picker-group button:hover,
+.site-editor-section-picker-group button:focus-visible {
   color: #0a4b4e;
   background: #edf6f2;
 }
 
-.site-editor-section-picker > button > span {
+.site-editor-section-picker-group button > i {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: #176c5d;
+  background: #eaf4f0;
+  border-radius: 4px;
+}
+
+.site-editor-section-picker-group button > i svg {
+  width: 16px;
+  height: 16px;
+}
+
+.site-editor-section-picker-group button > span {
   display: grid;
   gap: 2px;
 }
 
-.site-editor-section-picker > button strong {
+.site-editor-section-picker-group button strong {
   font-size: 11px;
 }
 
-.site-editor-section-picker > button small {
+.site-editor-section-picker-group button small {
   color: var(--editor-muted);
   font-size: var(--editor-text-2xs);
   line-height: 1.35;
 }
 
-.site-editor-section-picker > button > svg {
+.site-editor-section-picker-group button > svg {
   width: 16px;
   color: #2f826e;
 }
@@ -4978,6 +5047,118 @@
   font-size: var(--editor-text-2xs);
   font-weight: 650;
   line-height: 1.4;
+}
+
+.site-editor-page-starters {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.site-editor-page-starters legend {
+  margin-bottom: 8px;
+  color: #263d36;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.site-editor-page-starters > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.site-editor-page-starters button {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  align-content: start;
+  gap: 8px;
+  padding: 9px;
+  color: #294039;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #d6e1dd;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.site-editor-page-starters button:hover,
+.site-editor-page-starters button:focus-visible {
+  background: #f5faf7;
+  border-color: #87b6a8;
+}
+
+.site-editor-page-starters button.is-active {
+  color: #0b4e49;
+  background: #edf8f3;
+  border-color: #268a70;
+  box-shadow: inset 0 -3px #268a70;
+}
+
+.site-editor-page-starters button > i {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 8px;
+  height: 43px;
+  gap: 3px;
+  padding: 6px;
+  background: #f0f5f3;
+  border-radius: 3px;
+}
+
+.site-editor-page-starters button > i > span {
+  display: block;
+  background: #a9c6bc;
+  border-radius: 1px;
+}
+
+.site-editor-page-starters button > i > .is-hero,
+.site-editor-page-starters button > i > .is-cta {
+  grid-column: 1 / -1;
+}
+
+.site-editor-page-starters button > i > .is-hero {
+  background: #317d6c;
+}
+
+.site-editor-page-starters button > i > .is-gallery {
+  background: #d4b642;
+}
+
+.site-editor-page-starters button > i > .is-cta {
+  height: 6px;
+  background: #174f4c;
+}
+
+.site-editor-page-starters button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.site-editor-page-starters button strong {
+  font-size: var(--editor-text-2xs);
+  line-height: 1.25;
+}
+
+.site-editor-page-starters button small {
+  color: var(--editor-muted);
+  font-size: var(--editor-text-2xs);
+  line-height: 1.35;
+}
+
+@media (max-width: 560px) {
+  .site-editor-page-starters > div {
+    grid-template-columns: 1fr;
+  }
+
+  .site-editor-page-starters button {
+    grid-template-columns: 86px minmax(0, 1fr);
+    min-height: 70px;
+    align-items: center;
+  }
 }
 
 .site-editor-modal-actions {

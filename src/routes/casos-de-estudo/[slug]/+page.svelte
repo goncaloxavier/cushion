@@ -54,7 +54,16 @@
   )
 </script>
 
-<SeoHead title={data.caseStudy.title} description={lead} image={images[0]} jsonLd={caseJsonLd} />
+<!-- A hidden case stays reachable at its own address so it can be reviewed, but
+     it is not for visitors yet — the product page has said so to crawlers since
+     its own flag shipped, and this one never did. -->
+<SeoHead
+  title={data.caseStudy.title}
+  description={lead}
+  image={images[0]}
+  jsonLd={caseJsonLd}
+  noindex={data.caseStudy.active === false}
+/>
 
 <main>
   <ManagedPageComposition
@@ -65,6 +74,11 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: data.caseStudy.studioDocumentId,
+      type: 'caseStudy',
+    }}
   >
     <article class="detail-page case-detail">
       <section class="case-detail-hero">

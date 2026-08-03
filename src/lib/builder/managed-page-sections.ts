@@ -269,11 +269,28 @@ export const managedDetailSectionScopeForRoute = (
 
   const slug = decodeURIComponent(normalized.slice(definition.prefix.length)).trim()
   if (!slug) return undefined
-  const canonicalSlug =
-    definition.documentType === 'productCategory' && slug === 'decking'
-      ? 'decking-pavimentos-passadicos'
-      : slug
-  return {documentType: definition.documentType, slug: canonicalSlug}
+  // Deliberately the slug the visitor actually asked for. This used to rewrite
+  // "decking" to the longer alias, which is the slug the offline fallback uses —
+  // the live document is at "decking", so the rewrite pointed the section fetch
+  // at a document that does not exist and the page rendered with no additional
+  // content at all. Resolving the alias is the fetch's job, and it has to try
+  // both rather than pick one.
+  return {documentType: definition.documentType, slug}
+}
+
+/**
+ * The offline fallback content and the live dataset disagree about one product's
+ * slug, so anything that looks a document up by slug has to accept either. Order
+ * matters: the slug that was asked for wins when both exist.
+ */
+const detailSlugAliases: Record<string, string> = {
+  decking: 'decking-pavimentos-passadicos',
+  'decking-pavimentos-passadicos': 'decking',
+}
+
+export const detailSlugCandidates = (slug: string): string[] => {
+  const alias = detailSlugAliases[slug]
+  return alias ? [slug, alias] : [slug]
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

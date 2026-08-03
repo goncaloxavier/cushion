@@ -2,6 +2,7 @@ import {createClient} from '@sanity/client'
 import {dev} from '$app/environment'
 import {env} from '$env/dynamic/private'
 import type {BuilderSection} from '$lib/builder/types'
+import {detailSlugCandidates} from '$lib/builder/managed-page-sections'
 import type {ManagedDetailSectionScope} from '$lib/builder/managed-page-sections'
 import {productBuilderSections} from '$lib/builder/product-sections'
 
@@ -119,6 +120,20 @@ const fixtureSitePages: Record<string, unknown[]> = {
       title: localized('Como trabalhamos'),
       body: localizedBody('Texto ao lado de uma imagem.'),
       media: fixtureImage,
+    },
+    {
+      _type: 'builderGallerySection',
+      _key: 'composed-gallery',
+      internalLabel: 'Galeria',
+      enabled: true,
+      presentation: 'gallery',
+      title: localized('Uma galeria navegável'),
+      body: localizedBody('Escolha uma miniatura ou amplie a imagem.'),
+      items: [
+        {...fixtureImage, _key: 'composed-gallery-one', alt: localized('Primeira imagem da galeria')},
+        {...fixtureImage, _key: 'composed-gallery-two', alt: localized('Segunda imagem da galeria')},
+      ],
+      layout: {_type: 'builderLayout', width: 'wide', surface: 'white', columns: 3},
     },
     {
       _type: 'builderCtaSection',
@@ -394,7 +409,7 @@ export const getSiteEditorSettings = async (preview = false) => {
 const FIXTURE_SECTION_SLUG = 'decking-pavimentos-passadicos'
 
 const fixtureDetailSections = (scope: ManagedDetailSectionScope): BuilderSection[] =>
-  scope.slug === FIXTURE_SECTION_SLUG
+  detailSlugCandidates(scope.slug).includes(FIXTURE_SECTION_SLUG)
     ? ([
         {
           _type: 'builderRichTextSection',
@@ -414,16 +429,26 @@ export const getBuilderDocumentSections = async (
 
   const client = preview && previewEnabled() ? previewClient : publishedClient()
   try {
-    const source = await client.fetch<{
-      sections?: BuilderSection[]
-      contentSections?: unknown[]
-    } | null>(
-      `*[_type == $documentType && slug.current == $slug][0] {
+    // Matches either slug the document may be filed under, and prefers the one
+    // the visitor asked for. Querying a single rewritten slug is what silently
+    // emptied the decking page.
+    const slugs = detailSlugCandidates(scope.slug)
+    const matches = await client.fetch<
+      Array<{
+        slug?: {current?: string}
+        sections?: BuilderSection[]
+        contentSections?: unknown[]
+      }>
+    >(
+      `*[_type == $documentType && slug.current in $slugs] {
+        slug,
         sections,
         contentSections
       }`,
-      scope,
+      {documentType: scope.documentType, slugs},
     )
+    const source =
+      matches.find((match) => match.slug?.current === scope.slug) ?? matches[0] ?? null
     if (scope.documentType === 'productCategory') {
       return productBuilderSections(source?.sections, source?.contentSections)
     }
@@ -739,6 +764,7 @@ const collectionsQuery = `{
   "products": select($includeProducts => (*[_type == "productCategory" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
+    active,
     title,
     slug,
     image {
@@ -929,6 +955,7 @@ const collectionsQuery = `{
   "caseStudies": select($includeCases => (*[_type == "caseStudy" && defined(slug.current)] | order(orderRank asc, title.pt asc) {
     _id,
     _updatedAt,
+    active,
     title,
     slug,
     image {

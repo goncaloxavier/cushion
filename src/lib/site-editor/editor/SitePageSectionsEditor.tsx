@@ -1,5 +1,15 @@
-import React, {useEffect, useMemo, useRef, useState, type ReactNode} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {AddIcon} from '@sanity/icons/Add'
+import {BarChartIcon} from '@sanity/icons/BarChart'
+import {BlockContentIcon} from '@sanity/icons/BlockContent'
+import {DocumentTextIcon} from '@sanity/icons/DocumentText'
+import {DocumentsIcon} from '@sanity/icons/Documents'
+import {EnvelopeIcon} from '@sanity/icons/Envelope'
+import {HomeIcon} from '@sanity/icons/Home'
+import {ImageIcon} from '@sanity/icons/Image'
+import {ImagesIcon} from '@sanity/icons/Images'
+import {LaunchIcon} from '@sanity/icons/Launch'
+import {ProjectsIcon} from '@sanity/icons/Projects'
 import {CopyIcon} from '@sanity/icons/Copy'
 import {EditIcon} from '@sanity/icons/Edit'
 import {EyeClosedIcon} from '@sanity/icons/EyeClosed'
@@ -7,88 +17,121 @@ import {EyeOpenIcon} from '@sanity/icons/EyeOpen'
 import {TrashIcon} from '@sanity/icons/Trash'
 import {createBuilderSection, duplicateBuilderSection} from '$lib/builder/defaults'
 import type {BuilderSection, BuilderSectionType} from '$lib/builder/types'
-import type {Asset, SiteEditorAssetKind, SitePageDocument} from '../types'
+import type {
+  Asset,
+  SiteEditorAssetKind,
+  SiteEditorDocumentType,
+  SitePageDocument,
+} from '../types'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
 import {SitePageSectionEditor} from './SitePageSectionEditor'
 
 type Props = {
   page: SitePageDocument
+  documentType?: SiteEditorDocumentType
   contextLabel?: string
   emptyTitle?: string
   emptyDescription?: string
   selectedSectionKey?: string
   dataset: string
   onSelectSection: (key?: string) => void
-  onChange: (page: SitePageDocument) => void
+  onChange: (page: SitePageDocument, options?: {structural?: boolean}) => void
   onUpload: (
     file: File,
     kind: SiteEditorAssetKind,
     onProgress?: (progress: SiteEditorUploadProgress) => void,
   ) => Promise<Asset>
   onOpenArticle?: (path: string, returnFocus: HTMLButtonElement) => void
-  renderManagedSection?: (
-    section: BuilderSection,
-    updateSection: (next: BuilderSection) => void,
-  ) => ReactNode
+  onOpenManagedSection?: () => void
 }
 
 const sectionTypes: Array<{
   value: BuilderSectionType
   label: string
   description: string
+  group: 'open' | 'explain' | 'finish'
 }> = [
   {
     value: 'builderHeroSection',
     label: 'Destaque principal',
     description: 'Abertura com título, botão e imagem ou vídeo',
+    group: 'open',
   },
   {
     value: 'builderMediaSection',
     label: 'Texto com imagem',
     description: 'Texto e media apresentados lado a lado',
+    group: 'explain',
   },
   {
     value: 'builderRichTextSection',
     label: 'Texto editorial',
     description: 'Texto longo com títulos, listas, imagens e tabelas',
+    group: 'explain',
   },
   {
     value: 'builderGallerySection',
     label: 'Galeria',
     description: 'Conjunto ordenado de imagens e vídeos',
+    group: 'explain',
   },
   {
     value: 'builderCardsSection',
     label: 'Cartões',
     description: 'Vários conteúdos curtos numa grelha',
+    group: 'explain',
   },
   {
     value: 'builderStatsSection',
     label: 'Números',
     description: 'Indicadores e resultados em destaque',
+    group: 'explain',
   },
   {
     value: 'builderCollectionSection',
     label: 'Lista automática',
     description: 'Produtos, loja, casos de estudo ou artigos do blog',
+    group: 'explain',
   },
   {
     value: 'builderPartnersSection',
     label: 'Parceiros',
     description: 'Logótipos de entidades e projetos, com ligação a cada um',
+    group: 'explain',
   },
   {
     value: 'builderCtaSection',
     label: 'Chamada para ação',
     description: 'Mensagem curta com um ou mais botões',
+    group: 'finish',
   },
   {
     value: 'builderContactSection',
     label: 'Contacto',
     description: 'Ligação para contacto, orçamento ou pedido de catálogo',
+    group: 'finish',
   },
 ]
+
+const sectionGroups = [
+  {value: 'open', label: 'Abrir a página'},
+  {value: 'explain', label: 'Explicar e mostrar'},
+  {value: 'finish', label: 'Concluir'},
+] as const
+
+const SectionTypeIcon = ({type}: {type: BuilderSectionType}) => {
+  if (type === 'builderHeroSection') return <HomeIcon />
+  if (type === 'builderMediaSection') return <ImageIcon />
+  if (type === 'builderRichTextSection') return <DocumentTextIcon />
+  if (type === 'builderGallerySection') return <ImagesIcon />
+  if (type === 'builderCardsSection') return <BlockContentIcon />
+  if (type === 'builderStatsSection') return <BarChartIcon />
+  if (type === 'builderCollectionSection') return <DocumentsIcon />
+  if (type === 'builderPartnersSection') return <ProjectsIcon />
+  if (type === 'builderCtaSection') return <LaunchIcon />
+  return <EnvelopeIcon />
+}
 
 const definitionFor = (section: BuilderSection) =>
   section._type === 'builderManagedSection'
@@ -104,6 +147,7 @@ const labelFor = (section: BuilderSection) =>
 
 export function SitePageSectionsEditor({
   page,
+  documentType,
   contextLabel = 'Página livre',
   emptyTitle = 'Esta página ainda está vazia.',
   emptyDescription = 'Adicione a primeira secção para começar.',
@@ -113,26 +157,17 @@ export function SitePageSectionsEditor({
   onChange,
   onUpload,
   onOpenArticle,
-  renderManagedSection,
+  onOpenManagedSection,
 }: Props) {
   const [actionsFor, setActionsFor] = useState<string>()
   const [addOpen, setAddOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<BuilderSection>()
   const menuRef = useRef<HTMLDivElement>(null)
-  // The page's designed block lives in the data so the renderer knows where to
-  // place it, but it is not listed here. It is edited in its own panel, and
-  // listing it too meant one block under two names in two places — plus a line
-  // of text explaining why. A list of blocks the client can actually add,
-  // reorder and remove is the clearer thing.
-  const sections = useMemo(
-    () => (page.sections ?? []).filter((section) => section._type !== 'builderManagedSection'),
-    [page.sections],
-  )
-  // Writes still carry it, so ordering and placement survive an edit here.
-  const managedSections = useMemo(
-    () => (page.sections ?? []).filter((section) => section._type === 'builderManagedSection'),
-    [page.sections],
-  )
+  // The designed area is an anchor in the same ordered page stream. Keeping it
+  // in this list is what lets a client place new blocks before or after the
+  // established product/page design. Its content still opens in the one
+  // canonical fields panel; this row only owns position and visibility.
+  const sections = useMemo(() => page.sections ?? [], [page.sections])
   const selected = useMemo(
     () => sections.find((section) => section._key === selectedSectionKey),
     [sections, selectedSectionKey],
@@ -147,10 +182,32 @@ export function SitePageSectionsEditor({
     return () => document.removeEventListener('pointerdown', close)
   }, [actionsFor])
 
-  const commitSections = (next: BuilderSection[]) =>
-    onChange({...page, sections: [...managedSections, ...next]})
+  const commitSections = (next: BuilderSection[], structural = false) =>
+    onChange({...page, sections: next}, {structural})
   const updateSection = (next: BuilderSection) =>
     commitSections(sections.map((section) => (section._key === next._key ? next : section)))
+  const createSection = (type: BuilderSectionType) => {
+    const section = createBuilderSection(type)
+    if (documentType !== 'productCategory' || type !== 'builderMediaSection') return section
+
+    return {
+      ...section,
+      internalLabel: 'Secção do produto',
+      variant: 'product-feature',
+      mediaSide: 'left',
+      layout: {
+        ...section.layout,
+        width: 'full',
+        surface: 'white',
+        spacing: {
+          _type: 'builderSpacing',
+          top: 0,
+          bottom: 0,
+          sides: 0,
+        },
+      },
+    }
+  }
 
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction
@@ -158,7 +215,7 @@ export function SitePageSectionsEditor({
     const next = [...sections]
     const [section] = next.splice(index, 1)
     next.splice(target, 0, section)
-    commitSections(next)
+    commitSections(next, true)
     setActionsFor(undefined)
   }
 
@@ -173,12 +230,13 @@ export function SitePageSectionsEditor({
           ← Voltar ao conteúdo
         </button>
         {selected._type === 'builderManagedSection' ? (
-          renderManagedSection?.(selected, updateSection) ?? (
-            <div className="site-editor-managed-section-empty">
-              <strong>Conteúdo atual da página</strong>
-              <p>Os campos desta área não estão disponíveis neste contexto.</p>
-            </div>
-          )
+          <div className="site-editor-managed-section-empty">
+            <strong>{labelFor(selected)}</strong>
+            <p>Esta é a apresentação principal já usada nesta página.</p>
+            <button type="button" onClick={onOpenManagedSection}>
+              <EditIcon /> Editar conteúdo principal
+            </button>
+          </div>
         ) : (
           <SitePageSectionEditor
             section={selected}
@@ -211,13 +269,20 @@ export function SitePageSectionsEditor({
               <button
                 type="button"
                 className="site-editor-section-main"
-                onClick={() => onSelectSection(section._key)}
+                onClick={() =>
+                  section._type === 'builderManagedSection'
+                    ? onOpenManagedSection?.()
+                    : onSelectSection(section._key)
+                }
               >
                 <i aria-hidden="true">
                   <EditIcon />
                 </i>
                 <span>
-                  <strong>{labelFor(section)}</strong>
+                  <span className="site-editor-section-name">
+                    <strong>{labelFor(section)}</strong>
+                    {section.enabled === false ? <em>Oculta</em> : null}
+                  </span>
                   <small>{definition?.label}</small>
                 </span>
               </button>
@@ -253,7 +318,14 @@ export function SitePageSectionsEditor({
                     <button
                       type="button"
                       onClick={() => {
-                        updateSection({...section, enabled: section.enabled === false})
+                        commitSections(
+                          sections.map((candidate) =>
+                            candidate._key === section._key
+                              ? {...candidate, enabled: candidate.enabled === false}
+                              : candidate,
+                          ),
+                          true,
+                        )
                         setActionsFor(undefined)
                       }}
                     >
@@ -268,7 +340,7 @@ export function SitePageSectionsEditor({
                             const clone = duplicateBuilderSection(section)
                             const next = [...sections]
                             next.splice(index + 1, 0, clone)
-                            commitSections(next)
+                            commitSections(next, true)
                             setActionsFor(undefined)
                             onSelectSection(clone._key)
                           }}
@@ -316,23 +388,36 @@ export function SitePageSectionsEditor({
               <strong>O que quer acrescentar?</strong>
               <small>Escolha pelo resultado que pretende ver na página</small>
             </header>
-            {sectionTypes.map((type) => (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => {
-                  const section = createBuilderSection(type.value)
-                  commitSections([...sections, section])
-                  setAddOpen(false)
-                  onSelectSection(section._key)
-                }}
-              >
-                <span>
-                  <strong>{type.label}</strong>
-                  <small>{type.description}</small>
-                </span>
-                <AddIcon />
-              </button>
+            {sectionGroups.map((group) => (
+              <section key={group.value} className="site-editor-section-picker-group">
+                <strong>{group.label}</strong>
+                <div>
+                  {sectionTypes
+                    .filter((type) => type.group === group.value)
+                    .map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        data-section-type={type.value}
+                        onClick={() => {
+                          const section = createSection(type.value)
+                          commitSections([...sections, section], true)
+                          setAddOpen(false)
+                          onSelectSection(section._key)
+                        }}
+                      >
+                        <i aria-hidden="true">
+                          <SectionTypeIcon type={type.value} />
+                        </i>
+                        <span>
+                          <strong>{type.label}</strong>
+                          <small>{type.description}</small>
+                        </span>
+                        <AddIcon />
+                      </button>
+                    ))}
+                </div>
+              </section>
             ))}
           </div>
         ) : null}
@@ -345,7 +430,10 @@ export function SitePageSectionsEditor({
         onCancel={() => setPendingDelete(undefined)}
         onConfirm={() => {
           if (!pendingDelete) return
-          commitSections(sections.filter((section) => section._key !== pendingDelete._key))
+          commitSections(
+            sections.filter((section) => section._key !== pendingDelete._key),
+            true,
+          )
           setPendingDelete(undefined)
         }}
       />

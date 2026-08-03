@@ -44,6 +44,7 @@ export const createSiteEditorStarterFields = ({
       description: localizedText(
         'Apresente aqui, numa frase, onde este produto é útil. Descreva o produto, as aplicações e as principais vantagens.',
       ),
+      active: false,
       orderRank: 100,
     }
   }
@@ -79,6 +80,10 @@ export const createSiteEditorStarterFields = ({
       location: 'Localização',
       summary: localizedText('Resuma o projeto e a solução aplicada.'),
       description: localizedText('Descreva o contexto, o trabalho realizado e o resultado.'),
+      // Without this the field is simply absent, and the readers treat absent as
+      // visible — so the editor showed "Desativado" while the first publish put
+      // the case straight into the list and the sitemap.
+      active: false,
       orderRank: 100,
     }
   }

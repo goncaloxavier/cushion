@@ -1,6 +1,13 @@
 import {expect, test, type Page} from '@playwright/test'
 import {readFileSync} from 'node:fs'
-import {legacyProductContentSectionsToBuilder} from '../src/lib/builder/product-sections'
+import {
+  legacyProductContentSectionsToBuilder,
+  productBuilderSections,
+} from '../src/lib/builder/product-sections'
+import {
+  detailSlugCandidates,
+  managedDetailSectionScopeForRoute,
+} from '../src/lib/builder/managed-page-sections'
 
 // The rule this file exists to hold: converting a designed block into a section
 // must not change what the visitor gets. If these drift, the section system has
@@ -152,14 +159,89 @@ test('a page core is edited in one place, not two', async ({page}, testInfo) => 
   // No panel may share a name with another in the same index.
   expect(new Set(panelLabels).size, `duplicate panel names: ${panelLabels}`).toBe(panelLabels.length)
 
-  // The page's designed block is edited in its own panel and is not listed
-  // among the sections. Listing it too put one block under two names in two
-  // places, which is what this asserts can no longer happen.
+  // The rule is one place to *edit* the designed block, not one place to mention
+  // it. An earlier version asserted its name never appeared in the section list,
+  // which also forbade showing where it sits among the sections — genuinely
+  // useful, and not the thing that was confusing. What was confusing was two
+  // editors for one block.
   await panelIndex.filter({hasText: 'Conteúdo da página'}).click()
-  const listed = (
-    await settings.locator('.site-editor-section-list > article strong').allInnerTexts()
-  ).map((t) => t.trim())
-  for (const label of panelLabels) {
-    expect(listed, `"${label}" is both a panel and a section entry`).not.toContain(label)
-  }
+  const sectionList = settings.locator('.site-editor-section-list > article')
+  const core = sectionList.filter({hasText: panelLabels[0]}).first()
+  await expect(core, 'the designed block is not shown among the sections').toHaveCount(1)
+
+  // It has no editing controls of its own: it cannot be copied into a second
+  // block, and it cannot be deleted out from under the page.
+  await core.locator('.site-editor-section-menu-button').click()
+  const menu = core.locator('.site-editor-section-menu')
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('button', {name: 'Duplicar'})).toHaveCount(0)
+  await expect(menu.getByRole('button', {name: 'Eliminar'})).toHaveCount(0)
+  // Toggle it shut rather than pressing Escape: the open menu overlays the row
+  // and swallows the next click.
+  await core.locator('.site-editor-section-menu-button').click()
+  await expect(menu).toHaveCount(0)
+
+  // And opening it leaves the section list for the block's own fields, rather
+  // than unfolding a second editor beside the list. That is the whole rule: the
+  // entry is a pointer to the one editor, not another one.
+  await core.locator('.site-editor-section-main').click()
+  await expect(settings.locator('.site-editor-inspector')).toBeVisible()
+  await expect(
+    settings.locator('.site-editor-section-list'),
+    'the designed block opened alongside the section list instead of replacing it',
+  ).toHaveCount(0)
+})
+
+test('a detail page looks up sections by the slug the visitor asked for', () => {
+  // The offline fallback and the live dataset disagree about one product's slug.
+  // The section scope used to rewrite "decking" to the fallback's longer slug
+  // unconditionally, so on the live site it fetched a document that does not
+  // exist: the product page rendered, the "conteúdo adicional" under it did not,
+  // and nothing errored to say so. The rewrite is gone — resolving the alias is
+  // the fetch's job, and it has to accept either slug rather than pick one.
+  const scope = managedDetailSectionScopeForRoute('/produtos/decking')
+  expect(scope?.slug, 'the scope still rewrites the slug before fetching').toBe('decking')
+
+  const aliased = managedDetailSectionScopeForRoute('/produtos/decking-pavimentos-passadicos')
+  expect(aliased?.slug).toBe('decking-pavimentos-passadicos')
+
+  // Both directions resolve to the same pair, so whichever slug the dataset uses
+  // is found — and the slug that was asked for stays first, to win when both exist.
+  expect(detailSlugCandidates('decking')).toEqual([
+    'decking',
+    'decking-pavimentos-passadicos',
+  ])
+  expect(detailSlugCandidates('decking-pavimentos-passadicos')).toEqual([
+    'decking-pavimentos-passadicos',
+    'decking',
+  ])
+  expect(detailSlugCandidates('vedacoes'), 'an unaliased slug gained an alias').toEqual([
+    'vedacoes',
+  ])
+})
+
+test('legacy product blocks still reach the page when sections is empty', () => {
+  // The decking product keeps its content in the legacy contentSections field
+  // and has no `sections` at all. If the conversion ever stops running for that
+  // shape, the page loses every block under the hero with nothing to show for it.
+  const legacy = [
+    {
+      _key: 'legacy-one',
+      _type: 'productContentSection',
+      title: {_type: 'localizedString', pt: 'Simulador de Deck'},
+      text: {_type: 'localizedText', pt: 'Planeie o seu deck.'},
+      image: null,
+      mediaKind: 'image',
+      surface: 'deep',
+    },
+  ]
+
+  expect(productBuilderSections(null, legacy), 'a null sections field dropped the legacy blocks')
+    .toHaveLength(1)
+  expect(productBuilderSections([], legacy), 'an empty sections array dropped them')
+    .toHaveLength(1)
+  // An authored section stream wins: once the client edits sections, the legacy
+  // field is history and must not be appended back on top.
+  const authored = [{_key: 'new', _type: 'builderRichTextSection'}]
+  expect(productBuilderSections(authored, legacy)).toEqual(authored)
 })

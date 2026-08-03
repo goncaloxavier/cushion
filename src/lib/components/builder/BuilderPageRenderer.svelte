@@ -5,6 +5,7 @@
   import LandingCollectionSection from '$lib/components/landing/LandingCollectionSection.svelte'
   import LandingImpactSection from '$lib/components/landing/LandingImpactSection.svelte'
   import LandingPartnersSection from '$lib/components/landing/LandingPartnersSection.svelte'
+  import StoreMediaGallery from '$lib/components/StoreMediaGallery.svelte'
   import BuilderMedia from './BuilderMedia.svelte'
   import BuilderProductFeatureSection from './BuilderProductFeatureSection.svelte'
   import BuilderRichText from './BuilderRichText.svelte'
@@ -33,8 +34,14 @@
     type LanguageCode,
     type PartnerItem,
     type SiteContent,
+    type StoreProductMedia,
   } from '$lib/site-content'
-  import {builderAssetUrl} from '$lib/builder/media'
+  import {
+    builderAssetUrl,
+    builderImageAspectRatio,
+    builderVideoMimeType,
+    builderYoutubeEmbedUrl,
+  } from '$lib/builder/media'
   import {sizedImage} from '$lib/image'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import '$lib/styles/builder-renderer.css'
@@ -49,6 +56,7 @@
     embedded = false,
     listenForState = true,
     externalSelectedSectionKey,
+    dataAttribute,
     onpagechange,
   } = $props<{
     page: BuilderPage | SitePageDocument | null
@@ -60,6 +68,7 @@
     embedded?: boolean
     listenForState?: boolean
     externalSelectedSectionKey?: string
+    dataAttribute?: (path: string) => string | undefined
     onpagechange?: (page: BuilderPage | SitePageDocument) => void
   }>()
 
@@ -134,6 +143,86 @@
   const sectionMedia = (section: BuilderSection) => section.items as BuilderMediaValue[] | undefined
   const sectionCards = (section: BuilderSection) => section.items as BuilderCard[] | undefined
   const sectionStats = (section: BuilderSection) => section.items as BuilderStat[] | undefined
+
+  const keyedPath = (collection: string, key: string | undefined, index?: number) =>
+    key
+      ? `${collection}[_key=="${key.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`
+      : `${collection}[${index ?? 0}]`
+
+  const sectionPath = (section: BuilderSection, path?: string) => {
+    const base = keyedPath('sections', section._key)
+    return path ? `${base}.${path}` : base
+  }
+
+  const sectionDataAttribute = (section: BuilderSection, path?: string) =>
+    dataAttribute?.(sectionPath(section, path))
+
+  const sectionDataAttributeFor = (section: BuilderSection) => (path: string) =>
+    sectionDataAttribute(section, path)
+
+  const sectionGalleryMedia = (section: BuilderSection): StoreProductMedia[] =>
+    (sectionMedia(section) ?? []).flatMap((media, index) => {
+      const imageRef = media.image?.asset?._ref
+      const videoRef = media.videoFile?.asset?._ref
+      const posterRef = media.poster?.asset?._ref
+      const imageUrl = builderAssetUrl(imageRef, dataset)
+      const videoUrl = builderAssetUrl(videoRef, dataset)
+      const posterUrl = builderAssetUrl(posterRef, dataset)
+      const embedUrl = builderYoutubeEmbedUrl(media.youtubeUrl)
+      const caption = builderLocalized(media.caption, language)
+      const alt =
+        builderLocalized(media.alt, language) ||
+        caption ||
+        content.common.zoomImage
+      const poster = posterUrl
+        ? {
+            url: posterUrl,
+            alt,
+            aspectRatio: builderImageAspectRatio(posterRef),
+          }
+        : undefined
+
+      if (media.kind === 'video' && videoUrl) {
+        return [
+          {
+            type: 'video' as const,
+            url: videoUrl,
+            title: alt,
+            mimeType: builderVideoMimeType(videoRef),
+            poster,
+            captionsUrl: builderAssetUrl(media.captions?.asset?._ref, dataset) || undefined,
+            caption,
+            editPath: keyedPath('items', media._key, index),
+          },
+        ]
+      }
+
+      if (media.kind === 'youtube' && embedUrl) {
+        return [
+          {
+            type: 'embed' as const,
+            provider: 'youtube' as const,
+            url: embedUrl,
+            title: alt,
+            poster,
+            caption,
+            editPath: keyedPath('items', media._key, index),
+          },
+        ]
+      }
+
+      if (!imageUrl) return []
+      return [
+        {
+          type: 'image' as const,
+          url: imageUrl,
+          alt,
+          aspectRatio: builderImageAspectRatio(imageRef),
+          caption,
+          editPath: keyedPath('items', media._key, index),
+        },
+      ]
+    })
 
   const landingVariant = (section: BuilderSection) =>
     ['landing-solutions', 'landing-work', 'landing-impact', 'landing-partners'].includes(
@@ -226,15 +315,15 @@
     return false
   }
 
-  const sectionActions = (section: BuilderSection) =>
-    (section.actions ?? [])
-      .map((action) => ({
-        key: String((action as Record<string, unknown>)._key ?? ''),
-        label: builderLocalized(action.label, language),
-        href: internalHref(action.href),
-        style: textAppearanceStyle(action.label),
-      }))
-      .filter((action) => action.label)
+  const firstPublicSectionKey = $derived.by(
+    () =>
+      currentPage?.sections.find(
+        (section) =>
+          section._type !== 'builderManagedSection' &&
+          section.enabled !== false &&
+          rendersSomethingPublic(section),
+      )?._key,
+  )
 
   const collectionItems = (section: BuilderSection) => {
     const limit = boundedBuilderNumber(section.limit, 1, 24, 6)
@@ -251,7 +340,7 @@
       }))
     }
     if (section.source === 'caseStudy') {
-      return content.caseStudies.slice(0, limit).map((item) => ({
+      return content.caseStudies.filter((item) => item.active !== false).slice(0, limit).map((item) => ({
         key: item.slug,
         title: item.title,
         meta: item.location,
@@ -274,7 +363,7 @@
         href: `/blog/${item.slug}?lang=${language}`,
       }))
     }
-    return content.products.slice(0, limit).map((item) => ({
+    return content.products.filter((item) => item.active !== false).slice(0, limit).map((item) => ({
       key: item.slug,
       title: item.title,
       meta: '',
@@ -298,6 +387,23 @@
 
   const blockPreviewNavigation = (event: MouseEvent) => {
     if (preview) event.preventDefault()
+  }
+
+  const containPreviewNavigation = (node: HTMLElement, active: boolean) => {
+    let enabled = active
+    const handleClick = (event: MouseEvent) => {
+      if (enabled && (event.target as HTMLElement).closest('a')) event.preventDefault()
+    }
+
+    node.addEventListener('click', handleClick)
+    return {
+      update(next: boolean) {
+        enabled = next
+      },
+      destroy() {
+        node.removeEventListener('click', handleClick)
+      },
+    }
   }
 
   const landingPartners = (section: BuilderSection): PartnerItem[] =>
@@ -418,7 +524,7 @@
               class="builder-section-hit-area"
               aria-label={`Editar ${section.internalLabel || 'secção'}`}
               onclick={(event) => chooseSection(event, section._key)}
-            ></button>
+            >Editar secção</button>
           {/if}
           {#if preview && section.enabled === false}
             <span class="builder-hidden-badge">Oculta no site</span>
@@ -433,7 +539,7 @@
           <div
             class={`builder-render-inner is-${width(section)}`}
             class:is-landing={Boolean(landingVariant(section))}
-            inert={preview}
+            use:containPreviewNavigation={preview}
           >
             {#if section.variant === 'landing-solutions' || section.variant === 'landing-work'}
               <LandingCollectionSection
@@ -448,6 +554,7 @@
                   transitionName: item.slug ? `vt-${item.slug}` : '',
                 }))}
                 action={landingAction(section)}
+                dataAttribute={sectionDataAttributeFor(section)}
                 {preview}
               />
             {:else if section.variant === 'landing-impact'}
@@ -461,6 +568,7 @@
                   valueStyle: textAppearanceStyle(item.value),
                   labelStyle: textAppearanceStyle(item.label),
                 }))}
+                dataAttribute={sectionDataAttributeFor(section)}
                 {preview}
               />
             {:else if section.variant === 'landing-partners'}
@@ -475,76 +583,101 @@
                 titleStyle={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}`}
                 bodyStyle={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(Array.isArray(section.body) ? undefined : section.body)}`}
                 items={landingPartners(section)}
+                dataAttribute={sectionDataAttributeFor(section)}
                 {preview}
               />
             {:else if section.variant === 'product-feature' && section._type === 'builderMediaSection'}
-              <BuilderProductFeatureSection {section} {dataset} {language} />
+              <BuilderProductFeatureSection
+                {section}
+                {dataset}
+                {language}
+                {preview}
+                dataAttribute={sectionDataAttributeFor(section)}
+              />
             {:else}
-            <Reveal variant={section._type === 'builderHeroSection' ? 'hero' : 'panel'} priority={preview}>
+            <Reveal
+              variant={section._type === 'builderHeroSection' ? 'hero' : 'panel'}
+              priority={preview || section._key === firstPublicSectionKey}
+            >
               {#if section._type === 'builderHeroSection'}
                 <div class={`builder-hero is-${section.variant ?? 'split'}`}>
-                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
-                  <BuilderMedia media={section.media} {dataset} {language} {preview} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
+                  <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, 'media')} />
                 </div>
               {:else if section._type === 'builderMediaSection'}
                 <div class={`builder-media-copy is-${section.mediaSide ?? 'right'}`}>
                   {#if section.mediaSide === 'left' || section.mediaSide === 'top'}
-                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, 'media')} />
                   {/if}
-                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                   {#if section.mediaSide !== 'left' && section.mediaSide !== 'top'}
-                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, 'media')} />
                   {/if}
                 </div>
               {:else if section._type === 'builderRichTextSection'}
                 <div class="builder-editorial">
-                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
-                  <BuilderRichText value={section.body} {language} {dataset} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
+                  <BuilderRichText value={section.body} {language} {dataset} dataAttribute={sectionDataAttribute(section, `body.${language}`)} />
                 </div>
               {:else if section._type === 'builderGallerySection'}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
-                <div
-                  class={`builder-grid builder-gallery is-${section.presentation ?? 'grid'}`}
-                  style={columnsStyle(section, 3)}
-                >
-                  {#each sectionMedia(section) ?? [] as media (media._key)}
-                    <BuilderMedia {media} {dataset} {language} {preview} />
-                  {:else}
-                    <div class="builder-empty-state">Adicione imagens ou vídeos</div>
-                  {/each}
-                </div>
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
+                {@const galleryMedia = sectionGalleryMedia(section)}
+                {#if (section.presentation ?? 'gallery') === 'gallery' && galleryMedia.length}
+                  <StoreMediaGallery
+                    media={galleryMedia}
+                    label={content.common.zoomImage}
+                    closeLabel={content.common.close}
+                    className="builder-interactive-gallery"
+                    sizes="(max-width: 900px) calc(100vw - 3rem), (max-width: 1400px) calc(100vw - 6rem), 1280px"
+                    dataAttribute={sectionDataAttributeFor(section)}
+                    fallbackEditPath="items"
+                  />
+                {:else}
+                  <div
+                    class={`builder-grid builder-gallery is-${section.presentation ?? 'gallery'}`}
+                    style={columnsStyle(section, 3)}
+                  >
+                    {#each sectionMedia(section) ?? [] as media, index (media._key)}
+                      <BuilderMedia {media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, keyedPath('items', media._key, index))} />
+                    {:else}
+                      <div class="builder-empty-state">Adicione imagens ou vídeos</div>
+                    {/each}
+                  </div>
+                {/if}
               {:else if section._type === 'builderCardsSection'}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                 <div class="builder-grid builder-card-grid" style={columnsStyle(section, 3)}>
-                  {#each sectionCards(section) ?? [] as card (card._key)}
+                  {#each sectionCards(section) ?? [] as card, index (card._key)}
+                    {@const cardPath = keyedPath('items', card._key, index)}
                     <article class="builder-card">
                       {#if card.media}
-                        <BuilderMedia media={card.media} {dataset} {language} {preview} />
+                        <BuilderMedia media={card.media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, `${cardPath}.media`)} />
                       {/if}
                       {#if builderLocalized(card.eyebrow, language)}
-                        <small class="cms-styled-text" style={textAppearanceStyle(card.eyebrow)}>{builderLocalized(card.eyebrow, language)}</small>
+                        <small class="cms-styled-text" style={textAppearanceStyle(card.eyebrow)} data-sanity={sectionDataAttribute(section, `${cardPath}.eyebrow.${language}`)}>{builderLocalized(card.eyebrow, language)}</small>
                       {/if}
-                      <h3 class="cms-styled-text" style={textAppearanceStyle(card.title)}>{builderLocalized(card.title, language) || 'Cartão sem título'}</h3>
-                      <p class="cms-styled-text" style={textAppearanceStyle(card.body)}>{builderLocalized(card.body, language)}</p>
+                      <h3 class="cms-styled-text" style={textAppearanceStyle(card.title)} data-sanity={sectionDataAttribute(section, `${cardPath}.title.${language}`)}>{builderLocalized(card.title, language) || 'Cartão sem título'}</h3>
+                      <p class="cms-styled-text" style={textAppearanceStyle(card.body)} data-sanity={sectionDataAttribute(section, `${cardPath}.body.${language}`)}>{builderLocalized(card.body, language)}</p>
                     </article>
                   {:else}
                     <div class="builder-empty-state">Adicione cartões</div>
                   {/each}
                 </div>
               {:else if section._type === 'builderStatsSection'}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                 <div class="builder-grid builder-stats" style={columnsStyle(section, 4)}>
-                  {#each sectionStats(section) ?? [] as stat (stat._key)}
+                  {#each sectionStats(section) ?? [] as stat, index (stat._key)}
+                    {@const statPath = keyedPath('items', stat._key, index)}
                     <article>
-                      <strong class="cms-styled-text" style={textAppearanceStyle(stat.value)}>{builderLocalized(stat.value, language) || '0'}</strong>
-                      <span class="cms-styled-text" style={textAppearanceStyle(stat.label)}>{builderLocalized(stat.label, language)}</span>
+                      <strong class="cms-styled-text" style={textAppearanceStyle(stat.value)} data-sanity={sectionDataAttribute(section, `${statPath}.value.${language}`)}>{builderLocalized(stat.value, language) || '0'}</strong>
+                      <span class="cms-styled-text" style={textAppearanceStyle(stat.label)} data-sanity={sectionDataAttribute(section, `${statPath}.label.${language}`)}>{builderLocalized(stat.label, language)}</span>
                     </article>
                   {:else}
                     <div class="builder-empty-state">Adicione números de impacto</div>
                   {/each}
                 </div>
               {:else if section._type === 'builderCollectionSection'}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                 <div class="builder-grid builder-collection" style={columnsStyle(section, 3)}>
                   {#each collectionItems(section) as item, index}
                     <CollectionCard
@@ -561,22 +694,24 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderPartnersSection'}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                 <div class="builder-grid builder-partners" style={columnsStyle(section, 4)}>
                   {#each section.items ?? [] as partner, index}
                     {@const item = partner as Record<string, any>}
+                    {@const partnerPath = keyedPath('items', item._key, index)}
                     {@const logoUrl = builderAssetUrl(item.logo?.asset?._ref, dataset)}
                     {@const name = String(item.name || `Parceiro ${index + 1}`)}
                     <svelte:element
                       this={item.url ? 'a' : 'article'}
                       class="builder-partner"
-                      href={item.url || undefined}
+                      href={!preview ? item.url || undefined : undefined}
                       target={item.url ? '_blank' : undefined}
                       rel={item.url ? 'noreferrer' : undefined}
                     >
                       {#if logoUrl}
                         <span class="builder-partner-logo" data-logo-tone={item.logoTone || 'light'}>
                           <img
+                            data-sanity={sectionDataAttribute(section, `${partnerPath}.logo`)}
                             src={sizedImage(logoUrl, 320)}
                             alt={builderLocalized(item.logo?.alt, language) || name}
                             loading="lazy"
@@ -584,9 +719,9 @@
                           />
                         </span>
                       {/if}
-                      <strong>{name}</strong>
+                      <strong data-sanity={sectionDataAttribute(section, `${partnerPath}.name`)}>{name}</strong>
                       {#if builderLocalized(item.text, language)}
-                        <span class="builder-partner-text">{builderLocalized(item.text, language)}</span>
+                        <span class="builder-partner-text" data-sanity={sectionDataAttribute(section, `${partnerPath}.text.${language}`)}>{builderLocalized(item.text, language)}</span>
                       {/if}
                     </svelte:element>
                   {:else}
@@ -594,31 +729,15 @@
                   {/each}
                 </div>
               {:else if section._type === 'builderCtaSection'}
-                <!-- Offered in the picker but never rendered until now: it fell
-                     through to the heading-only fallback, so a call to action
-                     the client had added showed up blank on the page while the
-                     editor listed it as a section. -->
                 {#if section.media}
                   <div class="builder-cta-media">
-                    <BuilderMedia media={section.media} {dataset} {language} {preview} />
+                    <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={sectionDataAttribute(section, 'media')} />
                   </div>
                 {/if}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
-                {#if sectionActions(section).length}
-                  <div class="builder-cta-actions">
-                    {#each sectionActions(section) as action (action.key || action.href)}
-                      <a
-                        class="builder-action is-primary"
-                        href={action.href}
-                        style={action.style}
-                        onclick={blockPreviewNavigation}
-                      >{action.label}</a>
-                    {/each}
-                  </div>
-                {/if}
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
               {:else if section._type === 'builderContactSection'}
                 <div class="builder-contact-preview">
-                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                  <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
                   <div class="builder-contact-action">
                     {#if section.showContactDetails !== false}
                       <div>
@@ -640,7 +759,7 @@
                   </div>
                 </div>
               {:else}
-                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} />
+                <BuilderSectionHeading {section} {language} {preview} surface={surface(section)} theme={currentSettings?.theme} dataAttribute={sectionDataAttributeFor(section)} />
               {/if}
             </Reveal>
             {/if}

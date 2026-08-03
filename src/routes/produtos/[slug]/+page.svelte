@@ -116,6 +116,7 @@
   description={leadCopy}
   image={images[0]}
   jsonLd={productJsonLd}
+  noindex={data.product.active === false}
 />
 
 <main class="product-detail-page">
@@ -135,6 +136,11 @@
       language={data.language}
       dataset={data.sanityDataset}
       preview={data.preview || data.builderPreview}
+      editorSource={{
+        baseUrl: data.studioUrl,
+        id: data.product.studioDocumentId,
+        type: 'productCategory',
+      }}
     >
       <div class="product-editorial-head">
       <a class="detail-back-link" href={backHref}>

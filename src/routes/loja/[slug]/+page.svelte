@@ -211,6 +211,11 @@
       language={data.language}
       dataset={data.sanityDataset}
       preview={data.preview || data.builderPreview}
+      editorSource={{
+        baseUrl: data.studioUrl,
+        id: data.storeProduct.studioDocumentId,
+        type: 'storeProduct',
+      }}
     >
       <article
         class="detail-page store-detail"

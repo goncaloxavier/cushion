@@ -19,6 +19,7 @@ import {TabletDeviceIcon} from '@sanity/icons/TabletDevice'
 import {TagIcon} from '@sanity/icons/Tag'
 import {UndoIcon} from '@sanity/icons/Undo'
 import type {BuilderViewport} from '$lib/builder/types'
+import type {BuilderPageStarter} from '$lib/builder/defaults'
 import {buildHomeSections} from '$lib/builder/home-sections'
 import {
   managedCoreSectionFor,
@@ -40,6 +41,7 @@ import type {
   SiteEditorNode,
   SiteEditorSaveState,
 } from '../types'
+import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {createSiteEditorApi, isConflictError} from './api'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
@@ -73,6 +75,10 @@ type CreateState = {
   fixedType?: boolean
   title: string
   route: string
+  sitePageStarter: BuilderPageStarter
+  // A shop product must belong to a category, so the dialog asks rather than
+  // filing it under whichever category happens to sort first.
+  storeCategory: string
   busy: boolean
   error?: string
 }
@@ -92,8 +98,36 @@ const initialCreateState: CreateState = {
   documentType: 'sitePage',
   title: '',
   route: '',
+  sitePageStarter: 'essential',
+  storeCategory: '',
   busy: false,
 }
+
+const pageStarters: Array<{
+  value: BuilderPageStarter
+  label: string
+  description: string
+  sections: string[]
+}> = [
+  {
+    value: 'essential',
+    label: 'Página essencial',
+    description: 'Abertura, conteúdo com imagem e contacto',
+    sections: ['hero', 'split', 'cta'],
+  },
+  {
+    value: 'visual',
+    label: 'Página visual',
+    description: 'Abertura, conteúdo com imagem, galeria e contacto',
+    sections: ['hero', 'split', 'gallery', 'cta'],
+  },
+  {
+    value: 'opening',
+    label: 'Só a abertura',
+    description: 'Comece apenas com o destaque principal',
+    sections: ['hero'],
+  },
+]
 
 const typeLabels: Record<Exclude<SiteEditorDocumentType, 'siteLanding'>, string> = {
   sitePage: 'Página livre',
@@ -371,7 +405,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   )
 
   const replaceDocument = useCallback(
-    (next: SiteEditorDocument, record = true, previewIsAuthoritative = false) => {
+    (
+      next: SiteEditorDocument,
+      record = true,
+      previewIsAuthoritative = false,
+      coalesceWithPrevious = true,
+    ) => {
       // `next` always comes from setEditorValue (or an equivalent object-spread
       // update), which already builds a fresh tree with structural sharing —
       // nothing downstream mutates it in place, so re-cloning the whole document
@@ -386,7 +425,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         // that keeps undo granularity the same everywhere an edit can be made,
         // matching the "commit on pause" feel inline canvas editing already has.
         const now = Date.now()
-        const coalesce = now - lastHistoryPushAt.current < historyCoalesceWindowMs
+        const coalesce =
+          coalesceWithPrevious && now - lastHistoryPushAt.current < historyCoalesceWindowMs
         lastHistoryPushAt.current = now
         setHistory((current) => {
           const trimmed = current.slice(0, historyIndexRef.current + 1)
@@ -862,8 +902,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       publishResetTimer.current = window.setTimeout(() => setPublishState('idle'), 1800)
       pushNotice({
         tone: 'success',
-        title: 'Alterações publicadas',
-        description: 'A versão pública do site já está atualizada.',
+        title: 'Português publicado',
+        description:
+          'A versão em português já está online. Inglês e espanhol são atualizados automaticamente e podem demorar alguns minutos.',
       })
     } catch (error) {
       setPublishState('idle')
@@ -970,7 +1011,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       // DOM patches make text feel immediate, but the Svelte page still owns
       // server-loaded data. Reconcile every non-builder preview after save so
       // a later component update can never restore the stale value.
-      replaceDocument(next, record, current._type === 'sitePage')
+      replaceDocument(next, record, current._type === 'sitePage', !immediate)
       // Discrete choices (selects, toggles) have no matching data-sanity node
       // to text-patch and often drive class/conditional rendering the patcher
       // can't touch anyway — waiting out the typing debounce before the
@@ -1456,6 +1497,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         createState.documentType,
         createState.title,
         createState.route || undefined,
+        createState.documentType === 'sitePage' ? createState.sitePageStarter : undefined,
+        createState.documentType === 'storeProduct' ? createState.storeCategory : undefined,
       )
       setCreateState(initialCreateState)
       let openedFromManifest = false
@@ -1645,6 +1688,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const createDocumentType = createState.documentType as CreatableDocumentType
   const createDetails = createTypeDetails[createDocumentType]
+  // The live list, so a category the client just added is offered here too.
+  const storeCategoryOptions =
+    manifest?.optionSources.storeCategories ?? defaultStoreCategoryOptions
   const createTitle =
     createDocumentType === 'sitePage'
       ? 'Criar uma página'
@@ -1777,7 +1823,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
               {publishState === 'publishing'
                 ? 'A publicar…'
                 : publishState === 'published'
-                  ? 'Publicado'
+                  ? 'Publicado em PT'
                   : 'Publicar'}
             </span>
           </button>
@@ -1970,21 +2016,79 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                     }}
                   />
                 </label>
-                {createDocumentType === 'sitePage' ? (
+                {createDocumentType === 'storeProduct' ? (
                   <label>
-                    <span>Endereço da página</span>
-                    <input
-                      aria-label="Endereço"
+                    <span>Categoria</span>
+                    <select
+                      aria-label="Categoria"
                       disabled={createState.busy}
-                      placeholder="Criado automaticamente a partir do nome"
-                      value={createState.route}
+                      required
+                      value={createState.storeCategory}
                       onChange={(event) => {
-                        const route = event.currentTarget.value
-                        setCreateState((current) => ({...current, route}))
+                        const storeCategory = event.currentTarget.value
+                        setCreateState((current) => ({...current, storeCategory}))
                       }}
-                    />
-                    <small>Opcional. Só precisa de alterar se quiser outro endereço</small>
+                    >
+                      <option value="">Escolha uma categoria</option>
+                      {storeCategoryOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
+                ) : null}
+                {createDocumentType === 'sitePage' ? (
+                  <>
+                    <fieldset className="site-editor-page-starters">
+                      <legend>Como quer começar?</legend>
+                      <div>
+                        {pageStarters.map((starter) => (
+                          <button
+                            key={starter.value}
+                            type="button"
+                            disabled={createState.busy}
+                            className={
+                              createState.sitePageStarter === starter.value
+                                ? 'is-active'
+                                : undefined
+                            }
+                            aria-pressed={createState.sitePageStarter === starter.value}
+                            onClick={() =>
+                              setCreateState((current) => ({
+                                ...current,
+                                sitePageStarter: starter.value,
+                              }))
+                            }
+                          >
+                            <i className={`is-${starter.value}`} aria-hidden="true">
+                              {starter.sections.map((section, index) => (
+                                <span key={`${section}-${index}`} className={`is-${section}`} />
+                              ))}
+                            </i>
+                            <span>
+                              <strong>{starter.label}</strong>
+                              <small>{starter.description}</small>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <label>
+                      <span>Endereço da página</span>
+                      <input
+                        aria-label="Endereço"
+                        disabled={createState.busy}
+                        placeholder="Criado automaticamente a partir do nome"
+                        value={createState.route}
+                        onChange={(event) => {
+                          const route = event.currentTarget.value
+                          setCreateState((current) => ({...current, route}))
+                        }}
+                      />
+                      <small>Opcional. Só precisa de alterar se quiser outro endereço</small>
+                    </label>
+                  </>
                 ) : null}
               </div>
               {createState.error ? (

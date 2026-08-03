@@ -143,6 +143,11 @@
     language={data.language}
     dataset={data.sanityDataset}
     preview={data.preview || data.builderPreview}
+    editorSource={{
+      baseUrl: data.studioUrl,
+      id: data.post.studioDocumentId,
+      type: 'blogPost',
+    }}
   >
     <article class="detail-page blog-detail">
     <header class="blog-detail-header">
