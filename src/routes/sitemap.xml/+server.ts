@@ -1,5 +1,6 @@
 import {getPublicSitePages, getSanityCollections} from '$lib/sanity'
 import {contentFromSanity, defaultLanguage, languages} from '$lib/site-content'
+import {canonicalOrigin} from '$lib/server/canonical-host'
 import type {RequestHandler} from './$types'
 
 // Public, indexable pages only. /carrinho, /finalizar-compra, /conta and
@@ -56,8 +57,11 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
       .map((item) => ({path: item.route, lastmod: item.updatedAt})),
   ]
 
+  // Always the canonical origin, never the host that happened to answer: a
+  // sitemap served from a preview host used to list that host's URLs.
+  const origin = canonicalOrigin() ?? url.origin
   const hrefFor = (path: string, code: string) =>
-    escapeXml(`${url.origin}${path}${code === defaultLanguage ? '' : `?lang=${code}`}`)
+    escapeXml(`${origin}${path}${code === defaultLanguage ? '' : `?lang=${code}`}`)
 
   const body = entries
     .map(({path, lastmod}) => {
@@ -66,11 +70,11 @@ export const GET: RequestHandler = async ({url, setHeaders}) => {
           (option) =>
             `    <xhtml:link rel="alternate" hreflang="${option.code}" href="${hrefFor(path, option.code)}"/>`,
         ),
-        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(`${url.origin}${path}`)}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(`${origin}${path}`)}"/>`,
       ].join('\n')
       const lastmodTag = lastmod ? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>` : ''
 
-      return `  <url>\n    <loc>${escapeXml(`${url.origin}${path}`)}</loc>${lastmodTag}\n${alternates}\n  </url>`
+      return `  <url>\n    <loc>${escapeXml(`${origin}${path}`)}</loc>${lastmodTag}\n${alternates}\n  </url>`
     })
     .join('\n')
 

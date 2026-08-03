@@ -3,9 +3,15 @@ import {sessionCookieName, validateSession} from '$lib/server/staff-auth'
 import {customerSessionCookieName, validateCustomerSession} from '$lib/server/customer-auth'
 import {applyPreviewAdminPolicy} from '$lib/server/preview-admin'
 import {siteEditorE2eRequestStaff} from '$lib/server/site-editor-e2e'
+import {canonicalRedirectTarget} from '$lib/server/canonical-host'
 
 export const handle: Handle = async ({event, resolve}) => {
   const {pathname} = event.url
+
+  // One address for the site. Without this both the apex and the www host serve
+  // every page, and search engines have to guess which is the real one.
+  const canonicalTarget = canonicalRedirectTarget(event.url)
+  if (canonicalTarget) redirect(308, canonicalTarget)
   const rawLanguage = event.url.searchParams.get('lang')
   const htmlLanguage = rawLanguage === 'en' || rawLanguage === 'es' ? rawLanguage : 'pt'
 

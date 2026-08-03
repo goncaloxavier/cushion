@@ -50,10 +50,21 @@
   }
   const languageFromUrl = (value: string | null): LanguageCode =>
     languages.some((option) => option.code === value) ? (value as LanguageCode) : defaultLanguage
+  // The site's own address, not the host that answered. A preview deployment
+  // used to canonicalise every page to itself, which is a second site competing
+  // with the real one. Falls back to the request host when unconfigured, so
+  // local development is unchanged.
+  const origin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
+  // Any host that is not the canonical one serves the site but asks not to be
+  // indexed, however the page itself was called.
+  const hostNotIndexable = $derived(page.data?.indexable === false)
+
   const absoluteUrl = (url: string | undefined) => {
     if (!url) return undefined
     if (/^https?:\/\//i.test(url)) return url
-    return `${page.url.origin}${url.startsWith('/') ? url : `/${url}`}`
+    return `${origin}${url.startsWith('/') ? url : `/${url}`}`
   }
 
   const language = $derived(languageFromUrl(page.url.searchParams.get('lang')))
@@ -70,13 +81,13 @@
   const fullTitle = $derived(titleWithSiteName(pagedTitle))
   const metaDescription = $derived(seoDescription(language, description))
   const canonicalUrl = $derived(
-    `${page.url.origin}${page.url.pathname}${queryFor(language, currentPage)}`,
+    `${origin}${page.url.pathname}${queryFor(language, currentPage)}`,
   )
   const defaultUrl = $derived(
-    `${page.url.origin}${page.url.pathname}${queryFor(defaultLanguage, currentPage)}`,
+    `${origin}${page.url.pathname}${queryFor(defaultLanguage, currentPage)}`,
   )
   const pageUrl = (pageNumber: number) =>
-    `${page.url.origin}${page.url.pathname}${queryFor(language, pageNumber)}`
+    `${origin}${page.url.pathname}${queryFor(language, pageNumber)}`
   const imageUrl = $derived(absoluteUrl(image?.url) ?? absoluteUrl(defaultShareImagePath))
   const imageAlt = $derived(cleanSeoText(image?.alt || siteName, 120))
 </script>
@@ -86,7 +97,7 @@
   <meta name="description" content={metaDescription} />
   <link rel="canonical" href={canonicalUrl} />
   {#each languages as option}
-    <link rel="alternate" hreflang={option.code} href={`${page.url.origin}${page.url.pathname}${queryFor(option.code, currentPage)}`} />
+    <link rel="alternate" hreflang={option.code} href={`${origin}${page.url.pathname}${queryFor(option.code, currentPage)}`} />
   {/each}
   <link rel="alternate" hreflang="x-default" href={defaultUrl} />
   {#if pagination && currentPage > 1}
@@ -114,7 +125,7 @@
     <meta name="twitter:image:alt" content={imageAlt} />
   {/if}
 
-  {#if noindex}
+  {#if noindex || hostNotIndexable}
     <meta name="robots" content="noindex, nofollow" />
   {/if}
 

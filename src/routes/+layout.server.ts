@@ -21,6 +21,7 @@ import {
 } from '$lib/builder/managed-page-sections'
 import {isPreview} from '$lib/server/preview'
 import {isBuilderPreviewRequest} from '$lib/server/builder-preview'
+import {canonicalOrigin, isCanonicalHost} from '$lib/server/canonical-host'
 import type {LayoutServerLoad} from './$types'
 
 const collectionScopeForRoute = (pathname: string) => ({
@@ -142,6 +143,12 @@ export const load: LayoutServerLoad = async ({url, cookies, locals, request}) =>
     settings,
     detailSections: detailSections ?? [],
     sanityDataset,
+    // Fixed for the whole site rather than taken from whichever host answered,
+    // so a preview deployment stops declaring itself the canonical copy.
+    canonicalOrigin: canonicalOrigin(),
+    // A host that is not the canonical one still serves the site — it just says
+    // so to crawlers on every page, belt and braces with its robots.txt.
+    indexable: isCanonicalHost(url),
     studioUrl: preview || builderPreview ? sanityStudioUrl : '',
     // Minimal, non-sensitive account summary for header state. The customer's
     // own data; full details load per-page under /conta.

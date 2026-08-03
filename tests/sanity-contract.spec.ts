@@ -1880,3 +1880,51 @@ test('the invoicing page is a managed page, not a free page', () => {
     'the editor cannot save the invoicing details',
   ).toContain("'billingDetails'")
 })
+
+test('only the canonical host may present itself as the site', () => {
+  // The Railway deployment URL served a complete copy of the content: 114 pages,
+  // each canonicalising to itself, advertising its own sitemap. That is a second
+  // site competing with the client's on a domain they do not own, and it was
+  // live before any migration started. Every SEO-facing absolute URL now comes
+  // from one configured origin, and any other host says noindex.
+  const canonical = readFileSync('src/lib/server/canonical-host.ts', 'utf8')
+
+  // The PUBLIC_ prefix would route this to $env/dynamic/public and read as unset
+  // from the private module — which is exactly how the first attempt failed.
+  expect(canonical, 'the env var name would be excluded from $env/dynamic/private').toContain(
+    'env.SITE_ORIGIN',
+  )
+  expect(canonical).not.toContain('env.PUBLIC_SITE_ORIGIN')
+
+  // Unset, everything behaves as before — local development must not need it.
+  expect(canonical, 'an unset origin has to fall back to the request host').toContain(
+    'if (!raw) return null',
+  )
+
+  for (const [file, needle, why] of [
+    ['src/routes/robots.txt/+server.ts', 'isCanonicalHost', 'a preview host still invites crawlers'],
+    ['src/routes/sitemap.xml/+server.ts', 'canonicalOrigin', 'the sitemap lists the answering host'],
+    ['src/routes/+layout.server.ts', 'isCanonicalHost', 'pages cannot tell whether they are indexable'],
+    ['src/hooks.server.ts', 'canonicalRedirectTarget', 'apex and www both serve every page'],
+  ] as const) {
+    expect(readFileSync(file, 'utf8'), why).toContain(needle)
+  }
+
+  // The canonical tag, hreflang, og:url and the JSON-LD trails all have to agree;
+  // a breadcrumb pointing at a preview host is the same leak in another shape.
+  const seoHead = readFileSync('src/lib/components/SeoHead.svelte', 'utf8')
+  expect(seoHead).toContain('canonicalOrigin')
+  expect(seoHead, 'a non-canonical host does not mark its pages noindex').toContain(
+    'noindex || hostNotIndexable',
+  )
+  for (const route of [
+    'src/routes/+page.svelte',
+    'src/routes/produtos/[slug]/+page.svelte',
+    'src/routes/casos-de-estudo/[slug]/+page.svelte',
+    'src/routes/blog/[slug]/+page.svelte',
+    'src/routes/loja/[slug]/+page.svelte',
+  ]) {
+    expect(readFileSync(route, 'utf8'), `${route} builds structured data from the request host`)
+      .toContain('seoOrigin')
+  }
+})

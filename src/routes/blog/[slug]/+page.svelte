@@ -61,6 +61,12 @@
   }
 
   let {data} = $props()
+  // Structured data carries absolute URLs too, so it needs the same fixed origin
+  // the canonical tag uses — otherwise a preview host publishes a breadcrumb
+  // trail pointing at itself.
+  const seoOrigin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
   $effect(() => {
     if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
@@ -106,22 +112,22 @@
     }))
   })
   const shareUrl = $derived(
-    `${page.url.origin}${page.url.pathname}${data.language === defaultLanguage ? '' : `?lang=${data.language}`}`,
+    `${seoOrigin}${page.url.pathname}${data.language === defaultLanguage ? '' : `?lang=${data.language}`}`,
   )
   const blogJsonLd = $derived([
     blogPostingSchema({
       title: data.post.title,
       description: data.post.excerpt || data.post.body,
-      imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
+      imageUrl: absoluteUrl(seoOrigin, images[0]?.url),
       datePublished: data.post.publishedAt,
       dateModified: data.post.updatedAt,
-      url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language)),
-      logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
+      url: absoluteUrl(seoOrigin, withLanguage(page.url.pathname, data.language)),
+      logoUrl: absoluteUrl(seoOrigin, '/logo/brand_mark.png'),
     }),
     breadcrumbListSchema([
-      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
-      {name: content.nav.blog, url: absoluteUrl(page.url.origin, withLanguage('/blog', data.language))!},
-      {name: data.post.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+      {name: content.nav.home, url: absoluteUrl(seoOrigin, withLanguage('/', data.language))!},
+      {name: content.nav.blog, url: absoluteUrl(seoOrigin, withLanguage('/blog', data.language))!},
+      {name: data.post.title, url: absoluteUrl(seoOrigin, withLanguage(page.url.pathname, data.language))!},
     ]),
   ])
 </script>
