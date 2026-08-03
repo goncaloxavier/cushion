@@ -2882,10 +2882,14 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   box-shadow: 0 0.85rem 1.8rem rgba(17, 57, 60, 0.18);
 }
 
+/* Heading and summary sit at the top, the price is pinned to the bottom. The
+   middle row takes the slack, so a two-line description and a four-line one
+   still put their price on the same line — the cards in a row are already the
+   same height, it was only the price that floated up behind a short summary. */
 .store-card-body {
   display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 0.9rem;
-  align-content: start;
   padding: 1.1rem;
 }
 
