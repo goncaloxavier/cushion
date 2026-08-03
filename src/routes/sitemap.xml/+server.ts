@@ -14,6 +14,7 @@ const staticPaths = [
   '/catalogo',
   '/contacto',
   '/politica-de-devolucoes',
+  '/dados-de-faturacao',
 ]
 
 const escapeXml = (value: string) =>

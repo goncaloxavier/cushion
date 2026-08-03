@@ -60,6 +60,7 @@ const editableFields: Record<SiteEditorDocumentType, readonly string[]> = {
     'storePage',
     'cartPage',
     'returnsPolicy',
+    'billingDetails',
     'catalogue',
     'casesPage',
     'blogPage',

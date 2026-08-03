@@ -12,6 +12,7 @@ import {
   storeVatRate,
   transportEstimateFor,
 } from '../src/lib/store-shipping'
+import {managedPageSectionScopes} from '../src/lib/builder/managed-page-sections'
 import {createSiteEditorStarterFields} from '../src/lib/server/site-editor-starters'
 import {sameOriginOk} from '../src/lib/server/form-guard'
 import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
@@ -1802,4 +1803,80 @@ test('a shop product is never filed under a category nobody chose', () => {
   expect(app, 'the create call drops the chosen category').toContain(
     "createState.documentType === 'storeProduct' ? createState.storeCategory : undefined",
   )
+})
+
+test('the invoicing details translate their labels and never their values', () => {
+  // A NIF, a certidão code and a registered address mean nothing translated and
+  // everything verbatim. The label is localized so "Capital social" can read
+  // "Share capital"; the value is a plain string, deliberately outside the
+  // localized shape, so the auto-translation pipeline never walks it.
+  const built = contentFromSanity({
+    siteContent: {
+      billingDetails: {
+        title: {_type: 'localizedString', pt: 'Dados de faturação', en: 'Invoicing details'},
+        entries: [
+          {label: {_type: 'localizedString', pt: 'NIF', en: 'VAT number'}, value: '506271927'},
+          {
+            label: {_type: 'localizedString', pt: 'Capital social', en: 'Share capital'},
+            value: '5 000,00 EUR',
+          },
+        ],
+      },
+    },
+  } as never)
+
+  const pt = built.pt.billingDetails
+  const en = built.en.billingDetails
+  expect(pt.title).toBe('Dados de faturação')
+  expect(en.title).toBe('Invoicing details')
+
+  expect(pt.entries.map((entry) => entry.label)).toEqual(['NIF', 'Capital social'])
+  expect(en.entries.map((entry) => entry.label)).toEqual(['VAT number', 'Share capital'])
+
+  // The point of the whole shape: identical in every language.
+  expect(
+    en.entries.map((entry) => entry.value),
+    'a legal identifier changed between languages',
+  ).toEqual(pt.entries.map((entry) => entry.value))
+  expect(pt.entries.map((entry) => entry.value)).toEqual(['506271927', '5 000,00 EUR'])
+})
+
+test('a half-filled invoicing row never reaches the page', () => {
+  // The client adds a row before typing into it. A label with no value, or a
+  // value with no label, renders as a dangling term with nothing beside it.
+  const built = contentFromSanity({
+    siteContent: {
+      billingDetails: {
+        entries: [
+          {label: {_type: 'localizedString', pt: 'NIF'}, value: '506271927'},
+          {label: {_type: 'localizedString', pt: 'Sem valor'}},
+          {value: 'sem designação'},
+        ],
+      },
+    },
+  } as never)
+
+  expect(built.pt.billingDetails.entries).toEqual([{label: 'NIF', value: '506271927'}])
+})
+
+test('the invoicing page is a managed page, not a free page', () => {
+  // It keeps the address the old site used, so the link people already have
+  // keeps working with no redirect at all — which only holds if it is a real
+  // route the sitemap knows about, rather than something created in the editor.
+  const scope = managedPageSectionScopes.find((entry) => entry.rootPath === 'billingDetails')
+  expect(scope?.route, 'the invoicing page moved off its original address').toBe(
+    '/dados-de-faturacao',
+  )
+
+  expect(readFileSync('src/routes/dados-de-faturacao/+page.svelte', 'utf8')).toContain(
+    'billingDetails',
+  )
+  expect(
+    readFileSync('src/routes/sitemap.xml/+server.ts', 'utf8'),
+    'the page is not in the sitemap',
+  ).toContain("'/dados-de-faturacao'")
+  expect(
+    readFileSync('src/lib/server/site-editor.ts', 'utf8').slice(0, 4000),
+    'the editor cannot save the invoicing details',
+  ).toContain("'billingDetails'")
 })

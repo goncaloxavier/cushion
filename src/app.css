@@ -3775,6 +3775,47 @@ html[data-store-postal-ready='true']:not([data-app-ready='true']) .store-section
   border-radius: 999px;
 }
 
+/* The invoicing details read as label/value pairs. Two columns while there is
+   room, stacked below — a registered address is long enough that forcing it
+   beside its label on a phone squeezes it to two words a line. */
+.billing-list {
+  display: grid;
+  max-width: 60ch;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.billing-row {
+  display: grid;
+  grid-template-columns: minmax(11rem, auto) 1fr;
+  gap: 0.35rem 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.billing-row dt {
+  margin: 0;
+  color: var(--sea);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.billing-row dd {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .billing-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+}
+
 .article-body {
   max-width: 720px;
   margin-top: 3rem;

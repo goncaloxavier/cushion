@@ -32,6 +32,7 @@ const managedSectionComponents = new Set([
   'blogCore',
   'contactCore',
   'returnsCore',
+  'billingCore',
   'productDetailCore',
   'storeDetailCore',
   'caseDetailCore',

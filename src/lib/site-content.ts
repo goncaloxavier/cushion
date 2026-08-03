@@ -429,6 +429,14 @@ export type SiteContent = {
     conditions: string[]
     sections: BuilderSection[]
   }
+  billingDetails: {
+    kicker: string
+    title: string
+    lead: string
+    // The label is translated, the value never is — see the billingDetail schema.
+    entries: Array<{label: string; value: string}>
+    sections: BuilderSection[]
+  }
   casesPage: {
     hero: CopyBlock
     heroImage: ContentImage
@@ -674,6 +682,13 @@ type SanitySiteContent = {
     title?: LocalizedValue
     lead?: LocalizedValue
     conditions?: LocalizedValue[]
+    sections?: BuilderSection[]
+  }
+  billingDetails?: {
+    kicker?: LocalizedValue
+    title?: LocalizedValue
+    lead?: LocalizedValue
+    entries?: Array<{label?: LocalizedValue; value?: string}>
     sections?: BuilderSection[]
   }
   catalogue?: {
@@ -1141,6 +1156,65 @@ const blogPosts = {
   ],
 } satisfies Record<LanguageCode, BlogPost[]>
 
+/**
+ * The legal entity behind the brand, as the old site published it at
+ * /dados-de-faturacao. Public-sector and B2B buyers reach for this when they
+ * set a supplier up, so the page keeps that exact address rather than moving.
+ */
+const billingDetailsDefaults: Record<LanguageCode, SiteContent['billingDetails']> = {
+  pt:
+  {
+    kicker: 'Faturação',
+    title: 'Dados de faturação',
+    lead: 'A faturação da marca DaFábrica4You é efetuada por:',
+    sections: [],
+    entries: [
+      {label: 'Entidade', value: 'M.H.C.F., Unipessoal Lda'},
+      {label: 'Morada', value: 'Rua Comandante Alves, nr 15, 2 AJ, 2460-095 São Martinho do Porto, Portugal'},
+      {label: 'NIF', value: '506271927'},
+      {label: 'Capital social', value: '5 000,00 EUR'},
+      {label: 'Certidão permanente', value: '8433-7504-5377'},
+      {label: 'Ano de constituição', value: '2001'},
+      {label: 'Telefone', value: '+351 914 746 637'},
+      {label: 'Email', value: 'jribeiro@dafabrica4you.pt'},
+    ],
+  },
+  en:
+  {
+    kicker: 'Invoicing',
+    title: 'Invoicing details',
+    lead: 'Invoicing for the DaFábrica4You brand is issued by:',
+    sections: [],
+    entries: [
+      {label: 'Entity', value: 'M.H.C.F., Unipessoal Lda'},
+      {label: 'Address', value: 'Rua Comandante Alves, nr 15, 2 AJ, 2460-095 São Martinho do Porto, Portugal'},
+      {label: 'VAT number', value: '506271927'},
+      {label: 'Share capital', value: '5 000,00 EUR'},
+      {label: 'Company registration', value: '8433-7504-5377'},
+      {label: 'Year founded', value: '2001'},
+      {label: 'Phone', value: '+351 914 746 637'},
+      {label: 'Email', value: 'jribeiro@dafabrica4you.pt'},
+    ],
+  },
+  es:
+  {
+    kicker: 'Facturación',
+    title: 'Datos de facturación',
+    lead: 'La facturación de la marca DaFábrica4You es emitida por:',
+    sections: [],
+    entries: [
+      {label: 'Entidad', value: 'M.H.C.F., Unipessoal Lda'},
+      {label: 'Dirección', value: 'Rua Comandante Alves, nr 15, 2 AJ, 2460-095 São Martinho do Porto, Portugal'},
+      {label: 'NIF', value: '506271927'},
+      {label: 'Capital social', value: '5 000,00 EUR'},
+      {label: 'Certificado de registro', value: '8433-7504-5377'},
+      {label: 'Año de constitución', value: '2001'},
+      {label: 'Teléfono', value: '+351 914 746 637'},
+      {label: 'Email', value: 'jribeiro@dafabrica4you.pt'},
+    ],
+  },
+}
+
 const returnsPolicyDefaults: Record<LanguageCode, SiteContent['returnsPolicy']> = {
   pt: {
     kicker: 'Política',
@@ -1504,6 +1578,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     returnsPolicy: {...returnsPolicyDefaults.pt, sections: []},
+    billingDetails: {...billingDetailsDefaults.pt, sections: []},
     casesPage: {
       hero: {
         kicker: 'Casos de estudo',
@@ -1867,6 +1942,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     returnsPolicy: {...returnsPolicyDefaults.en, sections: []},
+    billingDetails: {...billingDetailsDefaults.en, sections: []},
     casesPage: {
       hero: {
         kicker: 'Case studies',
@@ -2230,6 +2306,7 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
       sections: [],
     },
     returnsPolicy: {...returnsPolicyDefaults.es, sections: []},
+    billingDetails: {...billingDetailsDefaults.es, sections: []},
     casesPage: {
       hero: {
         kicker: 'Casos de estudio',
@@ -3248,6 +3325,23 @@ const applySiteContentFromSanity = (
       fallback.returnsPolicy.conditions,
     ),
     sections: builderSectionsFromSanity(source.returnsPolicy?.sections),
+  }
+
+  target.billingDetails = {
+    kicker: localized(source.billingDetails?.kicker, language, fallback.billingDetails.kicker),
+    title: localized(source.billingDetails?.title, language, fallback.billingDetails.title),
+    lead: localized(source.billingDetails?.lead, language, fallback.billingDetails.lead),
+    // Only the label is read per language. The value is stored as a plain string
+    // and is handed back exactly as authored, in every language.
+    entries: Array.isArray(source.billingDetails?.entries)
+      ? source.billingDetails.entries
+          .map((entry) => ({
+            label: localized(entry?.label, language, ''),
+            value: typeof entry?.value === 'string' ? entry.value.trim() : '',
+          }))
+          .filter((entry) => entry.label && entry.value)
+      : fallback.billingDetails.entries,
+    sections: builderSectionsFromSanity(source.billingDetails?.sections),
   }
 
   target.casesPage = {
