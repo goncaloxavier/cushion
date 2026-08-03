@@ -972,6 +972,16 @@ export const publishSiteEditorDocument = async (input: SiteEditorDocument, scope
     client.getDocument<SiteEditorDocument>(publishedId),
   ])
   validateDocument(saved)
+
+  // The save returns the published document, not a draft, when there was nothing
+  // to persist. Publishing then has no draft to promote, and Sanity answers with
+  // a raw "document not found" that surfaced to the client verbatim, traceId and
+  // all. Nothing to publish is not an error — the document is already live.
+  if (!isDraft(saved._id)) {
+    invalidateSanityCollectionsCache()
+    return withSignature(saved)
+  }
+
   await client.action({
     actionType: 'sanity.action.document.publish',
     draftId: editorDraftId(publishedId),

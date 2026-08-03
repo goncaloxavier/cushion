@@ -118,6 +118,15 @@ export const editorSignatureMismatch = (
 // draft can be thrown away, so "no editor-visible difference" is not a strong
 // enough test: a draft holding a translation the published document lacks still
 // holds something, and discarding it would lose it.
+//
+// The one thing it does ignore is `_type`. Saving normalises the schema
+// annotation onto every value it writes, and most published content predates
+// that: 538 of the 894 localized objects in the dataset carry no `_type` at all.
+// Comparing it would mean the first save on almost any existing document leaves
+// a draft behind whose only difference is an annotation nobody authored — which
+// is the whole problem this check exists to stop. `_key` is still compared, so
+// array identity and ordering are untouched, and no edit the editor can make is
+// expressible as a `_type` change on its own.
 export const sameStoredContent = (
   left: Record<string, unknown> | null | undefined,
   right: Record<string, unknown> | null | undefined,
@@ -130,7 +139,12 @@ export const sameStoredContent = (
   const stable = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(stable)
     if (!isPlainObject(value)) return value
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
+    return Object.fromEntries(
+      Object.keys(value)
+        .filter((key) => key !== '_type')
+        .sort()
+        .map((key) => [key, stable(value[key])]),
+    )
   }
   const project = (document: Record<string, unknown>) =>
     JSON.stringify(

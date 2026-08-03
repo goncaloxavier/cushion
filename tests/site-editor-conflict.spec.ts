@@ -244,6 +244,24 @@ test.describe('sameStoredContent', () => {
     ).toBe(false)
   })
 
+  test('the schema annotation a save adds is not a change', () => {
+    // Saving normalises _type onto every value it writes, and most published
+    // content predates that. Counting it as a difference meant the first save on
+    // almost any existing document left a draft behind for an annotation nobody
+    // authored — which is exactly what this check exists to prevent.
+    const draft = post({summary: {_type: 'localizedText', pt: 'Texto'}})
+    const published = post({summary: {pt: 'Texto'}})
+    expect(sameStoredContent(draft, published, [...fields, 'summary'])).toBe(true)
+  })
+
+  test('_key is still compared, so array identity is not weakened', () => {
+    // Ignoring _type must not spill into ignoring the keys that tell array
+    // entries apart — reordering or replacing one is a real edit.
+    const a = post({gallery: [{_key: 'one', alt: 'A'}]})
+    const b = post({gallery: [{_key: 'two', alt: 'A'}]})
+    expect(sameStoredContent(a, b, fields)).toBe(false)
+  })
+
   test('fields outside the editable set never decide it', () => {
     // _rev and _updatedAt always differ between a draft and its published twin.
     // Comparing whole documents would mean no draft is ever collectable.
@@ -286,4 +304,22 @@ test('both save paths refuse to leave a draft that matches the published documen
     createPath.indexOf('sameStoredContent'),
     'the check runs after the draft content is assembled, or it compares the wrong thing',
   ).toBeLessThan(createPath.indexOf('client.create'))
+})
+
+test('publishing a document with nothing pending is not an error', () => {
+  // Once no-op saves stopped manufacturing drafts, pressing Publicar on an
+  // unchanged document had no draft to promote, and Sanity's raw "document with
+  // the ID drafts.siteContent was not found (traceId: …)" reached the client.
+  // The save already reports this by handing back the published document rather
+  // than a draft.
+  const source = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+  const publish = source.slice(source.indexOf('export const publishSiteEditorDocument'))
+  const body = publish.slice(0, publish.indexOf('\n}\n'))
+
+  const guard = body.indexOf('isDraft(saved._id)')
+  expect(guard, 'publish never checks whether the save left anything to publish').toBeGreaterThan(-1)
+  expect(
+    guard,
+    'the check runs after the publish action, which is where the error came from',
+  ).toBeLessThan(body.indexOf('sanity.action.document.publish'))
 })
