@@ -1,15 +1,13 @@
-import {canonicalOrigin, isCanonicalHost} from '$lib/server/canonical-host'
+import {canonicalOrigin} from '$lib/server/canonical-host'
 import type {RequestHandler} from './$types'
 
 export const GET: RequestHandler = ({url, setHeaders}) => {
-  // A preview or deployment host serves the same pages as the real site. Left
-  // crawlable it competes with the site it is a copy of, so it asks to be left
-  // alone entirely rather than advertising its own sitemap.
-  if (!isCanonicalHost(url)) {
-    setHeaders({'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400'})
-    return new Response('User-agent: *\nDisallow: /\n')
-  }
-
+  // A non-canonical host is deliberately left crawlable. It is a duplicate of
+  // the real site and every page it serves says noindex — but a crawler has to
+  // be able to fetch a page to read that. Blocking it here instead would mean
+  // anything already indexed stays indexed, unreachable and unremovable, which
+  // is the "Indexed, though blocked by robots.txt" state. Let it in, let it read
+  // the noindex, let the URLs drop out.
   const origin = canonicalOrigin() ?? url.origin
   const body = `User-agent: *
 Allow: /

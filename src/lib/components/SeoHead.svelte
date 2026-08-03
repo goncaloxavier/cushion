@@ -125,8 +125,14 @@
     <meta name="twitter:image:alt" content={imageAlt} />
   {/if}
 
-  {#if noindex || hostNotIndexable}
+  {#if noindex}
     <meta name="robots" content="noindex, nofollow" />
+  {:else if hostNotIndexable}
+    <!-- follow, not nofollow: this host is a whole duplicate site, and the
+         crawler has to walk its links to reach every page and read the noindex
+         on each one. Telling it to stop at the first page leaves the rest
+         indexed. -->
+    <meta name="robots" content="noindex, follow" />
   {/if}
 
   {#if jsonLdHtml}

@@ -1902,7 +1902,7 @@ test('only the canonical host may present itself as the site', () => {
   )
 
   for (const [file, needle, why] of [
-    ['src/routes/robots.txt/+server.ts', 'isCanonicalHost', 'a preview host still invites crawlers'],
+    ['src/routes/robots.txt/+server.ts', 'canonicalOrigin', 'robots.txt advertises the answering host'],
     ['src/routes/sitemap.xml/+server.ts', 'canonicalOrigin', 'the sitemap lists the answering host'],
     ['src/routes/+layout.server.ts', 'isCanonicalHost', 'pages cannot tell whether they are indexable'],
     ['src/hooks.server.ts', 'canonicalRedirectTarget', 'apex and www both serve every page'],
@@ -1915,8 +1915,18 @@ test('only the canonical host may present itself as the site', () => {
   const seoHead = readFileSync('src/lib/components/SeoHead.svelte', 'utf8')
   expect(seoHead).toContain('canonicalOrigin')
   expect(seoHead, 'a non-canonical host does not mark its pages noindex').toContain(
-    'noindex || hostNotIndexable',
+    'hostNotIndexable',
   )
+  // follow, not nofollow: a duplicate host has to be walked in full for every
+  // page to be seen and dropped. And robots.txt must not block that crawl, or
+  // the noindex is never read and anything already indexed stays there.
+  expect(seoHead, 'the crawler is told to stop before it can read the rest').toContain(
+    "content=\"noindex, follow\"",
+  )
+  expect(
+    readFileSync('src/routes/robots.txt/+server.ts', 'utf8'),
+    'robots.txt blocks the crawl that has to happen for noindex to be read',
+  ).not.toContain('Disallow: /\\n')
   for (const route of [
     'src/routes/+page.svelte',
     'src/routes/produtos/[slug]/+page.svelte',
