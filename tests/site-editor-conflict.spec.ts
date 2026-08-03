@@ -1,8 +1,10 @@
+import {readFileSync} from 'node:fs'
 import {expect, test} from '@playwright/test'
 import {
   carryMachineOwned,
   editorContentSignature,
   editorSignatureMismatch,
+  sameStoredContent,
 } from '../src/lib/server/site-editor-conflict'
 
 const blogFields = ['title', 'excerpt', 'gallery'] as const
@@ -194,4 +196,94 @@ test('a rejected save can name the field it disagreed about', () => {
   // Identical documents disagree about nothing, so a rejection reporting "none"
   // is itself the finding: the check fired when it should not have.
   expect(editorSignatureMismatch(post(), post(), blogFields)).toEqual([])
+})
+
+test.describe('sameStoredContent', () => {
+  // Autosave fires on more than real edits — opening a panel is enough — so a
+  // save that changes nothing used to manufacture a draft identical to the
+  // published document. Only publishing clears a draft, and there is nothing to
+  // publish, so it stayed forever: a "por publicar" dot on all ten pages of the
+  // site, and a stale draft shadowing published content in Presentation preview.
+  const fields = ['title', 'excerpt', 'gallery'] as const
+
+  test('a save that changes nothing is recognised as nothing to save', () => {
+    expect(sameStoredContent(post(), post(), fields)).toBe(true)
+  })
+
+  test('key order is not a change', () => {
+    // Sanity may hand back the same object with its keys in a different order.
+    // Read as a difference, that alone would keep every draft alive forever.
+    const ordered = {title: {pt: 'Um título', _type: 'localizedString'}, excerpt: {pt: 'Texto'}}
+    const shuffled = {excerpt: {pt: 'Texto'}, title: {_type: 'localizedString', pt: 'Um título'}}
+    expect(sameStoredContent(ordered, shuffled, fields)).toBe(true)
+  })
+
+  test('a real edit is never mistaken for a no-op', () => {
+    expect(sameStoredContent(post(), post({title: {pt: 'Outro título'}}), fields)).toBe(false)
+  })
+
+  test('a field the save removed counts as a change', () => {
+    const {excerpt: _removed, ...withoutExcerpt} = post()
+    expect(sameStoredContent(post(), withoutExcerpt, fields)).toBe(false)
+  })
+
+  test('a translation the published document lacks is not thrown away', () => {
+    // The looser editorContentSignature ignores en/es/translationHash by design,
+    // which is right for conflict detection and wrong here: this decides whether
+    // a draft gets deleted, and a draft holding a translation still holds
+    // something worth keeping.
+    const draft = post({title: {pt: 'Um título', en: 'A title'}})
+    const published = post({title: {pt: 'Um título'}})
+    expect(
+      editorContentSignature(draft, fields),
+      'the signature helper is expected to ignore the translation',
+    ).toBe(editorContentSignature(published, fields))
+    expect(
+      sameStoredContent(draft, published, fields),
+      'a draft carrying a translation was treated as safe to discard',
+    ).toBe(false)
+  })
+
+  test('fields outside the editable set never decide it', () => {
+    // _rev and _updatedAt always differ between a draft and its published twin.
+    // Comparing whole documents would mean no draft is ever collectable.
+    expect(
+      sameStoredContent(
+        {...post(), _rev: 'aaa', _updatedAt: '2026-07-30T23:24:16Z'},
+        {...post(), _rev: 'bbb', _updatedAt: '2026-07-30T23:13:04Z'},
+        fields,
+      ),
+    ).toBe(true)
+  })
+
+  test('a document with nothing to compare against is never collectable', () => {
+    // A draft that has never been published has no published twin, so there is
+    // no version to fall back to and it must survive.
+    expect(sameStoredContent(post(), null, fields)).toBe(false)
+    expect(sameStoredContent(post(), undefined, fields)).toBe(false)
+  })
+})
+
+test('both save paths refuse to leave a draft that matches the published document', () => {
+  // The helper above is only worth having if the save path consults it on both
+  // routes: patching an existing draft, and creating one that did not exist.
+  // The second is how the stale drafts were born.
+  const save = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+  const body = save.slice(save.indexOf('export const saveSiteEditorDocument'))
+
+  const patchPath = body.slice(body.indexOf('if (draft) {'), body.indexOf('const source = published'))
+  expect(patchPath, 'an existing draft is patched without checking it still differs').toContain(
+    'sameStoredContent',
+  )
+  // Deleting a draft has to carry the same revision guard the patch does, or a
+  // concurrent edit is discarded instead of losing the race.
+  expect(patchPath, 'the draft is deleted without a revision guard').toContain('ifRevisionId')
+  expect(patchPath).toContain('.delete(draftId)')
+
+  const createPath = body.slice(body.indexOf('const source = published'))
+  expect(createPath, 'a no-op save still creates a draft').toContain('sameStoredContent')
+  expect(
+    createPath.indexOf('sameStoredContent'),
+    'the check runs after the draft content is assembled, or it compares the wrong thing',
+  ).toBeLessThan(createPath.indexOf('client.create'))
 })

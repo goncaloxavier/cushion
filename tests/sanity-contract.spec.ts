@@ -12,6 +12,7 @@ import {
   storeVatRate,
   transportEstimateFor,
 } from '../src/lib/store-shipping'
+import {createSiteEditorStarterFields} from '../src/lib/server/site-editor-starters'
 import {sameOriginOk} from '../src/lib/server/form-guard'
 import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
 import {
@@ -160,6 +161,18 @@ test.describe('Sanity Studio content contract', () => {
         entry.slice(0, entry.indexOf(']')),
         `${type} cannot save the field the editor shows`,
       ).toContain("'active'")
+
+      // The toggle is only a safety if a newly created entry actually starts
+      // off. `caseStudy` shipped the schema field and the editor toggle but not
+      // this line, so the field was absent — and every reader treats absent as
+      // visible. The editor read "Desativado" while the first publish put the
+      // case into the list, the search index and the sitemap.
+      const starter = createSiteEditorStarterFields({
+        type: type as 'caseStudy',
+        title: 'Exemplo',
+        slug: 'exemplo',
+      })
+      expect(starter.active, `a new ${type} is created visible to the public`).toBe(false)
     }
 
     // And the flag has to reach the page, not just the document: a case marked
@@ -197,6 +210,18 @@ test.describe('Sanity Studio content contract', () => {
       const source = readFileSync(consumer, 'utf8')
       const cased = source.slice(source.indexOf('caseStudies'))
       expect(cased, `${consumer} lists hidden cases`).toContain('active !== false')
+    }
+
+    // The detail page stays reachable so the entry can be reviewed — which is
+    // exactly why it has to tell crawlers not to index it.
+    for (const [detail, field] of [
+      ['src/routes/produtos/[slug]/+page.svelte', 'product'],
+      ['src/routes/casos-de-estudo/[slug]/+page.svelte', 'caseStudy'],
+    ] as const) {
+      expect(
+        readFileSync(detail, 'utf8'),
+        `${detail} lets search engines index a hidden entry`,
+      ).toContain(`noindex={data.${field}.active === false}`)
     }
   })
 
@@ -1680,4 +1705,101 @@ test.describe('Sanity Studio content contract', () => {
     expect(envExample).toContain('SANITY_WEBHOOK_SECRET')
     expect(envExample).not.toContain('SANITY_STUDIO_TRANSLATE_SECRET')
   })
+})
+
+test('a case study survives a location written in the wrong shape', () => {
+  // The site editor declared `location` as a localized field while the Sanity
+  // schema and this reader treat it as a plain string. One case study edited
+  // through the editor then threw `location.trim is not a function` inside the
+  // map — which took down the case list, every case page, and the home page,
+  // because all of them load cases. The editor now writes a string; this keeps
+  // the documents already carrying an object readable.
+  const withObjectLocation = contentFromSanity({
+    caseStudies: [
+      {
+        _id: 'case-object-location',
+        title: {_type: 'localizedString', pt: 'Parque ribeirinho'},
+        slug: {current: 'parque-ribeirinho'},
+        location: {_type: 'localizedString', pt: 'Alcanena · Santarém', en: 'Alcanena'},
+        summary: {_type: 'localizedText', pt: 'Resumo'},
+      },
+    ],
+  } as never)
+
+  const pt = withObjectLocation.pt.caseStudies.find((item) => item.slug === 'parque-ribeirinho')
+  expect(pt, 'the case study was dropped rather than read').toBeTruthy()
+  expect(pt!.location).toBe('Alcanena · Santarém')
+  const en = withObjectLocation.en.caseStudies.find((item) => item.slug === 'parque-ribeirinho')
+  expect(en!.location).toBe('Alcanena')
+
+  // And the ordinary shape still reads as it always did.
+  const withStringLocation = contentFromSanity({
+    caseStudies: [
+      {
+        _id: 'case-string-location',
+        title: {_type: 'localizedString', pt: 'Vedação'},
+        slug: {current: 'vedacao'},
+        location: '  Trofa, Porto  ',
+      },
+    ],
+  } as never)
+  expect(
+    withStringLocation.pt.caseStudies.find((item) => item.slug === 'vedacao')!.location,
+  ).toBe('Trofa, Porto')
+})
+
+test('the editor never offers a localized editor for a plain-string schema field', () => {
+  // The mismatch above is only invisible until a client types into the field.
+  // Every field the editor edits as localized must be localized in the schema,
+  // or the first edit writes an object where a string is read.
+  const schema = readFileSync('schemaTypes/caseStudy.ts', 'utf8')
+  const localizedInEditor = documentPanels.caseStudy
+    .flatMap((panel) => panel.fields)
+    .filter((field) => field.type === 'localizedString' || field.type === 'localizedText')
+    .map((field) => field.name)
+
+  // Guards the guard: an empty list would make the loop below pass vacuously.
+  expect(localizedInEditor).toEqual(expect.arrayContaining(['title', 'summary', 'description']))
+
+  for (const field of localizedInEditor) {
+    const declaration = schema.match(
+      new RegExp(`name: '${field}',[\\s\\S]{0,240}?type: '([A-Za-z]+)'`),
+    )
+    if (!declaration) continue
+    expect(
+      declaration[1],
+      `the editor edits caseStudy.${field} as localized but the schema stores a ${declaration[1]}`,
+    ).toMatch(/^localized/)
+  }
+})
+
+test('a shop product is never filed under a category nobody chose', () => {
+  // Creation used to pick whichever category sorted first and say nothing, so a
+  // planter was created inside "Bancos" — a wrong answer to the shop's only
+  // filter, and one the client had no reason to go looking for. The category
+  // decides where the product is found, so it is asked for, not guessed.
+  const server = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+  const create = server.slice(server.indexOf('export const createSiteEditorDocument'))
+  expect(
+    create,
+    'creating a shop product still falls back to a category the client never picked',
+  ).not.toMatch(/defaultStoreCategoryOptions\[0\]|order\(orderRank asc, title\.pt asc\)\[0\]/)
+
+  // And the slug that arrives has to name a category that exists, or the product
+  // answers to a filter facet no visitor can select.
+  const resolver = server.slice(server.indexOf('const resolveStoreCategory'))
+  const body = resolver.slice(0, resolver.indexOf('\n}\n'))
+  expect(body, 'the requested category is not checked against the real list').toContain('known.has')
+  expect(body, 'a missing category is accepted').toContain('SiteEditorValidationError')
+
+  // The dialog has to offer the choice, otherwise the server check is just a
+  // wall the client cannot get past.
+  const app = readFileSync('src/lib/site-editor/editor/SiteEditorApp.tsx', 'utf8')
+  const field = app.slice(app.indexOf("createDocumentType === 'storeProduct' ?"))
+  expect(field.slice(0, field.indexOf(') : null}')), 'the create dialog does not ask').toContain(
+    'required',
+  )
+  expect(app, 'the create call drops the chosen category').toContain(
+    "createState.documentType === 'storeProduct' ? createState.storeCategory : undefined",
+  )
 })

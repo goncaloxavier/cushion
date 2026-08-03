@@ -478,7 +478,9 @@ type SanityCaseStudy = {
   slug?: {current?: string}
   image?: SanityImage
   gallery?: SanityStoreProductGalleryItem[]
-  location?: string
+  // Authored as a plain string, but documents written while the editor treated
+  // it as a localized field carry an object here.
+  location?: string | LocalizedValue
   summary?: LocalizedValue
   description?: LocalizedValue
   challenge?: LocalizedValue
@@ -2278,6 +2280,14 @@ export const fallbackContent: Record<LanguageCode, SiteContent> = {
 const localized = (value: LocalizedValue | undefined, language: LanguageCode, fallback: string) =>
   value?.[language]?.trim() || value?.pt?.trim() || fallback
 
+// For fields the schema declares as plain strings. Editors have written
+// localized objects into them, so reading one must never depend on the shape.
+const plainString = (value: string | LocalizedValue | undefined, language: LanguageCode) => {
+  if (typeof value === 'string') return value.trim()
+  if (!value || typeof value !== 'object') return ''
+  return localized(value, language, '')
+}
+
 const appearanceFrom = (value: LocalizedValue | undefined): TextAppearance | undefined => {
   if (!value) return undefined
   const appearance = Object.fromEntries(
@@ -2951,7 +2961,10 @@ const casesFromSanity = (
         image: images[0],
         images,
         media,
-        location: item.location?.trim() || fallbackCase?.location || '',
+        // Never assume the shape: one case study holding an object here used to
+        // throw inside this map, which took down every page that loads cases —
+        // the home page included.
+        location: plainString(item.location, language) || fallbackCase?.location || '',
         summary: localized(item.summary, language, ''),
         description: localized(item.description, language, ''),
         challenge: localized(item.challenge, language, ''),

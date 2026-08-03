@@ -112,3 +112,31 @@ export const editorSignatureMismatch = (
     (field) => editorContentSignature(a, [field]) !== editorContentSignature(b, [field]),
   )
 }
+
+// Deliberately compares the stored values verbatim — machine-owned leaves
+// included — rather than reusing editorContentSignature. This decides whether a
+// draft can be thrown away, so "no editor-visible difference" is not a strong
+// enough test: a draft holding a translation the published document lacks still
+// holds something, and discarding it would lose it.
+export const sameStoredContent = (
+  left: Record<string, unknown> | null | undefined,
+  right: Record<string, unknown> | null | undefined,
+  fields: readonly string[],
+) => {
+  if (!left || !right) return false
+  // Key order is not part of the content: Sanity is free to hand back the same
+  // object with its keys in a different order, and a plain JSON.stringify would
+  // read that as a change and keep the draft forever.
+  const stable = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(stable)
+    if (!isPlainObject(value)) return value
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]))
+  }
+  const project = (document: Record<string, unknown>) =>
+    JSON.stringify(
+      fields
+        .filter((field) => Object.prototype.hasOwnProperty.call(document, field))
+        .map((field) => [field, stable(document[field])]),
+    )
+  return project(left) === project(right)
+}

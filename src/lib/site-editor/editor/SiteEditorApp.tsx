@@ -41,6 +41,7 @@ import type {
   SiteEditorNode,
   SiteEditorSaveState,
 } from '../types'
+import {defaultStoreCategoryOptions} from '$lib/store-categories'
 import {createSiteEditorApi, isConflictError} from './api'
 import type {SiteEditorUploadProgress} from './api'
 import {ConfirmDialog} from './ConfirmDialog'
@@ -75,6 +76,9 @@ type CreateState = {
   title: string
   route: string
   sitePageStarter: BuilderPageStarter
+  // A shop product must belong to a category, so the dialog asks rather than
+  // filing it under whichever category happens to sort first.
+  storeCategory: string
   busy: boolean
   error?: string
 }
@@ -95,6 +99,7 @@ const initialCreateState: CreateState = {
   title: '',
   route: '',
   sitePageStarter: 'essential',
+  storeCategory: '',
   busy: false,
 }
 
@@ -1493,6 +1498,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
         createState.title,
         createState.route || undefined,
         createState.documentType === 'sitePage' ? createState.sitePageStarter : undefined,
+        createState.documentType === 'storeProduct' ? createState.storeCategory : undefined,
       )
       setCreateState(initialCreateState)
       let openedFromManifest = false
@@ -1682,6 +1688,9 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
 
   const createDocumentType = createState.documentType as CreatableDocumentType
   const createDetails = createTypeDetails[createDocumentType]
+  // The live list, so a category the client just added is offered here too.
+  const storeCategoryOptions =
+    manifest?.optionSources.storeCategories ?? defaultStoreCategoryOptions
   const createTitle =
     createDocumentType === 'sitePage'
       ? 'Criar uma página'
@@ -2007,6 +2016,28 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
                     }}
                   />
                 </label>
+                {createDocumentType === 'storeProduct' ? (
+                  <label>
+                    <span>Categoria</span>
+                    <select
+                      aria-label="Categoria"
+                      disabled={createState.busy}
+                      required
+                      value={createState.storeCategory}
+                      onChange={(event) => {
+                        const storeCategory = event.currentTarget.value
+                        setCreateState((current) => ({...current, storeCategory}))
+                      }}
+                    >
+                      <option value="">Escolha uma categoria</option>
+                      {storeCategoryOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 {createDocumentType === 'sitePage' ? (
                   <>
                     <fieldset className="site-editor-page-starters">

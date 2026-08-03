@@ -95,12 +95,13 @@ export const createSiteEditorApi = (csrfToken: string) => ({
     title: string,
     route?: string,
     sitePageStarter?: BuilderPageStarter,
+    storeCategory?: string,
   ) =>
     (
       await request<DocumentResponse>('/painel/site/api', {
         method: 'POST',
         headers: {'content-type': 'application/json', 'x-csrf-token': csrfToken},
-        body: JSON.stringify({action: 'create', documentType, title, route, sitePageStarter}),
+        body: JSON.stringify({action: 'create', documentType, title, route, sitePageStarter, storeCategory}),
       })
     ).document,
   delete: (id: string) =>

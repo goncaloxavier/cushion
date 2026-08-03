@@ -25,7 +25,12 @@ import {
   saveSiteEditorE2eDocument,
   siteEditorE2eEnabled,
 } from './site-editor-e2e'
-import {carryMachineOwned, editorContentSignature, editorSignatureMismatch} from './site-editor-conflict'
+import {
+  carryMachineOwned,
+  editorContentSignature,
+  editorSignatureMismatch,
+  sameStoredContent,
+} from './site-editor-conflict'
 import {
   SiteEditorCategoryInUseError,
   SiteEditorDuplicateError,
@@ -513,7 +518,9 @@ export const getSiteEditorManifest = async (
       orderRank,
       category,
       publishedAt,
-      location,
+      // Tolerates documents written while the editor wrongly treated this as a
+      // localized field; a raw object here rendered as a crash in the list.
+      "location": coalesce(location.pt, location),
       "thumbnailUrl": coalesce(
         image.asset->url,
         gallery[_type in ["image", "galleryImage"]][0].asset->url
@@ -892,11 +899,31 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
     const values = {...document} as Record<string, unknown>
     delete values._id
     delete values._type
-    let patch = client
-      .patch(draftId)
-      .set(carryMachineOwned(values, draft) as Record<string, unknown>)
-      .ifRevisionId(draft._rev)
+    const carried = carryMachineOwned(values, draft) as Record<string, unknown>
     const missing = unsetMissingFields(document)
+
+    // What the draft would hold once this save lands. Autosave fires on far more
+    // than real edits — opening a panel is enough — so without this the editor
+    // manufactures a draft identical to the published document and then keeps it
+    // forever, because only publishing clears a draft and there is nothing to
+    // publish. Those drafts are what put a "por publicar" dot on all ten pages of
+    // the site, and they shadow the published document in Presentation preview.
+    const settled = {...(draft as unknown as Record<string, unknown>), ...carried}
+    for (const field of missing) delete settled[field]
+    if (migratesLegacyProductSections) delete settled.contentSections
+
+    if (sameStoredContent(settled, published, editableFields[document._type])) {
+      // Guarded and atomic: the patch carries the revision check the delete
+      // cannot, so a concurrent write still loses the race rather than the draft.
+      await client
+        .transaction()
+        .patch(draftId, (guarded) => guarded.ifRevisionId(draft._rev).set(carried))
+        .delete(draftId)
+        .commit()
+      return withSignature(published as SiteEditorDocument)
+    }
+
+    let patch = client.patch(draftId).set(carried).ifRevisionId(draft._rev)
     if (missing.length) patch = patch.unset(missing)
     if (migratesLegacyProductSections) patch = patch.unset(['contentSections'])
     return withSignature((await patch.commit({returnDocuments: true})) as SiteEditorDocument)
@@ -921,6 +948,14 @@ export const saveSiteEditorDocument = async (input: SiteEditorDocument, scope = 
   delete draftDocument[signatureField]
   for (const field of unsetMissingFields(document)) delete draftDocument[field]
   if (migratesLegacyProductSections) delete draftDocument.contentSections
+
+  // Same rule on the way in: a save that would create a draft matching what is
+  // already published has nothing to save. Skipping the write is what keeps the
+  // draft from existing in the first place.
+  if (sameStoredContent(draftDocument, published, editableFields[document._type])) {
+    return withSignature(published as SiteEditorDocument)
+  }
+
   return withSignature(await client.create(draftDocument as SiteEditorDocument))
 }
 
@@ -973,12 +1008,31 @@ const sitePageRoute = (value: unknown, fallbackSlug: string) => {
   return route
 }
 
+// Trusts nothing from the client: the slug has to name a category that exists,
+// otherwise the product answers to a filter facet no visitor can select.
+const resolveStoreCategory = async (value: unknown) => {
+  const requested = String(value ?? '').trim()
+  const available = await requireReadClient().fetch<string[]>(
+    `*[_type == "storeCategory" && defined(slug.current) && !(_id in path("versions.**"))]
+      | order(orderRank asc, title.pt asc).slug.current`,
+  )
+  const known = new Set([
+    ...(available ?? []),
+    ...defaultStoreCategoryOptions.map((option) => option.value),
+  ])
+  if (!requested || !known.has(requested)) {
+    throw new SiteEditorValidationError('Escolha a categoria da Loja para este produto.')
+  }
+  return requested
+}
+
 export const createSiteEditorDocument = async (
   typeValue: unknown,
   titleValue: unknown,
   routeValue?: unknown,
   scope = 'default',
   sitePageStarter?: unknown,
+  storeCategoryValue?: unknown,
 ) => {
   const type = assertDocumentType(typeValue)
   if (type === 'siteLanding')
@@ -1025,15 +1079,12 @@ export const createSiteEditorDocument = async (
       noIndex: true,
     }
   } else {
+    // A shop product cannot exist without a category, and the one it is filed
+    // under is not cosmetic — it decides which filter the product answers to.
+    // Picking whichever category sorts first put a planter in "Bancos" without
+    // saying so, so the caller has to choose, and the choice has to be real.
     const storeCategory =
-      type === 'storeProduct'
-        ? ((await requireReadClient().fetch<string | null>(
-            `*[_type == "storeCategory" && defined(slug.current) && !(_id in path("versions.**"))]
-              | order(orderRank asc, title.pt asc)[0].slug.current`,
-          )) ??
-          defaultStoreCategoryOptions[0]?.value ??
-          'bancos')
-        : undefined
+      type === 'storeProduct' ? await resolveStoreCategory(storeCategoryValue) : undefined
     Object.assign(base, createSiteEditorStarterFields({type, title, slug, storeCategory}))
   }
 

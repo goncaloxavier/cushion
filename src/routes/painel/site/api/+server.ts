@@ -96,6 +96,7 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
         title?: string
         route?: string
         sitePageStarter?: string
+        storeCategory?: string
       }
   >(request)
   const scope = siteEditorE2eScope(request.headers)
@@ -124,6 +125,7 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
           body.route,
           scope,
           body.sitePageStarter,
+          body.storeCategory,
         ),
       ),
     })

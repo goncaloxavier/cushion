@@ -959,7 +959,16 @@ image('image', 'Imagem principal'), gallery]},
       ...baseDocumentPanels('Nome do caso', 'Ex.: Proteção de piscina na Trofa')[0],
       fields: [
         ...baseDocumentPanels('Nome do caso', 'Ex.: Proteção de piscina na Trofa')[0].fields,
-        localizedString('location', 'Local', undefined, 'Ex.: Trofa, Porto'),
+        // A place name, not copy: the Sanity schema stores it as a plain string
+        // and the reader trims it as one. Declaring it localized here wrote an
+        // object into that field, and every page that loads cases — including
+        // the home page — threw on `location.trim`.
+        {
+          name: 'location',
+          label: 'Local',
+          type: 'string',
+          placeholder: 'Ex.: Trofa, Porto',
+        },
         localizedText(
           'summary',
           'Resumo',
