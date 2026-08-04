@@ -1,6 +1,7 @@
 <script lang="ts">
   import {builderLocalized} from '$lib/builder/content'
   import {builderAssetUrl, builderYoutubeEmbedUrl} from '$lib/builder/media'
+  import {imageSrcset, sizedImage} from '$lib/image'
   import type {BuilderMedia} from '$lib/builder/types'
   import type {LanguageCode} from '$lib/site-content'
 
@@ -75,8 +76,14 @@
       allowfullscreen
     ></iframe>
   {:else if imageUrl}
+    <!-- Sized and responsive, like every other image on the site. This was a
+         bare src pointing at the original asset, so the client's 3000x4000
+         photo was downloaded at full resolution to fill a frame a few hundred
+         pixels wide — several megabytes, on every visit, on a phone too. -->
     <img
-      src={imageUrl}
+      src={sizedImage(imageUrl, 900)}
+      srcset={imageSrcset(imageUrl, [480, 640, 900, 1200])}
+      sizes="(max-width: 900px) 94vw, 800px"
       alt={alt}
       loading="lazy"
       decoding="async"
