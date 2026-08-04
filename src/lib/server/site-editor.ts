@@ -412,7 +412,15 @@ const buildCollectionNodes = (
   for (const definition of collectionDefinitions) {
     const items = preferred
       .filter((document) => document._type === definition.type)
-      .sort((left, right) => titleFor(left).localeCompare(titleFor(right), 'pt'))
+      // Articles are found by when they were written, not by their first letter:
+      // the one you want is almost always the last one published. Everything
+      // else is a catalogue, where alphabetical is how you look something up.
+      .sort((left, right) =>
+        definition.type === 'blogPost'
+          ? (right.publishedAt ?? '').localeCompare(left.publishedAt ?? '') ||
+            titleFor(left).localeCompare(titleFor(right), 'pt')
+          : titleFor(left).localeCompare(titleFor(right), 'pt'),
+      )
     nodes.push({
       id: definition.id,
       kind: 'collection',
