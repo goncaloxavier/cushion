@@ -107,15 +107,22 @@
   background: transparent;
 }
 
-.builder-render-section.is-product-feature .product-content-media > .builder-media {
+/* Not scoped to the product-feature variant any more. The frame already carries
+   the image's own ratio and is capped by width, so the media should simply fill
+   it — scoped narrowly, a section added in the editor kept the generic 80svh cap
+   and sat in a taller frame with dead space under it. max-height is cleared
+   rather than relied on: a percentage against an auto-height parent resolves to
+   none, so it was never doing the job here anyway. */
+.product-content-media > .builder-media {
   width: 100%;
   height: 100%;
   margin: 0;
 }
 
-.builder-render-section.is-product-feature .product-content-media > .builder-media > :is(img, video, iframe) {
+.product-content-media > .builder-media > :is(img, video, iframe) {
   width: 100%;
   height: 100%;
+  max-height: none;
 }
 
 .builder-render-section.is-product-feature .product-content-actions {
@@ -494,23 +501,29 @@
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  background: #dce8e3;
+  /* No backing colour. It only ever showed as a band around an image that did
+     not fill its frame, which the client read as a green shell stuck to their
+     photo — and now the frame follows the image, so there is nothing for it to
+     fill. The empty-state placeholder paints its own. */
   border-radius: var(--builder-radius);
 }
 
-/* Uploaded media keeps its own proportions. The previous rule forced every
-   image into 4/3 at width:100% with no object-fit, so the browser's default
-   `fill` stretched anything that was not already 4/3 — a panorama squashed
-   and a portrait pulled wide. Height is capped rather than free so one very
-   tall image cannot take over the whole section; object-fit only comes into
-   play once that cap bites, and letterboxes against the figure background
-   instead of distorting. */
+/* Uploaded media keeps its own proportions, whatever the client uploads. An
+   earlier rule forced every image into 4/3 with no object-fit, so the browser's
+   default `fill` stretched anything else — a panorama squashed, a portrait
+   pulled wide.
+
+   The 100% is the other half of that. The figure clips its overflow, so an
+   image allowed to grow past it is cropped rather than scaled: a portrait photo
+   in a landscape frame lost its bottom, and shrinking the file never helped
+   because the mismatch was the ratio, not the size. The viewport cap still
+   stops one very tall image taking over a section that leaves height free. */
 .builder-media > img,
 .builder-media > video {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 80svh;
+  max-height: min(80svh, 100%);
   object-fit: contain;
   border: 0;
 }
