@@ -4655,11 +4655,16 @@ body.lightbox-open {
   background: rgba(255, 255, 255, 0.18);
 }
 
+/* Each column keeps its own height and the shorter one centres against the
+   taller. Stretching made the copy card as tall as the image whatever it held:
+   a four-line paragraph beside a portrait photo was a 380x755 panel holding
+   164px of text, so most of it was empty teal. Centring is symmetric, so it
+   also covers the opposite case — a long paragraph beside a wide, short photo. */
 .product-content-inner {
   display: grid;
   grid-template-columns: minmax(0, 1.34fr) minmax(16.5rem, 0.66fr);
   gap: clamp(1rem, 2.6vw, 1.8rem);
-  align-items: stretch;
+  align-items: center;
   max-width: var(--max);
   margin: 0 auto;
 }
