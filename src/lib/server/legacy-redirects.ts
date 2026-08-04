@@ -94,20 +94,25 @@ const blogSlugRenames: Record<string, string> = {
   'overview-of-the-drought-situation-in-algarve-in-2024': 'seca-no-algarve-em-2024',
   'portuguese-municipalities-have-to-collect-organic-waste-from-1-january-2024-onwards':
     'os-municipios-portugueses-a-partir-de-1-de-janeiro-de-2024-tem-que-recolher-residuos-organicos',
+
+  // The old site published this one under its template's placeholder slug, and
+  // the slug came across with it. Confirmed the same article on both sides: the
+  // old page is titled "Quer uma planeta sem arvores" and opens with the same
+  // heading. It has a real address here now, so the placeholder redirects to it.
+  'este-e-um-artigo-com-imagens': 'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem',
 }
 
 /**
- * Old post slugs with nothing to point at, which 404 honestly rather than being
- * redirected into a dead end.
+ * Old post slugs with nothing to point at. Empty, and kept for when that stops
+ * being true: a retired post belongs here so its URL 404s honestly rather than
+ * being redirected somewhere adjacent, which reads as a soft 404 and loses the
+ * position anyway.
  *
- * This one is the only piece of content genuinely lost in the move. Its
- * Portuguese original already 404s on the old site — the sitemap still lists it,
- * which is how it looked like a live post — and only the English and Spanish
- * versions still answer. Nothing here replaces it. If the client wants those two
- * URLs back, the article has to be republished; then this entry comes out and a
- * rename goes in above.
+ * It held one entry until the article behind it turned up on this site under
+ * the template's placeholder slug, `este-e-um-artigo-com-imagens`. Renaming that
+ * to match the old URL was the fix; nothing from the old site is lost now.
  */
-const retiredBlogSlugs = new Set(['o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem'])
+const retiredBlogSlugs = new Set<string>()
 
 /**
  * The privacy policy is hosted by iubenda and linked from the footer, so the old

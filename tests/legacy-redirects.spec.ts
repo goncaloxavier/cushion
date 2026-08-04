@@ -69,9 +69,14 @@ test('nothing is redirected to a page that does not exist', () => {
   // The rule the whole file turns on. A redirect landing on a 404 costs a round
   // trip and still ends in a 404, and a crawler reads it as a soft 404 — so a
   // URL with no destination is left to 404 honestly instead.
-  const retired = 'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem'
-  expect(legacyRedirect(`/l/en-us-${retired}/`), 'a retired post is sent into a dead end').toBeNull()
-  expect(legacyRedirect(`/l/es-${retired}/`)).toBeNull()
+  // The post this used to guard was found on this site under the template's
+  // placeholder slug and renamed to match its old URL, so it maps like any
+  // other now. The rule still holds for whatever retires next.
+  const tree = 'o-que-aconteceria-se-todas-as-arvores-do-mundo-desaparecessem'
+  expect(legacyRedirect(`/l/${tree}/`)).toBe(`/blog/${tree}`)
+  expect(legacyRedirect(`/l/en-us-${tree}/`)).toBe(`/blog/${tree}?lang=en`)
+  // The old site published it under its template's placeholder slug.
+  expect(legacyRedirect('/l/este-e-um-artigo-com-imagens/')).toBe(`/blog/${tree}`)
 
   // And a translated URL is not passed through on the assumption its Portuguese
   // path survived: /en-us/<removed> must not become /<removed>?lang=en.
@@ -103,8 +108,8 @@ test('every URL the old site published is either mapped or deliberately not', ()
   const other = unmapped.filter((url) => !url.startsWith('/l/'))
 
   expect(other, `these old URLs have no destination and no decision: ${other}`).toEqual([])
-  // One retired post, in the two languages that still answer on the old site.
-  expect(retiredPosts.length, `unexpected unmapped posts: ${retiredPosts}`).toBe(2)
+  // Nothing the old site published is left without a destination.
+  expect(retiredPosts, `unmapped posts: ${retiredPosts}`).toEqual([])
 })
 
 test('a translation whose slug differs from its original still lands', () => {
