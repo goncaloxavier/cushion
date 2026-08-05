@@ -3,6 +3,7 @@ import type {
   LocalizedValue,
 } from '$lib/builder/types'
 import type {LanguageCode} from '$lib/site-content'
+import {textAppearanceStyle, type TextAppearance} from '$lib/text-appearance'
 
 /**
  * Localized *text*. A rich-text field has the same shape but holds an array of
@@ -97,6 +98,7 @@ export const builderTypographyStyle = (
   const marginInlineEnd = align === 'center' ? 'auto' : '0'
 
   return [
+    typography?.fontSize ? '--builder-font-size-explicit:1' : '',
     `--builder-font-desktop:${desktop}px`,
     `--builder-font-tablet:${tablet}px`,
     `--builder-font-mobile:${mobile}px`,
@@ -108,7 +110,39 @@ export const builderTypographyStyle = (
     `line-height:${lineHeight}`,
     `max-width:${maxWidth}ch`,
     `color:${color}`,
-  ].join(';')
+  ].filter(Boolean).join(';')
+}
+
+/**
+ * Section typography is the source of truth once a setting is chosen in the
+ * section editor. Older content can still carry the previous per-text
+ * appearance fields, so retain those only for properties the section has not
+ * explicitly configured. Without this merge, the old values are emitted last
+ * and make the visible section controls appear to do nothing.
+ */
+export const builderSectionTextStyle = (
+  typography: BuilderTypography | undefined,
+  value: TextAppearance | null | undefined,
+  kind: 'title' | 'body',
+) => {
+  const fallback = value ? {...value} : undefined
+
+  if (fallback && typography) {
+    if (typography.fontFamily !== undefined) delete fallback.fontFamily
+    if (typography.fontSize !== undefined) {
+      delete fallback.fontSize
+      delete fallback.fontSizeTablet
+      delete fallback.fontSizeMobile
+    }
+    if (typography.fontWeight !== undefined) delete fallback.fontWeight
+    if (typography.align !== undefined) delete fallback.textAlign
+    if (typography.lineHeight !== undefined) delete fallback.lineHeight
+    if (typography.color !== undefined) delete fallback.color
+  }
+
+  return [builderTypographyStyle(typography, kind), textAppearanceStyle(fallback)]
+    .filter(Boolean)
+    .join(';')
 }
 
 export const boundedBuilderNumber = bounded

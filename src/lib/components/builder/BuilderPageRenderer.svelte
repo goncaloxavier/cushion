@@ -14,7 +14,7 @@
     boundedBuilderNumber,
     builderFontFamily,
     builderLocalized,
-    builderTypographyStyle,
+    builderSectionTextStyle,
   } from '$lib/builder/content'
   import type {
     BuilderCard,
@@ -440,6 +440,7 @@
         },
         logoTone: item.logoTone === 'dark' ? 'dark' : 'light',
         text: builderLocalized(item.text, language),
+        textAppearance: {text: item.text},
       }]
     })
 
@@ -579,7 +580,7 @@
                 eyebrow={builderLocalized(section.eyebrow, language)}
                 title={builderLocalized(section.title, language)}
                 eyebrowStyle={textAppearanceStyle(section.eyebrow)}
-                titleStyle={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}`}
+                titleStyle={builderSectionTextStyle(section.titleStyle, section.title, 'title')}
                 items={collectionItems(section).map((item) => ({
                   ...item,
                   description: section.variant === 'landing-work' ? '' : item.description,
@@ -592,7 +593,7 @@
             {:else if section.variant === 'landing-impact'}
               <LandingImpactSection
                 title={builderLocalized(section.title, language)}
-                titleStyle={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}`}
+                titleStyle={builderSectionTextStyle(section.titleStyle, section.title, 'title')}
                 items={(sectionStats(section) ?? []).map((item, index) => ({
                   key: item._key || String(index),
                   value: builderLocalized(item.value, language) || '0',
@@ -612,8 +613,8 @@
                   language,
                 )}
                 eyebrowStyle={textAppearanceStyle(section.eyebrow)}
-                titleStyle={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}`}
-                bodyStyle={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(Array.isArray(section.body) ? undefined : section.body)}`}
+                titleStyle={builderSectionTextStyle(section.titleStyle, section.title, 'title')}
+                bodyStyle={builderSectionTextStyle(section.bodyStyle, Array.isArray(section.body) ? undefined : section.body, 'body')}
                 items={landingPartners(section)}
                 dataAttribute={sectionDataAttributeFor(section)}
                 {preview}
@@ -753,7 +754,11 @@
                       {/if}
                       <strong data-sanity={sectionDataAttribute(section, `${partnerPath}.name`)}>{name}</strong>
                       {#if builderLocalized(item.text, language)}
-                        <span class="builder-partner-text" data-sanity={sectionDataAttribute(section, `${partnerPath}.text.${language}`)}>{builderLocalized(item.text, language)}</span>
+                        <span
+                          class="builder-partner-text cms-styled-text"
+                          style={textAppearanceStyle(item.text)}
+                          data-sanity={sectionDataAttribute(section, `${partnerPath}.text.${language}`)}
+                        >{builderLocalized(item.text, language)}</span>
                       {/if}
                     </svelte:element>
                   {:else}

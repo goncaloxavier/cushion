@@ -334,6 +334,78 @@ test.describe('desktop section renderer matrix', () => {
       await expectDesktopGeometry(page, page.locator('.builder-render-section'))
     })
   }
+
+  for (const published of [false, true]) {
+    test(`honours section typography across every renderer on the ${published ? 'visitor' : 'editor'} surface`, async ({page}) => {
+      await gotoSectionFixture(page, 'typography', published)
+      const sections = [
+        ['typography-hero', 'Tipografia no destaque', true],
+        ['typography-media', 'Tipografia com imagem', true],
+        ['typography-rich-text', 'Tipografia editorial', false],
+        ['typography-gallery', 'Tipografia na galeria', true],
+        ['typography-cards', 'Tipografia nos cartoes', true],
+        ['typography-stats', 'Tipografia nos numeros', true],
+        ['typography-collection', 'Tipografia na lista', true],
+        ['typography-partners', 'Tipografia em parceiros', true],
+        ['typography-cta', 'Tipografia na chamada', true],
+        ['typography-contact', 'Tipografia no contacto', true],
+        ['typography-product-feature', 'Tipografia no produto', true],
+        ['typography-landing-collection', 'Tipografia na lista inicial', false],
+        ['typography-landing-work', 'Tipografia nos casos iniciais', false],
+        ['typography-landing-impact', 'Tipografia no impacto', false],
+        ['typography-landing-partners', 'Tipografia nos parceiros iniciais', true],
+      ] as const
+
+      for (const [key, heading, hasBody] of sections) {
+        const title = page.locator(`[data-builder-section="${key}"] h2`).first()
+        await expect(title, `${key} has no visible title`).toBeVisible()
+        await expect(title).toHaveText(heading)
+        await expect(title).toHaveCSS('font-family', /Georgia/)
+        await expect(title).toHaveCSS('font-size', '64px')
+        await expect(title).toHaveCSS('font-weight', '700')
+        await expect(title).toHaveCSS('text-align', 'center')
+
+        if (hasBody) {
+          const body = page
+            .locator(`[data-builder-section="${key}"]`)
+            .getByText(`Texto formatado em ${heading.toLowerCase()}`, {exact: true})
+          await expect(body, `${key} has no visible body`).toBeVisible()
+          await expect(body).toHaveCSS('font-family', /Times New Roman/)
+          await expect(body).toHaveCSS('font-size', '21px')
+          await expect(body).toHaveCSS('font-weight', '700')
+          await expect(body).toHaveCSS('text-align', 'right')
+        }
+      }
+
+      const nested = page.locator('[data-builder-section="typography-nested-text"]')
+      const eyebrow = nested.getByText('Etiqueta interna', {exact: true})
+      const cardTitle = nested.getByText('Cartao interno', {exact: true})
+      const cardBody = nested.getByText('Texto interno formatado', {exact: true})
+      await expect(eyebrow).toHaveCSS('font-family', /Georgia/)
+      await expect(eyebrow).toHaveCSS('font-size', '17px')
+      await expect(eyebrow).toHaveCSS('font-weight', '700')
+      await expect(eyebrow).toHaveCSS('text-align', 'right')
+      await expect(cardTitle).toHaveCSS('font-family', /Times New Roman/)
+      await expect(cardTitle).toHaveCSS('font-size', '28px')
+      await expect(cardTitle).toHaveCSS('font-weight', '700')
+      await expect(cardTitle).toHaveCSS('text-align', 'center')
+      await expect(cardBody).toHaveCSS('font-family', /Georgia/)
+      await expect(cardBody).toHaveCSS('font-size', '19px')
+      await expect(cardBody).toHaveCSS('font-style', 'italic')
+      await expect(cardBody).toHaveCSS('text-align', 'right')
+
+      for (const key of ['typography-partners', 'typography-landing-partners']) {
+        const partnerText = page
+          .locator(`[data-builder-section="${key}"]`)
+          .getByText('Descricao de parceiro formatada', {exact: true})
+        await expect(partnerText).toHaveCSS('font-family', /Georgia/)
+        await expect(partnerText).toHaveCSS('font-size', '16px')
+        await expect(partnerText).toHaveCSS('font-weight', '700')
+        await expect(partnerText).toHaveCSS('font-style', 'italic')
+        await expect(partnerText).toHaveCSS('text-align', 'right')
+      }
+    })
+  }
 })
 
 test.describe('desktop section editor controls and lifecycle', () => {

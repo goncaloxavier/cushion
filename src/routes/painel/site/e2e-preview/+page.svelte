@@ -38,6 +38,12 @@
     sections: [],
   } satisfies SitePageDocument
 
+  const createdSectionPreview = $derived({
+    ...emptySectionPreview,
+    _id: data.created?.id || emptySectionPreview._id,
+    sections: Array.isArray(data.created?.sections) ? data.created.sections : [],
+  } as SitePageDocument)
+
   const fixtureCollectionContent = (site: SiteContent): SiteContent => {
     const image = {
       url: '/images/product-materials.png',
@@ -262,7 +268,7 @@
       <strong>Adicionar imagem ou vídeo</strong>
     </section>
     <BuilderPageRenderer
-      page={emptySectionPreview}
+      page={createdSectionPreview}
       settings={null}
       content={data.site}
       language={data.language}

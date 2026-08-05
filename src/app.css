@@ -7483,9 +7483,22 @@ html.reduce-motion .intro-overlay {
   font-size: var(--cms-text-size-desktop) !important;
 }
 
+/* Designed builder sections (notably the product media block and the landing
+   bands) carry their own default heading sizes. Only replace those defaults
+   after the client explicitly chooses a section size. The marker comes from
+   builderTypographyStyle, so a section with untouched typography keeps its
+   original design while the size controls remain authoritative once used. */
+.cms-styled-text[style*='--builder-font-size-explicit'] {
+  font-size: var(--builder-font-desktop) !important;
+}
+
 @media (max-width: 900px) {
   .cms-styled-text[style*='--cms-text-size-desktop'] {
     font-size: var(--cms-text-size-tablet, var(--cms-text-size-desktop)) !important;
+  }
+
+  .cms-styled-text[style*='--builder-font-size-explicit'] {
+    font-size: var(--builder-font-tablet, var(--builder-font-desktop)) !important;
   }
 }
 
@@ -7494,6 +7507,14 @@ html.reduce-motion .intro-overlay {
     font-size: var(
       --cms-text-size-mobile,
       var(--cms-text-size-tablet, var(--cms-text-size-desktop))
+    ) !important;
+  }
+
+
+  .cms-styled-text[style*='--builder-font-size-explicit'] {
+    font-size: var(
+      --builder-font-mobile,
+      var(--builder-font-tablet, var(--builder-font-desktop))
     ) !important;
   }
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     builderLocalized,
-    builderTypographyStyle,
+    builderSectionTextStyle,
     safeBuilderHref,
   } from '$lib/builder/content'
   import {correctedTextColor} from '$lib/builder/contrast'
@@ -55,7 +55,7 @@
   {#if title}
     <h2
       class="builder-responsive-title cms-styled-text"
-      style={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}${legible(fieldColor(section.title) ?? section.titleStyle?.color)}`}
+      style={`${builderSectionTextStyle(section.titleStyle, section.title, 'title')}${legible(fieldColor(section.title) ?? section.titleStyle?.color)}`}
       data-sanity={dataAttribute?.(`title.${language}`)}
     >
       {title}
@@ -64,7 +64,7 @@
   {#if body}
     <p
       class="builder-responsive-body cms-styled-text"
-      style={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(section.body as Parameters<typeof textAppearanceStyle>[0])}${legible(fieldColor(section.body) ?? section.bodyStyle?.color)}`}
+      style={`${builderSectionTextStyle(section.bodyStyle, section.body as Parameters<typeof builderSectionTextStyle>[1], 'body')}${legible(fieldColor(section.body) ?? section.bodyStyle?.color)}`}
       data-sanity={dataAttribute?.(`body.${language}`)}
     >
       {body}

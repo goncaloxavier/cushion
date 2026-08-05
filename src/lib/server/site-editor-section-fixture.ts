@@ -7,6 +7,7 @@ import type {
   BuilderSectionType,
   BuilderStat,
   BuilderTypography,
+  LocalizedValue,
 } from '$lib/builder/types'
 
 const timestamp = '2026-08-05T12:00:00.000Z'
@@ -302,6 +303,188 @@ const contactSection = (
   showContactDetails: true,
 })
 
+const typographySections = (): BuilderSection[] => {
+  const textWithConflictingAppearance = (
+    value: string,
+    type: 'localizedString' | 'localizedText',
+  ): LocalizedValue => ({
+    ...(type === 'localizedString' ? localizedString(value) : localizedText(value)),
+    // Deliberately conflict with the section controls. Older migrated content
+    // can still carry these fields, and the dedicated section typography must
+    // win once the client makes a choice there.
+    fontFamily: 'arial',
+    fontSize: 18,
+    fontSizeTablet: 18,
+    fontSizeMobile: 18,
+    fontWeight: '400',
+    textAlign: 'left',
+  })
+  const title = (value: string) => textWithConflictingAppearance(value, 'localizedString')
+  const body = (value: string) => textWithConflictingAppearance(value, 'localizedText')
+  const titleStyle: BuilderTypography = {
+    ...typography('title', 'center'),
+    fontFamily: 'georgia',
+    fontSize: {desktop: 64, tablet: 52, mobile: 40},
+    fontWeight: '700',
+  }
+  const bodyStyle: BuilderTypography = {
+    ...typography('body', 'right'),
+    fontFamily: 'times-new-roman',
+    fontSize: {desktop: 21, tablet: 20, mobile: 18},
+    fontWeight: '700',
+  }
+  const partnersWithTextAppearance = () =>
+    partners().map((partner, index) =>
+      index
+        ? partner
+        : {
+            ...partner,
+            text: {
+              ...localizedText('Descricao de parceiro formatada'),
+              fontFamily: 'georgia',
+              fontSize: 16,
+              fontWeight: '700',
+              fontStyle: 'italic',
+              textAlign: 'right',
+            },
+          },
+    )
+  const styled = (
+    section: BuilderSection,
+    heading: string,
+    options: {body?: boolean} = {},
+  ): BuilderSection => ({
+    ...section,
+    title: title(heading),
+    titleStyle,
+    ...(options.body === false
+      ? {}
+      : {
+          body: body(`Texto formatado em ${heading.toLowerCase()}`),
+          bodyStyle,
+        }),
+  })
+
+  return [
+    styled(heroSection('typography-hero', 'split'), 'Tipografia no destaque'),
+    styled(mediaSection('typography-media', 'right'), 'Tipografia com imagem'),
+    styled(
+      {
+        ...baseSection('builderRichTextSection', 'typography-rich-text', 'Tipografia editorial', 'white'),
+        body: articleBody,
+      },
+      'Tipografia editorial',
+      {body: false},
+    ),
+    styled(gallerySection('typography-gallery', 'gallery'), 'Tipografia na galeria'),
+    styled(cardSection('typography-cards'), 'Tipografia nos cartoes'),
+    styled(
+      {
+        ...baseSection('builderStatsSection', 'typography-stats', 'Tipografia nos numeros', 'deep'),
+        items: stats(),
+        layout: layout('deep', 'wide', 4),
+      },
+      'Tipografia nos numeros',
+    ),
+    styled(
+      collectionSection('typography-collection', 'productCategory'),
+      'Tipografia na lista',
+    ),
+    styled(
+      {
+        ...baseSection('builderPartnersSection', 'typography-partners', 'Tipografia em parceiros', 'white'),
+        items: partnersWithTextAppearance(),
+        layout: layout('white', 'wide', 4),
+      },
+      'Tipografia em parceiros',
+    ),
+    styled(
+      {
+        ...baseSection('builderCtaSection', 'typography-cta', 'Tipografia na chamada', 'fog'),
+        actions: [action('typography-cta-action', 'Continuar')],
+      },
+      'Tipografia na chamada',
+    ),
+    styled(contactSection('typography-contact', 'contact'), 'Tipografia no contacto'),
+    styled(
+      {
+        ...mediaSection('typography-product-feature', 'left'),
+        variant: 'product-feature',
+      },
+      'Tipografia no produto',
+    ),
+    styled(
+      {
+        ...collectionSection('typography-landing-collection', 'productCategory'),
+        variant: 'landing-solutions',
+      },
+      'Tipografia na lista inicial',
+      {body: false},
+    ),
+    styled(
+      {
+        ...collectionSection('typography-landing-work', 'caseStudy'),
+        variant: 'landing-work',
+      },
+      'Tipografia nos casos iniciais',
+      {body: false},
+    ),
+    styled(
+      {
+        ...baseSection('builderStatsSection', 'typography-landing-impact', 'Tipografia no impacto', 'deep'),
+        variant: 'landing-impact',
+        items: stats(),
+        layout: layout('deep', 'wide', 4),
+      },
+      'Tipografia no impacto',
+      {body: false},
+    ),
+    styled(
+      {
+        ...baseSection('builderPartnersSection', 'typography-landing-partners', 'Tipografia nos parceiros iniciais', 'white'),
+        variant: 'landing-partners',
+        items: partnersWithTextAppearance(),
+        layout: layout('white', 'wide', 4),
+      },
+      'Tipografia nos parceiros iniciais',
+    ),
+    {
+      ...baseSection('builderCardsSection', 'typography-nested-text', 'Tipografia em texto interno', 'fog'),
+      title: localizedString('Texto interno'),
+      body: localizedText('Campos internos usam a sua propria formatacao.'),
+      cardStyle: 'outlined',
+      layout: layout('fog', 'wide', 1),
+      items: [
+        {
+          ...cards()[0],
+          _key: 'typography-nested-card',
+          eyebrow: {
+            ...localizedString('Etiqueta interna'),
+            fontFamily: 'georgia',
+            fontSize: 17,
+            fontWeight: '700',
+            textAlign: 'right',
+          },
+          title: {
+            ...localizedString('Cartao interno'),
+            fontFamily: 'times-new-roman',
+            fontSize: 28,
+            fontWeight: '700',
+            textAlign: 'center',
+          },
+          body: {
+            ...localizedText('Texto interno formatado'),
+            fontFamily: 'georgia',
+            fontSize: 19,
+            fontStyle: 'italic',
+            textAlign: 'right',
+          },
+        },
+      ],
+    },
+  ]
+}
+
 const completeSections = (): BuilderSection[] => [
   heroSection('type-hero', 'split'),
   mediaSection('type-media', 'right'),
@@ -376,6 +559,8 @@ const optionSections = (group: string): BuilderSection[] => {
       actions: [action(`alignment-${align}-action`, 'Botão de exemplo')],
     }))
   }
+
+  if (group === 'typography') return typographySections()
 
   if (group === 'layout') {
     const widths = (['narrow', 'content', 'wide', 'full'] as const).map((width) => ({

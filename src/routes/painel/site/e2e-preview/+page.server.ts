@@ -108,6 +108,7 @@ export const load: PageServerLoad = ({url, request}) => {
       'collection',
       'contact',
       'alignment',
+      'typography',
       'layout',
     ].includes(requestedGroup)
       ? requestedGroup
@@ -220,6 +221,7 @@ export const load: PageServerLoad = ({url, request}) => {
       weightKg: typeof firstVariant?.weightKg === 'number' ? firstVariant.weightKg : null,
       priceNatural:
         typeof firstVariant?.priceNatural === 'number' ? firstVariant.priceNatural : null,
+      sections: Array.isArray(document.sections) ? document.sections : [],
       page: document._type === 'sitePage' ? document : null,
     },
   }

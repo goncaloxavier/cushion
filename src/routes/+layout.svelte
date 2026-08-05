@@ -13,6 +13,7 @@
   import {prefersReducedMotion} from '$lib/motion'
   import {createSmoothScroll, type SmoothScroll} from '$lib/smooth-scroll'
   import {withLanguage} from '$lib/site-content'
+  import {textAppearanceStyle} from '$lib/text-appearance'
   import {onDestroy, onMount, tick, untrack} from 'svelte'
   import '../app.css'
 
@@ -475,11 +476,13 @@
   <nav class="nav-links" aria-label="Main navigation">
     {#each navItems as item}
       <a
+        class="cms-styled-text"
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
         href={desktopHref(item.href)}
         target={item.newTab ? '_blank' : undefined}
         rel={item.newTab ? 'noreferrer' : undefined}
+        style={textAppearanceStyle(item.textAppearance)}
       >
         {plainNavigationLabel(item.label)}
       </a>
@@ -506,7 +509,10 @@
         aria-current={accountActive ? 'page' : undefined}
         href={withLanguage(accountHref, data.language)}
       >
-        <span class="account-label">{plainNavigationLabel(configuredAccountItem?.label || accountLabel)}</span>
+        <span
+          class="account-label cms-styled-text"
+          style={textAppearanceStyle(configuredAccountItem?.textAppearance)}
+        >{plainNavigationLabel(configuredAccountItem?.label || accountLabel)}</span>
       </a>
     {/if}
     {#if showCartAction}
@@ -517,7 +523,10 @@
         aria-label={`${plainNavigationLabel(configuredCartItem?.label || content.nav.cart)} (${cartCount})`}
         href={withLanguage('/carrinho', data.language)}
       >
-        <span class="cart-label">{plainNavigationLabel(configuredCartItem?.label || content.nav.cart)}</span>
+        <span
+          class="cart-label cms-styled-text"
+          style={textAppearanceStyle(configuredCartItem?.textAppearance)}
+        >{plainNavigationLabel(configuredCartItem?.label || content.nav.cart)}</span>
         {#if cartCount > 0}
           <span class="cart-count">{cartCount}</span>
         {/if}
@@ -526,12 +535,13 @@
     {#if configuredNavigation}
       {#each utilityNavItems as item}
         <a
-          class="catalogue-link"
+          class="catalogue-link cms-styled-text"
           class:active={isActive(item.href)}
           aria-current={isActive(item.href) ? 'page' : undefined}
           href={desktopHref(item.href)}
           target={item.newTab ? '_blank' : undefined}
           rel={item.newTab ? 'noreferrer' : undefined}
+          style={textAppearanceStyle(item.textAppearance)}
         >
           {plainNavigationLabel(item.label)}
         </a>
@@ -625,7 +635,10 @@
           style={`--menu-index: ${index}`}
           onclick={closeMenu}
         >
-          <span class="mobile-menu-label">{plainNavigationLabel(item.label)}</span>
+          <span
+            class="mobile-menu-label cms-styled-text"
+            style={textAppearanceStyle(item.textAppearance)}
+          >{plainNavigationLabel(item.label)}</span>
         </a>
       {/each}
     </nav>
@@ -640,7 +653,10 @@
           href={withLanguage(accountHref, data.language)}
           onclick={closeMenu}
         >
-          <span class="account-label">
+          <span
+            class="account-label cms-styled-text"
+            style={textAppearanceStyle(configuredMobileAccount?.textAppearance)}
+          >
             {plainNavigationLabel(configuredMobileAccount?.label || accountLabel)}
           </span>
         </a>
@@ -654,7 +670,10 @@
           aria-label={`${plainNavigationLabel(configuredMobileCart?.label || content.nav.cart)} (${cartCount})`}
           onclick={closeMenu}
         >
-          <span class="cart-label">{plainNavigationLabel(configuredMobileCart?.label || content.nav.cart)}</span>
+          <span
+            class="cart-label cms-styled-text"
+            style={textAppearanceStyle(configuredMobileCart?.textAppearance)}
+          >{plainNavigationLabel(configuredMobileCart?.label || content.nav.cart)}</span>
           {#if cartCount > 0}
             <span class="cart-count">{cartCount}</span>
           {/if}

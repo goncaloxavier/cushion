@@ -2,6 +2,7 @@
   import Reveal from '$lib/components/Reveal.svelte'
   import {imageSrcset, sizedImage} from '$lib/image'
   import type {PartnerItem} from '$lib/site-content'
+  import {textAppearanceStyle} from '$lib/text-appearance'
 
   let {
     eyebrow,
@@ -64,7 +65,11 @@
         </span>
         <span class="partner-name" data-sanity={dataAttribute?.(`${itemPath}.name`)}>{partner.name}</span>
         {#if partner.text}
-          <span class="partner-text" data-sanity={dataAttribute?.(`${itemPath}.text.pt`)}>{partner.text}</span>
+          <span
+            class="partner-text cms-styled-text"
+            style={textAppearanceStyle(partner.textAppearance?.text)}
+            data-sanity={dataAttribute?.(`${itemPath}.text.pt`)}
+          >{partner.text}</span>
         {/if}
       </svelte:element>
     {/each}

@@ -728,7 +728,17 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (!canWrite) pushNotice(readOnlyNotice)
       throw new Error('Não existe acesso de escrita.')
     }
-    if (saving.current) await saving.current
+    if (saving.current) {
+      // Several immediate controls can be clicked while one request is in
+      // flight. Waiting and then continuing in every caller lets all of those
+      // callers wake together and write concurrently with the same revision.
+      // Re-enter through the current save function instead: the first waiter
+      // acquires the next request and every later waiter queues behind it.
+      await saving.current
+      const queuedSave = saveNowRef.current
+      if (!queuedSave) throw new Error('Não foi possível preparar a gravação seguinte.')
+      return queuedSave()
+    }
 
     const latestBeforeSave = documentRef.current
     if (!latestBeforeSave) throw new Error('Não existe conteúdo para guardar.')
@@ -744,6 +754,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     try {
       const saved = await request
       const latest = documentRef.current
+      const hasNewerChanges = dirtyVersion.current !== version
       if (
         latest &&
         normalizeEditorDocumentId(latest._id) === normalizeEditorDocumentId(saved._id)
@@ -760,7 +771,11 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           _updatedAt: saved._updatedAt,
         }
         if (saved._type === 'productCategory' && Array.isArray(saved.sections)) {
-          merged.sections = saved.sections
+          // The save response contains the section snapshot sent at the start of
+          // the request. A person can keep editing while that request is in flight,
+          // so only accept its sections when it is still the newest local version.
+          // Revision metadata is safe to merge either way; authored content is not.
+          if (!hasNewerChanges) merged.sections = saved.sections
           delete merged.contentSections
         }
         documentRef.current = merged
@@ -809,7 +824,12 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
             })()
           : currentManifest,
       )
-      if (refreshPreview) {
+      if (refreshPreview && hasNewerChanges) {
+        // Refreshing from the server now would briefly restore the older saved
+        // snapshot over the newer live edit. Let the newest autosave perform the
+        // authoritative refresh instead.
+        previewNeedsRefresh.current = true
+      } else if (refreshPreview) {
         frame?.contentWindow?.postMessage(
           {
             type: 'df4y:site-editor:refresh-preview',

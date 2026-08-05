@@ -838,6 +838,14 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
   // to author: newly created sections had no `eyebrow`, so the Etiqueta input
   // vanished until another editor happened to write that property first.
   const textFields = section._type !== 'builderManagedSection'
+  // The landing collection and impact layouts intentionally have a tighter
+  // heading contract than a normal authored section. Do not show fields or
+  // appearance controls that those renderers do not display: a control that
+  // saves successfully but changes nothing is worse than no control at all.
+  const showsEyebrow = section.variant !== 'landing-impact'
+  const showsPlainBody =
+    !richTextBody &&
+    !['landing-solutions', 'landing-work', 'landing-impact'].includes(section.variant ?? '')
 
   return (
     <div className="site-page-section-editor">
@@ -850,9 +858,9 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
         <section className="site-page-editor-group is-open">
           <header><span><strong>Conteúdo</strong><small>O texto que aparece nesta secção</small></span></header>
           <div className="site-page-editor-group-body">
-            <Field label="Etiqueta" localized><input placeholder="Ex.: Sobre nós" value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field>
+            {showsEyebrow ? <Field label="Etiqueta" localized><input placeholder="Ex.: Sobre nós" value={textValue(section.eyebrow)} onChange={(event) => onUpdate({...section, eyebrow: localizedValue(section.eyebrow, event.currentTarget.value, 'localizedString')})} /></Field> : null}
             <Field label="Título" localized><textarea rows={3} placeholder="Ex.: Feito para durar no exterior" value={textValue(section.title)} onChange={(event) => onUpdate({...section, title: localizedValue(section.title, event.currentTarget.value, 'localizedString')})} /></Field>
-            {!richTextBody ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
+            {showsPlainBody ? <Field label="Texto" localized><textarea rows={6} placeholder="Ex.: Uma frase curta que resume o que esta secção oferece." value={textValue(section.body)} onChange={(event) => onUpdate({...section, body: localizedValue(section.body, event.currentTarget.value, 'localizedText')})} /></Field> : null}
             {richTextBody ? (
               <button
                 className="site-page-article-button"
@@ -951,7 +959,7 @@ export function SitePageSectionEditor({section, dataset, onUpdate, onUpload, onO
             (section._type === 'builderGallerySection' && (section.presentation ?? 'gallery') === 'grid')
           ) ? <Choice label="Colunas" value={String(layout.columns ?? 3) as '1' | '2' | '3' | '4'} options={[{value: '1', label: '1'}, {value: '2', label: '2'}, {value: '3', label: '3'}, {value: '4', label: '4'}]} onChange={(columns) => onUpdate({...section, layout: {...layout, columns: Number(columns), mobileColumns: section._type === 'builderStatsSection' ? 2 : 1}})} /> : null}
           {textFields ? <TypographyEditor label="Título" value={section.titleStyle} kind="title" onChange={(titleStyle) => onUpdate({...section, titleStyle})} /> : null}
-          {textFields && !richTextBody ? <TypographyEditor label="Texto" value={section.bodyStyle} kind="body" onChange={(bodyStyle) => onUpdate({...section, bodyStyle})} /> : null}
+          {textFields && showsPlainBody ? <TypographyEditor label="Texto" value={section.bodyStyle} kind="body" onChange={(bodyStyle) => onUpdate({...section, bodyStyle})} /> : null}
         </div>
       </details>
 
