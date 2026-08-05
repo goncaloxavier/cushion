@@ -2,8 +2,11 @@
   import {encodeSanityNodeData} from '@sanity/visual-editing-csm'
   import StructuredArticleBody from '$lib/components/StructuredArticleBody.svelte'
   import BuilderPageRenderer from '$lib/components/builder/BuilderPageRenderer.svelte'
+  import ManagedPageComposition from '$lib/components/builder/ManagedPageComposition.svelte'
   import type {SitePageDocument} from '$lib/site-editor/types'
+  import type {SiteContent} from '$lib/site-content'
   import {textAppearanceStyle} from '$lib/text-appearance'
+  import {invalidateAll} from '$app/navigation'
   import {onMount} from 'svelte'
 
   let {data} = $props()
@@ -34,6 +37,72 @@
     active: true,
     sections: [],
   } satisfies SitePageDocument
+
+  const fixtureCollectionContent = (site: SiteContent): SiteContent => {
+    const image = {
+      url: '/images/product-materials.png',
+      alt: 'Produto exterior de demonstração',
+      aspectRatio: 4 / 3,
+    }
+
+    return {
+      ...site,
+      products: [
+        {
+          title: 'Solução de exterior',
+          slug: 'solucao-exterior',
+          description: 'Produto de demonstração para validar listas automáticas.',
+          active: true,
+          image,
+        },
+      ],
+      storeProducts: [
+        {
+          title: 'Banco de demonstração',
+          slug: 'banco-demonstracao',
+          category: 'bancos',
+          summary: 'Artigo de loja usado apenas pela matriz de secções.',
+          hasFinishChoice: false,
+          image,
+          variants: [
+            {
+              key: 'standard',
+              label: 'Standard',
+              dimensions: ['1500 mm'],
+              weightKg: 40,
+              prices: {natural: 120, dark: 120},
+            },
+          ],
+        },
+      ],
+      caseStudies: [
+        {
+          title: 'Projeto de demonstração',
+          slug: 'projeto-demonstracao',
+          location: 'Portugal',
+          summary: 'Caso usado apenas pela matriz de secções.',
+          challenge: 'Validar a lista.',
+          solution: 'Renderizar conteúdo determinístico.',
+          result: 'Uma apresentação estável.',
+          active: true,
+          image,
+        },
+      ],
+      blogPosts: [
+        {
+          title: 'Artigo de demonstração',
+          slug: 'artigo-demonstracao',
+          excerpt: 'Artigo usado apenas pela matriz de secções.',
+          publishedAt: '2026-08-05',
+          category: 'Ambiente',
+          body: 'Conteúdo de demonstração.',
+          image,
+        },
+      ],
+    }
+  }
+
+  const sectionContent = $derived(fixtureCollectionContent(data.site as SiteContent))
 </script>
 
 <svelte:head>
@@ -56,6 +125,47 @@
         : (path) => sanity('sitePage.ratio-fixture', 'sitePage', path)}
       preview={!data.published}
     />
+  </div>
+{:else if data.fixture === 'sections' && data.page}
+  <div
+    data-testid="fixture-section-page"
+    data-section-group={data.sectionGroup}
+    data-surface={data.published ? 'published' : 'editor'}
+  >
+    <BuilderPageRenderer
+      page={data.page as SitePageDocument}
+      settings={null}
+      content={sectionContent}
+      language={data.language}
+      dataset="site-editor-e2e"
+      dataAttribute={data.published
+        ? undefined
+        : (path) => sanity(data.page._id, 'sitePage', path)}
+      preview={!data.published}
+    />
+  </div>
+{:else if data.fixture === 'managed-sections' && data.managed}
+  <div data-testid="fixture-managed-section-page">
+    <button
+      type="button"
+      data-testid="fixture-managed-refresh"
+      onclick={() => void invalidateAll()}
+    >Atualizar dados da página</button>
+    <ManagedPageComposition
+      sections={data.managed.page.sections}
+      core={data.managed.core}
+      settings={null}
+      content={data.site}
+      language={data.language}
+      dataset="site-editor-e2e"
+      preview
+    >
+      <section class="fixture-managed-core" data-testid="fixture-managed-core">
+        <small>CONTEÚDO PRINCIPAL</small>
+        <h1>Área desenhada da página</h1>
+        <p>Esta área permanece entre as secções livres.</p>
+      </section>
+    </ManagedPageComposition>
   </div>
 {:else if data.fixture === 'created' && data.created?.type === 'sitePage' && data.created.page}
   <div data-testid="fixture-created-page">

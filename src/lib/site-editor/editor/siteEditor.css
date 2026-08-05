@@ -4287,6 +4287,24 @@
   width: 14px;
 }
 
+.site-page-action-row > header nav,
+.site-page-repeater > header nav {
+  display: flex;
+  gap: 4px;
+}
+
+.site-page-action-row > header nav button:not(:last-child),
+.site-page-repeater > header nav button:not(:last-child) {
+  color: #31564e;
+  border-color: #cfddd8;
+}
+
+.site-page-action-row > header button:disabled,
+.site-page-repeater > header button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
 .site-page-add-row {
   width: 100%;
   color: #175f53;

@@ -622,6 +622,29 @@
   aspect-ratio: 16 / 8;
 }
 
+/* The rail is a browsing strip, not another name for the regular grid. Keep
+   each item large enough to inspect and let the row scroll without changing
+   the page width. */
+.builder-gallery.is-rail {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(18rem, 36%);
+  overflow-x: auto;
+  padding-block-end: 0.75rem;
+  scroll-padding-inline: 0.1rem;
+  scroll-snap-type: inline proximity;
+  overscroll-behavior-inline: contain;
+}
+
+.builder-gallery.is-rail > * {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.builder-gallery.is-rail .builder-media {
+  height: 100%;
+}
+
 .builder-card,
 .builder-collection > a {
   display: grid;

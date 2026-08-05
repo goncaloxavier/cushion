@@ -93,6 +93,8 @@ export const builderTypographyStyle = (
       ? builderFontFamily(typography.fontFamily, 'inherit')
       : 'inherit'
   const color = colorTokens[typography?.color || ''] || 'inherit'
+  const marginInlineStart = align === 'right' || align === 'center' ? 'auto' : '0'
+  const marginInlineEnd = align === 'center' ? 'auto' : '0'
 
   return [
     `--builder-font-desktop:${desktop}px`,
@@ -101,6 +103,8 @@ export const builderTypographyStyle = (
     `font-family:${family}`,
     `font-weight:${weight}`,
     `text-align:${align}`,
+    `margin-inline-start:${marginInlineStart}`,
+    `margin-inline-end:${marginInlineEnd}`,
     `line-height:${lineHeight}`,
     `max-width:${maxWidth}ch`,
     `color:${color}`,

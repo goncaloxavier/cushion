@@ -42,6 +42,7 @@
   }>()
 
   let liveSections = $state<BuilderSection[]>([])
+  let hasLiveSectionState = $state(false)
   let selectedSectionKey = $state<string>()
   let coreRoot = $state<HTMLDivElement | null>(null)
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
@@ -53,7 +54,9 @@
   })
 
   $effect(() => {
-    liveSections = sections
+    if (!(preview && hasLiveSectionState)) {
+      liveSections = sections
+    }
   })
 
   const composition = $derived(splitManagedCoreSections(liveSections, core))
@@ -115,6 +118,7 @@
       if (!event.data || typeof event.data !== 'object') return
 
       if (event.data.type === 'df4y:builder-state' && Array.isArray(event.data.page?.sections)) {
+        hasLiveSectionState = true
         liveSections = event.data.page.sections
         selectedSectionKey = event.data.selectedSectionKey || undefined
       }
