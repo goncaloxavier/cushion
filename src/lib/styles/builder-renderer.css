@@ -155,9 +155,9 @@
   z-index: 6;
   top: 0.75rem;
   left: 0.75rem;
-  padding: 0.35rem 0.55rem;
+  padding: 0.4rem 0.6rem;
   color: #243b35;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 700;
   background: #fff;
   border: 1px solid #cbd8d3;
@@ -170,6 +170,32 @@
   color: #6a4b10;
   background: #fdf4e0;
   border-color: #e6d3a8;
+}
+
+/* Preview only. It occupies the space the missing content would occupy, so an
+   empty section reads as unfinished rather than as nothing at all. Colours match
+   the "vazia" badge so the two are obviously the same message. */
+.builder-section-empty {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 44rem;
+  margin: 3.5rem auto;
+  padding: 1.6rem 1.8rem;
+  color: #5b400c;
+  text-align: center;
+  background: #fdf8ec;
+  border: 2px dashed #dcc389;
+  border-radius: 10px;
+}
+
+.builder-section-empty strong {
+  color: #4a340a;
+  font-size: 1.15rem;
+}
+
+.builder-section-empty span {
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .builder-section-hit-area {

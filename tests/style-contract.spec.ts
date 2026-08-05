@@ -57,6 +57,45 @@ test('editor text tokens stay readable on the editor surface', () => {
   }
 })
 
+/**
+ * The notice tones are the editor's only way of saying something is wrong, and
+ * they are read by a 62-year-old client in a hurry. They used to be white cards
+ * distinguished by a 4px stripe; they now carry a tinted field and a coloured
+ * heading, which only helps if the text on that tint stays readable.
+ *
+ * The pairs are asserted against the stylesheet rather than the screen because
+ * a notice only exists while something has gone wrong, and no rendered check
+ * would see all three tones at once.
+ */
+test('notice tones stay readable on their own tinted backgrounds', () => {
+  const css = read(stylesheets[0])
+  const rule = (selector: string) =>
+    new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+  const prop = (block: string, name: string) =>
+    new RegExp(`(?:^|;)\\s*${name}:\\s*(#[0-9a-f]{3,8})`, 'i').exec(block)?.[1]
+
+  for (const tone of ['warning', 'error']) {
+    const field = prop(rule(`.site-editor-notice.is-${tone}`), 'background')
+    const heading = prop(rule(`.site-editor-notice.is-${tone} strong`), 'color')
+    expect(field, `.site-editor-notice.is-${tone} lost its background tint`).toBeTruthy()
+    expect(heading, `.site-editor-notice.is-${tone} strong lost its colour`).toBeTruthy()
+
+    const headingRatio = contrast(heading!, field!)
+    expect(
+      headingRatio,
+      `${tone} heading ${heading} on ${field} is ${headingRatio.toFixed(2)}:1, below AA 4.5:1`,
+    ).toBeGreaterThanOrEqual(4.5)
+
+    // The muted token carries the description on every tone, so it has to clear
+    // AA on the tints too and not just on white, which is all it was checked on.
+    const bodyRatio = contrast('#52655e', field!)
+    expect(
+      bodyRatio,
+      `--editor-muted on the ${tone} tint is ${bodyRatio.toFixed(2)}:1, below AA 4.5:1`,
+    ).toBeGreaterThanOrEqual(4.5)
+  }
+})
+
 test('no focus-visible rule removes its own outline', () => {
   // Twenty rules once paired :focus-visible with :hover and then set
   // outline: none, with no ring anywhere else — keyboard focus was invisible
@@ -73,10 +112,14 @@ test('no focus-visible rule removes its own outline', () => {
 })
 
 test('editor font sizes stay at or above the documented floor', () => {
-  // The design system documents --editor-text-2xs (11px) as the smallest step.
-  // 82 declarations had drifted under it, some to 7px, which is unreadable and
-  // was never a deliberate choice — it accumulated.
-  const floorPx = 11
+  // The design system documents --editor-text-2xs as the smallest step. 82
+  // declarations had drifted under it, some to 7px, which is unreadable and was
+  // never a deliberate choice — it accumulated.
+  //
+  // Raised from 11 to 12 in August 2026. The client who uses this editor is 62
+  // and could not read the notices; the whole scale moved up a step, and the
+  // floor moves with it or the drift just starts again from the old number.
+  const floorPx = 12
   const offenders = [...read(stylesheets[0]).matchAll(/font-size:\s*([0-9.]+)px/g)]
     .map((m) => Number(m[1]))
     .filter((size) => size < floorPx)

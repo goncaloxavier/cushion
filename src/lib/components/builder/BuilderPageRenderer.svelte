@@ -536,6 +536,20 @@
                  no explanation. -->
             <span class="builder-hidden-badge is-empty">Vazia — não aparece no site</span>
           {/if}
+          {#if preview && section.enabled !== false && !rendersSomethingPublic(section)}
+            <!-- The badge above says the same thing, at 11px, in a corner. For an
+                 empty gallery that badge floats over nothing at all, which is
+                 exactly how a client kept an unfilled gallery on a live page: the
+                 editor had told him, somewhere he was never going to look. This
+                 says it where the missing content would be. -->
+            <div class="builder-section-empty">
+              <strong>Esta secção ainda está vazia</strong>
+              <span>
+                Sem conteúdo, não aparece no site. Use “Editar secção” para adicionar
+                imagens ou texto.
+              </span>
+            </div>
+          {/if}
           <div
             class={`builder-render-inner is-${width(section)}`}
             class:is-landing={Boolean(landingVariant(section))}

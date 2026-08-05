@@ -385,11 +385,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       window.clearTimeout(noticeRemoveTimer.current)
       const next = {...value, id: ++noticeId.current, closing: false}
       setNotice(next)
-      if (!value.persistent) {
-        noticeDismissTimer.current = window.setTimeout(
-          () => dismissNotice(next.id),
-          value.tone === 'success' ? 4800 : 7600,
-        )
+      // Only good news times out. A warning or an error is the editor telling
+      // the client something is wrong with his site, and it used to remove
+      // itself after seven and a half seconds whether or not he had read it --
+      // which for the client this is built for is most of the time. He kept an
+      // empty gallery on a live page for days; the editor had told him, in the
+      // far corner, at twelve pixels, and then taken it back.
+      if (!value.persistent && value.tone === 'success') {
+        noticeDismissTimer.current = window.setTimeout(() => dismissNotice(next.id), 6000)
       }
     },
     [dismissNotice],
