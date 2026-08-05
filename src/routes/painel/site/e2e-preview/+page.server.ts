@@ -6,6 +6,7 @@ import {
   siteEditorE2eRequestStaff,
   siteEditorE2eScope,
 } from '$lib/server/site-editor-e2e'
+import {ratioFixturePage} from '$lib/server/site-editor-ratio-fixture'
 import {normalizeEditorDocumentId} from '$lib/site-editor/path'
 import {textAppearanceFields} from '$lib/text-appearance'
 import type {PageServerLoad} from './$types'
@@ -60,6 +61,9 @@ export const load: PageServerLoad = ({url, request}) => {
 
   const fixture = url.searchParams.get('fixture')
   const scope = siteEditorE2eScope(request.headers)
+  if (fixture === 'ratios') {
+    return {fixture: 'ratios', created: null, home: null, product: null, page: ratioFixturePage()}
+  }
   const getDocument = url.searchParams.get('published') === '1'
     ? getPublishedSiteEditorE2eDocument
     : getSiteEditorE2eDocument
