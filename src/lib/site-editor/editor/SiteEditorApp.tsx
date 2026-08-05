@@ -285,7 +285,7 @@ const saveLabels: Record<SiteEditorSaveState, string> = {
 const readOnlyNotice = {
   tone: 'warning' as const,
   title: 'Não pode guardar alterações',
-  description: 'Esta sessão abriu em modo de consulta. Contacte o suporte técnico.',
+  description: 'Esta sessão abriu em modo de consulta — contacte o suporte técnico',
 }
 
 export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Props) {
@@ -844,7 +844,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'warning',
         title: 'Não tem permissão para publicar',
-        description: 'As alterações ficam guardadas como rascunho até um administrador publicar.',
+        description: 'As alterações ficam guardadas como rascunho até um administrador publicar',
       })
       return
     }
@@ -1571,7 +1571,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           : {
               tone: 'success',
               title: 'Conteúdo criado',
-              description: 'Fica como rascunho até publicar.',
+              description: 'Fica como rascunho até publicar',
             },
       )
     } catch (error) {
@@ -1653,7 +1653,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'success',
         title: 'Versão mais recente carregada',
-        description: 'Pode continuar a editar normalmente.',
+        description: 'Pode continuar a editar normalmente',
       })
     } catch (error) {
       setConflictState({open: true, busy: false})

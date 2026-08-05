@@ -104,7 +104,10 @@ test.describe(`${surface.label}: image proportions`, () => {
       await section.scrollIntoViewIfNeeded()
       await page.waitForTimeout(200)
       await expect(section).toHaveScreenshot(`${surface.id}-ratio-${name}.png`, {
-        maxDiffPixelRatio: 0.01,
+        // 0.1%, not the 1% this started at. A 1% budget on a 1280x720 frame is
+      // over nine thousand pixels -- enough to absorb a whole paragraph changing
+      // colour, which is exactly what it did absorb once.
+      maxDiffPixelRatio: 0.001,
       })
     })
   }
@@ -112,7 +115,7 @@ test.describe(`${surface.label}: image proportions`, () => {
   test('the whole page of proportions', async ({page}) => {
     await expect(page.getByTestId('fixture-ratio-page')).toHaveScreenshot(
       `${surface.id}-ratio-page.png`,
-      {maxDiffPixelRatio: 0.01},
+      {maxDiffPixelRatio: 0.001},
     )
   })
 })

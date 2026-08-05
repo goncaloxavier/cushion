@@ -86,12 +86,15 @@ test('notice tones stay readable on their own tinted backgrounds', () => {
       `${tone} heading ${heading} on ${field} is ${headingRatio.toFixed(2)}:1, below AA 4.5:1`,
     ).toBeGreaterThanOrEqual(4.5)
 
-    // The muted token carries the description on every tone, so it has to clear
-    // AA on the tints too and not just on white, which is all it was checked on.
-    const bodyRatio = contrast('#52655e', field!)
+    // Read from the stylesheet rather than hardcoded: the description colour has
+    // already been walked from a one-off grey to the muted token to black, and a
+    // literal here would have kept asserting the previous answer.
+    const body = prop(rule('.site-editor-notice small'), 'color')
+    expect(body, '.site-editor-notice small lost its colour').toBeTruthy()
+    const bodyRatio = contrast(body!, field!)
     expect(
       bodyRatio,
-      `--editor-muted on the ${tone} tint is ${bodyRatio.toFixed(2)}:1, below AA 4.5:1`,
+      `notice description ${body} on the ${tone} tint is ${bodyRatio.toFixed(2)}:1, below AA 4.5:1`,
     ).toBeGreaterThanOrEqual(4.5)
   }
 })

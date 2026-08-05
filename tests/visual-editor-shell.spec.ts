@@ -1,9 +1,17 @@
 import {expect, test, type Page, type TestInfo} from '@playwright/test'
 
 /**
- * The editor's own chrome, snapshotted. The type scale and the notice were
- * raised for a client who could not read them, and "without breaking the rest
- * of it" is a claim that needs a picture rather than an argument.
+ * The three notice tones, side by side. They are the editor's only way of saying
+ * something is wrong, and they are read by a client who struggles with small
+ * text, so what they look like is the thing under test.
+ *
+ * There was a snapshot of the whole editor shell here too. It embedded the live
+ * preview and opened on whichever document the fixture happened to select, so it
+ * differed run to run and only ever passed because the tolerance was loose enough
+ * to hide it -- the same 1% budget that later swallowed an entire paragraph
+ * changing colour. A baseline that cannot fail honestly is worse than no
+ * baseline, so it is gone; `no editor control clips its own labels` in
+ * style-contract.spec.ts is what actually guards the shell against a type change.
  */
 const e2eKey = 'df4y-playwright-site-editor'
 
@@ -25,14 +33,6 @@ const openEditor = async (page: Page, testInfo: TestInfo) => {
 }
 
 test.describe('editor shell', () => {
-  test('the editor chrome', async ({page}, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop-chrome', 'Chrome snapshot runs once')
-    await openEditor(page, testInfo)
-    await expect(page.locator('.site-editor-shell')).toHaveScreenshot('editor-shell.png', {
-      maxDiffPixelRatio: 0.01,
-    })
-  })
-
   test('the three notice tones', async ({page}, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Notice snapshot runs once')
     await openEditor(page, testInfo)
@@ -60,10 +60,10 @@ test.describe('editor shell', () => {
               }</strong>
               <small>${
                 tone === 'success'
-                  ? 'O site já mostra a versão mais recente.'
+                  ? 'O site já mostra a versão mais recente'
                   : tone === 'warning'
-                    ? 'A secção "Galeria" não tem imagens, por isso não aparece no site.'
-                    : 'Verifique a ligação à internet e tente novamente.'
+                    ? 'A secção "Galeria" não tem imagens, por isso não aparece no site'
+                    : 'Verifique a ligação à internet e tente novamente'
               }</small>
             </span>
             <button type="button" aria-label="Fechar">×</button>
@@ -74,7 +74,7 @@ test.describe('editor shell', () => {
     })
 
     await expect(page.locator('#notice-harness')).toHaveScreenshot('editor-notices.png', {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     })
   })
 })
