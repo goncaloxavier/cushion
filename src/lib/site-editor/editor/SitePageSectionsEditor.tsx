@@ -60,8 +60,8 @@ const sectionTypes: Array<{
   },
   {
     value: 'builderMediaSection',
-    label: 'Texto com imagem',
-    description: 'Texto e media apresentados lado a lado',
+    label: 'Texto com imagem ou vídeo',
+    description: 'Texto com media ao lado, acima ou abaixo',
     group: 'explain',
   },
   {

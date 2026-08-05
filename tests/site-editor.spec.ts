@@ -731,7 +731,7 @@ test.describe('visual website editor', () => {
     await expect(managedRow).toHaveCount(1)
 
     await settings.getByRole('button', {name: 'Adicionar secção'}).click()
-    await settings.getByRole('button', {name: /Texto com imagem/}).click()
+    await settings.getByRole('button', {name: /Texto com imagem ou vídeo/}).click()
     await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
 
     const featureRow = rows.filter({hasText: 'Secção do produto'})
@@ -1178,6 +1178,11 @@ test.describe('visual website editor', () => {
     await expect(settings.getByText('Abrir a página', {exact: true})).toBeVisible()
     await expect(settings.getByText('Explicar e mostrar', {exact: true})).toBeVisible()
     await expect(settings.getByText('Concluir', {exact: true})).toBeVisible()
+    await expect(
+      settings.getByRole('button', {
+        name: /Texto com imagem ou vídeo Texto com media ao lado, acima ou abaixo/,
+      }),
+    ).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   })
 
@@ -1247,6 +1252,112 @@ test.describe('visual website editor', () => {
     await expect(frame.locator('html')).toHaveAttribute('data-site-editor-fixture-boot', bootId!)
     releaseSave?.()
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    const beforeClose = await Promise.all([
+      page.locator('.site-editor-frame-wrap iframe').boundingBox(),
+      frame.locator('.builder-render-section').first().boundingBox(),
+      frame.locator('html').evaluate(() => window.scrollY),
+    ])
+    await settings.getByRole('button', {name: 'Fechar definições'}).click()
+    await expect(settings).not.toHaveClass(/is-open/)
+    await page.waitForTimeout(260)
+    const afterClose = await Promise.all([
+      page.locator('.site-editor-frame-wrap iframe').boundingBox(),
+      frame.locator('.builder-render-section').first().boundingBox(),
+      frame.locator('html').evaluate(() => window.scrollY),
+    ])
+
+    expect(beforeClose[0]).not.toBeNull()
+    expect(beforeClose[1]).not.toBeNull()
+    expect(afterClose[0]).not.toBeNull()
+    expect(afterClose[1]).not.toBeNull()
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(beforeClose[0]![key] - afterClose[0]![key])).toBeLessThanOrEqual(1)
+      expect(Math.abs(beforeClose[1]![key] - afterClose[1]![key])).toBeLessThanOrEqual(1)
+    }
+    expect(afterClose[2]).toBe(beforeClose[2])
+  })
+
+  test('keeps a gallery rendered while a sibling section is removed and the preview refreshes', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Structural refresh workflow runs once')
+    test.setTimeout(45_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await modal.getByRole('button', {name: 'Produto', exact: true}).click()
+    await modal.getByLabel('Nome').fill('Produto para preservar galeria')
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
+    await expect(modal).toHaveCount(0)
+    await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(navigation).not.toHaveClass(/is-open/)
+
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await expect(settings).toHaveClass(/is-open/)
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /^Galeria/}).click()
+    await settings.locator('.site-page-gallery-add input[type="file"]').setInputFiles({
+      name: 'galeria-estavel.png',
+      mimeType: 'image/png',
+      buffer: tinyPng,
+    })
+    await expect(frame.locator('.builder-interactive-gallery')).toBeVisible()
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+
+    await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Texto com imagem ou vídeo/}).click()
+    await settings.getByRole('button', {name: /Voltar ao conteúdo/}).click()
+    const rows = settings.locator('.site-editor-section-list > article')
+    const mediaRow = rows.filter({hasText: 'Secção do produto'})
+    await expect(mediaRow).toHaveCount(1)
+
+    await frame.locator('body').evaluate((body) => {
+      const states: number[] = []
+      const read = () => {
+        const count = body.querySelectorAll('.builder-interactive-gallery').length
+        if (states.at(-1) !== count) states.push(count)
+      }
+      read()
+      const observer = new MutationObserver(read)
+      observer.observe(body, {childList: true, subtree: true})
+      ;(window as any).__df4yGalleryStates = states
+      ;(window as any).__df4yGalleryObserver = observer
+    })
+    await page.evaluate(() => {
+      ;(window as any).__df4yPreviewRefreshes = 0
+      window.addEventListener('message', (event) => {
+        if (event.data?.type === 'df4y:site-editor:preview-refreshed') {
+          ;(window as any).__df4yPreviewRefreshes += 1
+        }
+      })
+    })
+
+    await mediaRow.getByRole('button', {name: /Ações de Secção do produto/}).click()
+    await mediaRow.getByRole('button', {name: 'Eliminar'}).click()
+    await page.getByRole('alertdialog').getByRole('button', {name: 'Eliminar'}).click()
+
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__df4yPreviewRefreshes as number))
+      .toBeGreaterThan(0)
+    await expect(frame.locator('.builder-interactive-gallery')).toBeVisible()
+    const galleryStates = await frame.locator('body').evaluate(() => {
+      ;(window as any).__df4yGalleryObserver?.disconnect()
+      return (window as any).__df4yGalleryStates as number[]
+    })
+    expect(galleryStates).toEqual([1])
   })
 
   test('creates every structured content type with its starter fields and keeps visual editing active', async ({

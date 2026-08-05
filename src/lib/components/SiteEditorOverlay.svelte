@@ -736,6 +736,10 @@
               window.requestAnimationFrame(() => {
                 window.scrollTo(scrollX, scrollY)
                 syncRects()
+                post({
+                  type: 'df4y:site-editor:preview-refreshed',
+                  route: currentRoute(),
+                })
                 resolve()
               }),
             ),

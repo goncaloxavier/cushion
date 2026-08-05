@@ -575,12 +575,33 @@
   display: grid;
   place-items: center;
   min-height: 14rem;
-  color: #5c706a;
+  color: #40564f;
   text-align: center;
-  border: 1px dashed #9db1aa;
+  border: 2px dashed #718780;
 }
 
-.builder-media-empty span { font-size: 2rem; }
+.builder-media-empty span {
+  color: inherit;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.builder-media-empty strong {
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Empty media is an editor control, not page copy. Product feature frames paint
+   a dark teal background even when the surrounding section is light, so the
+   generic muted ink above became almost black on dark green. Keep the frame's
+   design, but give every instruction inside it an explicit accessible palette. */
+.builder-page.is-preview .product-content-media:not(.is-image) .builder-media-empty,
+.builder-page.is-preview .builder-render-section:is(.is-deep, .is-blue) .builder-media-empty {
+  color: #ffffff;
+  background: rgb(255 255 255 / 5%);
+  border-color: #a9dacd;
+}
 
 .builder-grid {
   display: grid;

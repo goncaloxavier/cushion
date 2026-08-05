@@ -25,6 +25,8 @@ const cases = [
   {key: 'ratio-long-copy', name: 'long-copy'},
   {key: 'ratio-no-kind', name: 'no-kind'},
   {key: 'ratio-stale-video-kind', name: 'stale-video-kind'},
+  {key: 'gallery-two-portraits', name: 'gallery-two-portraits'},
+  {key: 'gallery-empty', name: 'gallery-empty'},
 ]
 
 const settle = async (page: Page) => {
@@ -100,6 +102,15 @@ test.describe(`${surface.label}: image proportions`, () => {
   for (const {key, name} of cases) {
     test(`a ${name} image keeps its shape`, async ({page}) => {
       const section = page.locator(`[data-builder-section="${key}"]`)
+
+      // An empty gallery is deliberately absent from the published page — a
+      // section with a heading and no images used to publish the heading over
+      // blank space. The editor still shows it, and says why it is missing.
+      if (key === 'gallery-empty' && surface.id === 'published') {
+        await expect(section).toHaveCount(0)
+        return
+      }
+
       await expect(section).toBeVisible()
       await section.scrollIntoViewIfNeeded()
       await page.waitForTimeout(200)

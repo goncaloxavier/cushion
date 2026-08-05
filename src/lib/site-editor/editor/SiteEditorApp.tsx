@@ -350,6 +350,32 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const canPublish = manifest?.capabilities.canPublish ?? initialCanPublish
   const canWrite = manifest?.capabilities.canWrite ?? false
 
+  const postCurrentBuilderState = useCallback(
+    (target = frame?.contentWindow) => {
+      const page = builderPreviewPageFor(documentRef.current, selectedNodeRef.current)
+      if (!target || !page) return false
+      const payload = {page, selectedSectionKey}
+      latestBuilderState.current = payload
+      builderStateLastSentAt.current = Date.now()
+      target.postMessage({type: 'df4y:builder-state', ...payload}, window.location.origin)
+      return true
+    },
+    [frame, selectedSectionKey],
+  )
+
+  const syncLoadedPreview = useCallback(
+    (loadedFrame: HTMLIFrameElement) => {
+      const target = loadedFrame.contentWindow
+      postCurrentBuilderState(target)
+      target?.postMessage(
+        {type: 'df4y:site-editor:permissions', canWrite},
+        window.location.origin,
+      )
+      if (fieldStateRef.current) target?.postMessage(fieldStateRef.current, window.location.origin)
+    },
+    [canWrite, postCurrentBuilderState],
+  )
+
   const clearCanvasSelection = useCallback(
     (closeSettings = true) => {
       inlineEditing.current = false
@@ -1160,14 +1186,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (!event.data || typeof event.data.type !== 'string') return
 
       if (event.data.type === 'df4y:builder-ready') {
-        const current = documentRef.current
-        const previewPage = builderPreviewPageFor(current, selectedNodeRef.current)
-        if (previewPage) {
-          frame.contentWindow?.postMessage(
-            {type: 'df4y:builder-state', page: previewPage, selectedSectionKey},
-            window.location.origin,
-          )
-        }
+        postCurrentBuilderState(frame.contentWindow)
         return
       }
 
@@ -1189,7 +1208,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           {type: 'df4y:site-editor:permissions', canWrite},
           window.location.origin,
         )
-        if (event.data.route) await syncPreviewRoute(String(event.data.route))
+        const routeSynced = event.data.route
+          ? await syncPreviewRoute(String(event.data.route))
+          : true
+        if (routeSynced) postCurrentBuilderState(frame.contentWindow)
         if (fieldStateRef.current) {
           frame.contentWindow?.postMessage(fieldStateRef.current, window.location.origin)
         }
@@ -1208,6 +1230,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           description:
             'As alterações ficaram guardadas. Clique em “Atualizar página” para as ver aqui.',
         })
+        return
+      }
+
+      if (event.data.type === 'df4y:site-editor:preview-refreshed') {
+        const routeSynced = event.data.route
+          ? await syncPreviewRoute(String(event.data.route))
+          : true
+        if (routeSynced) syncLoadedPreview(frame)
         return
       }
 
@@ -1268,8 +1298,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     canWrite,
     frame,
     openDocument,
+    postCurrentBuilderState,
     pushNotice,
     saveNow,
+    syncLoadedPreview,
     syncPreviewRoute,
     targetForSelection,
     updatePath,
@@ -1319,7 +1351,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     )
     return () => {
       window.cancelAnimationFrame(frameId)
-      if (previous?.isConnected) previous.focus()
+      if (previous?.isConnected) previous.focus({preventScroll: true})
     }
   }, [navigationOpen])
 
@@ -1333,7 +1365,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     )
     return () => {
       window.cancelAnimationFrame(frameId)
-      if (previous?.isConnected) previous.focus()
+      if (previous?.isConnected) previous.focus({preventScroll: true})
     }
   }, [settingsOpen])
 
@@ -1840,7 +1872,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           refreshToken={refreshToken}
           previewReady={previewReady}
           onFrame={setFrame}
-          onRouteChange={(route) => void syncPreviewRoute(route)}
+          onRouteChange={syncPreviewRoute}
+          onPreviewLoad={syncLoadedPreview}
         />
       </section>
 

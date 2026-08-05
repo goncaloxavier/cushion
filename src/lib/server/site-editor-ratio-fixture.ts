@@ -62,6 +62,31 @@ const section = (
   },
 })
 
+/**
+ * A gallery holding two portrait images, which is what the client built. It
+ * renders through StoreMediaGallery when the section presents as a gallery and
+ * has media, and falls back to a plain column grid otherwise -- and those two
+ * look nothing alike, so which one appears is worth a picture on both surfaces.
+ */
+const gallerySection = (key: string, title: string, refs: readonly string[]) => ({
+  _key: key,
+  _type: 'builderGallerySection',
+  enabled: true,
+  internalLabel: title,
+  title: localizedString(title),
+  presentation: 'gallery',
+  layout: {_type: 'builderLayout', surface: 'white', columns: 3},
+  items: refs.map((ref, index) => ({
+    _key: `${key}-item-${index + 1}`,
+    _type: 'builderMedia',
+    kind: 'image',
+    fit: 'contain',
+    position: 'center',
+    alt: localizedString(`${title} ${index + 1}`),
+    image: {_type: 'image', asset: {_type: 'reference', _ref: ref}},
+  })),
+})
+
 export const ratioFixturePage = () => ({
   _id: 'sitePage.ratio-fixture',
   _type: 'sitePage',
@@ -90,5 +115,12 @@ export const ratioFixturePage = () => ({
     section('ratio-stale-video-kind', 'Tipo vídeo sem ficheiro', ratioFixtureAssets[1].ref, 'left', shortBody, {
       kind: 'video',
     }),
+    // Two portrait images, exactly the shape the client built.
+    gallerySection('gallery-two-portraits', 'Galeria', [
+      ratioFixtureAssets[0].ref,
+      ratioFixtureAssets[1].ref,
+    ]),
+    // The gallery he left empty, which showed nothing at all on the page.
+    gallerySection('gallery-empty', 'Galeria vazia', []),
   ],
 })

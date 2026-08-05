@@ -23,6 +23,13 @@ const serverEnv = {
   EMAIL_FROM: '',
   ORDERS_TO_EMAIL: '',
   CONTACTS_TO_EMAIL: '',
+  // Checkout refuses to price an order from the cart the browser sends and
+  // re-reads the catalogue instead, which is the right call and the reason
+  // production must never set this. The suite runs with SANITY_DISABLE_REMOTE,
+  // so there is no catalogue to re-read and every submission was rejected with
+  // "não foi possível confirmar os preços" -- which is why no test had ever
+  // pressed the button. Fixture pricing is the trusted source here.
+  CHECKOUT_ALLOW_FALLBACK_PRICING: 'true',
 }
 
 export default defineConfig({

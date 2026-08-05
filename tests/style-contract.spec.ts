@@ -57,6 +57,33 @@ test('editor text tokens stay readable on the editor surface', () => {
   }
 })
 
+test('an empty media instruction stays readable inside the dark product frame', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Rendered contrast runs once')
+  await page.setExtraHTTPHeaders({
+    'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+    'x-df4y-site-editor-scope': `empty-media-contrast-${Date.now()}`,
+  })
+  await page.goto('/painel/site/e2e-preview?fixture=ratios&lang=pt&emptyMedia=1')
+
+  const placeholder = page.locator('[data-builder-section="ratio-1"] .builder-media-empty strong')
+  await expect(placeholder).toHaveText('Adicionar imagem ou vídeo')
+  const colors = await placeholder.evaluate((element) => {
+    const parse = (value: string) => {
+      const channels = value.match(/[\d.]+/g)!.map(Number)
+      return {r: channels[0], g: channels[1], b: channels[2]}
+    }
+    const foreground = parse(getComputedStyle(element).color)
+    const frame = element.closest('.product-content-media')!
+    const background = parse(getComputedStyle(frame).backgroundColor)
+    return {foreground, background}
+  })
+  const toHex = ({r, g, b}: {r: number; g: number; b: number}) =>
+    `#${[r, g, b].map((value) => Math.round(value).toString(16).padStart(2, '0')).join('')}`
+  expect(contrast(toHex(colors.foreground), toHex(colors.background))).toBeGreaterThanOrEqual(4.5)
+})
+
 /**
  * The notice tones are the editor's only way of saying something is wrong, and
  * they are read by a 62-year-old client in a hurry. They used to be white cards
