@@ -121,6 +121,7 @@ export type ManagedSectionComponent =
   | 'blogCore'
   | 'contactCore'
   | 'returnsCore'
+  | 'billingCore'
   | 'productDetailCore'
   | 'storeDetailCore'
   | 'caseDetailCore'

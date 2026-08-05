@@ -83,6 +83,7 @@ const visualRoutes = [
   {name: 'cases-es', path: '/casos-de-estudo?lang=es'},
   {name: 'blog-pt', path: '/blog?lang=pt'},
   {name: 'contact-pt', path: '/contacto?lang=pt'},
+  {name: 'billing-pt', path: '/dados-de-faturacao?lang=pt'},
   {name: 'contact-es', path: '/contacto?lang=es'},
   {name: 'store-pt', path: '/loja?lang=pt'},
   {name: 'store-product-pt', path: '/loja/banco-gaviao?lang=pt'},

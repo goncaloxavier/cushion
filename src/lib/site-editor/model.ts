@@ -510,6 +510,43 @@ export const siteScopePanels: Record<string, SiteEditorPanel[]> = {
       ],
     },
   ],
+  billingDetails: [
+    {
+      id: 'billing-details',
+      label: 'Dados de faturação',
+      fields: [
+        localizedString('kicker', 'Etiqueta', undefined, 'Ex.: Faturação'),
+        localizedString('title', 'Título', undefined, 'Ex.: Dados de faturação'),
+        localizedText(
+          'lead',
+          'Texto',
+          undefined,
+          'Ex.: A faturação da marca DaFábrica4You é efetuada por:',
+        ),
+        {
+          name: 'entries',
+          label: 'Dados',
+          description: 'A designação é traduzida; o valor aparece igual em todos os idiomas',
+          type: 'array',
+          item: {
+            name: 'item',
+            label: 'Dado',
+            type: 'object',
+            fields: [
+              localizedString('label', 'Designação', undefined, 'Ex.: NIF'),
+              {
+                name: 'value',
+                label: 'Valor',
+                type: 'string',
+                description: 'Não é traduzido',
+                placeholder: 'Ex.: 506271927',
+              },
+            ],
+          },
+        },
+      ],
+    },
+  ],
   common: [
     {
       id: 'contact',

@@ -503,6 +503,36 @@ function ArticleToolbar({
     refocus()
   }
 
+  const openLinkForm = () => {
+    const expectedText = window.getSelection()?.toString() ?? ''
+    let attempts = 0
+
+    const captureSelection = () => {
+      const snapshot = editor.getSnapshot()
+      const captured = snapshot.context.selection
+      const capturedText = selectors.getSelectionText(snapshot)
+      if (!isCollapsedSelection(captured) && (!expectedText || capturedText === expectedText)) {
+        linkSelectionRef.current = captured ?? undefined
+        setOpenForm('link')
+        return
+      }
+
+      // Keyboard selection updates the browser before Portable Text's actor on
+      // a busy frame. Keep focus in the editor until the actor holds the whole
+      // browser range, not merely an intermediate Shift+ArrowLeft selection.
+      attempts += 1
+      if (attempts < 30 && expectedText) {
+        window.requestAnimationFrame(captureSelection)
+        return
+      }
+
+      linkSelectionRef.current = undefined
+      setOpenForm('link')
+    }
+
+    captureSelection()
+  }
+
   const insertObject = (
     name: 'image' | 'youtubeEmbed' | 'articleTable',
     value: Record<string, unknown>,
@@ -605,17 +635,7 @@ function ArticleToolbar({
                   linkSelectionRef.current = undefined
                   setOpenForm(undefined)
                 } else {
-                  // Only a real range is worth remembering. The editor's own
-                  // selection can still be the caret from an earlier click if the
-                  // drag that selected the phrase has not reached it yet — and a
-                  // collapsed range annotates nothing, so the link silently never
-                  // appears. Falling back to the live selection at submit time is
-                  // better than restoring a caret over it.
-                  const captured = editor.getSnapshot().context.selection
-                  linkSelectionRef.current = isCollapsedSelection(captured)
-                    ? undefined
-                    : (captured ?? undefined)
-                  setOpenForm('link')
+                  openLinkForm()
                 }
               }}
               aria-label={linked ? 'Remover ligação' : 'Adicionar ligação'}
@@ -732,28 +752,17 @@ function ArticleToolbar({
             const selection = remembered ?? (isCollapsedSelection(live) ? undefined : live)
             const href = link.trim()
 
-            // `select` is dispatched, not applied inline, so annotating in the
-            // same tick could run against the selection the editor still had —
-            // usually a caret, which marks nothing and drops the link with no
-            // error. Restoring the range first and applying once it has landed
-            // is what makes this survive a slow machine.
-            const applyLink = () => {
-              editor.send({
-                type: 'annotation.add',
-                annotation: {name: 'link', value: {href}},
-                ...(selection ? {at: selection} : {}),
-              })
-              const endPoint = getSelectionEndPoint(editor.getSnapshot().context.selection)
-              if (endPoint) {
-                editor.send({type: 'select', at: {anchor: endPoint, focus: endPoint}})
-              }
-            }
-
-            if (selection) {
-              editor.send({type: 'select', at: selection})
-              setTimeout(applyLink, 0)
-            } else {
-              applyLink()
+            // `annotation.add` accepts an explicit range, so it does not need a
+            // preceding asynchronous `select` event. Applying to the captured
+            // range directly keeps the operation independent of form focus.
+            editor.send({
+              type: 'annotation.add',
+              annotation: {name: 'link', value: {href}},
+              ...(selection ? {at: selection} : {}),
+            })
+            const endPoint = getSelectionEndPoint(editor.getSnapshot().context.selection)
+            if (endPoint) {
+              editor.send({type: 'select', at: {anchor: endPoint, focus: endPoint}})
             }
             linkSelectionRef.current = undefined
             setLink('')

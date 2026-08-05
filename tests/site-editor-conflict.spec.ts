@@ -323,3 +323,60 @@ test('publishing a document with nothing pending is not an error', () => {
     'the check runs after the publish action, which is where the error came from',
   ).toBeLessThan(body.indexOf('sanity.action.document.publish'))
 })
+
+test.describe('editor sidebar', () => {
+  // Reimplements the filter so the rule can be tested without mounting React.
+  // Kept honest by the source assertions at the end.
+  const searchable = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLocaleLowerCase('pt')
+
+  type Node = {id: string; title: string; parentId?: string}
+  const nodes: Node[] = [
+    {id: 'collection-blog', title: 'Artigos do Blog'},
+    {id: 'a', title: 'O que aconteceria se todas as árvores do mundo desaparecessem?', parentId: 'collection-blog'},
+    {id: 'b', title: 'Compostagem caseira', parentId: 'collection-blog'},
+    {id: 'c', title: 'Consumo de plástico', parentId: 'collection-blog'},
+  ]
+
+  const filter = (query: string) => {
+    const q = searchable(query.trim())
+    if (!q) return nodes
+    const matched = new Set(nodes.filter((n) => searchable(n.title).includes(q)).map((n) => n.id))
+    const parents = new Set(
+      nodes.filter((n) => n.parentId && matched.has(n.id)).map((n) => n.parentId as string),
+    )
+    return nodes.filter((n) => matched.has(n.id) || parents.has(n.id))
+  }
+
+  test('searching for one article does not return the whole collection', () => {
+    // The collection header used to be folded in with the matches, which made
+    // every sibling match too — so searching returned all 56 posts and the
+    // filter looked broken. It was: you could not reach a post by name.
+    const found = filter('desaparecessem')
+    expect(found.map((node) => node.id)).toEqual(['collection-blog', 'a'])
+  })
+
+  test('accents are not required to find an accented title', () => {
+    // Nobody types the accent when searching for something they know is there.
+    expect(filter('arvores').map((node) => node.id)).toEqual(['collection-blog', 'a'])
+    expect(filter('plastico').map((node) => node.id)).toEqual(['collection-blog', 'c'])
+  })
+
+  test('the sidebar and the manifest implement those two rules', () => {
+    const sidebar = readFileSync('src/lib/site-editor/editor/SiteEditorSidebar.tsx', 'utf8')
+    expect(sidebar, 'accents are still compared literally').toContain('normalize(\'NFD\')')
+    expect(
+      sidebar,
+      'the collection header is folded back in with the matches, which matches every sibling',
+    ).toContain('parentsOfMatches')
+
+    const manifest = readFileSync('src/lib/server/site-editor.ts', 'utf8')
+    expect(
+      manifest,
+      'articles are still listed alphabetically rather than newest first',
+    ).toContain("definition.type === 'blogPost'")
+  })
+})

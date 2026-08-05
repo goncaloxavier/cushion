@@ -16,6 +16,12 @@
   import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  // Structured data carries absolute URLs too, so it needs the same fixed origin
+  // the canonical tag uses — otherwise a preview host publishes a breadcrumb
+  // trail pointing at itself.
+  const seoOrigin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
   $effect(() => {
     if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
@@ -47,9 +53,9 @@
   )
   const caseJsonLd = $derived(
     breadcrumbListSchema([
-      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
-      {name: content.nav.cases, url: absoluteUrl(page.url.origin, withLanguage('/casos-de-estudo', data.language))!},
-      {name: data.caseStudy.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+      {name: content.nav.home, url: absoluteUrl(seoOrigin, withLanguage('/', data.language))!},
+      {name: content.nav.cases, url: absoluteUrl(seoOrigin, withLanguage('/casos-de-estudo', data.language))!},
+      {name: data.caseStudy.title, url: absoluteUrl(seoOrigin, withLanguage(page.url.pathname, data.language))!},
     ]),
   )
 </script>

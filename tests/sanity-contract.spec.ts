@@ -12,6 +12,7 @@ import {
   storeVatRate,
   transportEstimateFor,
 } from '../src/lib/store-shipping'
+import {managedPageSectionScopes} from '../src/lib/builder/managed-page-sections'
 import {createSiteEditorStarterFields} from '../src/lib/server/site-editor-starters'
 import {sameOriginOk} from '../src/lib/server/form-guard'
 import {rateLimit, rateLimitKey} from '../src/lib/server/rate-limit'
@@ -1802,4 +1803,138 @@ test('a shop product is never filed under a category nobody chose', () => {
   expect(app, 'the create call drops the chosen category').toContain(
     "createState.documentType === 'storeProduct' ? createState.storeCategory : undefined",
   )
+})
+
+test('the invoicing details translate their labels and never their values', () => {
+  // A NIF, a certidão code and a registered address mean nothing translated and
+  // everything verbatim. The label is localized so "Capital social" can read
+  // "Share capital"; the value is a plain string, deliberately outside the
+  // localized shape, so the auto-translation pipeline never walks it.
+  const built = contentFromSanity({
+    siteContent: {
+      billingDetails: {
+        title: {_type: 'localizedString', pt: 'Dados de faturação', en: 'Invoicing details'},
+        entries: [
+          {label: {_type: 'localizedString', pt: 'NIF', en: 'VAT number'}, value: '506271927'},
+          {
+            label: {_type: 'localizedString', pt: 'Capital social', en: 'Share capital'},
+            value: '5 000,00 EUR',
+          },
+        ],
+      },
+    },
+  } as never)
+
+  const pt = built.pt.billingDetails
+  const en = built.en.billingDetails
+  expect(pt.title).toBe('Dados de faturação')
+  expect(en.title).toBe('Invoicing details')
+
+  expect(pt.entries.map((entry) => entry.label)).toEqual(['NIF', 'Capital social'])
+  expect(en.entries.map((entry) => entry.label)).toEqual(['VAT number', 'Share capital'])
+
+  // The point of the whole shape: identical in every language.
+  expect(
+    en.entries.map((entry) => entry.value),
+    'a legal identifier changed between languages',
+  ).toEqual(pt.entries.map((entry) => entry.value))
+  expect(pt.entries.map((entry) => entry.value)).toEqual(['506271927', '5 000,00 EUR'])
+})
+
+test('a half-filled invoicing row never reaches the page', () => {
+  // The client adds a row before typing into it. A label with no value, or a
+  // value with no label, renders as a dangling term with nothing beside it.
+  const built = contentFromSanity({
+    siteContent: {
+      billingDetails: {
+        entries: [
+          {label: {_type: 'localizedString', pt: 'NIF'}, value: '506271927'},
+          {label: {_type: 'localizedString', pt: 'Sem valor'}},
+          {value: 'sem designação'},
+        ],
+      },
+    },
+  } as never)
+
+  expect(built.pt.billingDetails.entries).toEqual([{label: 'NIF', value: '506271927'}])
+})
+
+test('the invoicing page is a managed page, not a free page', () => {
+  // It keeps the address the old site used, so the link people already have
+  // keeps working with no redirect at all — which only holds if it is a real
+  // route the sitemap knows about, rather than something created in the editor.
+  const scope = managedPageSectionScopes.find((entry) => entry.rootPath === 'billingDetails')
+  expect(scope?.route, 'the invoicing page moved off its original address').toBe(
+    '/dados-de-faturacao',
+  )
+
+  expect(readFileSync('src/routes/dados-de-faturacao/+page.svelte', 'utf8')).toContain(
+    'billingDetails',
+  )
+  expect(
+    readFileSync('src/routes/sitemap.xml/+server.ts', 'utf8'),
+    'the page is not in the sitemap',
+  ).toContain("'/dados-de-faturacao'")
+  expect(
+    readFileSync('src/lib/server/site-editor.ts', 'utf8').slice(0, 4000),
+    'the editor cannot save the invoicing details',
+  ).toContain("'billingDetails'")
+})
+
+test('only the canonical host may present itself as the site', () => {
+  // The Railway deployment URL served a complete copy of the content: 114 pages,
+  // each canonicalising to itself, advertising its own sitemap. That is a second
+  // site competing with the client's on a domain they do not own, and it was
+  // live before any migration started. Every SEO-facing absolute URL now comes
+  // from one configured origin, and any other host says noindex.
+  const canonical = readFileSync('src/lib/server/canonical-host.ts', 'utf8')
+
+  // The PUBLIC_ prefix would route this to $env/dynamic/public and read as unset
+  // from the private module — which is exactly how the first attempt failed.
+  expect(canonical, 'the env var name would be excluded from $env/dynamic/private').toContain(
+    'env.SITE_ORIGIN',
+  )
+  expect(canonical).not.toContain('env.PUBLIC_SITE_ORIGIN')
+
+  // Unset, everything behaves as before — local development must not need it.
+  expect(canonical, 'an unset origin has to fall back to the request host').toContain(
+    'if (!raw) return null',
+  )
+
+  for (const [file, needle, why] of [
+    ['src/routes/robots.txt/+server.ts', 'canonicalOrigin', 'robots.txt advertises the answering host'],
+    ['src/routes/sitemap.xml/+server.ts', 'canonicalOrigin', 'the sitemap lists the answering host'],
+    ['src/routes/+layout.server.ts', 'isCanonicalHost', 'pages cannot tell whether they are indexable'],
+    ['src/hooks.server.ts', 'canonicalRedirectTarget', 'apex and www both serve every page'],
+  ] as const) {
+    expect(readFileSync(file, 'utf8'), why).toContain(needle)
+  }
+
+  // The canonical tag, hreflang, og:url and the JSON-LD trails all have to agree;
+  // a breadcrumb pointing at a preview host is the same leak in another shape.
+  const seoHead = readFileSync('src/lib/components/SeoHead.svelte', 'utf8')
+  expect(seoHead).toContain('canonicalOrigin')
+  expect(seoHead, 'a non-canonical host does not mark its pages noindex').toContain(
+    'hostNotIndexable',
+  )
+  // follow, not nofollow: a duplicate host has to be walked in full for every
+  // page to be seen and dropped. And robots.txt must not block that crawl, or
+  // the noindex is never read and anything already indexed stays there.
+  expect(seoHead, 'the crawler is told to stop before it can read the rest').toContain(
+    "content=\"noindex, follow\"",
+  )
+  expect(
+    readFileSync('src/routes/robots.txt/+server.ts', 'utf8'),
+    'robots.txt blocks the crawl that has to happen for noindex to be read',
+  ).not.toContain('Disallow: /\\n')
+  for (const route of [
+    'src/routes/+page.svelte',
+    'src/routes/produtos/[slug]/+page.svelte',
+    'src/routes/casos-de-estudo/[slug]/+page.svelte',
+    'src/routes/blog/[slug]/+page.svelte',
+    'src/routes/loja/[slug]/+page.svelte',
+  ]) {
+    expect(readFileSync(route, 'utf8'), `${route} builds structured data from the request host`)
+      .toContain('seoOrigin')
+  }
 })

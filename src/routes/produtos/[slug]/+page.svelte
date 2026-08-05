@@ -52,6 +52,12 @@
   }
 
   let {data} = $props()
+  // Structured data carries absolute URLs too, so it needs the same fixed origin
+  // the canonical tag uses — otherwise a preview host publishes a breadcrumb
+  // trail pointing at itself.
+  const seoOrigin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
   $effect(() => {
     if ((data.preview || data.builderPreview) && !dataAttributeFactory) {
@@ -101,12 +107,12 @@
     productSchema({
       name: data.product.title,
       description: leadCopy,
-      imageUrl: absoluteUrl(page.url.origin, images[0]?.url),
+      imageUrl: absoluteUrl(seoOrigin, images[0]?.url),
     }),
     breadcrumbListSchema([
-      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
-      {name: content.nav.products, url: absoluteUrl(page.url.origin, withLanguage('/produtos', data.language))!},
-      {name: data.product.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+      {name: content.nav.home, url: absoluteUrl(seoOrigin, withLanguage('/', data.language))!},
+      {name: content.nav.products, url: absoluteUrl(seoOrigin, withLanguage('/produtos', data.language))!},
+      {name: data.product.title, url: absoluteUrl(seoOrigin, withLanguage(page.url.pathname, data.language))!},
     ]),
   ])
 </script>

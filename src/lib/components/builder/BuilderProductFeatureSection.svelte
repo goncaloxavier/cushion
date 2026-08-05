@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {builderImageAspectRatio} from '$lib/builder/media'
   import {builderLocalized, builderTypographyStyle} from '$lib/builder/content'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import type {BuilderSection} from '$lib/builder/types'
@@ -48,6 +49,18 @@
     return `${value}${value.includes('?') ? '&' : '?'}lang=${language}`
   }
 
+  // The frame follows the image, rather than the image being forced into the
+  // frame. This was pinned at 16:9 for every image, so a portrait photo was laid
+  // out at its own proportions inside a landscape box and the overflow was
+  // clipped — the client reported the bottom of their composter simply missing,
+  // and shrinking the file never helped because the mismatch is the ratio, not
+  // the size. Video and embeds have no intrinsic ratio to read, so they keep 16:9.
+  const mediaRatio = $derived(
+    section.media?.kind === 'image'
+      ? (builderImageAspectRatio(section.media?.image?.asset?._ref) ?? 1.7778)
+      : 1.7778,
+  )
+
   const blockPreviewNavigation = (event: MouseEvent) => {
     if (preview) event.preventDefault()
   }
@@ -59,12 +72,16 @@
   aria-label={title || builderLocalized(section.media?.alt, language) || undefined}
 >
   <div class="product-content-inner">
-    <div class="product-content-media-group" class:is-image={section.media?.kind === 'image'}>
-      <div
-        class="product-content-media"
-        class:is-image={section.media?.kind === 'image'}
-        style="--product-content-ratio: 1.7778"
-      >
+    <!-- The ratio is declared on the group, not the frame inside it. Custom
+         properties inherit downwards, so the frame still reads it — but the
+         group needs it too, to cap its own width, and it cannot see a property
+         its child declares. -->
+    <div
+      class="product-content-media-group"
+      class:is-image={section.media?.kind === 'image'}
+      style={`--product-content-ratio: ${mediaRatio}`}
+    >
+      <div class="product-content-media" class:is-image={section.media?.kind === 'image'}>
         <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={dataAttribute?.('media')} />
         {#if label && labelStyle === 'pill'}
           <span class="product-content-label is-pill" data-sanity={dataAttribute?.(`eyebrow.${language}`)}>{label}</span>

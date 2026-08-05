@@ -1,6 +1,7 @@
 import {siteLanding} from './siteLanding'
 import {blogPost} from './blogPost'
 import {caseStudy} from './caseStudy'
+import {billingDetail} from './objects/billingDetail'
 import {contentCard} from './objects/contentCard'
 import {localizedArticle} from './objects/localizedArticle'
 import {localizedString} from './objects/localizedString'
@@ -30,6 +31,7 @@ export const websiteSchemaTypes = [
   downloadItem,
   partnerItem,
   contentCard,
+  billingDetail,
   ...builderObjectTypes,
   ...builderSectionTypes,
   builderPage,

@@ -32,6 +32,12 @@
   import {managedCoreSectionForDocumentType} from '$lib/builder/managed-page-sections'
 
   let {data} = $props()
+  // Structured data carries absolute URLs too, so it needs the same fixed origin
+  // the canonical tag uses — otherwise a preview host publishes a breadcrumb
+  // trail pointing at itself.
+  const seoOrigin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
   const pageCore = managedCoreSectionForDocumentType('storeProduct')!
   let dataAttributeFactory = $state<SanityDataAttributeFactory | null>(null)
   $effect(() => {
@@ -178,7 +184,7 @@
     productSchema({
       name: data.storeProduct.title,
       description: data.storeProduct.summary,
-      imageUrl: absoluteUrl(page.url.origin, storeImages[0]?.url),
+      imageUrl: absoluteUrl(seoOrigin, storeImages[0]?.url),
       price: Math.min(
         ...data.storeProduct.variants.flatMap((variant) => [
           variant.prices.natural,
@@ -187,9 +193,9 @@
       ),
     }),
     breadcrumbListSchema([
-      {name: content.nav.home, url: absoluteUrl(page.url.origin, withLanguage('/', data.language))!},
-      {name: content.nav.store, url: absoluteUrl(page.url.origin, withLanguage('/loja', data.language))!},
-      {name: data.storeProduct.title, url: absoluteUrl(page.url.origin, withLanguage(page.url.pathname, data.language))!},
+      {name: content.nav.home, url: absoluteUrl(seoOrigin, withLanguage('/', data.language))!},
+      {name: content.nav.store, url: absoluteUrl(seoOrigin, withLanguage('/loja', data.language))!},
+      {name: data.storeProduct.title, url: absoluteUrl(seoOrigin, withLanguage(page.url.pathname, data.language))!},
     ]),
   ])
 </script>

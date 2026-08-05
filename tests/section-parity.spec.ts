@@ -4,6 +4,7 @@ import {
   legacyProductContentSectionsToBuilder,
   productBuilderSections,
 } from '../src/lib/builder/product-sections'
+import {builderImageAspectRatio} from '../src/lib/builder/media'
 import {
   detailSlugCandidates,
   managedDetailSectionScopeForRoute,
@@ -244,4 +245,40 @@ test('legacy product blocks still reach the page when sections is empty', () => 
   // field is history and must not be appended back on top.
   const authored = [{_key: 'new', _type: 'builderRichTextSection'}]
   expect(productBuilderSections(authored, legacy)).toEqual(authored)
+})
+
+test('an uploaded image keeps its own proportions, whatever it is', () => {
+  // The client uploaded a 3000x4000 photo of a composter and the bottom of it
+  // was simply missing. The frame was pinned at 16:9 for every image, so a
+  // portrait photo was laid out at its own height inside a landscape box that
+  // clips its overflow. Shrinking the file never helped, because the mismatch
+  // was the ratio and not the size.
+  expect(builderImageAspectRatio('image-abc123-3000x4000-jpg')).toBeCloseTo(0.75, 3)
+  expect(builderImageAspectRatio('image-abc123-1920x1080-jpg')).toBeCloseTo(1.7778, 3)
+  // Nothing to read: a file reference, or a malformed one.
+  expect(builderImageAspectRatio('file-abc123-pdf')).toBeUndefined()
+  expect(builderImageAspectRatio(undefined)).toBeUndefined()
+
+  const section = readFileSync(
+    'src/lib/components/builder/BuilderProductFeatureSection.svelte',
+    'utf8',
+  )
+  expect(section, 'the frame is pinned to one ratio again').not.toContain(
+    'style="--product-content-ratio: 1.7778"',
+  )
+  expect(section, 'the frame no longer follows the image').toContain('builderImageAspectRatio')
+  // Declared on the group, because the group caps its own width from it and
+  // cannot read a property its child declares. Custom properties inherit down,
+  // so the frame inside still sees it.
+  const group = section.slice(section.indexOf('product-content-media-group'))
+  expect(group.slice(0, 220), 'the ratio is declared below the element that needs it').toContain(
+    '--product-content-ratio',
+  )
+
+  const css = readFileSync('src/app.css', 'utf8')
+  const frame = css.slice(css.indexOf('.product-content-media {'))
+  expect(
+    frame.slice(0, frame.indexOf('}')),
+    'a height cap on the frame overrides its aspect ratio, and the overflow is clipped',
+  ).not.toContain('max-height')
 })

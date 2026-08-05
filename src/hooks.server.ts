@@ -3,9 +3,21 @@ import {sessionCookieName, validateSession} from '$lib/server/staff-auth'
 import {customerSessionCookieName, validateCustomerSession} from '$lib/server/customer-auth'
 import {applyPreviewAdminPolicy} from '$lib/server/preview-admin'
 import {siteEditorE2eRequestStaff} from '$lib/server/site-editor-e2e'
+import {canonicalRedirectTarget} from '$lib/server/canonical-host'
+import {legacyRedirect} from '$lib/server/legacy-redirects'
 
 export const handle: Handle = async ({event, resolve}) => {
   const {pathname} = event.url
+
+  // One address for the site. Without this both the apex and the www host serve
+  // every page, and search engines have to guess which is the real one.
+  const canonicalTarget = canonicalRedirectTarget(event.url)
+  if (canonicalTarget) redirect(308, canonicalTarget)
+
+  // The previous site's URLs. Permanent, so the ranking each one earned moves to
+  // the page that replaced it instead of being lost to a 404.
+  const legacyTarget = legacyRedirect(pathname)
+  if (legacyTarget) redirect(308, legacyTarget)
   const rawLanguage = event.url.searchParams.get('lang')
   const htmlLanguage = rawLanguage === 'en' || rawLanguage === 'es' ? rawLanguage : 'pt'
 

@@ -21,6 +21,12 @@ export const managedPageSectionScopes = [
     route: '/politica-de-devolucoes',
     rootPath: 'returnsPolicy',
   },
+  {
+    id: 'page-billing',
+    title: 'Dados de faturação',
+    route: '/dados-de-faturacao',
+    rootPath: 'billingDetails',
+  },
 ] as const
 
 export type ManagedPageSectionScope = (typeof managedPageSectionScopes)[number]
@@ -128,6 +134,13 @@ const fixedCoreDefinitions: Record<ManagedPageSectionRoot, ManagedCoreSectionDef
     label: 'Política de devoluções',
     description: 'Título, introdução e condições',
     panelIds: ['returns-policy'],
+  },
+  billingDetails: {
+    component: 'billingCore',
+    key: 'managed-billing-core',
+    label: 'Dados de faturação',
+    description: 'Entidade, NIF e restantes dados',
+    panelIds: ['billing-details'],
   },
 }
 

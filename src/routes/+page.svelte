@@ -13,13 +13,19 @@
   import {onMount} from 'svelte'
 
   let {data} = $props()
+  // Structured data carries absolute URLs too, so it needs the same fixed origin
+  // the canonical tag uses — otherwise a preview host publishes a breadcrumb
+  // trail pointing at itself.
+  const seoOrigin = $derived(
+    (page.data?.canonicalOrigin as string | null | undefined) || page.url.origin,
+  )
   const content = $derived(data.site)
   const pageCore = managedCoreSectionForRoot('home')!
 
   const organizationJsonLd = $derived(
     organizationSchema({
-      origin: page.url.origin,
-      logoUrl: absoluteUrl(page.url.origin, '/logo/brand_mark.png'),
+      origin: seoOrigin,
+      logoUrl: absoluteUrl(seoOrigin, '/logo/brand_mark.png'),
       email: content.common.contactEmail,
       phone: content.common.contactPhone,
       sameAs: [

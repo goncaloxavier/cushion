@@ -128,27 +128,41 @@ function SiteEditorSidebarComponent({
       ?.scrollIntoView({block: 'nearest'})
   }, [selectedNodeId, collapsed])
 
-  const normalizedQuery = query.trim().toLocaleLowerCase('pt')
+// Accents are dropped on both sides, so "arvores" finds "árvores". Nobody types
+// the accent when they are searching for something they already know is there.
+const searchable = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt')
+
+  const normalizedQuery = searchable(query.trim())
 
   const areaNodes = useMemo(() => {
     const relevant = nodes.filter((node) => node.area === area)
     if (!normalizedQuery) return relevant
-    const matchingDocuments = new Set(
+
+    const matched = new Set(
       relevant
         .filter((node) =>
-          `${node.title} ${node.subtitle || ''} ${node.route || ''}`
-            .toLocaleLowerCase('pt')
-            .includes(normalizedQuery),
+          searchable(`${node.title} ${node.subtitle || ''} ${node.route || ''}`).includes(
+            normalizedQuery,
+          ),
         )
         .map((node) => node.id),
     )
-    for (const node of relevant) {
-      if (node.parentId && matchingDocuments.has(node.id)) matchingDocuments.add(node.parentId)
-    }
-    return relevant.filter(
-      (node) =>
-        matchingDocuments.has(node.id) || (node.parentId && matchingDocuments.has(node.parentId)),
+
+    // The collection header a match sits under has to stay, or the result has
+    // nothing to appear inside. Kept apart from the matches themselves: folding
+    // it in made every sibling match too, so searching for one post returned the
+    // entire blog and the filter looked like it did nothing at all.
+    const parentsOfMatches = new Set(
+      relevant
+        .filter((node) => node.parentId && matched.has(node.id))
+        .map((node) => node.parentId as string),
     )
+
+    return relevant.filter((node) => matched.has(node.id) || parentsOfMatches.has(node.id))
   }, [area, nodes, normalizedQuery])
 
   const roots = areaNodes.filter((node) => !node.parentId)

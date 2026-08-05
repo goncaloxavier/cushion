@@ -78,6 +78,15 @@ const contentCardsField = (name: string, title: string, description?: string) =>
     of: [{type: 'contentCard'}],
   })
 
+const billingDetailsField = (name: string, title: string, description?: string) =>
+  defineField({
+    name,
+    title,
+    description,
+    type: 'array',
+    of: [{type: 'billingDetail'}],
+  })
+
 const partnerItemsField = (name: string, title: string, description?: string) =>
   defineField({
     name,
@@ -494,6 +503,18 @@ export const siteLanding = defineType({
         builderSectionsField(),
       ],
       'Texto e lista de condições da política de devoluções.',
+    ),
+    pageSectionField(
+      'billingDetails',
+      'Dados de faturação',
+      [
+        localizedStringField('kicker', 'Etiqueta'),
+        localizedStringField('title', 'Título'),
+        localizedTextField('lead', 'Texto'),
+        billingDetailsField('entries', 'Dados', 'Cada linha tem uma designação e um valor.'),
+        builderSectionsField(),
+      ],
+      'Entidade legal que emite a faturação: NIF, capital social, certidão.',
     ),
     pageSectionField(
       'catalogue',

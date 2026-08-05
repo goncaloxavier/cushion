@@ -81,6 +81,9 @@
     es: 'Política de devoluciones',
   }
   const returnsPolicyLabel = $derived(returnsPolicyLabels[data.language] ?? returnsPolicyLabels.pt)
+  // The label comes from the page's own editable title, so renaming the page in
+  // the editor renames the footer link with it.
+  const billingDetailsLabel = $derived(content.billingDetails.title)
   const accountStrings = $derived(accountLabels[data.language] ?? accountLabels.pt)
   const isSignedIn = $derived(Boolean(data.account))
   const accountHref = $derived(isSignedIn ? '/conta/dados' : '/conta/entrar')
@@ -710,6 +713,9 @@
       </a>
       <a href={withLanguage('/politica-de-devolucoes', data.language)}>
         {returnsPolicyLabel}
+      </a>
+      <a href={withLanguage('/dados-de-faturacao', data.language)}>
+        {billingDetailsLabel}
       </a>
     </div>
   </div>
