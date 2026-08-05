@@ -6,6 +6,7 @@ import {
   siteEditorE2eRequestStaff,
   siteEditorE2eScope,
 } from '$lib/server/site-editor-e2e'
+import {ratioFixturePage} from '$lib/server/site-editor-ratio-fixture'
 import {normalizeEditorDocumentId} from '$lib/site-editor/path'
 import {textAppearanceFields} from '$lib/text-appearance'
 import type {PageServerLoad} from './$types'
@@ -60,6 +61,38 @@ export const load: PageServerLoad = ({url, request}) => {
 
   const fixture = url.searchParams.get('fixture')
   const scope = siteEditorE2eScope(request.headers)
+  if (fixture === 'ratios') {
+    const page = ratioFixturePage()
+    const firstSection = page.sections[0] as {
+      mediaSide?: string
+      media?: Record<string, unknown>
+    }
+    const requestedPosition = url.searchParams.get('position')
+    if (
+      requestedPosition === 'left' ||
+      requestedPosition === 'right' ||
+      requestedPosition === 'top' ||
+      requestedPosition === 'bottom'
+    ) {
+      firstSection.mediaSide = requestedPosition
+    }
+    if (url.searchParams.get('emptyMedia') === '1' && firstSection.media) {
+      Reflect.deleteProperty(firstSection.media, 'image')
+    }
+
+    // The same sections rendered twice: once with the editor's affordances and
+    // once as a visitor sees them after publish. Both go through
+    // BuilderPageRenderer, and `preview` is the only difference between them --
+    // which is the claim the public snapshots exist to keep honest.
+    return {
+      fixture: 'ratios',
+      created: null,
+      home: null,
+      product: null,
+      page,
+      published: url.searchParams.get('published') === '1',
+    }
+  }
   const getDocument = url.searchParams.get('published') === '1'
     ? getPublishedSiteEditorE2eDocument
     : getSiteEditorE2eDocument

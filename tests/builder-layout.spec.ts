@@ -248,6 +248,55 @@ test.describe('a gallery section behaves like a gallery', () => {
   })
 })
 
+test.describe('a product media section follows the chosen position', () => {
+  test.beforeEach(async ({page}) => {
+    await page.setExtraHTTPHeaders({
+      'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+      'x-df4y-site-editor-scope': `position-${Date.now()}`,
+    })
+  })
+
+  for (const position of ['left', 'right', 'top', 'bottom'] as const) {
+    test(`keeps media ${position} of the copy`, async ({page}, testInfo) => {
+      await page.goto(
+        `/painel/site/e2e-preview?fixture=ratios&lang=pt&position=${position}`,
+      )
+      await expect(page.getByTestId('fixture-ratio-page')).toBeVisible()
+
+      const section = page.locator('[data-builder-section="ratio-1"] .product-content-section')
+      await expect(section).toHaveClass(new RegExp(`\\bis-${position}\\b`))
+      const boxes = await section.evaluate((element) => {
+        const media = element.querySelector('.product-content-media-group')!.getBoundingClientRect()
+        const copy = element.querySelector('.product-content-copy')!.getBoundingClientRect()
+        return {
+          media: {x: media.x, y: media.y, right: media.right, bottom: media.bottom},
+          copy: {x: copy.x, y: copy.y, right: copy.right, bottom: copy.bottom},
+          columns: getComputedStyle(element.querySelector('.product-content-inner')!)
+            .gridTemplateColumns,
+        }
+      })
+
+      if (testInfo.project.name === 'mobile-chrome') {
+        if (position === 'bottom') {
+          expect(boxes.copy.bottom).toBeLessThanOrEqual(boxes.media.y)
+        } else {
+          expect(boxes.media.bottom).toBeLessThanOrEqual(boxes.copy.y)
+        }
+        expect(boxes.columns.trim().split(/\s+/)).toHaveLength(1)
+        return
+      }
+
+      if (position === 'left') expect(boxes.media.right).toBeLessThanOrEqual(boxes.copy.x)
+      if (position === 'right') expect(boxes.copy.right).toBeLessThanOrEqual(boxes.media.x)
+      if (position === 'top') expect(boxes.media.bottom).toBeLessThanOrEqual(boxes.copy.y)
+      if (position === 'bottom') expect(boxes.copy.bottom).toBeLessThanOrEqual(boxes.media.y)
+      if (position === 'top' || position === 'bottom') {
+        expect(boxes.columns.trim().split(/\s+/)).toHaveLength(1)
+      }
+    })
+  }
+})
+
 test.describe('a generated page uses the site motion language', () => {
   test.beforeEach(async ({page}, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'Pointer interaction contract')

@@ -285,7 +285,7 @@ const saveLabels: Record<SiteEditorSaveState, string> = {
 const readOnlyNotice = {
   tone: 'warning' as const,
   title: 'Não pode guardar alterações',
-  description: 'Esta sessão abriu em modo de consulta. Contacte o suporte técnico.',
+  description: 'Esta sessão abriu em modo de consulta — contacte o suporte técnico',
 }
 
 export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Props) {
@@ -350,6 +350,32 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
   const canPublish = manifest?.capabilities.canPublish ?? initialCanPublish
   const canWrite = manifest?.capabilities.canWrite ?? false
 
+  const postCurrentBuilderState = useCallback(
+    (target = frame?.contentWindow) => {
+      const page = builderPreviewPageFor(documentRef.current, selectedNodeRef.current)
+      if (!target || !page) return false
+      const payload = {page, selectedSectionKey}
+      latestBuilderState.current = payload
+      builderStateLastSentAt.current = Date.now()
+      target.postMessage({type: 'df4y:builder-state', ...payload}, window.location.origin)
+      return true
+    },
+    [frame, selectedSectionKey],
+  )
+
+  const syncLoadedPreview = useCallback(
+    (loadedFrame: HTMLIFrameElement) => {
+      const target = loadedFrame.contentWindow
+      postCurrentBuilderState(target)
+      target?.postMessage(
+        {type: 'df4y:site-editor:permissions', canWrite},
+        window.location.origin,
+      )
+      if (fieldStateRef.current) target?.postMessage(fieldStateRef.current, window.location.origin)
+    },
+    [canWrite, postCurrentBuilderState],
+  )
+
   const clearCanvasSelection = useCallback(
     (closeSettings = true) => {
       inlineEditing.current = false
@@ -385,11 +411,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       window.clearTimeout(noticeRemoveTimer.current)
       const next = {...value, id: ++noticeId.current, closing: false}
       setNotice(next)
-      if (!value.persistent) {
-        noticeDismissTimer.current = window.setTimeout(
-          () => dismissNotice(next.id),
-          value.tone === 'success' ? 4800 : 7600,
-        )
+      // Only good news times out. A warning or an error is the editor telling
+      // the client something is wrong with his site, and it used to remove
+      // itself after seven and a half seconds whether or not he had read it --
+      // which for the client this is built for is most of the time. He kept an
+      // empty gallery on a live page for days; the editor had told him, in the
+      // far corner, at twelve pixels, and then taken it back.
+      if (!value.persistent && value.tone === 'success') {
+        noticeDismissTimer.current = window.setTimeout(() => dismissNotice(next.id), 6000)
       }
     },
     [dismissNotice],
@@ -841,7 +870,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'warning',
         title: 'Não tem permissão para publicar',
-        description: 'As alterações ficam guardadas como rascunho até um administrador publicar.',
+        description: 'As alterações ficam guardadas como rascunho até um administrador publicar',
       })
       return
     }
@@ -1157,14 +1186,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       if (!event.data || typeof event.data.type !== 'string') return
 
       if (event.data.type === 'df4y:builder-ready') {
-        const current = documentRef.current
-        const previewPage = builderPreviewPageFor(current, selectedNodeRef.current)
-        if (previewPage) {
-          frame.contentWindow?.postMessage(
-            {type: 'df4y:builder-state', page: previewPage, selectedSectionKey},
-            window.location.origin,
-          )
-        }
+        postCurrentBuilderState(frame.contentWindow)
         return
       }
 
@@ -1186,7 +1208,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           {type: 'df4y:site-editor:permissions', canWrite},
           window.location.origin,
         )
-        if (event.data.route) await syncPreviewRoute(String(event.data.route))
+        const routeSynced = event.data.route
+          ? await syncPreviewRoute(String(event.data.route))
+          : true
+        if (routeSynced) postCurrentBuilderState(frame.contentWindow)
         if (fieldStateRef.current) {
           frame.contentWindow?.postMessage(fieldStateRef.current, window.location.origin)
         }
@@ -1205,6 +1230,14 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           description:
             'As alterações ficaram guardadas. Clique em “Atualizar página” para as ver aqui.',
         })
+        return
+      }
+
+      if (event.data.type === 'df4y:site-editor:preview-refreshed') {
+        const routeSynced = event.data.route
+          ? await syncPreviewRoute(String(event.data.route))
+          : true
+        if (routeSynced) syncLoadedPreview(frame)
         return
       }
 
@@ -1265,8 +1298,10 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     canWrite,
     frame,
     openDocument,
+    postCurrentBuilderState,
     pushNotice,
     saveNow,
+    syncLoadedPreview,
     syncPreviewRoute,
     targetForSelection,
     updatePath,
@@ -1316,7 +1351,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     )
     return () => {
       window.cancelAnimationFrame(frameId)
-      if (previous?.isConnected) previous.focus()
+      if (previous?.isConnected) previous.focus({preventScroll: true})
     }
   }, [navigationOpen])
 
@@ -1330,7 +1365,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
     )
     return () => {
       window.cancelAnimationFrame(frameId)
-      if (previous?.isConnected) previous.focus()
+      if (previous?.isConnected) previous.focus({preventScroll: true})
     }
   }, [settingsOpen])
 
@@ -1568,7 +1603,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           : {
               tone: 'success',
               title: 'Conteúdo criado',
-              description: 'Fica como rascunho até publicar.',
+              description: 'Fica como rascunho até publicar',
             },
       )
     } catch (error) {
@@ -1650,7 +1685,7 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
       pushNotice({
         tone: 'success',
         title: 'Versão mais recente carregada',
-        description: 'Pode continuar a editar normalmente.',
+        description: 'Pode continuar a editar normalmente',
       })
     } catch (error) {
       setConflictState({open: true, busy: false})
@@ -1837,7 +1872,8 @@ export function SiteEditorApp({csrfToken, previewReady, initialCanPublish}: Prop
           refreshToken={refreshToken}
           previewReady={previewReady}
           onFrame={setFrame}
-          onRouteChange={(route) => void syncPreviewRoute(route)}
+          onRouteChange={syncPreviewRoute}
+          onPreviewLoad={syncLoadedPreview}
         />
       </section>
 

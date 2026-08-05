@@ -155,9 +155,9 @@
   z-index: 6;
   top: 0.75rem;
   left: 0.75rem;
-  padding: 0.35rem 0.55rem;
+  padding: 0.4rem 0.6rem;
   color: #243b35;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 700;
   background: #fff;
   border: 1px solid #cbd8d3;
@@ -170,6 +170,32 @@
   color: #6a4b10;
   background: #fdf4e0;
   border-color: #e6d3a8;
+}
+
+/* Preview only. It occupies the space the missing content would occupy, so an
+   empty section reads as unfinished rather than as nothing at all. Colours match
+   the "vazia" badge so the two are obviously the same message. */
+.builder-section-empty {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 44rem;
+  margin: 3.5rem auto;
+  padding: 1.6rem 1.8rem;
+  color: #5b400c;
+  text-align: center;
+  background: #fdf8ec;
+  border: 2px dashed #dcc389;
+  border-radius: 10px;
+}
+
+.builder-section-empty strong {
+  color: #4a340a;
+  font-size: 1.15rem;
+}
+
+.builder-section-empty span {
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .builder-section-hit-area {
@@ -549,12 +575,33 @@
   display: grid;
   place-items: center;
   min-height: 14rem;
-  color: #5c706a;
+  color: #40564f;
   text-align: center;
-  border: 1px dashed #9db1aa;
+  border: 2px dashed #718780;
 }
 
-.builder-media-empty span { font-size: 2rem; }
+.builder-media-empty span {
+  color: inherit;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.builder-media-empty strong {
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Empty media is an editor control, not page copy. Product feature frames paint
+   a dark teal background even when the surrounding section is light, so the
+   generic muted ink above became almost black on dark green. Keep the frame's
+   design, but give every instruction inside it an explicit accessible palette. */
+.builder-page.is-preview .product-content-media:not(.is-image) .builder-media-empty,
+.builder-page.is-preview .builder-render-section:is(.is-deep, .is-blue) .builder-media-empty {
+  color: #ffffff;
+  background: rgb(255 255 255 / 5%);
+  border-color: #a9dacd;
+}
 
 .builder-grid {
   display: grid;

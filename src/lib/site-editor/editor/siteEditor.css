@@ -6,13 +6,20 @@
 :root {
   /* Shared type scale: every size in the shell reads off one of these six
      steps instead of a one-off px value, so "how big should this text be"
-     has a single answer everywhere in the editor. */
-  --editor-text-2xs: 11px;
-  --editor-text-xs: 12px;
-  --editor-text-sm: 13px;
-  --editor-text-base: 14px;
-  --editor-text-md: 16px;
-  --editor-text-lg: 19px;
+     has a single answer everywhere in the editor.
+
+     The scale was raised a step in August 2026. It had been tuned by people
+     who could read 11px comfortably; the person who uses this editor is 62 and
+     could not read the notices at all. Because every size in the shell reads
+     off these six tokens, moving them moves the whole editor at once and keeps
+     the proportions between steps intact -- which is why the scale exists.
+     The floor is now 12px and tests/style-contract.spec.ts holds it there. */
+  --editor-text-2xs: 12px;
+  --editor-text-xs: 13px;
+  --editor-text-sm: 14px;
+  --editor-text-base: 15px;
+  --editor-text-md: 17px;
+  --editor-text-lg: 20px;
 
   /* Shared text colors. --editor-muted replaces ~65 near-duplicate
      muted greens/grays and is verified at 6.2:1 contrast on white
@@ -632,7 +639,7 @@
   background: #fff6d9;
   border: 1px solid #e7d18c;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-inspector {
@@ -797,7 +804,7 @@
 .site-editor-focused-unavailable p {
   margin: 0;
   color: #61716c;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.55;
 }
 
@@ -891,7 +898,7 @@
 }
 
 .site-editor-global-note strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-global-note p {
@@ -924,7 +931,7 @@
 .site-editor-panel-overview > header p {
   margin: 1px 0 0;
   color: #657670;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.5;
 }
 
@@ -1381,7 +1388,7 @@
 }
 
 .site-editor-navigation-summary strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-navigation-summary small {
@@ -1439,7 +1446,7 @@
   border: 1px solid #ccd9d4;
   border-radius: 4px;
   outline: 0;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.4;
   resize: vertical;
 }
@@ -1581,7 +1588,7 @@
 }
 
 .site-editor-array-index > div > button strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-array-index > div > button small {
@@ -1909,7 +1916,7 @@
 
 .site-editor-gallery-active-head strong {
   color: #17342d;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-gallery-active-head small {
@@ -1942,7 +1949,7 @@
   border: 1px solid #ccd9d4;
   border-radius: 4px;
   outline: 0;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.4;
   resize: vertical;
 }
@@ -2110,7 +2117,7 @@
 
 .site-editor-article-launcher > div strong {
   color: #1c3a32;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-article-launcher > div small {
@@ -2712,7 +2719,7 @@
 
 .site-editor-rich-video-preview strong {
   color: #213d35;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-rich-video-preview small {
@@ -2782,7 +2789,7 @@
 
 .site-editor-rich-object-editor > header strong {
   color: #1f4138;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-rich-object-editor > header button {
@@ -3167,7 +3174,7 @@
 }
 
 .site-editor-section-main strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-section-main small {
@@ -3188,7 +3195,7 @@
   background: #f7faf8;
   border: 1px dashed #cbd8d3;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   text-align: center;
 }
 
@@ -3391,7 +3398,7 @@
   color: #246a5c;
   background: #edf6f2;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-section-list {
@@ -3598,7 +3605,7 @@
   border: 1px solid #126257;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   font-weight: 800;
 }
 
@@ -3717,7 +3724,7 @@
 }
 
 .site-editor-section-picker-group button strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-section-picker-group button small {
@@ -3763,7 +3770,7 @@
   border: 1px solid #126257;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   font-weight: 800;
 }
 
@@ -4055,7 +4062,7 @@
   color: #fff;
   background: #0a4b4e;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   font-weight: 800;
 }
 
@@ -4127,7 +4134,7 @@
 .site-page-media-upload strong,
 .site-page-gallery-add strong,
 .site-page-article-button strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-page-media-upload small,
@@ -4683,7 +4690,7 @@
 }
 
 .site-editor-category-product-list > button strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-category-product-list > button small {
@@ -4722,7 +4729,7 @@
 }
 
 .site-editor-category-pending > span strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-category-pending > span small {
@@ -4747,7 +4754,7 @@
 }
 
 .site-editor-category-delete-guard strong {
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 .site-editor-category-delete-guard p {
@@ -4785,12 +4792,12 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  width: min(390px, calc(100vw - 36px));
+  width: min(430px, calc(100vw - 36px));
   gap: 14px;
-  padding: 15px 13px 15px 16px;
+  padding: 17px 15px 17px 18px;
   background: #fff;
   border: 1px solid #c8d6d1;
-  border-left: 4px solid #278d72;
+  border-left: 6px solid #278d72;
   border-radius: 7px;
   box-shadow:
     0 18px 48px rgb(18 40 34 / 18%),
@@ -4811,12 +4818,29 @@
   pointer-events: none;
 }
 
+/* A problem should not look like a receipt. These three used to differ only by
+   the colour of a 4px edge, so "publicado com sucesso" and "não foi possível
+   guardar" were the same object at a glance -- and a glance is all this client
+   gives it. The tinted field and the coloured heading carry the difference at
+   the size he actually reads, instead of asking him to notice a stripe. */
 .site-editor-notice.is-warning {
-  border-left-color: #c5981d;
+  border-color: #e2c98a;
+  border-left-color: #b9860b;
+  background: #fdf8ec;
+}
+
+.site-editor-notice.is-warning strong {
+  color: #7a5806;
 }
 
 .site-editor-notice.is-error {
-  border-left-color: #aa3939;
+  border-color: #e9c2c2;
+  border-left-color: #a32929;
+  background: #fdf3f3;
+}
+
+.site-editor-notice.is-error strong {
+  color: #8c2020;
 }
 
 .site-editor-notice > span {
@@ -4826,19 +4850,21 @@
 
 .site-editor-notice strong {
   color: var(--editor-ink);
-  font-size: var(--editor-text-sm);
+  font-size: var(--editor-text-md);
   line-height: 1.3;
 }
 
-/* The description carries the actionable half of the message ("which section
-   is missing an image"), so it reads off the shared muted token at 6.2:1
-   rather than the lighter one-off it used to use — at this size a subtitle
-   that reads as "greyed out" is the difference between fixing the problem
-   and not seeing it. */
+/* The description carries the actionable half of the message ("which section is
+   missing an image"), so it is pure black rather than the muted token.
+   --editor-muted is the right answer almost everywhere in the shell and the
+   wrong one here: this line goes to a reader who struggles with it, and the
+   softening that makes a sidebar calm only makes this harder to read. It has
+   been walked up twice now — a one-off light grey, then the shared token at
+   6.2:1 — so black is the end of that road rather than another step along it. */
 .site-editor-notice small {
-  color: var(--editor-muted);
-  font-size: var(--editor-text-xs);
-  line-height: 1.45;
+  color: #000;
+  font-size: var(--editor-text-base);
+  line-height: 1.5;
 }
 
 .site-editor-notice .site-editor-notice-action {
@@ -4862,11 +4888,15 @@
   background: #10584e;
 }
 
+/* 36px rather than 30. WCAG 2.5.8 asks for 24 and this already cleared it, but
+   the floor is not the goal: this is the control that dismisses a message the
+   client has to dismiss himself now that problems no longer time out, and he
+   is not steady with a trackpad. */
 .site-editor-notice button,
 .site-editor-modal-head button {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   color: #50645d;
   background: transparent;
@@ -4935,7 +4965,7 @@
   max-width: 48ch;
   margin: 2px 0 0;
   color: #64766f;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   line-height: 1.5;
 }
 
@@ -5059,7 +5089,7 @@
 .site-editor-page-starters legend {
   margin-bottom: 8px;
   color: #263d36;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   font-weight: 800;
 }
 
@@ -5189,7 +5219,7 @@
   border: 1px solid #cbd8d3;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
   font-weight: 800;
   transition:
     color 140ms ease,
@@ -5228,7 +5258,7 @@
   color: #912f2f;
   background: #fff0f0;
   border-left: 3px solid #b93d3d;
-  font-size: 11px;
+  font-size: var(--editor-text-2xs);
 }
 
 @keyframes site-editor-modal-shade-in {

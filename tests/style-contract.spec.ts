@@ -57,6 +57,75 @@ test('editor text tokens stay readable on the editor surface', () => {
   }
 })
 
+test('an empty media instruction stays readable inside the dark product frame', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chrome', 'Rendered contrast runs once')
+  await page.setExtraHTTPHeaders({
+    'x-df4y-site-editor-e2e': 'df4y-playwright-site-editor',
+    'x-df4y-site-editor-scope': `empty-media-contrast-${Date.now()}`,
+  })
+  await page.goto('/painel/site/e2e-preview?fixture=ratios&lang=pt&emptyMedia=1')
+
+  const placeholder = page.locator('[data-builder-section="ratio-1"] .builder-media-empty strong')
+  await expect(placeholder).toHaveText('Adicionar imagem ou vídeo')
+  const colors = await placeholder.evaluate((element) => {
+    const parse = (value: string) => {
+      const channels = value.match(/[\d.]+/g)!.map(Number)
+      return {r: channels[0], g: channels[1], b: channels[2]}
+    }
+    const foreground = parse(getComputedStyle(element).color)
+    const frame = element.closest('.product-content-media')!
+    const background = parse(getComputedStyle(frame).backgroundColor)
+    return {foreground, background}
+  })
+  const toHex = ({r, g, b}: {r: number; g: number; b: number}) =>
+    `#${[r, g, b].map((value) => Math.round(value).toString(16).padStart(2, '0')).join('')}`
+  expect(contrast(toHex(colors.foreground), toHex(colors.background))).toBeGreaterThanOrEqual(4.5)
+})
+
+/**
+ * The notice tones are the editor's only way of saying something is wrong, and
+ * they are read by a 62-year-old client in a hurry. They used to be white cards
+ * distinguished by a 4px stripe; they now carry a tinted field and a coloured
+ * heading, which only helps if the text on that tint stays readable.
+ *
+ * The pairs are asserted against the stylesheet rather than the screen because
+ * a notice only exists while something has gone wrong, and no rendered check
+ * would see all three tones at once.
+ */
+test('notice tones stay readable on their own tinted backgrounds', () => {
+  const css = read(stylesheets[0])
+  const rule = (selector: string) =>
+    new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+  const prop = (block: string, name: string) =>
+    new RegExp(`(?:^|;)\\s*${name}:\\s*(#[0-9a-f]{3,8})`, 'i').exec(block)?.[1]
+
+  for (const tone of ['warning', 'error']) {
+    const field = prop(rule(`.site-editor-notice.is-${tone}`), 'background')
+    const heading = prop(rule(`.site-editor-notice.is-${tone} strong`), 'color')
+    expect(field, `.site-editor-notice.is-${tone} lost its background tint`).toBeTruthy()
+    expect(heading, `.site-editor-notice.is-${tone} strong lost its colour`).toBeTruthy()
+
+    const headingRatio = contrast(heading!, field!)
+    expect(
+      headingRatio,
+      `${tone} heading ${heading} on ${field} is ${headingRatio.toFixed(2)}:1, below AA 4.5:1`,
+    ).toBeGreaterThanOrEqual(4.5)
+
+    // Read from the stylesheet rather than hardcoded: the description colour has
+    // already been walked from a one-off grey to the muted token to black, and a
+    // literal here would have kept asserting the previous answer.
+    const body = prop(rule('.site-editor-notice small'), 'color')
+    expect(body, '.site-editor-notice small lost its colour').toBeTruthy()
+    const bodyRatio = contrast(body!, field!)
+    expect(
+      bodyRatio,
+      `notice description ${body} on the ${tone} tint is ${bodyRatio.toFixed(2)}:1, below AA 4.5:1`,
+    ).toBeGreaterThanOrEqual(4.5)
+  }
+})
+
 test('no focus-visible rule removes its own outline', () => {
   // Twenty rules once paired :focus-visible with :hover and then set
   // outline: none, with no ring anywhere else — keyboard focus was invisible
@@ -73,10 +142,14 @@ test('no focus-visible rule removes its own outline', () => {
 })
 
 test('editor font sizes stay at or above the documented floor', () => {
-  // The design system documents --editor-text-2xs (11px) as the smallest step.
-  // 82 declarations had drifted under it, some to 7px, which is unreadable and
-  // was never a deliberate choice — it accumulated.
-  const floorPx = 11
+  // The design system documents --editor-text-2xs as the smallest step. 82
+  // declarations had drifted under it, some to 7px, which is unreadable and was
+  // never a deliberate choice — it accumulated.
+  //
+  // Raised from 11 to 12 in August 2026. The client who uses this editor is 62
+  // and could not read the notices; the whole scale moved up a step, and the
+  // floor moves with it or the drift just starts again from the old number.
+  const floorPx = 12
   const offenders = [...read(stylesheets[0]).matchAll(/font-size:\s*([0-9.]+)px/g)]
     .map((m) => Number(m[1]))
     .filter((size) => size < floorPx)

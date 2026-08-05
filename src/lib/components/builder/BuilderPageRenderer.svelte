@@ -75,9 +75,15 @@
   let currentPage = $state<BuilderPage | SitePageDocument | null>(null)
   let currentSettings = $state<BuilderSiteSettings | null>(null)
   let selectedSectionKey = $state<string>()
+  let hasLivePageState = $state(false)
 
   $effect(() => {
-    currentPage = page
+    // Once the editor has supplied its live document, that document is the
+    // source of truth for custom sections. An internal invalidateAll() refresh
+    // may briefly deliver older server props while a save is settling; copying
+    // those props here made galleries fall back to their previous rendering
+    // until the next editor interaction posted the live state again.
+    if (!(preview && listenForState && hasLivePageState)) currentPage = page
   })
   $effect(() => {
     currentSettings = settings
@@ -302,6 +308,17 @@
       return typeof candidate === 'string' ? candidate.trim() : ''
     }
 
+    // A gallery is its images. Judged on its title like every other section, an
+    // empty one counted as publishable and put a "Galeria" heading over blank
+    // space on a live page — the client added the section, never filled it, and
+    // nothing told him. Checked before the title so the title cannot rescue it.
+    if (
+      section._type === 'builderGallerySection' &&
+      !(section.items as unknown[] | undefined)?.length
+    ) {
+      return false
+    }
+
     if ([section.eyebrow, section.title, section.body].some((value) => plainText(value))) return true
 
     const body = (section as Record<string, any>).body
@@ -443,6 +460,7 @@
 
       if (event.data.type === 'df4y:builder-state') {
         if (event.data.page?._type === 'builderPage' || event.data.page?._type === 'sitePage') {
+          hasLivePageState = true
           currentPage = event.data.page
           onpagechange?.(event.data.page)
         }
@@ -535,6 +553,20 @@
                  the site does not, and without this badge the two disagree with
                  no explanation. -->
             <span class="builder-hidden-badge is-empty">Vazia — não aparece no site</span>
+          {/if}
+          {#if preview && section.enabled !== false && !rendersSomethingPublic(section)}
+            <!-- The badge above says the same thing, at 11px, in a corner. For an
+                 empty gallery that badge floats over nothing at all, which is
+                 exactly how a client kept an unfilled gallery on a live page: the
+                 editor had told him, somewhere he was never going to look. This
+                 says it where the missing content would be. -->
+            <div class="builder-section-empty">
+              <strong>Esta secção ainda está vazia</strong>
+              <span>
+                Sem conteúdo, não aparece no site. Use “Editar secção” para adicionar
+                imagens ou texto.
+              </span>
+            </div>
           {/if}
           <div
             class={`builder-render-inner is-${width(section)}`}

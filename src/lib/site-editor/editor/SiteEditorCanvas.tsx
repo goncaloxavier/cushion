@@ -8,7 +8,8 @@ type Props = {
   refreshToken: number
   previewReady: boolean
   onFrame: (frame: HTMLIFrameElement | null) => void
-  onRouteChange: (route: string) => void
+  onRouteChange: (route: string) => boolean | void | Promise<boolean | void>
+  onPreviewLoad: (frame: HTMLIFrameElement) => void
 }
 
 const previewRouteKey = (value: string | URL) => {
@@ -26,6 +27,7 @@ export function SiteEditorCanvas({
   previewReady,
   onFrame,
   onRouteChange,
+  onPreviewLoad,
 }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const previousRefreshToken = useRef(refreshToken)
@@ -96,15 +98,40 @@ export function SiteEditorCanvas({
             ref={frameRef}
             title={`Pré-visualização de ${route || '/'}`}
             src={source}
-            onLoad={() => {
+            onLoad={async () => {
               setLoadTimedOut(false)
-              setLoading(false)
+              const loadedFrame = frameRef.current
+              let loadedRoute: string | undefined
+              let routeIsCurrent = true
               try {
-                const current = frameRef.current?.contentWindow?.location
-                if (current) onRouteChange(`${current.pathname}${current.search}`)
+                const current = loadedFrame?.contentWindow?.location
+                if (current) {
+                  loadedRoute = `${current.pathname}${current.search}`
+                  routeIsCurrent = (await onRouteChange(loadedRoute)) !== false
+                }
               } catch {
                 // The editor preview is same-origin; route messages cover any exceptional load.
               }
+
+              // The iframe can finish loading before its builder-ready message reaches
+              // the parent. Sending the current draft here as well means opening a
+              // settings panel is never what "wakes up" the real gallery or layout.
+              if (loadedFrame && routeIsCurrent) {
+                try {
+                  const current = loadedFrame.contentWindow?.location
+                  const currentRoute = current ? `${current.pathname}${current.search}` : undefined
+                  if (
+                    !loadedRoute ||
+                    !currentRoute ||
+                    previewRouteKey(currentRoute) === previewRouteKey(loadedRoute)
+                  ) {
+                    onPreviewLoad(loadedFrame)
+                  }
+                } catch {
+                  onPreviewLoad(loadedFrame)
+                }
+              }
+              setLoading(false)
             }}
           />
           {loading ? (
