@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {builderImageAspectRatio} from '$lib/builder/media'
+  import {builderImageAspectRatio, builderMediaImageRef} from '$lib/builder/media'
   import {builderLocalized, builderTypographyStyle} from '$lib/builder/content'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import type {BuilderSection} from '$lib/builder/types'
@@ -55,11 +55,11 @@
   // clipped — the client reported the bottom of their composter simply missing,
   // and shrinking the file never helped because the mismatch is the ratio, not
   // the size. Video and embeds have no intrinsic ratio to read, so they keep 16:9.
-  const mediaRatio = $derived(
-    section.media?.kind === 'image'
-      ? (builderImageAspectRatio(section.media?.image?.asset?._ref) ?? 1.7778)
-      : 1.7778,
-  )
+  // builderMediaImageRef decides which asset is showing the same way
+  // BuilderMedia does, so the frame and its contents can never disagree.
+  const imageRef = $derived(builderMediaImageRef(section.media))
+  const isImage = $derived(Boolean(imageRef))
+  const mediaRatio = $derived(builderImageAspectRatio(imageRef) ?? 1.7778)
 
   const blockPreviewNavigation = (event: MouseEvent) => {
     if (preview) event.preventDefault()
@@ -78,10 +78,10 @@
          its child declares. -->
     <div
       class="product-content-media-group"
-      class:is-image={section.media?.kind === 'image'}
+      class:is-image={isImage}
       style={`--product-content-ratio: ${mediaRatio}`}
     >
-      <div class="product-content-media" class:is-image={section.media?.kind === 'image'}>
+      <div class="product-content-media" class:is-image={isImage}>
         <BuilderMedia media={section.media} {dataset} {language} {preview} dataAttribute={dataAttribute?.('media')} />
         {#if label && labelStyle === 'pill'}
           <span class="product-content-label is-pill" data-sanity={dataAttribute?.(`eyebrow.${language}`)}>{label}</span>
