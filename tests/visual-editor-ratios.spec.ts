@@ -59,11 +59,23 @@ const settle = async (page: Page) => {
   await page.waitForTimeout(150)
 }
 
-test.describe('editor preview: image proportions', () => {
+/**
+ * Both surfaces, because "it renders correctly in the editor" is not the claim
+ * that matters to the client -- the page visitors land on is. They are the same
+ * component with `preview` toggled, and these snapshots are what keeps that true
+ * rather than merely believed.
+ */
+const surfaces = [
+  {id: 'editor', query: '', label: 'editor'},
+  {id: 'published', query: '&published=1', label: 'published'},
+] as const
+
+for (const surface of surfaces) {
+test.describe(`${surface.label}: image proportions`, () => {
   test.beforeEach(async ({page}) => {
     await page.setExtraHTTPHeaders({
       'x-df4y-site-editor-e2e': e2eKey,
-      'x-df4y-site-editor-scope': `ratios-${Date.now()}`,
+      'x-df4y-site-editor-scope': `ratios-${surface.id}-${Date.now()}`,
     })
 
     // The fixture references assets that do not exist. Serving an image built
@@ -80,7 +92,7 @@ test.describe('editor preview: image proportions', () => {
       })
     })
 
-    await page.goto('/painel/site/e2e-preview?fixture=ratios&lang=pt')
+    await page.goto(`/painel/site/e2e-preview?fixture=ratios&lang=pt${surface.query}`)
     await expect(page.getByTestId('fixture-ratio-page')).toBeVisible()
     await settle(page)
   })
@@ -91,7 +103,7 @@ test.describe('editor preview: image proportions', () => {
       await expect(section).toBeVisible()
       await section.scrollIntoViewIfNeeded()
       await page.waitForTimeout(200)
-      await expect(section).toHaveScreenshot(`editor-ratio-${name}.png`, {
+      await expect(section).toHaveScreenshot(`${surface.id}-ratio-${name}.png`, {
         maxDiffPixelRatio: 0.01,
       })
     })
@@ -99,8 +111,9 @@ test.describe('editor preview: image proportions', () => {
 
   test('the whole page of proportions', async ({page}) => {
     await expect(page.getByTestId('fixture-ratio-page')).toHaveScreenshot(
-      'editor-ratio-page.png',
+      `${surface.id}-ratio-page.png`,
       {maxDiffPixelRatio: 0.01},
     )
   })
 })
+}

@@ -62,7 +62,18 @@ export const load: PageServerLoad = ({url, request}) => {
   const fixture = url.searchParams.get('fixture')
   const scope = siteEditorE2eScope(request.headers)
   if (fixture === 'ratios') {
-    return {fixture: 'ratios', created: null, home: null, product: null, page: ratioFixturePage()}
+    // The same sections rendered twice: once with the editor's affordances and
+    // once as a visitor sees them after publish. Both go through
+    // BuilderPageRenderer, and `preview` is the only difference between them --
+    // which is the claim the public snapshots exist to keep honest.
+    return {
+      fixture: 'ratios',
+      created: null,
+      home: null,
+      product: null,
+      page: ratioFixturePage(),
+      published: url.searchParams.get('published') === '1',
+    }
   }
   const getDocument = url.searchParams.get('published') === '1'
     ? getPublishedSiteEditorE2eDocument

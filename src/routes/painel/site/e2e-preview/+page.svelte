@@ -44,15 +44,17 @@
   <!-- Every image proportion a client can upload, in the section that has
        broken on proportions three times. Rendered in preview mode, which is
        what the editor shows. -->
-  <div data-testid="fixture-ratio-page">
+  <div data-testid="fixture-ratio-page" data-surface={data.published ? 'published' : 'editor'}>
     <BuilderPageRenderer
       page={data.page as SitePageDocument}
       settings={null}
       content={data.site}
       language={data.language}
       dataset="site-editor-e2e"
-      dataAttribute={(path) => sanity('sitePage.ratio-fixture', 'sitePage', path)}
-      preview
+      dataAttribute={data.published
+        ? undefined
+        : (path) => sanity('sitePage.ratio-fixture', 'sitePage', path)}
+      preview={!data.published}
     />
   </div>
 {:else if data.fixture === 'created' && data.created?.type === 'sitePage' && data.created.page}
