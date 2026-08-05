@@ -49,6 +49,7 @@ export const actions: Actions = {
       action: 'settings.deepl_key',
       entityType: 'settings',
       entityLabel: 'Chave DeepL',
+      detail: 'Chave guardada',
     })
     return {ok: true, saved: true}
   },
@@ -72,6 +73,7 @@ export const actions: Actions = {
       action: 'settings.deepl_key_clear',
       entityType: 'settings',
       entityLabel: 'Chave DeepL',
+      detail: 'Chave removida',
     })
     return {ok: true, cleared: true}
   },

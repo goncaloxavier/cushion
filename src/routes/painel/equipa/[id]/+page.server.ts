@@ -105,6 +105,9 @@ export const actions: Actions = {
       staff: locals.staff,
       action: 'staff.password',
       entityType: 'staff',
+      // Never the password, obviously — only that one was set, so the Detalhe
+      // column is not blank for the single most security-relevant row here.
+      detail: 'Palavra-passe redefinida',
       entityId: params.id,
       entityLabel: member ? `${member.name} (@${member.username})` : params.id,
     })

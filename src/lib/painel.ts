@@ -122,6 +122,26 @@ export const activityActionLabels: Record<string, string> = {
   'settings.deepl_key_clear': 'Removeu a chave da DeepL',
 }
 
+/**
+ * Sanity type names, in the words the backoffice uses everywhere else. The
+ * activity log printed the raw type -- "productCategory", "sitePage" -- into the
+ * Entidade column, which is the one place in the backoffice a person was shown
+ * the code's vocabulary instead of their own.
+ */
+export const siteDocumentTypeLabels: Record<string, string> = {
+  sitePage: 'Página',
+  productCategory: 'Produto',
+  storeProduct: 'Artigo da Loja',
+  storeCategory: 'Categoria da Loja',
+  caseStudy: 'Caso de estudo',
+  blogPost: 'Artigo do blog',
+  siteLanding: 'Conteúdo do site',
+  siteContent: 'Conteúdo do site',
+}
+
+export const siteDocumentTypeLabel = (type: string | undefined) =>
+  (type && siteDocumentTypeLabels[type]) || 'Conteúdo'
+
 export const sourceLabel = (source: string) => {
   if (source === 'catalogue') return 'Catálogo'
   if (source === 'store') return 'Loja'

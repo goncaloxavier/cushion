@@ -30,12 +30,18 @@ export const actions: Actions = {
     const status = String(data.get('status') ?? '')
     if (orderStatuses.includes(status as (typeof orderStatuses)[number])) {
       await setOrderStatus(params.id, status, locals.staff.username)
+      // Entidade names what was acted on; Detalhe says what changed. This put
+      // the new status in Entidade and left Detalhe empty, so the activity log
+      // read "Alterou o estado da encomenda / Pago / -" with nothing anywhere
+      // to say which encomenda.
+      const order = await getOrderDetail(params.id)
       await logStaffActivity({
         staff: locals.staff,
         action: 'order.status',
         entityType: 'order',
         entityId: params.id,
-        entityLabel: orderStatusLabels[status as (typeof orderStatuses)[number]] ?? status,
+        entityLabel: order ? `Encomenda ${order.orderNumber}` : params.id,
+        detail: orderStatusLabels[status as (typeof orderStatuses)[number]] ?? status,
       })
     }
   },
@@ -53,11 +59,13 @@ export const actions: Actions = {
     const note = String(data.get('note') ?? '')
     if (note.trim()) {
       await appendOrderNote(params.id, note, locals.staff.username)
+      const order = await getOrderDetail(params.id)
       await logStaffActivity({
         staff: locals.staff,
         action: 'order.note',
         entityType: 'order',
         entityId: params.id,
+        entityLabel: order ? `Encomenda ${order.orderNumber}` : params.id,
         detail: note.slice(0, 200),
       })
     }
