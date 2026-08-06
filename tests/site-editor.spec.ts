@@ -1068,6 +1068,15 @@ test.describe('visual website editor', () => {
     await expect(title).toBeVisible()
     await expect(title).toHaveCSS('font-family', /Georgia/)
     await expect(title).toHaveCSS('font-size', '80px')
+
+    // Alignment travels the same path as font and size and was the one control
+    // of the three nobody checked, which is exactly the one reported as doing
+    // nothing. Asserted in the preview here and against the published page below.
+    await titleOptions
+      .getByRole('group', {name: 'Alinhamento'})
+      .getByRole('button', {name: 'Centro', exact: true})
+      .click()
+    await expect(title).toHaveCSS('text-align', 'center')
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
     await expect
       .poll(() =>
@@ -1104,6 +1113,7 @@ test.describe('visual website editor', () => {
     await expect(publishedTitle).toBeVisible()
     await expect(publishedTitle).toHaveCSS('font-family', /Georgia/)
     await expect(publishedTitle).toHaveCSS('font-size', '80px')
+    await expect(publishedTitle).toHaveCSS('text-align', 'center')
   })
 
   test('keeps undo history intact when editing again immediately after undo', async ({
