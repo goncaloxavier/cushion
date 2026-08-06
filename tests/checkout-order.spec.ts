@@ -59,6 +59,15 @@ test.describe('checkout', () => {
       await expect(page.locator('.header-actions .cart-count')).toHaveText(/[1-9]/)
 
       await page.goto('/finalizar-compra?lang=pt')
+      // The checkout reveals its panels on scroll, so controls are still moving
+      // when the page settles. Playwright refuses to click an element that is not
+      // stable, and this test is about the order, not the animation.
+      await page.addStyleTag({
+        content: `*, *::before, *::after {
+          animation: none !important;
+          transition: none !important;
+        }`,
+      })
       await expect(page.locator('form input[name="email"]')).toBeVisible()
 
       await page.locator('input[name="name"]').fill('Cliente Playwright')
