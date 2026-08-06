@@ -108,7 +108,14 @@ export const builderTypographyStyle = (
     `margin-inline-start:${marginInlineStart}`,
     `margin-inline-end:${marginInlineEnd}`,
     `line-height:${lineHeight}`,
-    `max-width:${maxWidth}ch`,
+    // Bounded by the container as well as by the reading measure. A ch cap grows
+    // with the font, so a title the client enlarged reached 24ch = 1493px inside
+    // a 380px card; centring adds auto inline margins, which in a flex column
+    // size the element to its content instead of stretching it, so nothing held
+    // the heading to the card and it simply ran out of the side and was clipped.
+    // min() keeps the measure where it fits and the card where it does not,
+    // which is what lets overflow-wrap break the word and the card grow taller.
+    `max-width:min(100%, ${maxWidth}ch)`,
     `color:${color}`,
   ].filter(Boolean).join(';')
 }

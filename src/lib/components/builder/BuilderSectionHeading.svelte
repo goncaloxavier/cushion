@@ -39,12 +39,22 @@
       : builderLocalized(section.body as Parameters<typeof builderLocalized>[0], language),
   )
 
+  // The eyebrow and the buttons follow the title's alignment, so a centred
+  // section reads as one block. Alignment is stored per text, which is why
+  // centring a title used to leave the label and the buttons hard left: correct
+  // by the data, and plainly wrong to anyone looking at the page.
+  const blockAlign = $derived(
+    ['center', 'right'].includes(section.titleStyle?.align || '')
+      ? (section.titleStyle?.align as 'center' | 'right')
+      : 'left',
+  )
+
   const blockPreviewNavigation = (event: MouseEvent) => {
     if (preview) event.preventDefault()
   }
 </script>
 
-<div class="builder-section-heading">
+<div class="builder-section-heading" data-align={blockAlign}>
   {#if eyebrow}
     <p
       class="builder-eyebrow cms-styled-text"

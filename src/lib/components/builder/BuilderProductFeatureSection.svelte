@@ -71,7 +71,7 @@
   class:has-copy={hasCopy}
   aria-label={title || builderLocalized(section.media?.alt, language) || undefined}
 >
-  <div class="product-content-inner">
+  <div class="product-content-inner" style={`--product-content-ratio: ${mediaRatio}`}>
     <!-- The ratio is declared on the group, not the frame inside it. Custom
          properties inherit downwards, so the frame still reads it — but the
          group needs it too, to cap its own width, and it cannot see a property

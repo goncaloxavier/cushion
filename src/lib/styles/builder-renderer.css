@@ -816,3 +816,24 @@ html.reduce-motion .builder-page .reveal.visible .builder-cta-media > .builder-m
 .builder-cta-media {
   margin-bottom: 1.4rem;
 }
+
+/* A section reads as one block. Alignment lives on each text, so centring a
+   title moved the title alone and left the eyebrow and the buttons against the
+   left edge — correct by the data, and plainly wrong on the page. The heading
+   carries the title's alignment so its label and actions follow it; the title
+   and body still set their own, which wins over this. */
+.builder-section-heading[data-align='center'] {
+  text-align: center;
+}
+
+.builder-section-heading[data-align='center'] .builder-actions {
+  justify-content: center;
+}
+
+.builder-section-heading[data-align='right'] {
+  text-align: right;
+}
+
+.builder-section-heading[data-align='right'] .builder-actions {
+  justify-content: flex-end;
+}
