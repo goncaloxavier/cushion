@@ -7,6 +7,10 @@ import {
   siteEditorE2eScope,
 } from '$lib/server/site-editor-e2e'
 import {ratioFixturePage} from '$lib/server/site-editor-ratio-fixture'
+import {
+  managedSectionFixture,
+  sectionFixturePage,
+} from '$lib/server/site-editor-section-fixture'
 import {normalizeEditorDocumentId} from '$lib/site-editor/path'
 import {textAppearanceFields} from '$lib/text-appearance'
 import type {PageServerLoad} from './$types'
@@ -91,6 +95,45 @@ export const load: PageServerLoad = ({url, request}) => {
       product: null,
       page,
       published: url.searchParams.get('published') === '1',
+    }
+  }
+  if (fixture === 'sections') {
+    const requestedGroup = url.searchParams.get('group') || 'types'
+    const group = [
+      'types',
+      'hero',
+      'media',
+      'gallery',
+      'columns',
+      'collection',
+      'contact',
+      'alignment',
+      'typography',
+      'layout',
+    ].includes(requestedGroup)
+      ? requestedGroup
+      : 'types'
+    return {
+      fixture: 'sections',
+      created: null,
+      home: null,
+      product: null,
+      page: sectionFixturePage(group),
+      published: url.searchParams.get('published') === '1',
+      sectionGroup: group,
+      managed: null,
+    }
+  }
+  if (fixture === 'managed-sections') {
+    return {
+      fixture: 'managed-sections',
+      created: null,
+      home: null,
+      product: null,
+      page: null,
+      published: false,
+      sectionGroup: null,
+      managed: managedSectionFixture(),
     }
   }
   const getDocument = url.searchParams.get('published') === '1'
@@ -178,6 +221,7 @@ export const load: PageServerLoad = ({url, request}) => {
       weightKg: typeof firstVariant?.weightKg === 'number' ? firstVariant.weightKg : null,
       priceNatural:
         typeof firstVariant?.priceNatural === 'number' ? firstVariant.priceNatural : null,
+      sections: Array.isArray(document.sections) ? document.sections : [],
       page: document._type === 'sitePage' ? document : null,
     },
   }

@@ -126,6 +126,41 @@ test('notice tones stay readable on their own tinted backgrounds', () => {
   }
 })
 
+/**
+ * The preview overlay and the section renderer both write to the same inline
+ * style attribute, and neither can own all of it.
+ *
+ * applyAppearanceToElement used to assign a value for every property it knows
+ * about, falling back to '' when the per-text appearance did not define one.
+ * Assigning '' deletes the property, so simply clicking a heading to edit it
+ * erased the font, weight, alignment, line height and colour the section had set
+ * in the right-hand panel — the client watched his centred title jump left the
+ * moment he selected it, and nothing in this suite noticed.
+ *
+ * Remembering the previous value and restoring it is the same bug facing the
+ * other way: the remembered value goes stale as soon as the panel changes, and
+ * writing it back reverts the edit that was just made. The only safe rule is to
+ * write what the appearance defines and touch nothing else, which is what the
+ * guarded setter does. This asserts the setter is still the only way through.
+ */
+test('the preview overlay never clears styles it does not own', () => {
+  const source = read('src/lib/components/SiteEditorOverlay.svelte')
+  const fn = /const applyAppearanceToElement =[\s\S]*?\n  \}/.exec(source)
+  expect(fn, 'applyAppearanceToElement was renamed or removed').not.toBeNull()
+  const body = fn![0]
+
+  // Direct assignment is what allowed '' (delete) and a cached value (revert).
+  const directAssignments = [...body.matchAll(/element\.style\.[A-Za-z]+\s*=/g)].map((m) => m[0])
+  expect(
+    directAssignments,
+    `applyAppearanceToElement assigns element.style directly (${directAssignments.join(', ')}); ` +
+      'an undefined appearance field must leave the section typography alone, not overwrite it',
+  ).toEqual([])
+
+  // And the guarded setter has to keep refusing empty values.
+  expect(body, 'the guarded setter is gone').toContain('if (resolved) element.style.setProperty')
+})
+
 test('no focus-visible rule removes its own outline', () => {
   // Twenty rules once paired :focus-visible with :hover and then set
   // outline: none, with no ring anywhere else — keyboard focus was invisible

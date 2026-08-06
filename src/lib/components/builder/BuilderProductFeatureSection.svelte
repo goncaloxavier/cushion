@@ -1,6 +1,6 @@
 <script lang="ts">
   import {builderImageAspectRatio, builderMediaImageRef} from '$lib/builder/media'
-  import {builderLocalized, builderTypographyStyle} from '$lib/builder/content'
+  import {builderLocalized, builderSectionTextStyle} from '$lib/builder/content'
   import {textAppearanceStyle} from '$lib/text-appearance'
   import type {BuilderSection} from '$lib/builder/types'
   import type {LanguageCode} from '$lib/site-content'
@@ -71,7 +71,7 @@
   class:has-copy={hasCopy}
   aria-label={title || builderLocalized(section.media?.alt, language) || undefined}
 >
-  <div class="product-content-inner">
+  <div class="product-content-inner" style={`--product-content-ratio: ${mediaRatio}`}>
     <!-- The ratio is declared on the group, not the frame inside it. Custom
          properties inherit downwards, so the frame still reads it — but the
          group needs it too, to cap its own width, and it cannot see a property
@@ -101,14 +101,14 @@
           {#if title}
             <h2
               class="cms-styled-text"
-              style={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}`}
+              style={builderSectionTextStyle(section.titleStyle, section.title, 'title')}
               data-sanity={dataAttribute?.(`title.${language}`)}
             >{title}</h2>
           {/if}
           {#if text}
             <p
               class="cms-styled-text"
-              style={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(section.body)}`}
+              style={builderSectionTextStyle(section.bodyStyle, section.body, 'body')}
               data-sanity={dataAttribute?.(`body.${language}`)}
             >{text}</p>
           {/if}

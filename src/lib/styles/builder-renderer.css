@@ -622,6 +622,29 @@
   aspect-ratio: 16 / 8;
 }
 
+/* The rail is a browsing strip, not another name for the regular grid. Keep
+   each item large enough to inspect and let the row scroll without changing
+   the page width. */
+.builder-gallery.is-rail {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(18rem, 36%);
+  overflow-x: auto;
+  padding-block-end: 0.75rem;
+  scroll-padding-inline: 0.1rem;
+  scroll-snap-type: inline proximity;
+  overscroll-behavior-inline: contain;
+}
+
+.builder-gallery.is-rail > * {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.builder-gallery.is-rail .builder-media {
+  height: 100%;
+}
+
 .builder-card,
 .builder-collection > a {
   display: grid;
@@ -792,4 +815,25 @@ html.reduce-motion .builder-page .reveal.visible .builder-cta-media > .builder-m
 /* Call to action media sits above the shared heading and button treatment. */
 .builder-cta-media {
   margin-bottom: 1.4rem;
+}
+
+/* A section reads as one block. Alignment lives on each text, so centring a
+   title moved the title alone and left the eyebrow and the buttons against the
+   left edge — correct by the data, and plainly wrong on the page. The heading
+   carries the title's alignment so its label and actions follow it; the title
+   and body still set their own, which wins over this. */
+.builder-section-heading[data-align='center'] {
+  text-align: center;
+}
+
+.builder-section-heading[data-align='center'] .builder-actions {
+  justify-content: center;
+}
+
+.builder-section-heading[data-align='right'] {
+  text-align: right;
+}
+
+.builder-section-heading[data-align='right'] .builder-actions {
+  justify-content: flex-end;
 }

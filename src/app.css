@@ -4662,7 +4662,18 @@ body.lightbox-open {
    also covers the opposite case — a long paragraph beside a wide, short photo. */
 .product-content-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1.34fr) minmax(16.5rem, 0.66fr);
+
+  /* The media track takes only what the image actually needs. Its width is
+     already capped by the image's own proportions, so a fixed 1.34fr left a
+     portrait photo sitting in a column far wider than itself — dead space beside
+     the picture while the copy card next to it was too narrow to hold a title
+     the client had enlarged. fit-content() caps the track at that same
+     ratio-derived width and hands the remainder to the card, so the narrower the
+     image, the more room the text gets. A wide panorama still takes its width
+     and the card falls back to its 16.5rem minimum. */
+  grid-template-columns:
+    fit-content(calc(76svh * var(--product-content-ratio, 1.7778)))
+    minmax(16.5rem, 1fr);
   gap: clamp(1rem, 2.6vw, 1.8rem);
   align-items: center;
   max-width: var(--max);
@@ -7475,17 +7486,55 @@ html.reduce-motion .intro-overlay {
   display: none !important;
 }
 /* CMS text overrides use fixed breakpoints so typography remains predictable. */
+/* Text the client controls the size of, so it has to survive a size the layout
+   was never designed around. Raising a title far enough produces a single word
+   wider than the card holding it — "Composteira" at 96px needs 356px inside a
+   346px content box — and with overflow-wrap at its default the word cannot
+   break, so it runs past the edge and .product-content-copy's overflow:hidden
+   cuts it off mid-letter. The card cannot widen, since its column is fixed, so
+   the word has to break and let the card grow taller instead. This only takes
+   effect when a word genuinely does not fit, so nothing else moves. */
 .cms-styled-text {
   white-space: pre-line;
+
+  /* `anywhere`, not `break-word`. Both let a too-long word break during layout,
+     but only `anywhere` reduces the element's min-content width — and that is
+     what actually matters here, because these headings are grid and flex items
+     whose automatic minimum size is their min-content width. With `break-word`
+     the unbreakable word kept the minimum at its full length, so a 96px title
+     measured 587px inside a 313px column, overflowed, and was clipped by the
+     card. min-width:0 removes the automatic minimum for the same reason. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  /* Hyphenate before resorting to that. `anywhere` guarantees nothing is ever
+     clipped, but on its own it breaks wherever the line runs out — "Composteir
+     / a Humi" at 56px. With the document's language declared, the browser
+     breaks at a syllable and marks it with a hyphen instead, which is the
+     difference between a large title looking set and looking broken. */
+  hyphens: auto;
 }
 
 .cms-styled-text[style*='--cms-text-size-desktop'] {
   font-size: var(--cms-text-size-desktop) !important;
 }
 
+/* Designed builder sections (notably the product media block and the landing
+   bands) carry their own default heading sizes. Only replace those defaults
+   after the client explicitly chooses a section size. The marker comes from
+   builderTypographyStyle, so a section with untouched typography keeps its
+   original design while the size controls remain authoritative once used. */
+.cms-styled-text[style*='--builder-font-size-explicit'] {
+  font-size: var(--builder-font-desktop) !important;
+}
+
 @media (max-width: 900px) {
   .cms-styled-text[style*='--cms-text-size-desktop'] {
     font-size: var(--cms-text-size-tablet, var(--cms-text-size-desktop)) !important;
+  }
+
+  .cms-styled-text[style*='--builder-font-size-explicit'] {
+    font-size: var(--builder-font-tablet, var(--builder-font-desktop)) !important;
   }
 }
 
@@ -7494,6 +7543,14 @@ html.reduce-motion .intro-overlay {
     font-size: var(
       --cms-text-size-mobile,
       var(--cms-text-size-tablet, var(--cms-text-size-desktop))
+    ) !important;
+  }
+
+
+  .cms-styled-text[style*='--builder-font-size-explicit'] {
+    font-size: var(
+      --builder-font-mobile,
+      var(--builder-font-tablet, var(--builder-font-desktop))
     ) !important;
   }
 }

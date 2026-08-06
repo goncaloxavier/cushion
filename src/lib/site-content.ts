@@ -29,6 +29,7 @@ export type SiteNavigationItem = LinkItem & {
   visibleDesktop: boolean
   visibleMobile: boolean
   newTab: boolean
+  textAppearance?: TextAppearance
 }
 
 export type CopyBlock = {
@@ -116,6 +117,7 @@ export type PartnerItem = {
   logo: ContentImage
   logoTone: 'light' | 'dark'
   text: string
+  textAppearance?: TextAppearanceMap
 }
 
 export type ProductItem = {
@@ -2786,6 +2788,7 @@ const partnersFromSanity = (
         logo: imageFromSanity(item.logo, language, partnerLogos.abaae),
         logoTone: item.logoTone ?? 'light',
         text: localized(item.text, language, ''),
+        textAppearance: appearanceMap({text: item.text}),
       }
     })
     .filter((item) => item.name && item.logo.url)
@@ -3126,6 +3129,7 @@ const applySiteContentFromSanity = (
       return {
         key: item._key || `navigation-${index}`,
         label: localized(item.label, language, ''),
+        textAppearance: appearanceFrom(item.label),
         href,
         placement: placement === 'utility' ? ('utility' as const) : ('primary' as const),
         visibleDesktop: item.visibleDesktop !== false,

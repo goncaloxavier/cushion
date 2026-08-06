@@ -18,7 +18,27 @@ import {
   SiteEditorValidationError,
 } from '$lib/server/site-editor-errors'
 import {logStaffActivity} from '$lib/server/staff-activity'
+import {siteDocumentTypeLabel} from '$lib/painel'
 import type {RequestHandler} from './$types'
+
+/**
+ * A document's own name, for the Entidade column of the activity log. Titles are
+ * a localized object on most types and a plain string on sitePage, so both are
+ * read here rather than at each call site.
+ */
+const siteDocumentTitle = (document: {_id: string; title?: unknown; route?: unknown}) => {
+  const title = document.title
+  if (typeof title === 'string' && title.trim()) return title.trim()
+  if (title && typeof title === 'object') {
+    const localized = title as Record<string, unknown>
+    for (const language of ['pt', 'en', 'es']) {
+      const value = localized[language]
+      if (typeof value === 'string' && value.trim()) return value.trim()
+    }
+  }
+  if (typeof document.route === 'string' && document.route.trim()) return document.route.trim()
+  return document._id
+}
 
 const csrfCookieName = 'df4y_painel_csrf'
 const maxJsonBytes = 4 * 1024 * 1024
@@ -111,7 +131,11 @@ export const POST: RequestHandler = async ({request, url, cookies, locals}) => {
         action: 'site.publish',
         entityType: 'siteDocument',
         entityId: body.document._id,
-        entityLabel: body.document._type,
+        // The title, not the Sanity type. Entidade used to read
+        // "productCategory" here -- the code's word for it, in the one column
+        // meant to tell a person which page they touched.
+        entityLabel: siteDocumentTitle(body.document),
+        detail: siteDocumentTypeLabel(body.document._type),
       })
     }
     return json({document: published})
@@ -139,13 +163,21 @@ export const DELETE: RequestHandler = async ({request, url, cookies, locals}) =>
   requireMutationAccess(request, url, cookies)
   const id = url.searchParams.get('id')?.trim()
   if (!id) error(400, 'Identificador em falta.')
-  await runMutation(() => deleteSiteEditorDocument(id, siteEditorE2eScope(request.headers)))
+  // Read before deleting: afterwards there is nothing left to name it with, and
+  // the log used to record the bare identifier.
+  const scope = siteEditorE2eScope(request.headers)
+  const doomed = await getSiteEditorDocument(id, scope).catch(() => null)
+  const deletedLabel = doomed ? siteDocumentTitle(doomed) : undefined
+  const deletedType = doomed?._type
+  await runMutation(() => deleteSiteEditorDocument(id, scope))
   if (!siteEditorE2eRequestStaff(request.headers)) {
     await logStaffActivity({
       staff: locals.staff,
       action: 'site.delete',
       entityType: 'siteDocument',
       entityId: id,
+      entityLabel: deletedLabel ?? id,
+      detail: deletedType ? siteDocumentTypeLabel(deletedType) : '',
     })
   }
   return json({ok: true})

@@ -34,6 +34,7 @@ import {
 import {documentPanels, siteScopePanels} from '../src/lib/site-editor/model'
 import {contentFromSanity, type SanityCollections} from '../src/lib/site-content'
 import {textAppearanceStyle} from '../src/lib/text-appearance'
+import {builderSectionTextStyle} from '../src/lib/builder/content'
 import {breadcrumbListSchema} from '../src/lib/seo'
 import {errorCopy} from '../src/lib/error-copy'
 
@@ -139,6 +140,46 @@ test.describe('Sanity Studio content contract', () => {
     // A real size still works and is still clamped at the bottom.
     expect(textAppearanceStyle({fontSize: 48})).toContain('--cms-text-size-desktop:48px')
     expect(textAppearanceStyle({fontSize: 2})).toContain('--cms-text-size-desktop:10px')
+  })
+
+  test('section typography overrides stale per-text formatting without discarding unused fallbacks', () => {
+    const style = builderSectionTextStyle(
+      {
+        fontFamily: 'georgia',
+        fontSize: {desktop: 64, tablet: 52, mobile: 40},
+        fontWeight: '700',
+        align: 'center',
+      },
+      {
+        fontFamily: 'arial',
+        fontSize: 18,
+        fontSizeTablet: 18,
+        fontSizeMobile: 18,
+        fontWeight: '400',
+        fontStyle: 'italic',
+        textAlign: 'left',
+      },
+      'title',
+    )
+
+    expect(style).toContain('--builder-font-size-explicit:1')
+    expect(style).toContain('--builder-font-desktop:64px')
+    expect(style).toContain('font-family:Georgia, serif')
+    expect(style).toContain('font-weight:700')
+    expect(style).toContain('text-align:center')
+    expect(style).toContain('font-style:italic')
+    expect(style).not.toContain('--cms-text-size')
+    expect(style).not.toContain('font-family:Arial')
+    expect(style).not.toContain('text-align:left')
+
+    const legacyFallback = builderSectionTextStyle(
+      undefined,
+      {fontFamily: 'arial', fontSize: 22, textAlign: 'right'},
+      'title',
+    )
+    expect(legacyFallback).toContain('--cms-text-size-desktop:22px')
+    expect(legacyFallback).toContain('font-family:Arial, sans-serif')
+    expect(legacyFallback).toContain('text-align:right')
   })
 
   test('every collection the client publishes into can be hidden from its list', () => {
@@ -293,6 +334,23 @@ test.describe('Sanity Studio content contract', () => {
     })
     const collections = {
       siteContent: {
+        navigation: [
+          {
+            _key: 'styled-navigation',
+            label: {
+              _type: 'localizedString',
+              pt: 'Navegação com estilo',
+              fontFamily: 'times-new-roman',
+              fontSize: 19,
+              fontWeight: 'bold',
+              textAlign: 'center',
+            },
+            href: '/produtos',
+            placement: 'primary',
+            visibleDesktop: true,
+            visibleMobile: true,
+          },
+        ],
         home: {
           hero: {
             title: {
@@ -328,11 +386,25 @@ test.describe('Sanity Studio content contract', () => {
     expect(content.products[0].textAppearance?.title).toEqual(
       expect.objectContaining({fontFamily: 'inter', fontSize: 42}),
     )
+    expect(content.navigation?.[0].textAppearance).toEqual(
+      expect.objectContaining({
+        fontFamily: 'times-new-roman',
+        fontSize: 19,
+        fontWeight: 'bold',
+        textAlign: 'center',
+      }),
+    )
     expect(textAppearanceStyle(content.home.hero.textAppearance?.title)).toContain(
       '--cms-text-size-desktop:64px',
     )
     expect(textAppearanceStyle(content.home.hero.textAppearance?.title)).toContain(
       'font-family:Georgia, serif',
+    )
+    expect(textAppearanceStyle(content.navigation?.[0].textAppearance)).toContain(
+      'font-family:\'Times New Roman\', serif',
+    )
+    expect(textAppearanceStyle(content.navigation?.[0].textAppearance)).toContain(
+      '--cms-text-size-desktop:19px',
     )
   })
 

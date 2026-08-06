@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     builderLocalized,
-    builderTypographyStyle,
+    builderSectionTextStyle,
     safeBuilderHref,
   } from '$lib/builder/content'
   import {correctedTextColor} from '$lib/builder/contrast'
@@ -39,12 +39,22 @@
       : builderLocalized(section.body as Parameters<typeof builderLocalized>[0], language),
   )
 
+  // The eyebrow and the buttons follow the title's alignment, so a centred
+  // section reads as one block. Alignment is stored per text, which is why
+  // centring a title used to leave the label and the buttons hard left: correct
+  // by the data, and plainly wrong to anyone looking at the page.
+  const blockAlign = $derived(
+    ['center', 'right'].includes(section.titleStyle?.align || '')
+      ? (section.titleStyle?.align as 'center' | 'right')
+      : 'left',
+  )
+
   const blockPreviewNavigation = (event: MouseEvent) => {
     if (preview) event.preventDefault()
   }
 </script>
 
-<div class="builder-section-heading">
+<div class="builder-section-heading" data-align={blockAlign}>
   {#if eyebrow}
     <p
       class="builder-eyebrow cms-styled-text"
@@ -55,7 +65,7 @@
   {#if title}
     <h2
       class="builder-responsive-title cms-styled-text"
-      style={`${builderTypographyStyle(section.titleStyle, 'title')};${textAppearanceStyle(section.title)}${legible(fieldColor(section.title) ?? section.titleStyle?.color)}`}
+      style={`${builderSectionTextStyle(section.titleStyle, section.title, 'title')}${legible(fieldColor(section.title) ?? section.titleStyle?.color)}`}
       data-sanity={dataAttribute?.(`title.${language}`)}
     >
       {title}
@@ -64,7 +74,7 @@
   {#if body}
     <p
       class="builder-responsive-body cms-styled-text"
-      style={`${builderTypographyStyle(section.bodyStyle, 'body')};${textAppearanceStyle(section.body as Parameters<typeof textAppearanceStyle>[0])}${legible(fieldColor(section.body) ?? section.bodyStyle?.color)}`}
+      style={`${builderSectionTextStyle(section.bodyStyle, section.body as Parameters<typeof builderSectionTextStyle>[1], 'body')}${legible(fieldColor(section.body) ?? section.bodyStyle?.color)}`}
       data-sanity={dataAttribute?.(`body.${language}`)}
     >
       {body}

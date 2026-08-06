@@ -258,9 +258,19 @@ test.describe('visual website editor', () => {
     const fontSize = settings.getByRole('spinbutton', {name: `Tamanho no ${viewportName}`})
     await fontSize.fill('64')
     await expect(heading).toHaveCSS('font-size', '64px')
+    await settings.getByRole('button', {name: 'Itálico', exact: true}).click()
+    await settings.getByRole('combobox', {name: 'Alinhamento', exact: true}).selectOption('center')
+    await settings
+      .getByRole('combobox', {name: 'Espaço entre linhas', exact: true})
+      .selectOption('relaxed')
+    await expect(heading).toHaveCSS('font-style', 'italic')
+    await expect(heading).toHaveCSS('text-align', 'center')
+    await expect.poll(() => heading.evaluate((element) => element.style.lineHeight)).toBe('1.8')
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
     await expect(heading).toHaveCSS('font-family', /Georgia/)
     await expect(heading).toHaveCSS('font-size', '64px')
+    await expect(heading).toHaveCSS('font-style', 'italic')
+    await expect(heading).toHaveCSS('text-align', 'center')
     await expect(frame.locator('html')).toHaveAttribute(
       'data-site-editor-fixture-boot',
       initialBootId!,
@@ -327,6 +337,9 @@ test.describe('visual website editor', () => {
     await expect(savedHeading).toHaveText('Título final guardado pelo editor')
     await expect(savedHeading).toHaveCSS('font-family', /Georgia/)
     await expect(savedHeading).toHaveCSS('font-size', '64px')
+    await expect(savedHeading).toHaveCSS('font-style', 'italic')
+    await expect(savedHeading).toHaveCSS('text-align', 'center')
+    await expect.poll(() => savedHeading.evaluate((element) => element.style.lineHeight)).toBe('1.8')
   })
 
   test('keeps a newer edit when it is made while publishing', async ({page}, testInfo) => {
@@ -358,6 +371,159 @@ test.describe('visual website editor', () => {
     await expect(page.locator('.site-editor-notice')).toContainText('Português publicado')
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
     await expect(heading).toHaveText('Alteração mais recente preservada')
+  })
+
+  test('never lets an older autosave refresh roll back a newer text edit', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Autosave concurrency runs once')
+    const frame = await openEditor(page, testInfo)
+    const heading = frame.getByTestId('fixture-hero-title')
+
+    await heading.click()
+    await frame.locator('.site-editor-inline-more').click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    const input = settings.locator('.site-editor-focused-field textarea')
+    await input.fill('Base estável do título')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Alterações por guardar')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+
+    await frame.locator('body').evaluate((body) => {
+      const states: string[] = []
+      const read = () => {
+        const value = body.querySelector('[data-testid="fixture-hero-title"]')?.textContent?.trim()
+        if (value && states.at(-1) !== value) states.push(value)
+      }
+      read()
+      const observer = new MutationObserver(read)
+      observer.observe(body, {childList: true, characterData: true, subtree: true})
+      ;(window as any).__df4yRapidTextStates = states
+      ;(window as any).__df4yRapidTextObserver = observer
+    })
+
+    let releaseFirstSave: (() => void) | undefined
+    const firstSaveGate = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve
+    })
+    let firstSaveSeen = false
+    await page.route('**/painel/site/api', async (route) => {
+      if (route.request().method() === 'PUT' && !firstSaveSeen) {
+        firstSaveSeen = true
+        await firstSaveGate
+      }
+      await route.continue()
+    })
+
+    await input.fill('Versão intermédia ainda a guardar')
+    await expect.poll(() => firstSaveSeen).toBe(true)
+    await input.fill('Versão final que nunca pode recuar')
+    await expect(heading).toHaveText('Versão final que nunca pode recuar')
+    releaseFirstSave?.()
+
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+    await page.waitForTimeout(900)
+    await expect(input).toHaveValue('Versão final que nunca pode recuar')
+    await expect(heading).toHaveText('Versão final que nunca pode recuar')
+    const states = await frame.locator('body').evaluate(() => {
+      ;(window as any).__df4yRapidTextObserver?.disconnect()
+      return (window as any).__df4yRapidTextStates as string[]
+    })
+    const finalIndex = states.indexOf('Versão final que nunca pode recuar')
+    expect(finalIndex).toBeGreaterThanOrEqual(0)
+    expect(states.slice(finalIndex + 1)).not.toContain('Versão intermédia ainda a guardar')
+  })
+
+  test('never lets an older product save replace newer section content', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Product autosave concurrency runs once')
+    test.setTimeout(45_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await modal.getByRole('button', {name: 'Produto', exact: true}).click()
+    await modal.getByLabel('Nome').fill('Produto com autosave concorrente')
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
+    await expect(modal).toHaveCount(0)
+    await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
+
+    const documentId = await frame
+      .locator('html')
+      .evaluate(() => new URL(window.location.href).searchParams.get('document'))
+    expect(documentId).toBeTruthy()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Chamada para ação/}).click()
+    const title = settings.locator('.site-page-editor-group.is-open textarea').first()
+    await title.fill('Secção estável antes da corrida')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Alterações por guardar')
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+    const appearance = settings.locator('details.is-appearance')
+    await appearance.locator(':scope > summary').click()
+    const titleOptions = appearance
+      .locator('details.site-page-subdetails')
+      .filter({hasText: /^Título/})
+    await titleOptions.locator('summary').click()
+    const alignment = titleOptions.getByRole('group', {name: 'Alinhamento'})
+
+    let releaseFirstSave: (() => void) | undefined
+    const firstSaveGate = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve
+    })
+    let firstSaveSeen = false
+    await page.route('**/painel/site/api', async (route) => {
+      if (route.request().method() === 'PUT' && !firstSaveSeen) {
+        firstSaveSeen = true
+        await firstSaveGate
+      }
+      await route.continue()
+    })
+
+    await title.fill('Secção intermédia ainda a guardar')
+    await alignment.getByRole('button', {name: 'Centro', exact: true}).click()
+    await expect.poll(() => firstSaveSeen).toBe(true)
+    await title.fill('Secção final preservada')
+    await alignment.getByRole('button', {name: 'Direita', exact: true}).click()
+    const previewTitle = frame.getByText('Secção final preservada', {exact: true})
+    await expect(previewTitle).toBeVisible()
+    await expect(previewTitle).toHaveCSS('text-align', 'right')
+    releaseFirstSave?.()
+
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+    await page.waitForTimeout(900)
+    await expect(title).toHaveValue('Secção final preservada')
+    await expect(previewTitle).toBeVisible()
+    await expect(previewTitle).toHaveCSS('text-align', 'right')
+    await expect
+      .poll(() =>
+        page.evaluate(async (id) => {
+          const response = await fetch(`/painel/site/api?document=${encodeURIComponent(id)}`)
+          const payload = (await response.json()) as {
+            document?: {
+              sections?: Array<{
+                _type?: string
+                title?: {pt?: string}
+                titleStyle?: {align?: string}
+              }>
+            }
+          }
+          const section = payload.document?.sections?.find(
+            (section) => section._type === 'builderCtaSection',
+          )
+          return {title: section?.title?.pt, alignment: section?.titleStyle?.align}
+        }, documentId!),
+      )
+      .toEqual({title: 'Secção final preservada', alignment: 'right'})
   })
 
   test('finishes publishing before opening a different document', async ({page}, testInfo) => {
@@ -582,6 +748,68 @@ test.describe('visual website editor', () => {
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado')
   })
 
+  test('serializes several rapid right-panel choices behind one in-flight save', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Immediate save queue runs once')
+    await openEditor(page, testInfo)
+
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await expandCollection(navigation, /Produtos da Loja/)
+    await navigation.getByRole('button', {name: /Banco editorial/}).click()
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Opções, pesos e preços'})
+      .click()
+    await settings
+      .locator('.site-editor-field-index > button')
+      .filter({hasText: 'Permitir escolha de acabamento'})
+      .click()
+    const finishChoice = settings.getByRole('switch', {
+      name: 'Permitir escolha de acabamento',
+    })
+    await expect(finishChoice).toBeChecked()
+
+    let releaseFirstSave: (() => void) | undefined
+    const firstSaveGate = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve
+    })
+    let firstSaveSeen = false
+    await page.route('**/painel/site/api', async (route) => {
+      if (route.request().method() === 'PUT' && !firstSaveSeen) {
+        firstSaveSeen = true
+        await firstSaveGate
+      }
+      await route.continue()
+    })
+
+    await finishChoice.click()
+    await expect.poll(() => firstSaveSeen).toBe(true)
+    await finishChoice.click()
+    await finishChoice.click()
+    await expect(finishChoice).not.toBeChecked()
+    releaseFirstSave?.()
+
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+    await expect(
+      page.locator('.site-editor-notice').filter({hasText: 'editado noutra janela'}),
+    ).toHaveCount(0)
+    await expect
+      .poll(() =>
+        page.evaluate(async () => {
+          const response = await fetch('/painel/site/api?document=storeProduct.editor-fixture')
+          const payload = (await response.json()) as {document?: {hasFinishChoice?: boolean}}
+          return payload.document?.hasFinishChoice
+        }),
+      )
+      .toBe(false)
+  })
+
   test('creates reusable sections on fixed and detail pages without losing live preview', async ({
     page,
   }, testInfo) => {
@@ -782,6 +1010,124 @@ test.describe('visual website editor', () => {
       .filter({hasText: 'Nome do produto'})
       .click()
     await expect(settings.getByRole('textbox', {name: 'Nome do produto'})).toBeVisible()
+  })
+
+  test('previews and publishes product-section title font and size from the appearance controls', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chrome', 'Product typography workflow runs once')
+    test.setTimeout(60_000)
+    const frame = await openEditor(page, testInfo)
+
+    await page.getByRole('button', {name: 'Abrir páginas e conteúdo'}).click()
+    const navigation = page.locator('.site-editor-drawer.is-navigation')
+    await navigation.getByRole('tab', {name: 'Conteúdo'}).click()
+    await navigation.getByRole('button', {name: 'Novo conteúdo'}).click()
+    const modal = page.locator('.site-editor-modal')
+    await modal.getByRole('button', {name: 'Produto', exact: true}).click()
+    await modal.getByLabel('Nome').fill('Produto com tipografia publicada')
+    await modal.getByRole('button', {name: 'Criar e editar'}).click()
+    await expect(modal).toHaveCount(0)
+    await expect(frame.getByTestId('fixture-created-page')).toBeVisible()
+
+    const documentId = await frame
+      .locator('html')
+      .evaluate(() => new URL(window.location.href).searchParams.get('document'))
+    expect(documentId).toBeTruthy()
+
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', {name: 'Abrir definições'}).click()
+    const settings = page.locator('.site-editor-drawer.is-settings')
+    await settings
+      .locator('.site-editor-panel-index > button')
+      .filter({hasText: 'Conteúdo da página'})
+      .click()
+    await settings.getByRole('button', {name: 'Adicionar secção'}).click()
+    await settings.getByRole('button', {name: /Texto com imagem ou vídeo/}).click()
+    await settings.getByLabel('Título').fill('Tipografia real do produto')
+    await settings.locator('.site-page-media-upload input[accept="image/*"]').first().setInputFiles({
+      name: 'produto-tipografia.png',
+      mimeType: 'image/png',
+      buffer: tinyPng,
+    })
+    await expect(settings.getByRole('status', {name: /Ficheiro pronto/})).toBeVisible()
+
+    const appearance = settings.locator('details.is-appearance')
+    await appearance.locator(':scope > summary').click()
+    const titleOptions = appearance
+      .locator('details.site-page-subdetails')
+      .filter({hasText: /^Título/})
+    await titleOptions.locator('summary').click()
+    await titleOptions.getByRole('combobox', {name: 'Fonte', exact: true}).selectOption('georgia')
+    await titleOptions
+      .getByRole('group', {name: 'Tamanho'})
+      .getByRole('button', {name: 'Destaque', exact: true})
+      .click()
+
+    const title = frame.locator('.product-content-copy h2').filter({hasText: 'Tipografia real do produto'})
+    await expect(title).toBeVisible()
+    await expect(title).toHaveCSS('font-family', /Georgia/)
+    await expect(title).toHaveCSS('font-size', '80px')
+
+    // Alignment travels the same path as font and size and was the one control
+    // of the three nobody checked, which is exactly the one reported as doing
+    // nothing. Asserted in the preview here and against the published page below.
+    await titleOptions
+      .getByRole('group', {name: 'Alinhamento'})
+      .getByRole('button', {name: 'Centro', exact: true})
+      .click()
+    await expect(title).toHaveCSS('text-align', 'center')
+
+    // Selecting the section in the preview must not take the styling back. The
+    // click re-posts the editor's document to the preview, so anything holding a
+    // staler copy of it shows up here as the choice silently reverting -- which
+    // is what was reported: set it, click it, watch it go back.
+    await settings.getByRole('button', {name: 'Fechar definições'}).click()
+    // The section shell, not the text: selecting a section re-posts the editor's
+    // document to the preview, and that is the click reported as taking the
+    // styling back. Clicking the heading goes through the field path instead and
+    // would not exercise it.
+    await frame.getByRole('button', {name: /^Editar /}).first().click()
+    await expect(title).toHaveCSS('text-align', 'center')
+    await expect(title).toHaveCSS('font-size', '80px')
+    await expect(title).toHaveCSS('font-family', /Georgia/)
+    await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
+    await expect
+      .poll(() =>
+        page.evaluate(async (id) => {
+          const response = await fetch(`/painel/site/api?document=${encodeURIComponent(id)}`)
+          const payload = (await response.json()) as {
+            document?: {
+              sections?: Array<{
+                title?: {pt?: string}
+                titleStyle?: {fontFamily?: string; fontSize?: {desktop?: number}}
+              }>
+            }
+          }
+          const section = payload.document?.sections?.find(
+            (candidate) => candidate.title?.pt === 'Tipografia real do produto',
+          )
+          return {
+            family: section?.titleStyle?.fontFamily,
+            size: section?.titleStyle?.fontSize?.desktop,
+          }
+        }, documentId!),
+      )
+      .toEqual({family: 'georgia', size: 80})
+
+    await page.getByRole('button', {name: 'Publicar', exact: true}).click()
+    await expect(page.locator('.site-editor-notice')).toContainText('Português publicado')
+    await expect(page.locator('.site-editor-publish-button')).toContainText('Publicado em PT')
+    await page.goto(
+      `/painel/site/e2e-preview?fixture=created&document=${encodeURIComponent(documentId!)}&published=1&lang=pt`,
+    )
+    const publishedTitle = page
+      .locator('.product-content-copy h2')
+      .filter({hasText: 'Tipografia real do produto'})
+    await expect(publishedTitle).toBeVisible()
+    await expect(publishedTitle).toHaveCSS('font-family', /Georgia/)
+    await expect(publishedTitle).toHaveCSS('font-size', '80px')
+    await expect(publishedTitle).toHaveCSS('text-align', 'center')
   })
 
   test('keeps undo history intact when editing again immediately after undo', async ({
@@ -1205,6 +1551,17 @@ test.describe('visual website editor', () => {
     await expect(frame.locator('.builder-responsive-title').first()).toHaveText(
       'Página com pré-visualização imediata',
     )
+    // The preview now paints its server-rendered content before the iframe has
+    // finished mounting, so seeing the title no longer means the boot marker
+    // exists yet. Wait for the marker itself: the assertion further down compares
+    // it to prove the preview updated without reloading, and that comparison is
+    // only meaningful once there is something to compare.
+    await expect
+      .poll(
+        async () => frame.locator('html').getAttribute('data-site-editor-fixture-boot'),
+        {timeout: 10_000},
+      )
+      .toBeTruthy()
     const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
     expect(bootId).toBeTruthy()
 
