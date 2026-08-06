@@ -1,5 +1,11 @@
 <script lang="ts">
-  import {activityActionLabels, fmtDateTime, roleLabels, roleTone} from '$lib/painel'
+  import {
+    activityActionLabel,
+    activityColumns,
+    fmtDateTime,
+    roleLabels,
+    roleTone,
+  } from '$lib/painel'
 
   let {data} = $props()
 
@@ -41,6 +47,7 @@
       <tbody>
         {#each data.activity as entry (entry.id)}
           {@const href = entityHref(entry.entityType, entry.entityId)}
+          {@const columns = activityColumns(entry)}
           <tr>
             <td data-label="Data/Hora" class="painel-mono">{fmtDateTime(entry.createdAt)}</td>
             <td data-label="Autor">
@@ -49,15 +56,15 @@
                 {roleLabels[entry.staffRole] ?? entry.staffRole}
               </span>
             </td>
-            <td data-label="Ação">{activityActionLabels[entry.action] ?? entry.action}</td>
+            <td data-label="Ação" title={entry.action}>{activityActionLabel(entry.action)}</td>
             <td data-label="Entidade">
               {#if href}
-                <a {href}>{entry.entityLabel || entry.entityId}</a>
+                <a {href}>{columns.entity}</a>
               {:else}
-                {entry.entityLabel || entry.entityId || '-'}
+                {columns.entity}
               {/if}
             </td>
-            <td data-label="Detalhe">{entry.detail || '-'}</td>
+            <td data-label="Detalhe">{columns.detail}</td>
           </tr>
         {/each}
       </tbody>

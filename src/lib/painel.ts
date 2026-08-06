@@ -142,6 +142,92 @@ export const siteDocumentTypeLabels: Record<string, string> = {
 export const siteDocumentTypeLabel = (type: string | undefined) =>
   (type && siteDocumentTypeLabels[type]) || 'Conteúdo'
 
+/**
+ * What kind of thing a row is about, for when the row cannot name the thing
+ * itself.
+ */
+const activityEntityTypeLabels: Record<string, string> = {
+  order: 'Encomenda',
+  submission: 'Pedido de contacto',
+  profile: 'Perfil de cliente',
+  staff: 'Conta de equipa',
+  siteDocument: 'Conteúdo do site',
+  settings: 'Definições',
+}
+
+const looksLikeIdentifier = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ||
+  /^(drafts\.)?[a-z]+[-.][A-Za-z0-9-]{8,}$/.test(value)
+
+/**
+ * The Entidade column, resolved at display time rather than trusted from the
+ * row. Fixing the call sites only fixes rows written afterwards; every row
+ * already in the table was recorded under the old scheme and still holds a bare
+ * UUID or a Sanity type name. The person reading this page cannot be asked to
+ * know what "productCategory" is, so nothing here is ever printed raw: an
+ * unusable value falls back to naming the kind of thing the row is about.
+ */
+export const activityEntityLabel = (entry: {
+  entityType: string
+  entityId: string | null
+  entityLabel: string
+}) => {
+  const label = entry.entityLabel?.trim() ?? ''
+  if (label) {
+    if (siteDocumentTypeLabels[label]) return siteDocumentTypeLabels[label]
+    if (!looksLikeIdentifier(label)) return label
+  }
+  return activityEntityTypeLabels[entry.entityType] ?? 'Registo'
+}
+
+/**
+ * Unknown actions are recorded as dotted keys like `order.status`. Showing that
+ * to the client is showing them the code, so an unmapped action says only that
+ * something was recorded; the raw key stays available as a tooltip for whoever
+ * is debugging it.
+ */
+export const activityActionLabel = (action: string) =>
+  activityActionLabels[action] ?? 'Registou uma alteração'
+
+const statusLabelsForAction: Record<string, Record<string, string>> = {
+  'order.status': orderStatusLabels,
+  'lead.status': submissionStatusLabels,
+  'profile.status': profileStatusLabels,
+}
+
+/**
+ * Both columns for a row, repaired together.
+ *
+ * The old scheme wrote the new status into Entidade and left Detalhe empty, so
+ * historical rows read "Alterou o estado do pedido / Em curso / —": nothing is
+ * in code, but the status is in the column that should name whose enquiry it
+ * was, and the column that should carry it is blank. Those rows are recognisable
+ * — a status action, an empty Detalhe, and an Entidade that is exactly one of
+ * that action's status labels — so the two values are put back in the right
+ * order for display. Nothing is rewritten in the database; the log is an audit
+ * trail and stays as recorded.
+ */
+export const activityColumns = (entry: {
+  action: string
+  entityType: string
+  entityId: string | null
+  entityLabel: string
+  detail: string
+}) => {
+  const detail = entry.detail?.trim() ?? ''
+  const label = entry.entityLabel?.trim() ?? ''
+  const statusLabels = statusLabelsForAction[entry.action]
+
+  if (!detail && label && statusLabels && Object.values(statusLabels).includes(label)) {
+    return {
+      entity: activityEntityLabel({...entry, entityLabel: ''}),
+      detail: label,
+    }
+  }
+
+  return {entity: activityEntityLabel(entry), detail: detail || '—'}
+}
+
 export const sourceLabel = (source: string) => {
   if (source === 'catalogue') return 'Catálogo'
   if (source === 'store') return 'Loja'
