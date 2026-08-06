@@ -519,6 +519,24 @@
     if (notifyParent) post({type: 'df4y:site-editor:clear-selection'})
   }
 
+  /**
+   * Applies only what the per-text appearance actually defines, and leaves every
+   * other property untouched.
+   *
+   * The section's own typography — the size, weight and alignment from the
+   * right-hand panel — is rendered into the same inline style this writes to, so
+   * whatever this function assigns overwrites it. Assigning '' for an undefined
+   * field does not mean "leave alone", it means "delete", which is why clicking a
+   * heading erased the section's alignment. Restoring a remembered value instead
+   * is just as wrong in the other direction: the remembered value goes stale the
+   * moment the panel changes, and writing it back undoes the change that was just
+   * made — the alignment control appearing to do nothing.
+   *
+   * Neither party can own the whole attribute, so this one writes strictly what
+   * it has and nothing else. An appearance that is cleared is corrected by the
+   * re-render that every appearance change already triggers, rather than by this
+   * function guessing what should be there.
+   */
   const applyAppearanceToElement = (
     element: HTMLElement,
     value: Appearance,
@@ -534,16 +552,23 @@
     const sizeProperty = `--cms-text-size-${targetViewport}`
     if (size >= 10 && size <= 120) element.style.setProperty(sizeProperty, `${size}px`)
     else element.style.removeProperty(sizeProperty)
-    element.style.fontFamily = cssFontFamily[String(value.fontFamily || '')] || ''
-    element.style.fontSize = size >= 10 && size <= 120 ? `${size}px` : ''
-    element.style.fontWeight = cssWeight[String(value.fontWeight || '')] || ''
-    element.style.fontStyle = value.fontStyle === 'italic' ? 'italic' : ''
-    element.style.textAlign = ['left', 'center', 'right'].includes(String(value.textAlign || ''))
-      ? String(value.textAlign)
-      : ''
-    element.style.lineHeight = cssLineHeight[String(value.lineHeight || '')] || ''
+
+    const set = (property: string, resolved: string) => {
+      if (resolved) element.style.setProperty(property, resolved)
+    }
+    set('font-family', cssFontFamily[String(value.fontFamily || '')] || '')
+    set('font-size', size >= 10 && size <= 120 ? `${size}px` : '')
+    set('font-weight', cssWeight[String(value.fontWeight || '')] || '')
+    set('font-style', value.fontStyle === 'italic' ? 'italic' : '')
+    set(
+      'text-align',
+      ['left', 'center', 'right'].includes(String(value.textAlign || ''))
+        ? String(value.textAlign)
+        : '',
+    )
+    set('line-height', cssLineHeight[String(value.lineHeight || '')] || '')
     const color = typeof value.color === 'string' ? value.color : ''
-    element.style.color = cssColor[color] || (/^#[0-9a-f]{6}$/i.test(color) ? color : '')
+    set('color', cssColor[color] || (/^#[0-9a-f]{6}$/i.test(color) ? color : ''))
   }
 
   const applyAppearance = () => {
