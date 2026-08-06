@@ -1077,6 +1077,20 @@ test.describe('visual website editor', () => {
       .getByRole('button', {name: 'Centro', exact: true})
       .click()
     await expect(title).toHaveCSS('text-align', 'center')
+
+    // Selecting the section in the preview must not take the styling back. The
+    // click re-posts the editor's document to the preview, so anything holding a
+    // staler copy of it shows up here as the choice silently reverting -- which
+    // is what was reported: set it, click it, watch it go back.
+    await settings.getByRole('button', {name: 'Fechar definições'}).click()
+    // The section shell, not the text: selecting a section re-posts the editor's
+    // document to the preview, and that is the click reported as taking the
+    // styling back. Clicking the heading goes through the field path instead and
+    // would not exercise it.
+    await frame.getByRole('button', {name: /^Editar /}).first().click()
+    await expect(title).toHaveCSS('text-align', 'center')
+    await expect(title).toHaveCSS('font-size', '80px')
+    await expect(title).toHaveCSS('font-family', /Georgia/)
     await expect(page.locator('.site-editor-top-save')).toContainText('Guardado automaticamente')
     await expect
       .poll(() =>
