@@ -7475,8 +7475,17 @@ html.reduce-motion .intro-overlay {
   display: none !important;
 }
 /* CMS text overrides use fixed breakpoints so typography remains predictable. */
+/* Text the client controls the size of, so it has to survive a size the layout
+   was never designed around. Raising a title far enough produces a single word
+   wider than the card holding it — "Composteira" at 96px needs 356px inside a
+   346px content box — and with overflow-wrap at its default the word cannot
+   break, so it runs past the edge and .product-content-copy's overflow:hidden
+   cuts it off mid-letter. The card cannot widen, since its column is fixed, so
+   the word has to break and let the card grow taller instead. This only takes
+   effect when a word genuinely does not fit, so nothing else moves. */
 .cms-styled-text {
   white-space: pre-line;
+  overflow-wrap: break-word;
 }
 
 .cms-styled-text[style*='--cms-text-size-desktop'] {

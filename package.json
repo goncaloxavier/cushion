@@ -51,7 +51,8 @@
     "deploy:content": "npm run seed:studio && npm run import:cases && npm run import:blog && npm run import:products",
     "deploy:studio": "sanity deploy",
     "deploy-graphql": "sanity graphql deploy",
-    "prepare": "svelte-kit sync || true"
+    "prepare": "svelte-kit sync || true",
+    "sheet": "playwright test tests/visual-section-sheet.spec.ts --project=desktop-chrome --workers=1"
   },
   "keywords": [
     "sanity"
