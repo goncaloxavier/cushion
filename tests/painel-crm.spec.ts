@@ -146,6 +146,17 @@ test.describe('painel leads and profiles', () => {
       )
       expect(storedStatus.rows[0]!.status).toBe('customer')
 
+      // A change log has to say what it changed from. The lead went from Novo to
+      // Em acompanhamento and the profile from Novo to Cliente, and the row that
+      // records it should read as that movement rather than as a destination.
+      await page.goto('/painel/atividade')
+      await expect(
+        page.locator('td[data-label="Detalhe"]').filter({hasText: 'Novo → Em acompanhamento'}).first(),
+      ).toBeVisible()
+      await expect(
+        page.locator('td[data-label="Detalhe"]').filter({hasText: 'Novo → Cliente'}).first(),
+      ).toBeVisible()
+
       // Every row of the activity log names the person or thing acted on in the
       // Entidade column and what changed in Detalhe. Both were being filled by
       // whichever value the call site happened to pass: the new status went into

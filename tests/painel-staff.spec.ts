@@ -124,6 +124,16 @@ test.describe('painel staff administration', () => {
       await expect(page.getByRole('button', {name: 'Reativar conta'})).toBeVisible()
       expect(await authenticateStaff(createdUser, rotatedPassword)).toBeNull()
 
+      // The staff rows record the movement too: a promotion and a revocation are
+      // exactly the events someone reads this log to reconstruct.
+      await page.goto('/painel/atividade')
+      await expect(
+        page.locator('td[data-label="Detalhe"]').filter({hasText: 'Equipa → Administrador'}).first(),
+      ).toBeVisible()
+      await expect(
+        page.locator('td[data-label="Detalhe"]').filter({hasText: 'Ativa → Desativada'}).first(),
+      ).toBeVisible()
+
       // A non-admin is refused the page itself, not merely the actions on it.
       const plainSession = await createStaffSession(plain.id, {
         ipHash: 'equipa-ip',

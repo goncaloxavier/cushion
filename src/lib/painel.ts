@@ -189,6 +189,21 @@ export const activityEntityLabel = (entry: {
 export const activityActionLabel = (action: string) =>
   activityActionLabels[action] ?? 'Registou uma alteração'
 
+/**
+ * A change, written as the change it was. "Pago" alone tells the reader the
+ * state it landed in and nothing about what was undone, which is the half of an
+ * audit trail that matters when someone is working out what happened.
+ *
+ * Rows recorded before this carry only the new value, and the previous one is
+ * not recoverable, so those keep reading as a single state.
+ */
+export const changeDetail = (from: string | undefined, to: string) => {
+  const before = from?.trim()
+  const after = to.trim()
+  if (!before || before === after) return after
+  return `${before} → ${after}`
+}
+
 const statusLabelsForAction: Record<string, Record<string, string>> = {
   'order.status': orderStatusLabels,
   'lead.status': submissionStatusLabels,

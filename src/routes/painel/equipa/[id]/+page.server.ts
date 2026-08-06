@@ -9,7 +9,7 @@ import {
   type StaffMutationError,
 } from '$lib/server/staff-auth'
 import {logStaffActivity} from '$lib/server/staff-activity'
-import {roleLabels} from '$lib/painel'
+import {changeDetail, roleLabels} from '$lib/painel'
 import type {Actions, PageServerLoad} from './$types'
 
 const csrfCookieName = 'df4y_painel_csrf'
@@ -50,7 +50,7 @@ export const actions: Actions = {
       entityType: 'staff',
       entityId: params.id,
       entityLabel: member ? `${member.name} (@${member.username})` : params.id,
-      detail: roleLabels[role],
+      detail: changeDetail(member ? roleLabels[member.role] : undefined, roleLabels[role]),
     })
     return {ok: true}
   },
@@ -78,7 +78,10 @@ export const actions: Actions = {
       entityType: 'staff',
       entityId: params.id,
       entityLabel: member ? `${member.name} (@${member.username})` : params.id,
-      detail: active ? 'Reativada' : 'Desativada',
+      detail: changeDetail(
+        member ? (member.active ? 'Ativa' : 'Desativada') : undefined,
+        active ? 'Ativa' : 'Desativada',
+      ),
     })
     return {ok: true}
   },

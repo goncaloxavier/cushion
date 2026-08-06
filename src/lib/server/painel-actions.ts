@@ -1,6 +1,12 @@
 import {fail, type Action, type RequestEvent} from '@sveltejs/kit'
 import {canManageStaff} from '$lib/server/staff-auth'
-import {profileStatusLabels, submissionStatusLabels, type ProfileStatus, type SubmissionStatus} from '$lib/painel'
+import {
+  changeDetail,
+  profileStatusLabels,
+  submissionStatusLabels,
+  type ProfileStatus,
+  type SubmissionStatus,
+} from '$lib/painel'
 import {
   appendProfileNote,
   appendSubmissionNote,
@@ -59,19 +65,22 @@ const setSubmissionStatusAction: Action = async (event) => {
   const id = String(data.get('id') ?? '')
   const status = String(data.get('status') ?? '') as SubmissionStatus
   if (id) {
-    await setSubmissionStatus(id, status)
-    // Entidade names the person the lead came from; Detalhe says what changed.
-    // The status was being written into Entidade with Detalhe left empty, so a
-    // row read "Alterou o estado do pedido / Em curso / -" and never said whose
-    // enquiry it was.
+    // Read before writing, or the previous status is gone. Entidade names the
+    // person the lead came from; Detalhe says what changed. The status used to
+    // go into Entidade with Detalhe left empty, so a row said which state it
+    // reached and never whose enquiry it was.
     const submission = await getSubmission(id)
+    await setSubmissionStatus(id, status)
     await logStaffActivity({
       staff: event.locals.staff!,
       action: 'lead.status',
       entityType: 'submission',
       entityId: id,
       entityLabel: submissionLabel(submission, id),
-      detail: submissionStatusLabels[status] ?? status,
+      detail: changeDetail(
+        submission ? submissionStatusLabels[submission.status] : undefined,
+        submissionStatusLabels[status] ?? status,
+      ),
     })
   }
   return {ok: true}
@@ -110,15 +119,18 @@ const setProfileStatusAction: Action = async (event) => {
   const id = String(data.get('id') ?? '')
   const status = String(data.get('status') ?? '') as ProfileStatus
   if (id) {
-    await setProfileStatus(id, status)
     const profile = await getProfile(id)
+    await setProfileStatus(id, status)
     await logStaffActivity({
       staff: event.locals.staff!,
       action: 'profile.status',
       entityType: 'profile',
       entityId: id,
       entityLabel: personLabel(profile?.name, profile?.email, id),
-      detail: profileStatusLabels[status] ?? status,
+      detail: changeDetail(
+        profile ? profileStatusLabels[profile.status] : undefined,
+        profileStatusLabels[status] ?? status,
+      ),
     })
   }
   return {ok: true}

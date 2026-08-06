@@ -1,7 +1,7 @@
 import {error, fail} from '@sveltejs/kit'
 import {appendOrderNote, getOrderDetail, setOrderStatus} from '$lib/server/orders'
 import {canManageStaff} from '$lib/server/staff-auth'
-import {orderStatusLabels, orderStatuses} from '$lib/painel'
+import {changeDetail, orderStatusLabels, orderStatuses} from '$lib/painel'
 import {csrfOk, sameOriginOk} from '$lib/server/form-guard'
 import {logStaffActivity} from '$lib/server/staff-activity'
 import type {Actions, PageServerLoad} from './$types'
@@ -29,19 +29,23 @@ export const actions: Actions = {
     }
     const status = String(data.get('status') ?? '')
     if (orderStatuses.includes(status as (typeof orderStatuses)[number])) {
+      // Read before writing: afterwards the previous status is gone, and a
+      // change log that cannot say what was undone is only half a record.
+      // Entidade names what was acted on, Detalhe says what changed -- this used
+      // to put the new status in Entidade and leave Detalhe empty, so a row read
+      // "Alterou o estado da encomenda / Pago / -" and never said which one.
+      const before = await getOrderDetail(params.id)
       await setOrderStatus(params.id, status, locals.staff.username)
-      // Entidade names what was acted on; Detalhe says what changed. This put
-      // the new status in Entidade and left Detalhe empty, so the activity log
-      // read "Alterou o estado da encomenda / Pago / -" with nothing anywhere
-      // to say which encomenda.
-      const order = await getOrderDetail(params.id)
       await logStaffActivity({
         staff: locals.staff,
         action: 'order.status',
         entityType: 'order',
         entityId: params.id,
-        entityLabel: order ? `Encomenda ${order.orderNumber}` : params.id,
-        detail: orderStatusLabels[status as (typeof orderStatuses)[number]] ?? status,
+        entityLabel: before ? `Encomenda ${before.orderNumber}` : params.id,
+        detail: changeDetail(
+          before ? orderStatusLabels[before.status] : undefined,
+          orderStatusLabels[status as (typeof orderStatuses)[number]] ?? status,
+        ),
       })
     }
   },
