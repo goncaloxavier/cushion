@@ -72,8 +72,13 @@
     onpagechange?: (page: BuilderPage | SitePageDocument) => void
   }>()
 
-  let currentPage = $state<BuilderPage | SitePageDocument | null>(null)
-  let currentSettings = $state<BuilderSiteSettings | null>(null)
+  // Initialised from the props rather than left null for the effects below to
+  // fill in. Effects run after the first render, so starting at null painted
+  // "A preparar a página…" on every single load before replacing it with content
+  // that was already in hand — a stall the client could see on every reload,
+  // waiting for nothing. The effects still own every later update.
+  let currentPage = $state<BuilderPage | SitePageDocument | null>(page ?? null)
+  let currentSettings = $state<BuilderSiteSettings | null>(settings ?? null)
   let selectedSectionKey = $state<string>()
   let hasLivePageState = $state(false)
 

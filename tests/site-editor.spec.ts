@@ -1527,6 +1527,17 @@ test.describe('visual website editor', () => {
     await expect(frame.locator('.builder-responsive-title').first()).toHaveText(
       'Página com pré-visualização imediata',
     )
+    // The preview now paints its server-rendered content before the iframe has
+    // finished mounting, so seeing the title no longer means the boot marker
+    // exists yet. Wait for the marker itself: the assertion further down compares
+    // it to prove the preview updated without reloading, and that comparison is
+    // only meaningful once there is something to compare.
+    await expect
+      .poll(
+        async () => frame.locator('html').getAttribute('data-site-editor-fixture-boot'),
+        {timeout: 10_000},
+      )
+      .toBeTruthy()
     const bootId = await frame.locator('html').getAttribute('data-site-editor-fixture-boot')
     expect(bootId).toBeTruthy()
 
